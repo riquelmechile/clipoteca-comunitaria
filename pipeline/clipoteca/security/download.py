@@ -1,0 +1,102 @@
+"""Stream real video bytes into generated temporary files with strict caps."""
+
+from __future__ import annotations
+
+import os
+import tempfile
+from pathlib import Path
+from urllib.parse import urljoin
+
+import httpx
+
+from .ssrf import UnsafeMediaURL, validate_public_url
+
+MAX_DOWNLOAD_BYTES = 350 * 1024 * 1024
+VIDEO_TYPES = {
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+    "application/ogg",
+    "application/octet-stream",
+}
+
+
+class DownloadError(RuntimeError):
+    pass
+
+
+def _magic_ok(data: bytes) -> bool:
+    return (
+        (len(data) >= 12 and data[4:8] == b"ftyp")
+        or data.startswith(bytes.fromhex("1a45dfa3"))
+        or data.startswith(b"OggS")
+    )
+
+
+async def download_media(
+    url: str,
+    target_dir: Path,
+    *,
+    max_bytes: int = MAX_DOWNLOAD_BYTES,
+    client: httpx.AsyncClient | None = None,
+    resolver=None,
+    max_redirects: int = 4,
+) -> Path:
+    if max_bytes < 1:
+        raise ValueError("max_bytes must be positive")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    own_client = client is None
+    client = client or httpx.AsyncClient(
+        timeout=httpx.Timeout(40, connect=10, read=25),
+        follow_redirects=False,
+    )
+    fd, name = tempfile.mkstemp(prefix="clipoteca-download-", suffix=".bin", dir=target_dir)
+    target = Path(name)
+    os.close(fd)
+    successful = False
+    try:
+        current = url
+        for hop in range(max_redirects + 1):
+            await validate_public_url(current, resolver=resolver)
+            async with client.stream("GET", current, follow_redirects=False) as response:
+                if response.status_code in {301, 302, 303, 307, 308}:
+                    location = response.headers.get("location")
+                    if not location or hop >= max_redirects:
+                        raise DownloadError("invalid or excessive redirect chain")
+                    current = urljoin(current, location)
+                    continue
+                if response.status_code != 200:
+                    raise DownloadError(f"HTTP {response.status_code}")
+                length = response.headers.get("content-length")
+                if length:
+                    try:
+                        declared = int(length)
+                    except ValueError as exc:
+                        raise DownloadError("invalid Content-Length") from exc
+                    if declared > max_bytes:
+                        raise DownloadError("declared media size exceeds limit")
+                kind = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+                if kind not in VIDEO_TYPES:
+                    raise DownloadError("not a video MIME type")
+                total = 0
+                header = b""
+                with target.open("wb") as file:
+                    async for chunk in response.aiter_bytes(chunk_size=1024 * 1024):
+                        total += len(chunk)
+                        if total > max_bytes:
+                            raise DownloadError("streamed media size exceeds limit")
+                        if len(header) < 12:
+                            header += chunk[: 12 - len(header)]
+                        file.write(chunk)
+                if total == 0 or not _magic_ok(header):
+                    raise DownloadError("response is not a recognized media container")
+                successful = True
+                return target
+        raise DownloadError("exhausted redirect limit")
+    except (httpx.HTTPError, UnsafeMediaURL) as exc:
+        raise DownloadError(f"media fetch rejected: {type(exc).__name__}") from exc
+    finally:
+        if not successful:
+            target.unlink(missing_ok=True)
+        if own_client:
+            await client.aclose()

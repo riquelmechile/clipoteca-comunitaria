@@ -31,7 +31,10 @@ def normalize_media(
     *,
     timeout: float = 180,
     threads: int = 2,
+    max_duration_seconds: float = 20,
 ) -> NormalizeResult:
+    if not 0 < max_duration_seconds <= 20:
+        raise ValueError("max_duration_seconds must be in (0, 20]")
     input_path, output_path = Path(source), Path(destination)
     if input_path.resolve() == output_path.resolve():
         raise ValueError("source and destination must be different files")
@@ -54,7 +57,7 @@ def normalize_media(
         "-i",
         str(input_path),
         "-t",
-        "20",
+        str(max_duration_seconds),
         "-map",
         "0:v:0",
         "-map",
@@ -91,7 +94,7 @@ def normalize_media(
         or result.width % 2
         or result.height % 2
         or result.fps > 60
-        or result.duration_seconds > 20
+        or result.duration_seconds > max_duration_seconds
     ):
         output_path.unlink(missing_ok=True)
         raise NormalizeError("ffmpeg output violated media schema constraints")
