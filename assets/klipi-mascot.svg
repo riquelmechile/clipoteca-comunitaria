@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 385" role="img" aria-labelledby="title desc"><title id="title">Klipi — mascota de Clipoteca</title><desc id="desc">Un fotograma turquesa amistoso con ojos, antena y una lupa que contiene un botón de reproducción; representa la búsqueda comunitaria de videos.</desc><defs><linearGradient id="frameGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#67F5CF"/><stop offset=".55" stop-color="#47D8C5"/><stop offset="1" stop-color="#5A9EF2"/></linearGradient><linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B1731"/><stop offset=".6" stop-color="#162D52"/><stop offset="1" stop-color="#12203B"/></linearGradient></defs>
+<g stroke-linecap="round" stroke-linejoin="round">
+  <ellipse cx="192" cy="339" rx="116" ry="15" fill="#031329" opacity=".25"/>
+  <path d="M158 290l-8 33M245 290l9 33" fill="none" stroke="#0C2444" stroke-width="17"/>
+  <path d="M136 329h40M235 329h40" stroke="#0C2444" stroke-width="17"/>
+  <path d="M77 220l-27 21M303 213l27 23" fill="none" stroke="#0C2444" stroke-width="16"/>
+  <path d="M200 71V42" stroke="#0C2444" stroke-width="11"/>
+  <circle cx="200" cy="31" r="14" fill="#FFB571" stroke="#0C2444" stroke-width="8"/>
+  <rect x="66" y="67" width="239" height="242" rx="61" fill="url(#frameGradient)" stroke="#0C2444" stroke-width="11"/>
+  <path d="M94 92c26-14 81-13 92-13" fill="none" stroke="#FFFFFF" stroke-width="10" opacity=".24"/>
+  <rect x="126" y="111" width="153" height="143" rx="41" fill="#E4FFF5" stroke="#0C2444" stroke-width="9"/>
+  <rect x="85" y="119" width="22" height="27" rx="8" fill="#0C2444"/>
+  <rect x="85" y="169" width="22" height="27" rx="8" fill="#0C2444"/>
+  <rect x="85" y="219" width="22" height="27" rx="8" fill="#0C2444"/>
+  <path d="M149 155c7-10 18-13 27-9M222 146c10-4 20-1 27 8" fill="none" stroke="#18375A" stroke-width="6"/>
+  <ellipse cx="171" cy="180" rx="11" ry="15" fill="#0C2444"/>
+  <ellipse cx="235" cy="180" rx="11" ry="15" fill="#0C2444"/>
+  <circle cx="174" cy="174" r="3.5" fill="#fff"/>
+  <circle cx="238" cy="174" r="3.5" fill="#fff"/>
+  <circle cx="151" cy="205" r="11" fill="#FFB4A9" opacity=".75"/>
+  <circle cx="256" cy="205" r="11" fill="#FFB4A9" opacity=".75"/>
+  <path d="M183 211q19 19 39 0" fill="none" stroke="#143151" stroke-width="7"/>
+  <rect x="157" y="268" width="92" height="25" rx="12.5" fill="#0C2444" opacity=".76"/>
+  <path d="M198 273l16 7-16 8z" fill="#FFDB8B"/>
+  <circle cx="317" cy="239" r="34" fill="#121F40" stroke="#FFBA70" stroke-width="12"/>
+  <circle cx="317" cy="239" r="20" fill="#8BDEEB" opacity=".28"/>
+  <path d="M309 228l17 11-17 11z" fill="#E4FFF5"/>
+  <path d="M336 261l18 20" stroke="#FFBA70" stroke-width="11"/>
+  <path d="M52 232l-8 11M328 67l-7 13M336 79l-14-8" stroke="#E2FFF8" stroke-width="7"/>
+</g></svg>
