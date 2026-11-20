@@ -67,6 +67,7 @@ El roadmap tiene **11 hitos, de M0 a M10**: estructura inicial, catálogo y Rele
 | [Contratos REST/MCP](docs/CONTRATOS_API_MCP.md) | Interfaces y metadatos previstos |
 | [Roadmap](docs/ROADMAP.md) | Hitos, pruebas y condiciones de cierre |
 | [QA y operación](docs/QA_OPERACION.md) | Verificación, controles y costos |
+| [Especificación completa](docs/ESPECIFICACION_COMPLETA.md) | Documento integral original, conservado sin cambios de contenido |
 | [Identidad visual](docs/IDENTIDAD.md) | Mascota Klipi, paleta y SVG |
 
 ## Conoce a Klipi
