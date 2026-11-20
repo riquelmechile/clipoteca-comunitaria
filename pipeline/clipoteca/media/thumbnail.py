@@ -12,9 +12,7 @@ class ThumbnailError(RuntimeError):
     pass
 
 
-def create_thumbnail(
-    source: str | Path, destination: str | Path, *, timeout: float = 45
-) -> Path:
+def create_thumbnail(source: str | Path, destination: str | Path, *, timeout: float = 45) -> Path:
     input_path, output_path = Path(source), Path(destination)
     if output_path.suffix.lower() != ".webp":
         raise ValueError("thumbnail destination must end in .webp")
@@ -40,9 +38,7 @@ def create_thumbnail(
         str(output_path),
     ]
     try:
-        subprocess.run(
-            command, capture_output=True, text=True, timeout=timeout, check=True
-        )
+        subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True)
     except (subprocess.SubprocessError, OSError) as exc:
         output_path.unlink(missing_ok=True)
         raise ThumbnailError("failed to generate thumbnail") from exc

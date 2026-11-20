@@ -75,9 +75,7 @@ def normalize_media(
         str(output_path),
     ]
     try:
-        subprocess.run(
-            command, capture_output=True, text=True, timeout=timeout, check=True
-        )
+        subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True)
         result = probe_media(output_path, timeout=min(timeout, 30))
     except (subprocess.SubprocessError, OSError) as exc:
         output_path.unlink(missing_ok=True)

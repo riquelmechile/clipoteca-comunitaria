@@ -45,9 +45,7 @@ def perceptual_hash(path: str | Path, *, frames: int = 5, timeout: float = 60) -
             str(frames),
             str(pattern),
         ]
-        subprocess.run(
-            command, capture_output=True, text=True, timeout=timeout, check=True
-        )
+        subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True)
         files = sorted(Path(directory).glob("frame-*.png"))
         if not files:
             raise RuntimeError("no frames available for perceptual hash")

@@ -65,14 +65,10 @@ def parse_probe(payload: dict[str, Any], path: Path) -> MediaProbe:
     average = _fraction(video.get("avg_frame_rate"))
     nominal = _fraction(video.get("r_frame_rate"))
     fps = average or nominal
-    duration = float(
-        video.get("duration") or payload.get("format", {}).get("duration") or 0
-    )
+    duration = float(video.get("duration") or payload.get("format", {}).get("duration") or 0)
     format_names = str(payload.get("format", {}).get("format_name", "")).split(",")
     suffix = path.suffix.lstrip(".").lower()
-    format_name = (
-        "mp4" if suffix == "mp4" and "mp4" in format_names else format_names[0]
-    )
+    format_name = "mp4" if suffix == "mp4" and "mp4" in format_names else format_names[0]
     orientation = classify_orientation(width, height)
     return MediaProbe(
         width=width,
