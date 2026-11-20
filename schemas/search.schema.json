@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipoteca.example/schemas/search.schema.json",
+  "title": "Search request or response",
+  "oneOf": [
+    {"type": "object", "additionalProperties": false, "required": ["query"], "properties": {"query": {"type": "string", "minLength": 1}, "filters": {"$ref": "#/$defs/filters"}}},
+    {"type": "object", "additionalProperties": false, "required": ["clips", "next_cursor"], "properties": {"clips": {"type": "array", "items": {"$ref": "clip.schema.json"}}, "next_cursor": {"type": ["string", "null"]}, "request_id": {"type": "string"}, "status": {"enum": ["published", "queued", "processing"]}}}
+  ],
+  "$defs": {"filters": {"type": "object", "additionalProperties": false, "properties": {"aspect_ratio": {"enum": ["9:16", "16:9", "1:1", "other"]}, "max_duration": {"type": "number", "exclusiveMinimum": 0, "maximum": 20}, "min_width": {"type": "integer", "minimum": 1}, "fps": {"type": "number", "exclusiveMinimum": 0}, "source": {"type": "string"}, "language": {"type": "string"}, "has_audio": {"type": "boolean"}, "limit": {"type": "integer", "minimum": 1, "maximum": 100}, "cursor": {"type": "string"}, "import_if_missing": {"type": "boolean"}}}}
+}

@@ -1,0 +1,51 @@
+openapi: 3.1.0
+info:
+  title: Clipoteca Comunitaria API
+  version: 0.1.0
+paths:
+  /v1/health:
+    get:
+      operationId: health
+      responses: {"200": {description: Healthy}}
+  /v1/clips:
+    get:
+      operationId: listClips
+      parameters:
+        - {name: q, in: query, schema: {type: string}}
+        - {name: aspect_ratio, in: query, schema: {type: string, enum: ["9:16", "16:9", "1:1", other]}}
+      responses: {"200": {description: Catalog results}}
+  /v1/clips/{id}:
+    get:
+      operationId: getClip
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {"200": {description: Clip}, "404": {description: Not found}}
+  /v1/clips/{id}/download:
+    get:
+      operationId: downloadClip
+      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
+      responses: {"302": {description: Redirect to GitHub Release asset}, "404": {description: Not found}}
+  /v1/search:
+    post:
+      operationId: search
+      security: [{writeToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: ../schemas/search.schema.json}}}}
+      responses: {"200": {description: Existing results}, "202": {description: External search queued}}
+  /v1/jobs/{request_id}:
+    get:
+      operationId: getJob
+      parameters: [{name: request_id, in: path, required: true, schema: {type: string}}]
+      responses: {"200": {description: Job status}, "404": {description: Not found}}
+  /v1/import:
+    post:
+      operationId: importClip
+      security: [{writeToken: []}]
+      responses: {"202": {description: Import queued}}
+  /v1/contributions:
+    post:
+      operationId: contribute
+      security: [{writeToken: []}]
+      responses: {"202": {description: Contribution queued}}
+components:
+  securitySchemes:
+    writeToken: {type: http, scheme: bearer}
+

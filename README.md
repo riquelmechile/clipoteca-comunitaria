@@ -14,7 +14,7 @@
 
 ---
 
-> **Estado: documentación y diseño publicados.** La API, el MCP, la búsqueda externa y la ingesta de videos **todavía no están implementados ni desplegados**.
+> **Estado: M0 en implementación.** La estructura Python/TypeScript, los contratos y la ruta `/v1/health` ya existen; la búsqueda externa, la ingesta y el MCP remoto todavía no están implementados ni desplegados.
 
 ## La idea
 
