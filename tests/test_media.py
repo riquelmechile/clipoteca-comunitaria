@@ -152,3 +152,140 @@ def test_corrupt_file_fails_explicitly(tmp_path: Path):
         probe_media(source)
     with pytest.raises((ProbeError, NormalizeError)):
         normalize_media(source, tmp_path / "out.mp4")
+
+
+def test_real_rotation_from_mov_display_matrix(tmp_path: Path):
+    source = tmp_path / "plain.mp4"
+    rotated = tmp_path / "rotated.mov"
+    ffmpeg(
+        "-f", "lavfi", "-i", "color=size=320x180:rate=5:duration=1", "-c:v", "libx264", str(source)
+    )
+    try:
+        ffmpeg("-display_rotation", "90", "-i", str(source), "-c", "copy", str(rotated))
+    except subprocess.CalledProcessError:
+        # Some distro builds do not include the input display-rotation option.
+        pytest.skip("ffmpeg build lacks -display_rotation support")
+    observed = probe_media(rotated)
+    if not observed.rotation:
+        pytest.skip("ffmpeg container muxer did not preserve display matrix")
+    assert observed.rotation in {90, 270}
+    assert (observed.width, observed.height) == (180, 320)
+    assert observed.aspect_ratio == "9:16"
+
+
+def test_sample_aspect_ratio_for_anamorphic_source(tmp_path: Path):
+    payload = {
+        "streams": [
+            {
+                "codec_type": "video",
+                "codec_name": "h264",
+                "width": 720,
+                "height": 576,
+                "sample_aspect_ratio": "64:45",
+                "avg_frame_rate": "25/1",
+            }
+        ],
+        "format": {"format_name": "mp4", "duration": 1, "size": 1024},
+    }
+    path = tmp_path / "anamorphic.mp4"
+    path.touch()
+    parsed = parse_probe(payload, path)
+    assert parsed.aspect_ratio == "16:9"
+    assert (parsed.width, parsed.height) == (720, 576)
+    assert (parsed.display_width, parsed.display_height) == (1024, 576)
+
+
+def test_source_destination_alias_rejected_before_cleanup(tmp_path: Path):
+    source = tmp_path / "original.mp4"
+    source.write_bytes(b"do-not-delete")
+    with pytest.raises(ValueError, match="different"):
+        normalize_media(source, source)
+    assert source.read_bytes() == b"do-not-delete"
+    alias = tmp_path / "alias.mp4"
+    alias.symlink_to(source)
+    with pytest.raises(ValueError, match="different"):
+        normalize_media(source, alias)
+    assert source.exists()
+
+
+def test_normalized_no_upscale_120fps_and_audio(tmp_path: Path):
+    source = tmp_path / "fast.mp4"
+    ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=320x180:rate=120:duration=1",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=1",
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "aac",
+        "-shortest",
+        str(source),
+    )
+    result = normalize_media(source, tmp_path / "result.mp4")
+    assert (result.media.width, result.media.height) == (320, 180)
+    assert result.media.fps <= 60
+    assert result.media.has_audio
+    assert result.media.pix_fmt == "yuv420p"
+    assert result.media.duration_seconds <= 20
+
+
+def test_fractional_rate_preserved(tmp_path: Path):
+    source = tmp_path / "ntsc.mp4"
+    ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=320x180:rate=30000/1001:duration=1",
+        "-c:v",
+        "libx264",
+        str(source),
+    )
+    result = normalize_media(source, tmp_path / "converted.mp4")
+    assert result.media.fps == pytest.approx(30000 / 1001, abs=0.001)
+    assert result.media.fps_fraction == "30000/1001"
+
+
+def test_uniform_phash_rejected(tmp_path: Path):
+    source = tmp_path / "uniform.mp4"
+    ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=blue:size=320x180:rate=5:duration=1",
+        "-c:v",
+        "libx264",
+        str(source),
+    )
+    fingerprint = perceptual_hash(source, frames=2)
+    assert not perceptually_similar(fingerprint, fingerprint)
+
+
+def test_h265_if_supported(tmp_path: Path):
+    available = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-encoders"],
+        capture_output=True,
+        text=True,
+    ).stdout
+    if "libx265" not in available:
+        pytest.skip("ffmpeg runner does not support libx265")
+    source = tmp_path / "hevc.mp4"
+    ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "color=size=160x90:rate=12:duration=0.5",
+        "-c:v",
+        "libx265",
+        "-threads",
+        "2",
+        "-x265-params",
+        "pools=1:log-level=error",
+        str(source),
+    )
+    result = normalize_media(source, tmp_path / "converted.mp4")
+    assert result.media.codec == "h264"
