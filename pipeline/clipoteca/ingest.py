@@ -1,0 +1,217 @@
+"""Actions-only asynchronous ingestion: source → verified Releases → catalogue."""
+
+from __future__ import annotations
+
+import tempfile
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
+from pathlib import Path
+from typing import Awaitable, Callable, Sequence
+
+from .catalog import DuplicateClip, GitHubCatalogWriter, IdentityCollision
+from .engine import SearchEngine
+from .jobs import STATUSES, JobStore, new_job, request_id
+from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
+from .media.normalize import normalize_media
+from .media.thumbnail import create_thumbnail
+from .metadata import localize_candidate
+from .metrics import discovery_metrics, write_metrics
+from .providers.base import Adapter
+from .security.download import download_media
+from .storage.github import GitHubReleaseStorage, StorageError
+
+
+@dataclass(frozen=True)
+class IngestReport:
+    request_id: str
+    status: str
+    published_ids: tuple[str, ...]
+    errors: tuple[str, ...]
+
+
+async def ingest(
+    query: str,
+    adapters: Sequence[Adapter],
+    *,
+    repository: str,
+    token: str,
+    job_root: Path = Path("data/jobs"),
+    max_results: int = 3,
+    concurrency: int = 4,
+    filters: dict | None = None,
+    horizon: str = "v1",
+    writer: GitHubCatalogWriter | None = None,
+    storage: GitHubReleaseStorage | None = None,
+    downloader: Callable[[str, Path], Awaitable[Path]] | None = None,
+    translator=None,
+) -> IngestReport:
+    if concurrency < 1 or concurrency > 16:
+        raise ValueError("concurrency must be 1..16")
+    if max_results < 1 or max_results > 50:
+        raise ValueError("max_results must be 1..50")
+    rid = request_id(query, filters or {}, horizon)
+    jobs = JobStore(job_root)
+    existing = jobs.load(rid)
+    if existing and existing["status"] == "published":
+        return IngestReport(rid, "duplicate", (), ())
+    job = existing or new_job(rid)
+    if job["status"] in {"failed", "duplicate", "no_results", "unavailable", "rate_limited"}:
+        return IngestReport(rid, job["status"], (), ())
+    writer = writer or GitHubCatalogWriter(repository, token)
+    own_storage = storage is None
+    storage = storage or GitHubReleaseStorage(repository, token=token)
+    errors: list[str] = []
+    ids: list[str] = []
+
+    def advance(stage: str) -> None:
+        if STATUSES.index(stage) > STATUSES.index(job["status"]):
+            job["status"] = stage
+        jobs.save(job)
+
+    try:
+        advance("searching")
+        catalogue, _ = writer.read_catalog()
+        search = await SearchEngine(adapters, concurrency=concurrency).search(
+            query, catalog=catalogue
+        )
+        for execution in search.executions:
+            job["language_counts"][execution.language] = (
+                job["language_counts"].get(execution.language, 0) + 1
+            )
+            job["provider_counts"][execution.provider] = (
+                job["provider_counts"].get(execution.provider, 0) + execution.found
+            )
+            if execution.error:
+                job["source_errors"][f"{execution.provider}:{execution.language}"] = execution.error
+        write_metrics(discovery_metrics(search), job_root / (rid + ".metrics.json"))
+        if not search.candidates:
+            job["status"] = "no_results"
+            jobs.save(job)
+            return IngestReport(rid, "no_results", (), ())
+        by_name = {adapter.name: adapter for adapter in adapters}
+        for candidate in search.candidates[:max_results]:
+            adapter = by_name[candidate.provider]
+            with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
+                temp = Path(work)
+                try:
+                    advance("fetching")
+                    ref = await adapter.direct_media(candidate)
+                    if ref is None:
+                        errors.append(f"{candidate.origin_id}:search_only")
+                        continue
+                    raw = await (
+                        downloader(ref.url, temp) if downloader else download_media(ref.url, temp)
+                    )
+                    advance("processing")
+                    duration_limit = float((filters or {}).get("max_duration") or 20)
+                    normalized = normalize_media(
+                        raw, temp / "normalized.mp4", max_duration_seconds=duration_limit
+                    )
+                    desired_aspect = (filters or {}).get("aspect_ratio")
+                    if desired_aspect and normalized.media.aspect_ratio != desired_aspect:
+                        errors.append(f"{candidate.origin_id}:aspect_filter")
+                        continue
+                    thumb_path = create_thumbnail(normalized.path, temp / "thumbnail.webp")
+                    digest = sha256_file(normalized.path)
+                    frame_hash = perceptual_hash(normalized.path)
+                    localized = localize_candidate(candidate, translator=translator)
+                    # Optimistic read before expensive release upload; writer rechecks on PUT.
+                    remote, _ = writer.read_catalog()
+                    draft = {
+                        "source": {
+                            "provider": candidate.provider,
+                            "provider_id": candidate.provider_id,
+                        },
+                        "media": {"sha256": digest, "perceptual_hash": frame_hash},
+                    }
+                    duplicate = remote.find_duplicate(draft, phash_similar=perceptually_similar)
+                    if duplicate:
+                        errors.append(f"{candidate.origin_id}:duplicate:{duplicate['id']}")
+                        continue
+                    for _attempt in range(4):
+                        identifier = remote.next_id()
+                        clip = {
+                            "id": identifier,
+                            "title": localized.title,
+                            "description": localized.description,
+                            "tags": localized.tags,
+                            "source": {
+                                "provider": candidate.provider,
+                                "provider_id": candidate.provider_id,
+                                "source_language": localized.original_language,
+                                "source_title": localized.original_title,
+                                "source_url": candidate.source_url,
+                            },
+                            "media": {
+                                "duration_seconds": normalized.media.duration_seconds,
+                                "width": normalized.media.width,
+                                "height": normalized.media.height,
+                                "fps": normalized.media.fps,
+                                "aspect_ratio": normalized.media.aspect_ratio,
+                                "orientation": normalized.media.orientation,
+                                "codec": normalized.media.codec,
+                                "container": normalized.media.container,
+                                "has_audio": normalized.media.has_audio,
+                                "size_bytes": normalized.path.stat().st_size,
+                                "sha256": digest,
+                                "perceptual_hash": frame_hash,
+                            },
+                            "storage": {
+                                "provider": "github_releases",
+                                "asset_url": "",
+                                "thumbnail_url": "",
+                            },
+                            "status": "published",
+                            "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                        }
+                        advance("publishing")
+                        release = storage.get_or_create_batch_release(date.today())
+                        name_video, name_thumb = (
+                            f"clip_{identifier}.mp4",
+                            f"thumb_{identifier}.webp",
+                        )
+                        try:
+                            video = storage.upload_asset(release, normalized.path, name_video)
+                            video = storage.verify_asset(
+                                name_video, normalized.path.stat().st_size, digest, release.id
+                            )
+                            thumbnail_digest = sha256_file(thumb_path)
+                            thumbnail = storage.upload_asset(release, thumb_path, name_thumb)
+                            thumbnail = storage.verify_asset(
+                                name_thumb, thumb_path.stat().st_size, thumbnail_digest, release.id
+                            )
+                        except StorageError:
+                            # No deletion or overwrite; another job may own this asset name.
+                            remote, _ = writer.read_catalog()
+                            if remote.find_duplicate(draft, phash_similar=perceptually_similar):
+                                errors.append(f"{candidate.origin_id}:duplicate")
+                                break
+                            raise
+                        clip["storage"]["asset_url"] = video.browser_download_url
+                        clip["storage"]["thumbnail_url"] = thumbnail.browser_download_url
+                        try:
+                            writer.update(
+                                [clip],
+                                verified_assets={identifier: (video, thumbnail)},
+                                phash_similar=perceptually_similar,
+                            )
+                            ids.append(identifier)
+                            catalogue.merge([clip])
+                            break
+                        except IdentityCollision:
+                            remote, _ = writer.read_catalog()
+                            continue
+                        except DuplicateClip as duplicate:
+                            errors.append(f"{candidate.origin_id}:duplicate:{duplicate.clip_id}")
+                            break
+                    else:
+                        errors.append(f"{candidate.origin_id}:identity_collision")
+                except (Exception,) as exc:
+                    # Never print secrets, URLs or raw upstream responses to Actions logs.
+                    errors.append(f"{candidate.origin_id}:{type(exc).__name__}")
+        job["status"] = "published" if ids else "failed" if errors else "no_results"
+        jobs.save(job)
+        return IngestReport(rid, job["status"], tuple(ids), tuple(errors))
+    finally:
+        if own_storage:
+            storage.close()

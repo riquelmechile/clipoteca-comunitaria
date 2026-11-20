@@ -1,0 +1,89 @@
+name: Ingest verified video candidates
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Scene query
+        required: true
+        type: string
+      aspect_ratio:
+        description: Optional orientation filter
+        required: false
+        type: string
+      max_duration:
+        description: Max output seconds
+        required: false
+        default: "20"
+        type: string
+      max_results:
+        description: Max new clips
+        required: false
+        default: "3"
+        type: string
+      request_id:
+        description: Optional deterministic request ID to validate
+        required: false
+        type: string
+      concurrency:
+        description: External discovery concurrency
+        required: false
+        default: "4"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clipoteca-catalog
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .cache/argos
+            ~/.local/share/argos-translate
+          key: clipoteca-argos-v1-${{ hashFiles('uv.lock') }}
+      - run: uv sync --frozen --extra translate
+      - name: Ingest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+          CLIPOTECA_QUERY: ${{ inputs.query }}
+          CLIPOTECA_ASPECT: ${{ inputs.aspect_ratio }}
+          CLIPOTECA_MAX_SECONDS: ${{ inputs.max_duration }}
+          CLIPOTECA_MAX_RESULTS: ${{ inputs.max_results }}
+          CLIPOTECA_REQUEST_ID: ${{ inputs.request_id }}
+          CLIPOTECA_CONCURRENCY: ${{ inputs.concurrency }}
+        run: |
+          uv run python -m clipoteca ingest \
+            --query "$CLIPOTECA_QUERY" \
+            --aspect-ratio "$CLIPOTECA_ASPECT" \
+            --max-duration "$CLIPOTECA_MAX_SECONDS" \
+            --max-results "$CLIPOTECA_MAX_RESULTS" \
+            --request-id "$CLIPOTECA_REQUEST_ID" \
+            --concurrency "$CLIPOTECA_CONCURRENCY"
+      - name: Upload job records and metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clipoteca-jobs-${{ github.run_id }}
+          path: data/jobs/
+          if-no-files-found: ignore
+          retention-days: 30
