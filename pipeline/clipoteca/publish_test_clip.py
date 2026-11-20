@@ -12,26 +12,8 @@ from pathlib import Path
 
 from .catalog import DuplicateClip, GitHubCatalogWriter
 from .storage.github import GitHubReleaseStorage
-
-
-def _probe(path: Path) -> dict:
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration,size,format_name:stream=width,height,avg_frame_rate,codec_name,codec_type",
-            "-of",
-            "json",
-            str(path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-    return json.loads(result.stdout)
+from .media.probe import probe_media
+from .media.hashing import perceptual_hash
 
 
 def main() -> int:
@@ -83,10 +65,7 @@ def main() -> int:
         thumb = storage.upload_asset(release, thumbnail, thumb_name)
         thumb = storage.verify_asset(thumb_name, thumbnail.stat().st_size, thumb_digest, release.id)
 
-    probe = _probe(path)
-    video_stream = next(item for item in probe["streams"] if item["codec_type"] == "video")
-    numerator, denominator = map(int, video_stream["avg_frame_rate"].split("/"))
-    width, height = int(video_stream["width"]), int(video_stream["height"])
+    media = probe_media(path)
     clip = {
         "id": identifier,
         "title": {"es": "Clip de prueba", "en": "Test clip"},
@@ -100,18 +79,18 @@ def main() -> int:
             "source_url": "https://github.com/riquelmechile/clipoteca-comunitaria/actions",
         },
         "media": {
-            "duration_seconds": float(probe["format"]["duration"]),
-            "width": width,
-            "height": height,
-            "fps": numerator / denominator,
-            "aspect_ratio": "16:9" if abs(width / height - 16 / 9) < 0.01 else "other",
-            "orientation": "horizontal",
-            "codec": video_stream["codec_name"],
+            "duration_seconds": media.duration_seconds,
+            "width": media.width,
+            "height": media.height,
+            "fps": media.fps,
+            "aspect_ratio": media.aspect_ratio,
+            "orientation": media.orientation,
+            "codec": media.codec,
             "container": "mp4",
-            "has_audio": any(item["codec_type"] == "audio" for item in probe["streams"]),
+            "has_audio": media.has_audio,
             "size_bytes": path.stat().st_size,
             "sha256": digest,
-            "perceptual_hash": "pending-m2",
+            "perceptual_hash": perceptual_hash(path),
         },
         "storage": {
             "provider": "github_releases",
