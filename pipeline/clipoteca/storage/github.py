@@ -58,9 +58,7 @@ class GitHubReleaseStorage:
         }
         if credential:
             headers["Authorization"] = f"Bearer {credential}"
-        self.client = client or httpx.Client(
-            headers=headers, timeout=30.0, follow_redirects=True
-        )
+        self.client = client or httpx.Client(headers=headers, timeout=30.0, follow_redirects=True)
         self.api_url = api_url.rstrip("/")
 
     def close(self) -> None:
@@ -84,15 +82,9 @@ class GitHubReleaseStorage:
 
     def get_or_create_batch_release(self, day: date) -> ReleaseBatch:
         prefix = f"batch-{day.isoformat()}-"
-        releases = self._request(
-            "GET", self.releases_url, params={"per_page": 100}
-        ).json()
+        releases = self._request("GET", self.releases_url, params={"per_page": 100}).json()
         matching = sorted(
-            (
-                item
-                for item in releases
-                if str(item.get("tag_name", "")).startswith(prefix)
-            ),
+            (item for item in releases if str(item.get("tag_name", "")).startswith(prefix)),
             key=lambda item: item["tag_name"],
         )
         for item in reversed(matching):
@@ -104,9 +96,7 @@ class GitHubReleaseStorage:
             next_number = int(matching[-1]["tag_name"].rsplit("-", 1)[1]) + 1
         tag = f"{prefix}{next_number:03d}"
         payload = {"tag_name": tag, "name": tag, "draft": False, "prerelease": False}
-        return self._batch(
-            self._request("POST", self.releases_url, json=payload).json()
-        )
+        return self._batch(self._request("POST", self.releases_url, json=payload).json())
 
     @staticmethod
     def _batch(payload: dict[str, Any]) -> ReleaseBatch:
@@ -142,9 +132,7 @@ class GitHubReleaseStorage:
             self.delete_asset(asset.id)
         return None
 
-    def upload_asset(
-        self, release: ReleaseBatch, path: Path, name: str
-    ) -> ReleaseAsset:
+    def upload_asset(self, release: ReleaseBatch, path: Path, name: str) -> ReleaseAsset:
         data = path.read_bytes()
         digest = sha256(data).hexdigest()
         existing = self.find_existing_asset(release, name, len(data), digest)
@@ -159,9 +147,7 @@ class GitHubReleaseStorage:
         )
         return self._asset(response.json())
 
-    def verify_asset(
-        self, name: str, size: int, digest: str, release_id: int
-    ) -> ReleaseAsset:
+    def verify_asset(self, name: str, size: int, digest: str, release_id: int) -> ReleaseAsset:
         payload = self._list_assets(release_id)
         raw = next((entry for entry in payload if entry.get("name") == name), None)
         if raw is None:

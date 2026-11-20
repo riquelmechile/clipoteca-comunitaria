@@ -15,9 +15,7 @@ from jsonschema import Draft202012Validator
 
 def canonical_tokens(value: str) -> set[str]:
     normalized = unicodedata.normalize("NFKC", value).casefold()
-    return {
-        token for token in re.split(r"[^\w]+", normalized, flags=re.UNICODE) if token
-    }
+    return {token for token in re.split(r"[^\w]+", normalized, flags=re.UNICODE) if token}
 
 
 class Catalog:
@@ -38,9 +36,7 @@ class Catalog:
         )
 
     def next_id(self) -> str:
-        largest = max(
-            (int(item["id"].removeprefix("clip-")) for item in self.clips), default=0
-        )
+        largest = max((int(item["id"].removeprefix("clip-")) for item in self.clips), default=0)
         return f"clip-{largest + 1:06d}"
 
     def merge(self, incoming: Iterable[dict[str, Any]]) -> None:
@@ -68,9 +64,7 @@ class Catalog:
                 phash_similar
                 and media.get("perceptual_hash")
                 and clip["media"].get("perceptual_hash")
-                and phash_similar(
-                    clip["media"]["perceptual_hash"], media["perceptual_hash"]
-                )
+                and phash_similar(clip["media"]["perceptual_hash"], media["perceptual_hash"])
             ):
                 return clip
         return None
@@ -93,9 +87,7 @@ class Catalog:
                 strings = [clip["title"][language], clip["description"][language]]
                 strings.extend(clip["tags"][language])
                 strings.append(original)
-                for token in set().union(
-                    *(canonical_tokens(value) for value in strings)
-                ):
+                for token in set().union(*(canonical_tokens(value) for value in strings)):
                     indexes[language].setdefault(token, []).append(clip["id"])
         return indexes
 
@@ -131,9 +123,7 @@ class GitHubCatalogWriter:
         )
         schema_path = Path("schemas/clip.schema.json")
         self.schema = schema or (
-            json.loads(schema_path.read_text(encoding="utf-8"))
-            if schema_path.exists()
-            else None
+            json.loads(schema_path.read_text(encoding="utf-8")) if schema_path.exists() else None
         )
 
     def update(self, incoming: Iterable[dict[str, Any]], *, retries: int = 3) -> str:
@@ -153,9 +143,7 @@ class GitHubCatalogWriter:
             catalog = Catalog(json.loads(content))
             catalog.merge(incoming)
             encoded = base64.b64encode(
-                (
-                    json.dumps(catalog.clips, ensure_ascii=False, indent=2) + "\n"
-                ).encode()
+                (json.dumps(catalog.clips, ensure_ascii=False, indent=2) + "\n").encode()
             ).decode()
             response = self.client.put(
                 url,
@@ -169,7 +157,5 @@ class GitHubCatalogWriter:
                 response.raise_for_status()
                 return str(response.json()["commit"]["sha"])
             if attempt == retries:
-                raise RuntimeError(
-                    "catalogue remained conflicted after bounded retries"
-                )
+                raise RuntimeError("catalogue remained conflicted after bounded retries")
         raise AssertionError("unreachable")

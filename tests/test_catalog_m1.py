@@ -18,9 +18,31 @@ def sample_clip(identifier: str = "clip-000001") -> dict:
         "source": {
             "provider": "pexels",
             "provider_id": "x",
+            "source_language": "en",
             "source_title": "ＲＡＩＮ",
+            "source_url": "https://example.com/source/x",
         },
-        "media": {"sha256": "abc", "perceptual_hash": "0011"},
+        "media": {
+            "duration_seconds": 2.0,
+            "width": 1920,
+            "height": 1080,
+            "fps": 30.0,
+            "aspect_ratio": "16:9",
+            "orientation": "horizontal",
+            "codec": "h264",
+            "container": "mp4",
+            "has_audio": False,
+            "size_bytes": 1024,
+            "sha256": "a" * 64,
+            "perceptual_hash": "0011",
+        },
+        "storage": {
+            "provider": "github_releases",
+            "asset_url": "https://example.com/assets/clip.mp4",
+            "thumbnail_url": "https://example.com/assets/thumb.webp",
+        },
+        "status": "published",
+        "created_at": "2026-11-20T00:00:00Z",
     }
 
 

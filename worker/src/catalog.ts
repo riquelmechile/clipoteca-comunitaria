@@ -26,7 +26,7 @@ export async function loadCatalog(env: CatalogEnv): Promise<Clip[]> {
   const url = env.CATALOG_URL ?? DEFAULT_CATALOG;
   const ttl = Number.parseInt(env.CATALOG_CACHE_TTL ?? "60", 10);
   const key = new Request(url);
-  const cache = caches.default;
+  const cache = (caches as CacheStorage & { default: Cache }).default;
   let response = await cache.match(key);
   if (!response) {
     response = await fetch(key);
@@ -68,8 +68,8 @@ function matches(clip: Clip, params: URLSearchParams): boolean {
 export async function handleCatalog(request: Request, env: CatalogEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (request.method !== "GET") return null;
-  const clips = await loadCatalog(env);
   if (url.pathname === "/v1/clips") {
+    const clips = await loadCatalog(env);
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 20)));
     const cursor = Math.max(0, Number(url.searchParams.get("cursor") ?? 0));
     const filtered = clips.filter((clip) => matches(clip, url.searchParams));
@@ -79,6 +79,7 @@ export async function handleCatalog(request: Request, env: CatalogEnv): Promise<
   }
   const match = url.pathname.match(/^\/v1\/clips\/(clip-\d{6})(\/download)?$/);
   if (!match) return null;
+  const clips = await loadCatalog(env);
   const clip = clips.find((item) => item.id === match[1]);
   if (!clip) return json({ error: { code: "not_found", message: "clip not found" } }, 404);
   if (match[2]) return Response.redirect(clip.storage.asset_url, 302);

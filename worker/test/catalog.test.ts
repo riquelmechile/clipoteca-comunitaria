@@ -23,7 +23,8 @@ describe("catalog routes", () => {
       { CATALOG_URL: "https://catalog.test/clips.json" },
     );
     expect(response?.status).toBe(200);
-    expect((await response?.json()).items).toHaveLength(1);
+    const payload = (await response?.json()) as { items: unknown[] };
+    expect(payload.items).toHaveLength(1);
   });
 
   it("returns typed 404 and redirects downloads", async () => {

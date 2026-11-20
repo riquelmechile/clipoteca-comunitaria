@@ -36,26 +36,18 @@ def _probe(path: Path) -> dict:
 
 def main() -> int:
     path = Path(sys.argv[sys.argv.index("--path") + 1])
-    expected = (
-        sys.argv[sys.argv.index("--expect") + 1] if "--expect" in sys.argv else None
-    )
-    repository = os.environ.get(
-        "GITHUB_REPOSITORY", "riquelmechile/clipoteca-comunitaria"
-    )
+    expected = sys.argv[sys.argv.index("--expect") + 1] if "--expect" in sys.argv else None
+    repository = os.environ.get("GITHUB_REPOSITORY", "riquelmechile/clipoteca-comunitaria")
     token = os.environ["GITHUB_TOKEN"]
     catalog = Catalog.load(Path("data/clips.json"))
     digest = sha256(path.read_bytes()).hexdigest()
-    existing = next(
-        (clip for clip in catalog.clips if clip["media"].get("sha256") == digest), None
-    )
+    existing = next((clip for clip in catalog.clips if clip["media"].get("sha256") == digest), None)
     if existing:
         if expected != "duplicate":
             print(json.dumps({"status": "duplicate", "id": existing["id"]}))
         return 0
     if expected == "duplicate":
-        raise RuntimeError(
-            "expected a duplicate, but catalogue does not contain the test clip"
-        )
+        raise RuntimeError("expected a duplicate, but catalogue does not contain the test clip")
 
     identifier = catalog.next_id()
     thumbnail = path.with_suffix(".webp")
@@ -80,19 +72,13 @@ def main() -> int:
     with GitHubReleaseStorage(repository, token=token) as storage:
         release = storage.get_or_create_batch_release(date.today())
         video = storage.upload_asset(release, path, video_name)
-        video = storage.verify_asset(
-            video_name, path.stat().st_size, digest, release.id
-        )
+        video = storage.verify_asset(video_name, path.stat().st_size, digest, release.id)
         thumb_digest = sha256(thumbnail.read_bytes()).hexdigest()
         thumb = storage.upload_asset(release, thumbnail, thumb_name)
-        thumb = storage.verify_asset(
-            thumb_name, thumbnail.stat().st_size, thumb_digest, release.id
-        )
+        thumb = storage.verify_asset(thumb_name, thumbnail.stat().st_size, thumb_digest, release.id)
 
     probe = _probe(path)
-    video_stream = next(
-        item for item in probe["streams"] if item["codec_type"] == "video"
-    )
+    video_stream = next(item for item in probe["streams"] if item["codec_type"] == "video")
     numerator, denominator = map(int, video_stream["avg_frame_rate"].split("/"))
     width, height = int(video_stream["width"]), int(video_stream["height"])
     clip = {
@@ -116,9 +102,7 @@ def main() -> int:
             "orientation": "horizontal",
             "codec": video_stream["codec_name"],
             "container": "mp4",
-            "has_audio": any(
-                item["codec_type"] == "audio" for item in probe["streams"]
-            ),
+            "has_audio": any(item["codec_type"] == "audio" for item in probe["streams"]),
             "size_bytes": path.stat().st_size,
             "sha256": digest,
             "perceptual_hash": "pending-m2",
