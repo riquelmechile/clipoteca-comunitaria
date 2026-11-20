@@ -82,21 +82,32 @@ class GitHubReleaseStorage:
 
     def get_or_create_batch_release(self, day: date) -> ReleaseBatch:
         prefix = f"batch-{day.isoformat()}-"
-        releases = self._request("GET", self.releases_url, params={"per_page": 100}).json()
-        matching = sorted(
-            (item for item in releases if str(item.get("tag_name", "")).startswith(prefix)),
-            key=lambda item: item["tag_name"],
-        )
-        for item in reversed(matching):
-            release = self._batch(item)
-            if len(self._list_assets(release.id)) < 1000:
-                return release
-        next_number = 1
-        if matching:
-            next_number = int(matching[-1]["tag_name"].rsplit("-", 1)[1]) + 1
-        tag = f"{prefix}{next_number:03d}"
-        payload = {"tag_name": tag, "name": tag, "draft": False, "prerelease": False}
-        return self._batch(self._request("POST", self.releases_url, json=payload).json())
+        for create_attempt in range(4):
+            releases = []
+            for page in range(1, 101):
+                batch = self._request(
+                    "GET", self.releases_url, params={"per_page": 100, "page": page}
+                ).json()
+                releases.extend(batch)
+                if len(batch) < 100:
+                    break
+            matching = sorted(
+                (item for item in releases if str(item.get("tag_name", "")).startswith(prefix)),
+                key=lambda item: item["tag_name"],
+            )
+            for item in reversed(matching):
+                release = self._batch(item)
+                if len(self._list_assets(release.id)) < 1000:
+                    return release
+            number = (int(matching[-1]["tag_name"].rsplit("-", 1)[1]) + 1) if matching else 1
+            tag = f"{prefix}{number:03d}"
+            payload = {"tag_name": tag, "name": tag, "draft": False, "prerelease": False}
+            response = self.client.post(self.releases_url, json=payload)
+            if response.status_code == 422 and create_attempt < 3:
+                continue
+            response.raise_for_status()
+            return self._batch(response.json())
+        raise StorageError("release tag creation conflicts persisted")
 
     @staticmethod
     def _batch(payload: dict[str, Any]) -> ReleaseBatch:
@@ -129,7 +140,8 @@ class GitHubReleaseStorage:
                 downloaded = self._request("GET", asset.browser_download_url).content
                 if sha256(downloaded).hexdigest() == digest:
                     return asset
-            self.delete_asset(asset.id)
+            # Never remove a named asset that may belong to a published clip.
+            raise StorageError(f"asset name collision: {name}")
         return None
 
     def upload_asset(self, release: ReleaseBatch, path: Path, name: str) -> ReleaseAsset:
@@ -154,11 +166,9 @@ class GitHubReleaseStorage:
             raise StorageError(f"asset not found: {name}")
         asset = self._asset(raw)
         if asset.state != "uploaded" or asset.size != size:
-            self.delete_asset(asset.id)
             raise StorageError(f"incomplete asset: {name}")
         body = self._request("GET", asset.browser_download_url).content
         if sha256(body).hexdigest() != digest:
-            self.delete_asset(asset.id)
             raise StorageError(f"asset digest mismatch: {name}")
         return asset
 
