@@ -1,0 +1,32 @@
+name: Publish deterministic test clip
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clipoteca-catalog
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: uv sync --frozen
+      - name: Generate deterministic fixture
+        run: >-
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=320x180:rate=24
+          -t 2 -c:v libx264 -pix_fmt yuv420p -movflags +faststart test-clip.mp4
+      - name: Publish and verify twice
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          uv run python -m clipoteca.publish_test_clip --path test-clip.mp4
+          uv run python -m clipoteca.publish_test_clip --path test-clip.mp4 --expect duplicate
