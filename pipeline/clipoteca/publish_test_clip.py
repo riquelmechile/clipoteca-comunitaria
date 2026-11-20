@@ -10,7 +10,7 @@ from datetime import UTC, date, datetime
 from hashlib import sha256
 from pathlib import Path
 
-from .catalog import Catalog, GitHubCatalogWriter
+from .catalog import DuplicateClip, GitHubCatalogWriter
 from .storage.github import GitHubReleaseStorage
 
 
@@ -39,9 +39,15 @@ def main() -> int:
     expected = sys.argv[sys.argv.index("--expect") + 1] if "--expect" in sys.argv else None
     repository = os.environ.get("GITHUB_REPOSITORY", "riquelmechile/clipoteca-comunitaria")
     token = os.environ["GITHUB_TOKEN"]
-    catalog = Catalog.load(Path("data/clips.json"))
+    writer = GitHubCatalogWriter(repository, token)
+    catalog, _ = writer.read_catalog()
     digest = sha256(path.read_bytes()).hexdigest()
-    existing = next((clip for clip in catalog.clips if clip["media"].get("sha256") == digest), None)
+    existing = catalog.find_duplicate(
+        {
+            "source": {"provider": "generated_test", "provider_id": digest},
+            "media": {"sha256": digest},
+        }
+    )
     if existing:
         if expected != "duplicate":
             print(json.dumps({"status": "duplicate", "id": existing["id"]}))
@@ -115,7 +121,11 @@ def main() -> int:
         "status": "published",
         "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
     }
-    commit = GitHubCatalogWriter(repository, token).update([clip])
+    try:
+        commit = writer.update([clip], verified_assets={identifier: (video, thumb)})
+    except DuplicateClip as duplicate:
+        print(json.dumps({"status": "duplicate", "id": duplicate.clip_id}))
+        return 0
     print(json.dumps({"status": "published", "id": identifier, "commit": commit}))
     return 0
 
