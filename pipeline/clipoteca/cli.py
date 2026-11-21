@@ -12,6 +12,8 @@ from pathlib import Path
 from .ingest import ingest
 from .jobs import request_id as calculate_request_id
 from .providers.internet_archive import InternetArchive
+from .providers.bilibili import Bilibili
+from .providers.vk_video import VKVideo
 from .providers.nasa import NASA
 from .providers.pexels import Pexels
 from .providers.peertube import PeerTube
@@ -95,6 +97,8 @@ def main(argv: list[str] | None = None) -> int:
                 Rutube(),
                 PeerTube(),
                 Odysee(),
+                Bilibili(),
+                VKVideo(),
             ]
             try:
                 return await ingest(
