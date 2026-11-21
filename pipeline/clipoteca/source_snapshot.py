@@ -31,6 +31,7 @@ def snapshot() -> list[dict]:
                 "accepts_text_languages": row["accepts_text_languages"],
                 "languages_semantically_verified": False,
                 "scope": row["scope"],
+                "capabilities": row["capabilities"],
                 "download_supported": row["download_supported"],
                 "credentials_present": not bool(row["missing_credential_names"]),
                 "notes": row["notes"],

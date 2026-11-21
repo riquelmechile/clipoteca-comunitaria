@@ -61,6 +61,35 @@ components:
             duplicate, no_results, failed, rate_limited, unavailable, dead_letter]
         attempt: {type: integer, minimum: 1}
         updated_at: {type: string, format: date-time}
+    SourceCapability:
+      type: string
+      enum: [supported, best_effort, unavailable]
+      description: Declared capability, not an observed success or license grant.
+    SourceCapabilities:
+      type: object
+      additionalProperties: false
+      required: [search, preview, download]
+      properties:
+        search: {$ref: "#/components/schemas/SourceCapability"}
+        preview: {$ref: "#/components/schemas/SourceCapability"}
+        download: {$ref: "#/components/schemas/SourceCapability"}
+    SourceRow:
+      type: object
+      additionalProperties: false
+      required: [provider, status, capabilities]
+      properties:
+        provider: {type: string, minLength: 1}
+        status: {type: string, minLength: 1}
+        capabilities: {$ref: "#/components/schemas/SourceCapabilities"}
+    SourcesResponse:
+      type: object
+      additionalProperties: false
+      required: [sources, kind]
+      properties:
+        sources:
+          type: array
+          items: {$ref: "#/components/schemas/SourceRow"}
+        kind: {type: string, enum: [actions_credential_presence_snapshot]}
     ContributionBody:
       type: object
       additionalProperties: false
@@ -78,6 +107,23 @@ paths:
         "200": {description: All checks ready}
         "503": {description: A check unavailable}
         "405": {description: Method not allowed}
+  /v1/sources:
+    get:
+      operationId: listSources
+      description: |
+        Public source snapshot from data/sources.json on main. Each source has
+        an observed credential-presence status and a DECLARED matrix of search,
+        preview and download capabilities. "supported" is not proof of a live
+        test, and "unavailable" is explicit; malformed rows cause HTTP 503.
+        The endpoint never reveals secret values.
+      responses:
+        "200":
+          description: Source rows and declared capability matrix
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SourcesResponse"}
+        "405": {description: Method not allowed}
+        "503": {description: Missing or invalid source snapshot}
   /v1/clips:
     get:
       operationId: listClips

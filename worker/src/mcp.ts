@@ -45,8 +45,10 @@ const jobOutputSchema = z.object({
   terms: z.record(z.string(), z.string()).optional(),
   duplicate_ids: z.array(z.string()).optional(),
 });
+const capabilityLevel = z.enum(["supported", "best_effort", "unavailable"]);
+const sourceCapabilities = z.object({ search: capabilityLevel, preview: capabilityLevel, download: capabilityLevel });
 const sourcesOutputSchema = z.object({
-  sources: z.array(z.object({ provider: z.string(), status: z.string() })),
+  sources: z.array(z.object({ provider: z.string(), status: z.string(), capabilities: sourceCapabilities })),
   kind: z.string().optional(),
 });
 const answer = (result: object) => ({
@@ -72,7 +74,7 @@ const base64Json = (data: string): object => {
   return JSON.parse(new TextDecoder().decode(bytes)) as object;
 };
 
-async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider: string; status: string}[];kind: string }> {
+export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider: string; status: string; capabilities: {search: string; preview: string; download: string}}[];kind: string }> {
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error("invalid repository");
   const response = await fetch(
@@ -90,11 +92,21 @@ async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider: string
     sources = base64Json(data);
   }
   if (!Array.isArray(sources)) throw new Error("malformed provider data");
-  const rows = sources.map((row: Record<string, unknown>) => ({
-    provider: String(row.name ?? row.provider ?? ""),
-    status: String(row.status ?? ""),
-  }));
-  if (rows.some(r => !r.provider || !r.status)) throw new Error("invalid provider row");
+  const rows = sources.map((rawRow: unknown) => {
+    if (!rawRow || typeof rawRow !== "object" || Array.isArray(rawRow)) {
+      throw new Error("invalid provider row");
+    }
+    const row = rawRow as Record<string, unknown>;
+    const provider = row.name ?? row.provider;
+    const status = row.status;
+    // Missing capabilities is invalid; do not silently invent "unavailable".
+    const parsed = sourceCapabilities.safeParse(row.capabilities);
+    if (typeof provider !== "string" || !provider ||
+        typeof status !== "string" || !status || !parsed.success) {
+      throw new Error("invalid provider row or capabilities");
+    }
+    return { provider, status, capabilities: parsed.data };
+  });
   return { sources: rows, kind: "actions_credential_presence_snapshot" };
 }
 

@@ -127,6 +127,28 @@ SOURCES: tuple[SourceSpec, ...] = (
 )
 
 
+# Single authoritative declarative capability map. These are adapter claims,
+# never evidence of a successful live request. M12 candidate probes measure that.
+CAPABILITY_LEVELS = frozenset({"supported", "best_effort", "unavailable"})
+SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
+    "pexels": {"search": "supported", "preview": "best_effort", "download": "supported"},
+    "pixabay": {"search": "supported", "preview": "best_effort", "download": "supported"},
+    "wikimedia_commons": {"search": "supported", "preview": "best_effort", "download": "supported"},
+    "internet_archive": {"search": "supported", "preview": "best_effort", "download": "supported"},
+    "nasa": {"search": "supported", "preview": "best_effort", "download": "supported"},
+    "youtube": {"search": "supported", "preview": "best_effort", "download": "unavailable"},
+    "rutube": {"search": "supported", "preview": "best_effort", "download": "unavailable"},
+    "peertube": {"search": "supported", "preview": "supported", "download": "supported"},
+    "odysee": {"search": "supported", "preview": "best_effort", "download": "supported"},
+    "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "vk_video": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "douyin": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "tiktok": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "instagram": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "snapchat": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+}
+
+
 def list_sources(*, env: dict[str, str] | None = None) -> list[dict]:
     """Return source capability/status metadata without credentials or remote I/O."""
     provided = os.environ if env is None else env
@@ -143,6 +165,7 @@ def list_sources(*, env: dict[str, str] | None = None) -> list[dict]:
                 "accepts_text_languages": list(spec.adapter.accepts_text_languages),
                 "languages_semantically_verified": False,
                 "scope": spec.scope,
+                "capabilities": dict(SOURCE_CAPABILITIES[spec.name]),
                 "requires": list(spec.requires),
                 "missing_credential_names": missing,
                 "download_supported": not missing

@@ -5,6 +5,7 @@
 | Método | Ruta | Función | Autorización |
 |---|---|---|---|
 | GET | `/v1/health` | estado de API/MCP | pública |
+| GET | `/v1/sources` | matriz declarativa y estado de cada fuente, sin credenciales | pública |
 | GET | `/v1/clips?q=lluvia&aspect_ratio=9%3A16&max_duration=20` | catálogo local | pública |
 | GET | `/v1/clips/{id}` | ficha, meta, miniatura | pública |
 | GET | `/v1/clips/{id}/download` | redirección a asset GitHub Releases | pública |
@@ -22,7 +23,7 @@
 - `download_clip(clip_id)`: enlace a MP4 en GitHub Releases.
 - `search_and_import(query, aspect_ratio?, max_results?)`: solicita nueva búsqueda + persistencia asíncrona; operación con permisos.
 - `get_job_status(request_id)`: estado de trabajo.
-- `list_sources()`: adaptadores configurados y estados reales.
+- `list_sources()`: devuelve `{sources: [{provider, status, capabilities: {search, preview, download}}], kind}` con `kind: "actions_credential_presence_snapshot"`. Los niveles `supported`, `best_effort`, `unavailable` son declaraciones sobre las capacidades, **no una garantía de éxito**. Se deriva de `data/sources.json` en `main` y coincide con `GET /v1/sources`. Si falta cualquier `capabilities` o cualquiera de sus tres campos, falla explícitamente; nunca se inventa `unavailable` por omisión.
 
 Ninguna respuesta MCP incluye bytes de video embebidos. Debe retornar objetos estructurados estables y URLs directas al almacenamiento.
 

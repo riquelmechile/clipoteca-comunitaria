@@ -1,6 +1,6 @@
 import { handleCatalog, loadCatalog, type CatalogEnv } from "./catalog";
 import { handleRest } from "./rest";
-import { createClipotecaServer, handleMcp } from "./mcp";
+import { createClipotecaServer, handleMcp, sourceSnapshot } from "./mcp";
 
 export interface Env extends CatalogEnv {
   CATALOG_TTL_SECONDS?: string;
@@ -38,6 +38,7 @@ async function health(request: Request, env: Env): Promise<Response> {
 
 const METHOD_PATHS = [
   /^\/v1\/health$/,
+  /^\/v1\/sources$/,
   /^\/v1\/clips(?:\/clip-\d{6}(?:\/download)?)?$/,
   /^\/v1\/jobs\/[a-z0-9]+$/,
   /^\/v1\/(?:search|import|contributions)$/,
@@ -49,6 +50,15 @@ export default {
   async fetch(request: Request, env: Env = {}): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/mcp") return handleMcp(request, env);
+    if (url.pathname === "/v1/sources" && request.method === "GET") {
+      try {
+        return json(await sourceSnapshot(env));
+      } catch {
+        return json({
+          error: { code: "source_unavailable", message: "Source snapshot unavailable" },
+        }, 503);
+      }
+    }
     if (url.pathname === "/v1/health" && request.method === "GET") {
       return health(request, env);
     }

@@ -14,6 +14,7 @@ import httpx
 
 from clipoteca.providers.base import AuthRequired, RateLimited, SearchLimits
 from clipoteca.sources import SOURCES
+from clipoteca.candidate_probe import candidates_smoke
 
 TERMS = {"es": "lluvia", "en": "rain", "zh": "下雨", "ru": "дождь"}
 REPO = "riquelmechile/clipoteca-comunitaria"
@@ -132,15 +133,31 @@ async def main_async() -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="data/reports/smoke.json")
+    # The existing workflow invokes this script without --mode.
+    parser.add_argument("--mode", choices=("all", "providers", "candidates"), default="all")
     args = parser.parse_args(argv)
-    data = asyncio.run(main_async())
+
+    async def collect() -> dict:
+        if args.mode == "candidates":
+            return await candidates_smoke()
+        provider_report = await main_async()
+        if args.mode == "all":
+            candidate_report = await candidates_smoke()
+            # Preserve the original provider metrics and embed the sanitized
+            # candidate report in the same data/reports/ JSON artifact.
+            provider_report["candidates"] = candidate_report
+            provider_report["mode"] = "live_network_and_candidate_probes"
+            provider_report["total_candidate_probes"] = candidate_report["total_probes"]
+        return provider_report
+
+    data = asyncio.run(collect())
     path = Path(args.output)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(
         json.dumps(
             {
-                "probes": data["total_probes"],
+                "probes": data["total_probes"] + data.get("total_candidate_probes", 0),
                 "elapsed_seconds_measured": data["elapsed_seconds_measured"],
                 "report": str(path),
             },
