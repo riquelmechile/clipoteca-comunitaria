@@ -14,6 +14,9 @@ from urllib.parse import urlparse
 
 import httpx
 
+from .config import USER_AGENT
+from .security.ssrf import validate_public_url
+
 TERMS = {"es": "lluvia", "en": "rain", "zh": "下雨", "ru": "дождь"}
 PROVIDERS = ("rutube", "ok_ru", "vk_video", "library_of_congress", "douyin", "tiktok", "bilibili")
 PERMITTED_HOSTS = frozenset(
@@ -186,12 +189,18 @@ def sign_wbi(params: dict[str, str], img_url: str, sub_url: str, epoch: int) -> 
     return {**values, "w_rid": digest}
 
 
-async def _request(client: httpx.AsyncClient, method: str, url: str, **kwargs):
-    """Make precisely one bounded call, with no redirects or untrusted hosts."""
+async def _request(client: httpx.AsyncClient, method: str, url: str, *, resolver=None, **kwargs):
+    """One bounded HTTPS request, fixed-host and public-DNS validated.
+
+    We disallow redirects; peer-IP pinning is not provided by httpx here,
+    so candidate probes are diagnostic only, not authenticated media fetches.
+    """
     host = urlparse(url).hostname
     if urlparse(url).scheme != "https" or host not in PERMITTED_HOSTS:
         raise ValueError("candidate endpoint outside allowlist")
-    async with client.stream(method, url, follow_redirects=False, **kwargs) as response:
+    await validate_public_url(url, resolver=resolver)
+    headers = {**kwargs.pop("headers", {}), "User-Agent": USER_AGENT}
+    async with client.stream(method, url, follow_redirects=False, headers=headers, **kwargs) as response:
         chunks = bytearray()
         async for chunk in response.aiter_bytes():
             chunks.extend(chunk)
@@ -202,14 +211,26 @@ async def _request(client: httpx.AsyncClient, method: str, url: str, **kwargs):
             payload = json.loads(body)
         except ValueError:
             payload = {}
-        return response.status_code, payload, body
+        # Forward only the guest ttwid, in memory. Never persist Set-Cookie.
+        ttwid = None
+        if host == "ttwid.bytedance.com":
+            for cookie in response.headers.get_list("set-cookie"):
+                match = re.search(r"(?:^|[,\s])ttwid=([a-zA-Z0-9._~%+\-]{1,512})(?:;|$)", cookie)
+                if match:
+                    ttwid = match.group(1)
+                    break
+        return response.status_code, payload, body, ttwid
 
 
-async def probe_candidate(client: httpx.AsyncClient, provider: str, language: str) -> list[dict]:
+async def probe_candidate(
+    client: httpx.AsyncClient, provider: str, language: str, *, resolver=None
+) -> list[dict]:
     term = TERMS[language]
     results = []
+    guest_ttwid = None
 
     async def sample(stage, method, url, **kwargs):
+        nonlocal guest_ttwid
         started = time.monotonic()
         row = {
             "provider": provider,
@@ -223,7 +244,11 @@ async def probe_candidate(client: httpx.AsyncClient, provider: str, language: st
         }
         payload, html = {}, ""
         try:
-            status, payload, html = await _request(client, method, url, **kwargs)
+            status, payload, html, ttwid = await _request(
+                client, method, url, resolver=resolver, **kwargs
+            )
+            if provider == "douyin" and stage == "init":
+                guest_ttwid = ttwid
             row["status_code"] = status
             row.update(parse_metrics(provider if stage != "init" else "", payload, html=html))
         except (httpx.HTTPError, ValueError, TypeError, UnicodeError) as exc:
@@ -297,6 +322,7 @@ async def probe_candidate(client: httpx.AsyncClient, provider: str, language: st
             "search",
             "GET",
             "https://www.douyin.com/aweme/v1/web/search/item/",
+            headers={"Cookie": f"ttwid={guest_ttwid}"} if guest_ttwid else {},
             params={
                 "keyword": term,
                 "aid": 6383,
