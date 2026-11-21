@@ -369,7 +369,9 @@ async function loadPackedCorpus(env:SemanticEnv):Promise<PackedCorpus>{
     corpus={ids,vectors:vectors.subarray(0,ids.length*DIM),
       ...(corrupt?{reason:"shard_corrupt"}:{})};
   }
-  boundedPut(corpusCache,key,{until:Date.now()+1_200_000,data:corpus},3);
+  // A transient shard fetch error or empty corpus must not be sticky for 20m.
+  const corpusTtl = !corpus.reason && corpus.ids.length > 0 ? 1_200_000 : 60_000;
+  boundedPut(corpusCache,key,{until:Date.now()+corpusTtl,data:corpus},3);
   return corpus;
 }
 export async function loadCorpus(env:SemanticEnv):Promise<Map<string,Float32Array>>{
@@ -585,6 +587,7 @@ export async function queueQuery(request:Request,env:SemanticEnv,query:string):P
 function matchesFilters(clip:Clip,params:URLSearchParams):boolean{
   return (!params.has("aspect_ratio")||clip.media.aspect_ratio===params.get("aspect_ratio")) &&
     (!params.has("max_duration")||clip.media.duration_seconds<=Number(params.get("max_duration"))) &&
+    (!params.has("min_duration")||clip.media.duration_seconds>=Number(params.get("min_duration"))) &&
     (!params.has("min_width")||clip.media.width>=Number(params.get("min_width"))) &&
     (!params.has("fps")||clip.media.fps>=Number(params.get("fps"))) &&
     (!params.has("source")||clip.source.provider===params.get("source")) &&
@@ -601,9 +604,9 @@ function keywordMatches(clip:Clip,query:string):boolean{
 }
 export async function semanticSearch(
   request:Request,env:SemanticEnv,query:string,filters:URLSearchParams,
-  allowQueryDispatch=true,
+  allowQueryDispatch=true, catalogue?:Clip[],
 ):Promise<SemanticSearchResult>{
-  const clips=await loadCatalog(env);
+  const clips=catalogue??await loadCatalog(env);
   const eligible=clips.filter(c=>matchesFilters(c,filters));
   const lexical=eligible.filter(c=>keywordMatches(c,query));
   const cursor=Number(filters.get("cursor")??0);
@@ -615,6 +618,15 @@ export async function semanticSearch(
   if(env.SEMANTIC_SEARCH!=="1")
     return {...oldPage(),semantic:"unavailable",semantic_reason:"semantic_disabled"};
   try{
+    // The manifest lookup is cheap/cached. Never spend an Actions run
+    // encoding a query when there are no indexed clip embeddings at all.
+    const {manifest}=await fetchManifest(env);
+    if (manifest && manifest.shards.length === 0 && !manifest.tail) {
+      return {...oldPage(), semantic:"unavailable", semantic_reason:"empty_corpus"};
+    }
+    if (!manifest && (await loadLegacy(env,budget(env))).ids.length === 0) {
+      return {...oldPage(), semantic:"unavailable", semantic_reason:"empty_corpus"};
+    }
     const queryEmbedding=await queryVector(env,query,request);
     if(!queryEmbedding){
       if(env.QUERY_ENCODER_URL)return {...oldPage(),semantic:"unavailable",

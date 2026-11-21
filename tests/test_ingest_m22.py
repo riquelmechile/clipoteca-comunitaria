@@ -1,5 +1,6 @@
 """M22 full ingest optional embeddings sidecars share one remote client and close."""
 
+import asyncio
 import base64
 import json
 import subprocess
@@ -15,14 +16,18 @@ from test_ingest_m4c import FakeStorage, FixtureAdapter
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["single", "multiple", "cancel"])
 async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_shards(
     tmp_path,
     monkeypatch,
+    mode,
 ):
     catalogue = []
     generation = 0
     opened = []
     operations = []
+    batch_sizes = []
+    downloads = 0
 
     def github(req):
         nonlocal generation, catalogue
@@ -76,6 +81,7 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
             self.client = client
 
         def publish_many(self, rows):
+            batch_sizes.append(len(rows))
             for clip_id, vector in rows:
                 operations.append(("shard", id(self.client), clip_id))
 
@@ -96,7 +102,12 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
     )
 
     async def downloader(_url: str, target: Path) -> Path:
+        nonlocal downloads
+        downloads += 1
+        if mode == "cancel" and downloads == 2:
+            raise asyncio.CancelledError()
         source = target / "input.mp4"
+        size = "320x180" if "pexels" in _url else "240x240"
         subprocess.run(
             [
                 "ffmpeg",
@@ -108,7 +119,7 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
                 "-f",
                 "lavfi",
                 "-i",
-                "testsrc2=size=320x180:rate=12:duration=0.5",
+                f"testsrc2=size={size}:rate=12:duration=0.5",
                 "-c:v",
                 "libx264",
                 str(source),
@@ -119,27 +130,38 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
         )
         return source
 
-    report = await ingest(
-        "rain",
-        [FixtureAdapter("pexels")],
-        repository="riquelmechile/clipoteca-comunitaria",
-        token="test",
-        writer=writer,
-        storage=FakeStorage(),
-        downloader=downloader,
-        job_root=tmp_path / "jobs",
-        max_results=1,
-        max_clips_per_source=1,
-        embedding_encoder=FakeEncoder(),
-        translator=lambda _text, _src, dst: {
-            "es": "Lluvia",
-            "en": "Rain",
-            "zh": "\u96e8",
-            "ru": "\u0414\u043e\u0436\u0434\u044c",
-        }[dst],
-    )
-    assert report.status == "published", report.errors
-    assert len(catalogue) == 1
+    async def run():
+        return await ingest(
+            "rain",
+            [FixtureAdapter("pexels")]
+            if mode == "single"
+            else [FixtureAdapter("pexels"), FixtureAdapter("pixabay")],
+            repository="riquelmechile/clipoteca-comunitaria",
+            token="test",
+            writer=writer,
+            storage=FakeStorage(),
+            downloader=downloader,
+            job_root=tmp_path / "jobs",
+            max_results=1 if mode == "single" else 2,
+            max_clips_per_source=1,
+            embedding_encoder=FakeEncoder(),
+            translator=lambda _text, _src, dst: {
+                "es": "Lluvia",
+                "en": "Rain",
+                "zh": "\u96e8",
+                "ru": "\u0414\u043e\u0436\u0434\u044c",
+            }[dst],
+        )
+
+    if mode == "cancel":
+        with pytest.raises(asyncio.CancelledError):
+            await run()
+        assert len(catalogue) == 1
+    else:
+        report = await run()
+        assert report.status == "published", report.errors
+        assert len(catalogue) == (2 if mode == "multiple" else 1)
+    assert batch_sizes == [len(catalogue)]
     assert len(opened) == 1
     assert opened[0].closed
     assert {op for op, _, _ in operations} == {"query", "legacy", "shard"}
@@ -148,6 +170,6 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
     assert len(query_files) == 1
     manifest = json.loads((tmp_path / "embeddings" / "manifest.json").read_text())
     assert manifest["shards"] == []
-    assert manifest["tail"]["count"] == 1
+    assert manifest["tail"]["count"] == len(catalogue)
     ids = json.loads((tmp_path / "embeddings" / manifest["tail"]["ids_path"]).read_text())
-    assert ids == [report.published_ids[0]]
+    assert set(ids) == {clip["id"] for clip in catalogue}

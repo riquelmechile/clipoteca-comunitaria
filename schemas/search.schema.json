@@ -1,1 +1,158 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://clipoteca.example/schemas/search.schema.json","title":"Search request or response","oneOf":[{"type":"object","additionalProperties":false,"required":["query"],"properties":{"query":{"type":"string","minLength":1,"maxLength":200},"filters":{"$ref":"#/$defs/filters"}}},{"type":"object","additionalProperties":false,"required":["clips","next_cursor"],"properties":{"clips":{"type":"array","items":{"$ref":"clip.schema.json"}},"next_cursor":{"type":["string","null"]},"request_id":{"type":"string"},"status":{"enum":["published","queued","searching","fetching","processing","publishing","no_results","duplicate","failed","rate_limited","unavailable","dead_letter"]},"semantic":{"enum":["ready","pending","unavailable"]},"scores":{"type":"object","patternProperties":{"^clip-[0-9]{6}$":{"type":"number","minimum":0}},"additionalProperties":false},"semantic_reason":{"type":"string","enum":["semantic_disabled","empty_corpus","query_vector_unavailable","query_encoder_unavailable","shard_corrupt","manifest_too_large","cpu_budget_exceeded","manifest_invalid","semantic_error","legacy_index_invalid","invalid_repository","query_vector_invalid","unsafe_query_encoder_url","no_semantic_match"]}}}],"$defs":{"filters":{"type":"object","additionalProperties":false,"properties":{"aspect_ratio":{"enum":["9:16","16:9","1:1","other"]},"max_duration":{"type":"number","exclusiveMinimum":0,"maximum":20},"min_width":{"type":"integer","minimum":1},"fps":{"type":"number","exclusiveMinimum":0},"source":{"type":"string","pattern":"^[a-z0-9_]{1,64}$"},"language":{"type":"string","enum":["es","en","zh","ru"]},"has_audio":{"type":"boolean"},"limit":{"type":"integer","minimum":1,"maximum":100},"cursor":{"type":"string","pattern":"^(0|[1-9][0-9]*)$"},"import_if_missing":{"type":"boolean"}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipoteca.example/schemas/search.schema.json",
+  "title": "Search request or response",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "filters": {
+          "$ref": "#/$defs/filters"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clips",
+        "next_cursor"
+      ],
+      "properties": {
+        "clips": {
+          "type": "array",
+          "items": {
+            "$ref": "clip.schema.json"
+          }
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "published",
+            "queued",
+            "searching",
+            "fetching",
+            "processing",
+            "publishing",
+            "no_results",
+            "duplicate",
+            "failed",
+            "rate_limited",
+            "unavailable",
+            "dead_letter"
+          ]
+        },
+        "semantic": {
+          "enum": [
+            "ready",
+            "pending",
+            "unavailable"
+          ]
+        },
+        "scores": {
+          "type": "object",
+          "patternProperties": {
+            "^clip-[0-9]{6}$": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "semantic_reason": {
+          "type": "string",
+          "enum": [
+            "semantic_disabled",
+            "empty_corpus",
+            "query_vector_unavailable",
+            "query_encoder_unavailable",
+            "shard_corrupt",
+            "manifest_too_large",
+            "cpu_budget_exceeded",
+            "manifest_invalid",
+            "semantic_error",
+            "legacy_index_invalid",
+            "invalid_repository",
+            "query_vector_invalid",
+            "unsafe_query_encoder_url",
+            "no_semantic_match"
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "aspect_ratio": {
+          "enum": [
+            "9:16",
+            "16:9",
+            "1:1",
+            "other"
+          ]
+        },
+        "max_duration": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 20
+        },
+        "min_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]{1,64}$"
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en",
+            "zh",
+            "ru"
+          ]
+        },
+        "has_audio": {
+          "type": "boolean"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        "import_if_missing": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

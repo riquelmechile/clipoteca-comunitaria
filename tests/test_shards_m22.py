@@ -187,6 +187,9 @@ class GitDataSimulator:
             tree = dict(self.trees[body["base_tree"]])
             for item in body["tree"]:
                 if item["sha"] is None:
+                    # Git trees reject deleting paths absent from the base.
+                    if item["path"] not in self.trees[body["base_tree"]]:
+                        return httpx.Response(422, json={"message": "missing base tree path"})
                     tree.pop(item["path"], None)
                 else:
                     tree[item["path"]] = self.blobs[item["sha"]]

@@ -1,36 +1,38 @@
-# Contratos — REST, MCP y catálogo
+# Contratos U+2014 REST, MCP y catalogo
 
 ## Endpoints REST
 
-| Método | Ruta | Función | Autorización |
+| Metodo | Ruta | Funcion | Autorizacion |
 |---|---|---|---|
-| GET | `/v1/health` | estado de API/MCP | pública |
-| GET | `/v1/sources` | matriz declarativa y estado de cada fuente, sin credenciales | pública |
-| GET | `/v1/clips?q=lluvia&aspect_ratio=9%3A16&max_duration=20` | catálogo local | pública |
-| GET | `/v1/clips/{id}` | ficha, meta, miniatura | pública |
-| GET | `/v1/clips/{id}/download` | redirección a asset GitHub Releases | pública |
+| GET | `/v1/health` | estado de API/MCP | publica |
+| GET | `/v1/sources` | matriz declarativa y estado de cada fuente, sin credenciales | publica |
+| GET | `/v1/clips?q=lluvia&aspect_ratio=9%3A16&max_duration=20` | catalogo local | publica |
+| GET | `/v1/clips/{id}` | ficha, meta, miniatura | publica |
+| GET | `/v1/clips/{id}/download` | redireccion a asset GitHub Releases | publica |
+| POST | `/v1/script` | 1..50 scenes: matched video, queued import or explicitly missing | shared import quota |
 | POST | `/v1/search` | busca local y opcionalmente solicita nuevo trabajo externo | limitada por cuota; escritura protegida |
-| GET | `/v1/jobs/{request_id}` | progreso de descubrimiento/importación | pública para estado no sensible |
-| POST | `/v1/import` | solicita ingesta externa | credencial/permiso específico |
-| POST | `/v1/contributions` | registra Issue/URL de contribución | autenticación GitHub o control antiabuso |
+| GET | `/v1/jobs/{request_id}` | progreso de descubrimiento/importacion | publica para estado no sensible |
+| POST | `/v1/import` | solicita ingesta externa | credencial/permiso especifico |
+| POST | `/v1/contributions` | registra Issue/URL de contribucion | autenticacion GitHub o control antiabuso |
 
 M22: POST /v1/search y MCP search_clips incluyen semantic
 (ready, pending, unavailable). En ready, scores mapea IDs a puntaje
-combinado RRF con k=60; en pending indica vector aún no disponible y
-un dispatch de cálculo solicitado; unavailable conserva el ranking léxico.
+combinado RRF con k=60; en pending indica vector aun no disponible y
+un dispatch de calculo solicitado; unavailable conserva el ranking lexico.
 El objeto Clip no adquiere campos obligatorios, y GET /v1/clips mantiene
 su contrato previo.
 
-`GET /v1/clips` jamás dispara trabajo costoso. `POST /v1/search` puede devolver `200` con coincidencias o `202` con coincidencias y `request_id` de búsqueda ampliada. El sistema devuelve enlaces de descarga cuando el archivo ya fue publicado; antes de eso solo hay `processing`.
+`GET /v1/clips` jamas dispara trabajo costoso. `POST /v1/search` puede devolver `200` con coincidencias o `202` con coincidencias y `request_id` de busqueda ampliada. El sistema devuelve enlaces de descarga cuando el archivo ya fue publicado; antes de eso solo hay `processing`.
 
 ## Herramientas MCP remotas (SDK oficial TS v2, Streamable HTTP)
 
-- `search_clips(query, aspect_ratio?, max_duration?, min_width?, source?, limit?, import_if_missing?)`: primero catálogo; opcionalmente solicita ronda externa.
+- `search_clips(query, aspect_ratio?, max_duration?, min_width?, source?, limit?, import_if_missing?)`: primero catalogo; opcionalmente solicita ronda externa.
+- `resolve_script(scenes)`: per-scene matched/queued/missing, media, factual source, storyboard and deterministic script_id; shared import quota.
 - `get_clip(clip_id)`: ficha verificable de un video.
 - `download_clip(clip_id)`: enlace a MP4 en GitHub Releases.
-- `search_and_import(query, aspect_ratio?, max_results?)`: solicita nueva búsqueda + persistencia asíncrona; operación con permisos.
+- `search_and_import(query, aspect_ratio?, max_results?)`: solicita nueva busqueda + persistencia asincrona; operacion con permisos.
 - `get_job_status(request_id)`: estado de trabajo.
-- `list_sources()`: devuelve `{sources: [{provider, status, capabilities: {search, preview, download}}], kind}` con `kind: "actions_credential_presence_snapshot"`. Los niveles `supported`, `best_effort`, `unavailable` son declaraciones sobre las capacidades, **no una garantía de éxito**. Se deriva de `data/sources.json` en `main` y coincide con `GET /v1/sources`. Si falta cualquier `capabilities` o cualquiera de sus tres campos, falla explícitamente; nunca se inventa `unavailable` por omisión.
+- `list_sources()`: devuelve `{sources: [{provider, status, capabilities: {search, preview, download}}], kind}` con `kind: "actions_credential_presence_snapshot"`. Los niveles `supported`, `best_effort`, `unavailable` son declaraciones sobre las capacidades, **no una garantia de exito**. Se deriva de `data/sources.json` en `main` y coincide con `GET /v1/sources`. Si falta cualquier `capabilities` o cualquiera de sus tres campos, falla explicitamente; nunca se inventa `unavailable` por omision.
 
 Ninguna respuesta MCP incluye bytes de video embebidos. Debe retornar objetos estructurados estables y URLs directas al almacenamiento.
 
@@ -46,7 +48,7 @@ Ninguna respuesta MCP incluye bytes de video embebidos. Debe retornar objetos es
     "provider": "rutube",
     "provider_id": "source-id",
     "source_language": "ru",
-    "source_title": "Дождь на улице",
+    "source_title": "U+0414U+043EU+0436U+0434U+044C U+043DU+0430 U+0443U+043BU+0438U+0446U+0435",
     "source_url": "https://example.org/original/123"
   },
   "media": {
@@ -75,21 +77,25 @@ Ninguna respuesta MCP incluye bytes de video embebidos. Debe retornar objetos es
 
 **Los ejemplos no son registros reales.** No mostrar URLs inventadas como si un archivo estuviera publicado.
 
-## Clasificación precisa de orientación
+## Clasificacion precisa de orientacion
 
-Calcular con width/height del stream de video, incorporando rotación de metadatos:  
-- Igualdad/aspecto próximo a 9:16 → `9:16`, `vertical`.
-- Próximo a 16:9 → `16:9`, `horizontal`.
-- Próximo a 1:1 → `1:1`, `square`.
-- Otro → `other` con razón reducida (`4:3`, `21:9`, etc.).
+Calcular con width/height del stream de video, incorporando rotacion de metadatos:
+- Igualdad/aspecto proximo a 9:16 U+2192 `9:16`, `vertical`.
+- Proximo a 16:9 U+2192 `16:9`, `horizontal`.
+- Proximo a 1:1 U+2192 `1:1`, `square`.
+- Otro U+2192 `other` con razon reducida (`4:3`, `21:9`, etc.).
 
-Usar tolerancia definida y testeada (p. ej. `abs(w/h - target) < 0.01`); no recortar para convertir orientación. Guardar width/height reales de salida, no deducirlos del nombre de archivo.
+Usar tolerancia definida y testeada (p. ej. `abs(w/h - target) < 0.01`); no recortar para convertir orientacion. Guardar width/height reales de salida, no deducirlos del nombre de archivo.
 
-## Semántica de búsqueda
+## Semantica de busqueda
 
 - Orden: resultados existentes, relevantes y accesibles; `import_if_missing` inicia nueva ronda sin bloquear.
-- Indexar cadenas Unicode normalizadas y ambas lenguas de metadatos; guardar también keywords del idioma original para dedup y trazabilidad.
+- Indexar cadenas Unicode normalizadas y ambas lenguas de metadatos; guardar tambien keywords del idioma original para dedup y trazabilidad.
 - Filtros: `aspect_ratio`, `max_duration`, `min_width`, `fps`, `source`, `language`, `has_audio`.
-- Paginación con cursor estable cuando el catálogo supere 1000 clips.
+- Paginacion con cursor estable cuando el catalogo supere 1000 clips.
 
-M22 r2: `semantic_reason` es opcional y solo expone la categoría de degradación, jamás errores upstream. La comparación semántica exige `SEMANTIC_SEARCH=1`, umbral de coseno 0,30 y presupuesto de clips. El estado `pending` exige `CLIPOTECA_QUERY_DISPATCH_MODE=1` y el YAML de modo liviano; de lo contrario retorna `unavailable` sin iniciar ingest solo para calcular el vector.
+M22 r2: `semantic_reason` es opcional y solo expone la categoria de degradacion, jamas errores upstream. La comparacion semantica exige `SEMANTIC_SEARCH=1`, default absoluto de coseno 0,20 con margen relativo 0,05 y presupuesto de clips. El estado `pending` exige `CLIPOTECA_QUERY_DISPATCH_MODE=1` y el YAML de modo liviano; de lo contrario retorna `unavailable` sin iniciar ingest solo para calcular el vector.
+
+## M23: script-to-video compatibility
+
+POST /v1/script and MCP resolve_script share strict input validation, maximum 50 scenes, 1500 characters of narration and 200 of query. Orientation maps to aspect_ratio; min_duration filters results. Video URLs require explicit video extensions, never image assets. Imports use submitImport, existing rate limits, deterministic job identity and status checks. Mixed matched, queued and missing scenes do not fail the script. script_id is the SHA-256 of the canonical validated script. See [M23_GUION.md](M23_GUION.md).

@@ -56,6 +56,7 @@ components:
         semantic_reason:
           type: string
           description: Causa del fallback o shard aislado (sin datos sensibles).
+          enum: [semantic_disabled, empty_corpus, query_vector_unavailable, query_encoder_unavailable, shard_corrupt, manifest_too_large, cpu_budget_exceeded, manifest_invalid, semantic_error, legacy_index_invalid, invalid_repository, query_vector_invalid, unsafe_query_encoder_url, no_semantic_match]
         scores:
           type: object
           description: Puntuacion combinada RRF por ID de clip, opcional.
@@ -115,6 +116,90 @@ components:
       properties:
         clip_id: {type: string, pattern: "^clip-[0-9]{6}$"}
         frames: {type: array, maxItems: 8, items: {$ref: "#/components/schemas/StoryboardFrame"}}
+    ScriptScene:
+      type: object
+      additionalProperties: false
+      required: [id, narration, query, orientation, min_duration]
+      properties:
+        id: {type: string, pattern: "^[A-Za-z0-9_-]{1,64}$"}
+        narration: {type: string, minLength: 1, maxLength: 1500}
+        query: {type: string, minLength: 1, maxLength: 200}
+        orientation:
+          type: string
+          enum: ["9:16", "16:9", "1:1", other, portrait, vertical, landscape, horizontal, square]
+        min_duration: {type: number, exclusiveMinimum: 0, maximum: 20}
+    ScriptRequest:
+      type: object
+      additionalProperties: false
+      required: [scenes]
+      properties:
+        scenes:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: {$ref: "#/components/schemas/ScriptScene"}
+    ScriptMedia:
+      type: object
+      additionalProperties: false
+      required: [type, clip_id, url, thumbnail_url, storyboard_urls, duration_seconds, source]
+      properties:
+        type: {type: string, const: video}
+        clip_id: {type: string, pattern: "^clip-[0-9]{6}$"}
+        url: {type: string, format: uri}
+        thumbnail_url: {type: [string, "null"], format: uri}
+        storyboard_urls: {type: array, items: {type: string, format: uri}}
+        duration_seconds: {type: number, exclusiveMinimum: 0}
+        source:
+          type: object
+          required: [provider, source_language]
+          properties:
+            provider: {type: string}
+            source_language: {type: string}
+            provider_id: {type: string}
+            source_title: {type: string}
+            source_url: {type: string, format: uri}
+            source_start: {type: number, minimum: 0}
+            source_end: {type: number, exclusiveMinimum: 0}
+    ScriptResolvedScene:
+      type: object
+      required: [id, narration, query, orientation, min_duration, status, media]
+      properties:
+        id: {type: string, pattern: "^[A-Za-z0-9_-]{1,64}$"}
+        narration: {type: string, minLength: 1, maxLength: 1500}
+        query: {type: string, minLength: 1, maxLength: 200}
+        orientation: {type: string}
+        min_duration: {type: number, exclusiveMinimum: 0, maximum: 20}
+        status: {type: string, enum: [matched, queued, missing]}
+        reason: {type: string}
+        media:
+          oneOf:
+            - {$ref: "#/components/schemas/ScriptMedia"}
+            - {type: "null"}
+        request_id: {type: string, pattern: "^[a-f0-9]{64}$"}
+        job:
+          type: object
+          required: [request_id, status]
+          properties:
+            request_id: {type: string, pattern: "^[a-f0-9]{64}$"}
+            status: {type: string}
+    ScriptResponse:
+      type: object
+      additionalProperties: false
+      required: [script_id, scenes, summary]
+      properties:
+        script_id: {type: string, pattern: "^[a-f0-9]{64}$"}
+        scenes:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: {$ref: "#/components/schemas/ScriptResolvedScene"}
+        summary:
+          type: object
+          required: [matched, queued, missing]
+          properties:
+            matched: {type: integer, minimum: 0}
+            queued: {type: integer, minimum: 0}
+            missing: {type: integer, minimum: 0}
     ContributionBody:
       type: object
       additionalProperties: false
@@ -203,6 +288,29 @@ paths:
         "302": {description: Redirect to verified GitHub Releases media}
         "404": {description: Clip not found}
         "503": {description: Catalogue unavailable}
+  /v1/script:
+    post:
+      operationId: resolveScript
+      description: |
+        M23 resolves up to 50 script scenes to verified video clips. Uses
+        existing lexical/semantic search, filters and import_if_missing quota.
+        An import can be queued with a deterministic request_id. Each scene
+        reports matched, queued or missing without failing the entire script.
+        All output media URLs are HTTPS video assets, never unlabelled images.
+        The same input yields the same script_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ScriptRequest"}
+      responses:
+        "200":
+          description: Per-scene resolution, preview and provenance
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ScriptResponse"}
+        "400": {description: Invalid script or body over 64 KiB}
+        "405": {description: Method not allowed}
   /v1/search:
     post:
       operationId: search

@@ -144,5 +144,9 @@ def test_real_argos_issue26_and_ordinary_olas(monkeypatch):
     if translated_query is not None:
         assert _nondegenerate(translated_query)
         assert translated_query.casefold() != "olas"
-    # Persistent bounded translation failures are an acceptable fail-closed
-    # outcome: the test never treats corrupt or repeated text as valid.
+    # A fully empty run does not prove the real Argos integration works.
+    # Bounded failures remain fail-closed, but at least one real translation
+    # must succeed to satisfy this smoke test.
+    assert translated_title is not None or localized is not None or translated_query is not None, (
+        "all real Argos translations failed after bounded retries"
+    )

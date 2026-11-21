@@ -779,18 +779,6 @@ async def ingest(
                         )
                     job["source_errors"][candidate.origin_id] = error_code
                     errors.append(f"{candidate.origin_id}:{error_code}")
-        # One M22 Git Data API tree/commit for the entire ingest job,
-        # independent of legacy M21 per-clip writes. A shard failure cannot
-        # roll back already published catalogue entries or verified MP4 assets.
-        if pending_remote_vectors and remote_embeddings is not None:
-            try:
-                GitHubShards(remote_embeddings.client, repository).publish_many(
-                    pending_remote_vectors
-                )
-            except Exception:
-                job.setdefault("source_warnings", {})["embedding_m22_remote"] = (
-                    "shard_batch_persist_failed:clips_published"
-                )
         if ids:
             job["status"] = "published"
         elif errors and all(":duplicate" in entry for entry in errors):
@@ -846,6 +834,24 @@ async def ingest(
             jobs.save(job)
         return IngestReport(rid, "failed", tuple(ids), (type(exc).__name__,))
     finally:
+        # Flush exactly once per job even on cancellation/timeout. Each vector
+        # was enqueued only after the catalogue and MP4 were durable.
+        if pending_remote_vectors and remote_embeddings is not None:
+            try:
+                GitHubShards(remote_embeddings.client, repository).publish_many(
+                    pending_remote_vectors
+                )
+            except Exception:
+                job.setdefault("source_warnings", {})["embedding_m22_remote"] = (
+                    "shard_batch_persist_failed:clips_published"
+                )
+            finally:
+                pending_remote_vectors.clear()
+                try:
+                    jobs.save(job)
+                except Exception:
+                    # Never mask the original CancelledError or publication.
+                    pass
         if remote_embeddings is not None:
             remote_embeddings.close()
         if own_storage:
