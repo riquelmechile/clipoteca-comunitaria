@@ -254,7 +254,7 @@ async def test_hls_500_segments_downloads_only_cut_window(monkeypatch, tmp_path)
     lines = ["#EXTM3U", "#EXT-X-TARGETDURATION:4"]
     for index in range(500):
         lines.extend(("#EXTINF:4.0,", f"piece-{index:04d}.ts"))
-    playlist = "\\n".join(lines) + "\\n"
+    playlist = "\n".join(lines) + "\n"
 
     def handler(request):
         seen.append((request.url.path, request.url.host, request.headers.get("host")))
@@ -292,7 +292,7 @@ async def test_hls_30_second_single_segment_is_fetched_then_trimmed(monkeypatch,
     def handler(request):
         responses.append(request.url.path)
         if request.url.path.endswith(".m3u8"):
-            return httpx.Response(200, text="#EXTM3U\\n#EXTINF:30.0,\\nlong.ts\\n")
+            return httpx.Response(200, text="#EXTM3U\n#EXTINF:30.0,\nlong.ts\n")
         return httpx.Response(200, content=b"TS_BYTES")
 
     def fake_run(command, **_kwargs):
@@ -324,8 +324,8 @@ async def test_hls_start_offset_selects_intersecting_segments(monkeypatch, tmp_p
         paths.append(request.url.path)
         if request.url.path.endswith(".m3u8"):
             return httpx.Response(200, text=(
-                "#EXTM3U\\n#EXTINF:10,\\na.ts\\n#EXTINF:10,\\nb.ts\\n"
-                "#EXTINF:10,\\nc.ts\\n"
+                "#EXTM3U\n#EXTINF:10,\na.ts\n#EXTINF:10,\nb.ts\n"
+                "#EXTINF:10,\nc.ts\n"
             ))
         return httpx.Response(200, content=b"TS")
 
@@ -356,7 +356,7 @@ async def test_hls_peer_mismatch_rejected_even_with_injected_client(tmp_path):
         assert request.url.host == "8.8.8.8"
         assert request.headers["host"] == "video.example.com"
         assert request.extensions["sni_hostname"] == "video.example.com"
-        return httpx.Response(200, text="#EXTM3U\\n#EXTINF:1,\\nx.ts\\n",
+        return httpx.Response(200, text="#EXTM3U\n#EXTINF:1,\nx.ts\n",
                               extensions={"network_stream": Peer()})
 
     async with async_client(handler) as client:
@@ -397,7 +397,7 @@ async def test_hls_rejects_key_map_and_byterange_before_media_get(tmp_path, tag)
 
     def handler(request):
         seen.append(request.url.path)
-        return httpx.Response(200, text=f"#EXTM3U\\n{tag}\\n#EXTINF:2.0,\\ns.ts\\n")
+        return httpx.Response(200, text=f"#EXTM3U\n{tag}\n#EXTINF:2.0,\ns.ts\n")
 
     async with async_client(handler) as client:
         with pytest.raises(DownloadError, match="key or init-map|byte-range"):
