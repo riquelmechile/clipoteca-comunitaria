@@ -16,7 +16,8 @@ from .media.normalize import normalize_media
 from .media.thumbnail import create_thumbnail
 from .metadata import localize_candidate
 from .metrics import discovery_metrics, write_metrics
-from .providers.base import Adapter
+from .providers.base import Adapter, SupportStatus
+from .translate.expand import expand_query
 from .security.download import download_media
 from .storage.github import GitHubReleaseStorage, StorageError
 
@@ -49,6 +50,8 @@ async def ingest(
         raise ValueError("concurrency must be 1..16")
     if max_results < 1 or max_results > 50:
         raise ValueError("max_results must be 1..50")
+    if float((filters or {}).get("max_duration") or 20) > 20:
+        raise ValueError("max_duration must be at most 20 seconds")
     rid = request_id(query, filters or {}, horizon)
     jobs = JobStore(job_root)
     existing = jobs.load(rid)
@@ -70,9 +73,20 @@ async def ingest(
 
     try:
         advance("searching")
+        expansion = expand_query(query, translator=translator)
+        job["terms"] = dict(expansion.terms)
+        if not expansion.complete or expansion.errors:
+            missing = next(
+                (language for language in ("es", "en", "zh", "ru") if not expansion.terms.get(language)),
+                next(iter(expansion.errors), "unknown"),
+            )
+            job["status"] = "failed"
+            job["source_errors"]["translation"] = f"translation_failed:{missing}"
+            jobs.save(job)
+            return IngestReport(rid, "failed", (), ("translation_failed",))
         catalogue, _ = writer.read_catalog()
         search = await SearchEngine(adapters, concurrency=concurrency).search(
-            query, catalog=catalogue
+            query, catalog=catalogue, expansion=expansion
         )
         for execution in search.executions:
             job["language_counts"][execution.language] = (
@@ -85,11 +99,30 @@ async def ingest(
                 job["source_errors"][f"{execution.provider}:{execution.language}"] = execution.error
         write_metrics(discovery_metrics(search), job_root / (rid + ".metrics.json"))
         if not search.candidates:
-            job["status"] = "no_results"
+            statuses = [execution.status for execution in search.executions]
+            if search.duplicates:
+                final = "duplicate"
+            elif statuses and all(item == SupportStatus.RATE_LIMITED for item in statuses):
+                final = "rate_limited"
+            elif statuses and all(
+                item in {
+                    SupportStatus.UNAVAILABLE,
+                    SupportStatus.AUTH_REQUIRED,
+                    SupportStatus.TIMEOUT,
+                    SupportStatus.SUPPORTED_SEARCH_ONLY,
+                }
+                for item in statuses
+            ):
+                final = "unavailable"
+            else:
+                final = "no_results"
+            job["status"] = final
             jobs.save(job)
-            return IngestReport(rid, "no_results", (), ())
+            return IngestReport(rid, final, (), ())
         by_name = {adapter.name: adapter for adapter in adapters}
-        for candidate in search.candidates[:max_results]:
+        for candidate in search.candidates:
+            if len(ids) >= max_results:
+                break
             adapter = by_name[candidate.provider]
             with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
                 temp = Path(work)
@@ -99,6 +132,8 @@ async def ingest(
                     if ref is None:
                         errors.append(f"{candidate.origin_id}:search_only")
                         continue
+                    # Fail multilingual metadata before spending bandwidth on a large video.
+                    localized = localize_candidate(candidate, translator=translator)
                     raw = await (
                         downloader(ref.url, temp) if downloader else download_media(ref.url, temp)
                     )
@@ -114,7 +149,6 @@ async def ingest(
                     thumb_path = create_thumbnail(normalized.path, temp / "thumbnail.webp")
                     digest = sha256_file(normalized.path)
                     frame_hash = perceptual_hash(normalized.path)
-                    localized = localize_candidate(candidate, translator=translator)
                     # Optimistic read before expensive release upload; writer rechecks on PUT.
                     remote, _ = writer.read_catalog()
                     draft = {
@@ -209,7 +243,16 @@ async def ingest(
                 except (Exception,) as exc:
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
                     errors.append(f"{candidate.origin_id}:{type(exc).__name__}")
-        job["status"] = "published" if ids else "failed" if errors else "no_results"
+        if ids:
+            job["status"] = "published"
+        elif errors and all(":duplicate" in entry for entry in errors):
+            job["status"] = "duplicate"
+        elif errors and all(
+            ":search_only" in entry or ":aspect_filter" in entry for entry in errors
+        ):
+            job["status"] = "unavailable"
+        else:
+            job["status"] = "failed" if errors else "no_results"
         jobs.save(job)
         return IngestReport(rid, job["status"], tuple(ids), tuple(errors))
     finally:
