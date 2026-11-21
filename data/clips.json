@@ -45,5 +45,52 @@
     },
     "status": "published",
     "created_at": "2026-11-21T01:13:34.629368Z"
+  },
+  {
+    "id": "clip-000002",
+    "title": {
+      "es": "autopistas-27556949",
+      "en": "autopistas-27556949"
+    },
+    "description": {
+      "es": "autopistas-27556949",
+      "en": "autopistas-27556949"
+    },
+    "tags": {
+      "es": [
+        "lluvia"
+      ],
+      "en": [
+        "rain"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "27556949",
+      "source_language": "en",
+      "source_title": "autopistas-27556949",
+      "source_url": "https://www.pexels.com/video/autopistas-27556949/"
+    },
+    "media": {
+      "duration_seconds": 10.54,
+      "width": 1920,
+      "height": 1080,
+      "fps": 50.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 15104971,
+      "sha256": "737828b63c1bc3b797ab14e2f37b51cb50213167671a3482aba5351285889680",
+      "perceptual_hash": "ccc0c0fcf8951d3d~3156.05:ccc242fcf0959c3d~3147.22:ccc242fcf0951d3d~3251.75:c4c243fcf0d59c3c~3229.11:ccc240fcf0dd9c3c~3259.90"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/clip_clip-000002.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/thumb_clip-000002.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-21T01:15:55.368269Z"
   }
 ]
