@@ -42,7 +42,12 @@ class PeerTube(Adapter):
             for host in (
                 instances
                 if instances is not None
-                else tuple(os.getenv("PEERTUBE_ALLOWED_INSTANCES", "pt.na4.eu").split(","))
+                else tuple(
+                    os.getenv(
+                        "PEERTUBE_ALLOWED_INSTANCES",
+                        "pt.na4.eu,tilvids.com,diode.zone,framatube.org",
+                    ).split(",")
+                )
             )
             if host.strip() and re.fullmatch(r"[A-Za-z0-9.-]+", host.strip())
         )

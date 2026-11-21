@@ -13,6 +13,7 @@ from .base import (
     Candidate,
     MediaRef,
     ProviderError,
+    RateLimited,
     SearchLimits,
     SupportStatus,
     detect_source_language,
@@ -47,6 +48,8 @@ class VKVideo(Adapter):
             code = obj.get("error_code") if isinstance(obj, dict) else -1
             if code in {5, 27, 28}:
                 raise AuthRequired("VK token lacks required permissions")
+            if code in {6, 9}:
+                raise RateLimited("VK API request limit")
             raise ProviderError(f"VK API error {code}")
         result = data.get("response")
         if not isinstance(result, dict):

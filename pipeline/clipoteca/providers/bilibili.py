@@ -40,6 +40,7 @@ class Bilibili(Adapter):
     def __init__(self, *, cookie: str | None = None, client: httpx.AsyncClient | None = None):
         self.cookie = cookie if cookie is not None else os.getenv("BILIBILI_COOKIE", "")
         self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self._http_412_count = 0
 
     async def _get(self, endpoint: str, params: dict) -> dict:
         headers = {"User-Agent": "Mozilla/5.0 Clipoteca/1.0"}
@@ -51,8 +52,14 @@ class Bilibili(Adapter):
             raise ProviderTimeout("Bilibili timeout") from exc
         except httpx.HTTPError as exc:
             raise ProviderError("Bilibili transport error") from exc
-        if response.status_code in {412, 429}:
-            raise RateLimited("Bilibili anti-bot or HTTP rate limit")
+        if response.status_code == 412:
+            self._http_412_count += 1
+            if self._http_412_count >= 3:
+                raise ProviderError("ip_blocked")
+            raise RateLimited("Bilibili HTTP 412 risk control")
+        self._http_412_count = 0
+        if response.status_code == 429:
+            raise RateLimited("Bilibili HTTP rate limit")
         if response.status_code >= 400:
             raise ProviderError(f"Bilibili HTTP {response.status_code}")
         try:

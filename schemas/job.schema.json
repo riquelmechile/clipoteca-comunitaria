@@ -7,6 +7,7 @@
   "required": ["request_id", "status", "language_counts", "provider_counts", "source_errors"],
   "properties": {
     "request_id": {"type": "string", "minLength": 1},
+    "attempt": {"type": "integer", "minimum": 1},
     "status": {"enum": ["queued", "searching", "fetching", "processing", "publishing", "published", "no_results", "duplicate", "failed", "rate_limited", "unavailable"]},
     "language_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
     "provider_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},

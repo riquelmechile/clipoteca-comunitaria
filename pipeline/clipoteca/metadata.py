@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Callable
 
 from .providers.base import Candidate
 from .translate.argos import TranslationFailed, translate_text
-from .translate.dictionary import find_concept
 
 
 class MetadataTranslationError(RuntimeError):
@@ -28,9 +28,6 @@ def _bilingual(
     source: str,
     translator: Callable[[str, str, str], str] | None = None,
 ) -> dict[str, str]:
-    known = find_concept(text)
-    if known:
-        return {"es": known.terms["es"], "en": known.terms["en"]}
     if source not in {"es", "en", "zh", "ru"}:
         raise MetadataTranslationError("unsupported_source_language")
     result = {}
@@ -48,6 +45,21 @@ def _bilingual(
     return result
 
 
+def humanize_source_title(value: str) -> str:
+    """Remove stock-video URL slugs/IDs without manufacturing scene details."""
+    value = value.strip().rsplit("/", 1)[-1]
+    value = re.sub(r"[-_ ]+\d{5,}$", "", value)
+    value = re.sub(r"[-_]+", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    if not value or not re.search(r"[^\W\d_]", value, flags=re.UNICODE):
+        raise MetadataTranslationError("source title has no descriptive words")
+    return value[0].upper() + value[1:]
+
+
+def _title_tags(title: str) -> list[str]:
+    return [word for word in re.findall(r"[^\W_]+", title, flags=re.UNICODE) if len(word) > 2][:12]
+
+
 def localize_candidate(
     candidate: Candidate,
     *,
@@ -56,20 +68,24 @@ def localize_candidate(
     original = candidate.source_title.strip()
     if not original:
         raise MetadataTranslationError("source title missing")
+    readable = humanize_source_title(original)
     metadata = candidate.metadata or {}
     source_data = metadata.get("data", metadata)
     description = source_data.get("description") if isinstance(source_data, dict) else None
     raw_description = (
-        description.strip() if isinstance(description, str) and description.strip() else original
+        description.strip() if isinstance(description, str) and description.strip() else readable
     )
-    title = _bilingual(original, candidate.source_language, translator)
+    title = _bilingual(readable, candidate.source_language, translator)
     desc = _bilingual(raw_description, candidate.source_language, translator)
     # Search term is factual; when not in curated dictionary, translate or fail.
     keyword = _bilingual(candidate.term, candidate.language, translator)
     return LocalizedMetadata(
         title=title,
         description=desc,
-        tags={"es": [keyword["es"]], "en": [keyword["en"]]},
+        tags={
+            language: list(dict.fromkeys([keyword[language], *_title_tags(title[language])]))
+            for language in ("es", "en")
+        },
         original_title=original,
         original_language=candidate.source_language,
     )

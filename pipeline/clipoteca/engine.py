@@ -39,6 +39,7 @@ class SearchResult:
     executions: list[Execution]
     elapsed_seconds: float
     duplicates: int = 0
+    duplicate_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -176,32 +177,52 @@ class SearchEngine:
                         )
 
         # Terms are queued round-robin by language, never four per provider first.
+        ordered_adapters = sorted(
+            self.adapters,
+            key=lambda adapter: (
+                adapter.support_status != SupportStatus.SUPPORTED_SEARCH_DOWNLOAD,
+                adapter.name == "youtube",
+            ),
+        )
         for lang in ("es", "en", "zh", "ru"):
-            for adapter in self.adapters:
+            for adapter in ordered_adapters:
                 term = expansion.terms.get(lang)
                 if term and lang in adapter.accepts_text_languages:
                     task = asyncio.create_task(one(adapter, lang, term))
                     tasks[task] = (adapter.name, lang, term)
-        finished, pending = (
-            await asyncio.wait(
-                tasks,
-                timeout=self.discovery_seconds,
-            )
-            if tasks
-            else (set(), set())
-        )
+        # YouTube Data API is discovery-only. Never hold a completed round
+        # hostage to its slow requests; harvest only already-finished results.
+        blocking = {task for task, (name, _, _) in tasks.items() if name != "youtube"}
+        deadline_tasks = blocking or set(tasks)
+        if deadline_tasks:
+            await asyncio.wait(deadline_tasks, timeout=self.discovery_seconds)
+        finished = {task for task in tasks if task.done()}
+        pending = set(tasks) - finished
         for task in pending:
             task.cancel()
         if pending:
             await asyncio.gather(*pending, return_exceptions=True)
         executions = []
         seen = {
-            f"{clip['source']['provider']}:{clip['source']['provider_id']}"
+            f"{clip['source']['provider']}:{clip['source']['provider_id']}": clip["id"]
             for clip in catalog.clips
         }
         candidates = []
+        duplicate_ids: set[str] = set()
         duplicates = 0
-        for task in tasks:
+        # Prioritize actual download adapters when the global quota fills.
+        ordered_tasks = sorted(
+            tasks,
+            key=lambda task: (
+                tasks[task][0] not in {
+                    adapter.name
+                    for adapter in self.adapters
+                    if adapter.support_status == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+                },
+                tasks[task][0] == "youtube",
+            ),
+        )
+        for task in ordered_tasks:
             provider, language, term = tasks[task]
             if task in pending:
                 found, status, error, elapsed = (
@@ -226,10 +247,18 @@ class SearchEngine:
             for candidate in found:
                 if candidate.origin_id in seen:
                     duplicates += 1
+                    if seen[candidate.origin_id]:
+                        duplicate_ids.add(seen[candidate.origin_id])
                     continue
-                seen.add(candidate.origin_id)
+                seen[candidate.origin_id] = ""
                 if len(candidates) < self.max_candidates:
                     candidates.append(candidate)
         return SearchResult(
-            expansion, local, candidates, executions, self.clock() - start, duplicates
+            expansion,
+            local,
+            candidates,
+            executions,
+            self.clock() - start,
+            duplicates,
+            sorted(duplicate_ids),
         )
