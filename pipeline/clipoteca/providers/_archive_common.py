@@ -95,3 +95,20 @@ def nested_direct_media(value: Any) -> MediaRef | None:
             if ref:
                 return ref
     return None
+
+
+def has_download_restriction(value: Any) -> bool:
+    """Fail closed if any nested resource forbids downloading.
+
+    Explicit provider flags, including string booleans, override media URLs.
+    """
+    if isinstance(value, dict):
+        for key in ("download_restricted", "downloadRestricted"):
+            if key in value:
+                flag = value[key]
+                if flag is True or str(flag).strip().casefold() in {"1", "true", "yes"}:
+                    return True
+        return any(has_download_restriction(child) for child in value.values())
+    if isinstance(value, list):
+        return any(has_download_restriction(child) for child in value)
+    return False

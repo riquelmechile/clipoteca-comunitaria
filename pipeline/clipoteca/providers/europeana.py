@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from ._archive_common import first_text, media_ref
+from ._archive_common import first_text, has_download_restriction, media_ref
 from .base import (
     Adapter,
     AuthRequired,
@@ -65,8 +65,13 @@ class Europeana(Adapter):
                 landing = first_text(row.get("edmIsShownAt"))
                 if not landing:
                     landing = f"https://www.europeana.eu/item{provider_id}"
-                direct = media_ref(
-                    first_text(row.get("edmIsShownBy")), first_text(row.get("mimeType"))
+                direct = (
+                    None
+                    if has_download_restriction(row)
+                    else media_ref(
+                        first_text(row.get("edmIsShownBy")),
+                        first_text(row.get("mimeType")),
+                    )
                 )
                 metadata = dict(row)
                 if direct:
@@ -98,4 +103,6 @@ class Europeana(Adapter):
 
     async def direct_media(self, candidate: Candidate) -> MediaRef | None:
         row = await self.metadata(candidate)
+        if has_download_restriction(row):
+            return None
         return media_ref(row.get("direct_video_url"), row.get("direct_video_mime"))

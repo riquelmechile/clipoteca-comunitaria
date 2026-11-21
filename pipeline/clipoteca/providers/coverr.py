@@ -19,10 +19,9 @@ def _direct_media(row: dict[str, Any]) -> MediaRef | None:
     urls = row.get("urls")
     if not isinstance(urls, dict):
         return None
-    for key in ("mp4_download", "mp4_preview"):
-        value = urls.get(key)
-        if not isinstance(value, str) or not value.startswith("https://"):
-            continue
+    # Preview URLs are not licensed download resources. Never fall back.
+    value = urls.get("mp4_download")
+    if isinstance(value, str) and value.startswith("https://"):
         if urlparse(value).path.casefold().endswith(".mp4"):
             return MediaRef(value, "video/mp4")
     return None

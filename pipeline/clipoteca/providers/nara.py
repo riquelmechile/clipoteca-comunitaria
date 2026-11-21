@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from ._archive_common import first_text, nested_direct_media
+from ._archive_common import first_text, has_download_restriction, nested_direct_media
 from .base import (
     Adapter,
     AuthRequired,
@@ -76,7 +76,7 @@ class NARA(Adapter):
                 landing = (
                     first_text(row.get("url")) or f"https://catalog.archives.gov/id/{provider_id}"
                 )
-                direct = nested_direct_media(row)
+                direct = None if has_download_restriction(row) else nested_direct_media(row)
                 metadata = dict(row)
                 if direct:
                     metadata["direct_video_url"] = direct.url
@@ -108,6 +108,8 @@ class NARA(Adapter):
 
     async def direct_media(self, candidate: Candidate) -> MediaRef | None:
         row = await self.metadata(candidate)
+        if has_download_restriction(row):
+            return None
         return nested_direct_media(
             {
                 "url": row.get("direct_video_url"),
