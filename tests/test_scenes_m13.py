@@ -159,14 +159,14 @@ async def test_remote_download_is_the_production_path_even_with_injected_runner(
         return httpx.Response(
             200,
             headers={"content-type": "video/mp4"},
-            content=b"\\x00\\x00\\x00\\x18ftypisom" + b"0" * 64,
+            content=b"\x00\x00\x00\x18ftypisom" + b"0" * 64,
         )
 
     def fake_run(args, **kwargs):
         executing_thread.append(threading.get_ident())
         assert "-reconnect" not in args
         assert Path(args[args.index("-i") + 1]).is_file()
-        return SimpleNamespace(returncode=0, stderr="Duration: 00:00:12.00\\n")
+        return SimpleNamespace(returncode=0, stderr="Duration: 00:00:12.00\n")
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         rows = await detect_scenes_async(
@@ -189,7 +189,7 @@ async def test_local_async_detection_uses_thread(tmp_path):
 
     def fake_run(args, **kwargs):
         worker_threads.append(threading.get_ident())
-        return SimpleNamespace(returncode=0, stderr="Duration: 00:00:03.00\\n")
+        return SimpleNamespace(returncode=0, stderr="Duration: 00:00:03.00\n")
 
     assert await detect_scenes_async(file, max_window=3, runner=fake_run) == [Scene(0, 3)]
     assert worker_threads and worker_threads[0] != main_thread
