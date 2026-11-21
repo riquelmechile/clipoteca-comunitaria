@@ -32,7 +32,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: clipoteca-catalog
@@ -42,20 +42,27 @@ jobs:
   ingest:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           python-version: "3.13"
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             .cache/argos
             ~/.local/share/argos-translate
-          key: clipoteca-argos-v1-${{ hashFiles('uv.lock') }}
+          key: clipoteca-argos-v2-${{ hashFiles('uv.lock', 'data/argos-pins.json') }}
       - run: uv sync --frozen --extra translate
+      - name: Download and verify pinned translation models
+        env:
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+        run: uv run python -m clipoteca.translate.download_models
       - name: Ingest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,6 +78,7 @@ jobs:
           CLIPOTECA_MAX_RESULTS: ${{ inputs.max_results }}
           CLIPOTECA_REQUEST_ID: ${{ inputs.request_id }}
           CLIPOTECA_CONCURRENCY: ${{ inputs.concurrency }}
+          CLIPOTECA_PERSIST_JOBS: '1'
         run: |
           uv run python -m clipoteca ingest \
             --query "$CLIPOTECA_QUERY" \
@@ -81,7 +89,7 @@ jobs:
             --concurrency "$CLIPOTECA_CONCURRENCY"
       - name: Upload job records and metrics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: clipoteca-jobs-${{ github.run_id }}
           path: data/jobs/
