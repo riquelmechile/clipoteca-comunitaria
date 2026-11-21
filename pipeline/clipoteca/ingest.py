@@ -360,7 +360,12 @@ async def ingest(
                             max_duration=duration_limit,
                         )
                     else:
-                        raw = await download_media(ref.url, temp, expected_bytes=ref.size_bytes)
+                        raw = await download_media(
+                            ref.url,
+                            temp,
+                            expected_bytes=ref.size_bytes,
+                            allowed_hosts=ref.allowed_hosts,
+                        )
                     downloaded_count += 1
                     advance("processing")
                     windows = _candidate_windows(

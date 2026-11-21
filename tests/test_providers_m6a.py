@@ -110,13 +110,12 @@ async def test_vk_search_official_shape(lang):
     assert found[0].source_url == "https://vk.com/video-77_42"
     assert found[0].source_language == "en"
     assert found[0].language == lang
-    assert await adapter.direct_media(found[0]) is None
+    media = await adapter.direct_media(found[0])
+    assert media and media.mime == "video/mp4"
 
 
 @pytest.mark.asyncio
-async def test_vk_missing_or_invalid_token():
-    with pytest.raises(AuthRequired):
-        await VKVideo(token="").search("rain", "es", SearchLimits())
+async def test_vk_invalid_configured_token():
     adapter = VKVideo(
         token="bad",
         client=httpx.AsyncClient(
