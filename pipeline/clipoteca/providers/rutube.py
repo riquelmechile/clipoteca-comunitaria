@@ -28,6 +28,15 @@ API = "https://rutube.ru/api"
 SEARCH_URL = API + "/search/video/"
 ID = re.compile(r"[a-fA-F0-9]{32}")
 HLS_MIME = "application/vnd.apple.mpegurl"
+RUTUBE_CDN_SUFFIXES = ("rutube.ru", "rtbcdn.ru")
+RUTUBE_HLS_ALLOWED_HOSTS = ("rutube.ru", ".rutube.ru", "rtbcdn.ru", ".rtbcdn.ru")
+DETAIL_HTTP_CODES = frozenset({403, 429, 451})
+
+
+def _allowed_rutube_host(host: str) -> bool:
+    """Only allow RuTube-controlled roots or their subdomains, never lookalikes."""
+    return any(host == root or host.endswith("." + root) for root in RUTUBE_CDN_SUFFIXES)
+
 
 
 def _detail(payload: dict) -> None:
@@ -35,7 +44,11 @@ def _detail(payload: dict) -> None:
     if not detail:
         return
     message = str(detail).casefold()
-    if any(term in message for term in ("block", "limit", "denied", "429", "forbidden")):
+    if any(
+        term in message
+        for term in ("block", "limit", "denied", "429", "forbidden",
+                     "too many", "restricted", "geo", "country")
+    ):
         raise RateLimited("RuTube blocked this network or request")
     raise ProviderError("RuTube returned a provider error")
 
@@ -87,7 +100,9 @@ class Rutube(Adapter):
         found: list[Candidate] = []
         seen: set[str] = set()
         for _page in range(pages):
-            payload = await fetch_json(self.client, url, params=params)
+            payload = await fetch_json(
+                self.client, url, params=params, detail_statuses=DETAIL_HTTP_CODES
+            )
             _detail(payload)
             rows = payload.get("results", [])
             if not isinstance(rows, list):
@@ -141,7 +156,10 @@ class Rutube(Adapter):
     async def metadata(self, candidate: Candidate) -> dict[str, Any]:
         if not ID.fullmatch(candidate.provider_id):
             return {}
-        payload = await fetch_json(self.client, API + "/video/" + candidate.provider_id + "/")
+        payload = await fetch_json(
+            self.client, API + "/video/" + candidate.provider_id + "/",
+            detail_statuses=DETAIL_HTTP_CODES,
+        )
         _detail(payload)
         return {
             "description": payload.get("description", ""),
@@ -158,18 +176,32 @@ class Rutube(Adapter):
             API + "/play/options/" + candidate.provider_id + "/",
             params={"format": "json", "no_404": "true", "mq": "all"},
             headers={"Referer": referer},
+            detail_statuses=DETAIL_HTTP_CODES,
         )
         _detail(options)
         link = _video_link(options)
-        split = urlsplit(link)
-        if split.scheme != "https" or not split.hostname or split.port not in (None, 443):
+        try:
+            split = urlsplit(link)
+            port = split.port
+            hostname = (split.hostname or "").casefold()
+        except ValueError:
+            return None
+        if (
+            split.scheme != "https"
+            or port not in (None, 443)
+            or split.username is not None
+            or split.password is not None
+            or not _allowed_rutube_host(hostname)
+        ):
             return None
         if split.path.casefold().endswith(".m3u8"):
             return MediaRef(
                 link,
                 HLS_MIME,
                 referer=referer,
-                allowed_hosts=(split.hostname,),
+                # Only known RuTube and RTBCDN roots are trusted for segment
+                # URLs; validate each chosen CDN against real M12 smoke evidence.
+                allowed_hosts=RUTUBE_HLS_ALLOWED_HOSTS,
             )
         if split.path.casefold().endswith(".mp4"):
             return MediaRef(link, "video/mp4")
