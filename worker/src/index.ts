@@ -2,6 +2,7 @@ import { handleCatalog, loadCatalog, type CatalogEnv } from "./catalog";
 import { handleRest } from "./rest";
 import { createClipotecaServer, handleMcp, sourceSnapshot } from "./mcp";
 import { handleScript } from "./script";
+import { APP_VERSION } from "./version";
 
 export interface Env extends CatalogEnv {
   CATALOG_TTL_SECONDS?: string;
@@ -35,7 +36,7 @@ async function health(request: Request, env: Env): Promise<Response> {
   return json({
     status: healthy ? "ok" : "degraded",
     service: "clipoteca",
-    version: "1.0.0",
+    version: APP_VERSION,
     checks: {catalogue, mcp, items},
     ...(!healthy ? {error: {code: "health_unavailable"}} : {}),
   }, healthy ? 200 : 503);
