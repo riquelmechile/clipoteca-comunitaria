@@ -9,8 +9,8 @@ import pytest
 
 from clipoteca.source_snapshot import snapshot
 from clipoteca.sources import SOURCES, SOURCE_CAPABILITIES, list_sources
-from scripts.candidate_probe import parse_metrics, first_rutube_id, sign_wbi, probe_candidate
-from scripts.render_candidates_report import render
+from clipoteca.candidate_probe import parse_metrics, first_rutube_id, sign_wbi, probe_candidate
+from clipoteca.candidates_report import render
 
 
 def test_capabilities_single_declaration_no_secret_leak():

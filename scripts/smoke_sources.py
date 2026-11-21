@@ -14,7 +14,7 @@ import httpx
 
 from clipoteca.providers.base import AuthRequired, RateLimited, SearchLimits
 from clipoteca.sources import SOURCES
-from candidate_probe import candidates_smoke
+from clipoteca.candidate_probe import candidates_smoke
 
 TERMS = {"es": "lluvia", "en": "rain", "zh": "下雨", "ru": "дождь"}
 REPO = "riquelmechile/clipoteca-comunitaria"
