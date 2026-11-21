@@ -92,11 +92,7 @@ def normalize_scenes(
         else:
             raise TypeError("scene boundaries must be numeric or Scene")
     boundaries = sorted({round(t, 4) for t in boundaries if start <= t <= end})
-    segments = [
-        Scene(a, b)
-        for a, b in zip(boundaries, boundaries[1:])
-        if b > a
-    ]
+    segments = [Scene(a, b) for a, b in zip(boundaries, boundaries[1:]) if b > a]
     if not segments:
         return [Scene(start, end)]
     # Merge short segments into their neighbour, never creating zero duration.
@@ -131,9 +127,7 @@ def normalize_scenes(
     return output
 
 
-def _detect_with_scenedetect(
-    source: str | Path, *, start: float, end: float
-) -> list[float] | None:
+def _detect_with_scenedetect(source: str | Path, *, start: float, end: float) -> list[float] | None:
     """Optional local AdaptiveDetector; no hard dependency or network calls."""
     try:
         from scenedetect import SceneManager, open_video
@@ -156,42 +150,72 @@ def _detect_with_scenedetect(
 
 
 def _ffmpeg_command(
-    source: str | Path, *, start: float, window: float,
-    remote: bool, headers: dict[str, str] | None,
+    source: str | Path,
+    *,
+    start: float,
+    window: float,
+    remote: bool,
+    headers: dict[str, str] | None,
 ) -> list[str]:
     command = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "info"]
     if remote:
-        command.extend([
-            "-reconnect", "1", "-reconnect_on_network_error", "1",
-            "-reconnect_delay_max", "10", "-rw_timeout", "20000000",
-        ])
+        command.extend(
+            [
+                "-reconnect",
+                "1",
+                "-reconnect_on_network_error",
+                "1",
+                "-reconnect_delay_max",
+                "10",
+                "-rw_timeout",
+                "20000000",
+            ]
+        )
         if headers:
             allowed = {"referer", "user-agent"}
             for key, value in headers.items():
                 if key.lower() not in allowed or "\r" in value or "\n" in value:
                     raise ValueError("only single-line Referer/User-Agent headers are allowed")
             command.extend(["-headers", "".join(f"{k}: {v}\r\n" for k, v in headers.items())])
-    command.extend([
-        "-ss", str(start), "-t", str(window), "-i", str(source),
-        "-vf", SCENE_FILTER, "-an", "-f", "null", "-",
-    ])
+    command.extend(
+        [
+            "-ss",
+            str(start),
+            "-t",
+            str(window),
+            "-i",
+            str(source),
+            "-vf",
+            SCENE_FILTER,
+            "-an",
+            "-f",
+            "null",
+            "-",
+        ]
+    )
     return command
 
 
 def _ffmpeg_scenes(
-    source: str | Path, *, start: float, max_window: float,
-    remote: bool = False, headers: dict[str, str] | None = None,
+    source: str | Path,
+    *,
+    start: float,
+    max_window: float,
+    remote: bool = False,
+    headers: dict[str, str] | None = None,
     prefer_scenedetect: bool = False,
     runner: Callable | None = None,
 ) -> list[Scene]:
     _validate_window(start, max_window)
-    cmd = _ffmpeg_command(
-        source, start=start, window=max_window, remote=remote, headers=headers
-    )
+    cmd = _ffmpeg_command(source, start=start, window=max_window, remote=remote, headers=headers)
     run = runner or subprocess.run
     try:
         proc = run(
-            cmd, capture_output=True, text=True, timeout=180, check=False,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            check=False,
             env=safe_media_env(),
         )
     except (subprocess.TimeoutExpired, OSError) as exc:
@@ -200,8 +224,8 @@ def _ffmpeg_scenes(
         # No upstream stderr is emitted (may contain a signed URL).
         raise SceneDetectionError("ffmpeg scene detection failed")
     source_duration = _duration(proc.stderr)
-    end = start + max_window if source_duration is None else min(
-        start + max_window, source_duration
+    end = (
+        start + max_window if source_duration is None else min(start + max_window, source_duration)
     )
     if end <= start:
         raise SceneDetectionError("source has no video in requested window")
@@ -214,7 +238,9 @@ def _ffmpeg_scenes(
 
 
 def detect_scenes(
-    source: str | Path, *, start: float = 0, max_window: float = 900,
+    source: str | Path,
+    *,
+    start: float = 0,
     headers: dict[str, str] | None = None,
     prefer_scenedetect: bool = False,
     runner: Callable | None = None,
