@@ -52,7 +52,7 @@ async def test_rutube_search_real_json_shape_four_languages(lang):
 
 
 @pytest.mark.asyncio
-async def test_rutube_options_real_hls_is_not_falsely_imported_as_mp4():
+async def test_rutube_options_real_hls_is_discovered_as_playlist():
     adapter = Rutube(
         client=fake(
             {
@@ -70,7 +70,11 @@ async def test_rutube_options_real_hls_is_not_falsely_imported_as_mp4():
     )
     video = (await adapter.search("rain", "en", SearchLimits()))[0]
     assert (await adapter.metadata(video))["duration_seconds"] == 30
-    assert await adapter.direct_media(video) is None
+    media = await adapter.direct_media(video)
+    assert media and media.mime == "application/vnd.apple.mpegurl"
+    assert media.url == "https://bl.rutube.ru/route/test.m3u8"
+    assert media.allowed_hosts == ("bl.rutube.ru",)
+    assert media.referer == "https://rutube.ru/video/" + VIDEO + "/"
 
 
 @pytest.mark.asyncio
