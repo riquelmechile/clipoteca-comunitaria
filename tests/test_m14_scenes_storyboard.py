@@ -259,6 +259,22 @@ def test_short_high_quality_tail_cannot_be_primary(monkeypatch, tmp_path):
     assert selected[0].start < 16
 
 
+def test_max_duration_below_eight_keeps_valid_windows(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "clipoteca.media.select.probe_media",
+        lambda *_args, **_kwargs: SimpleNamespace(duration_seconds=30.0),
+    )
+    monkeypatch.setattr(
+        "clipoteca.media.select._sample_scores", lambda *_args, **_kwargs: [0.8] * 30
+    )
+    monkeypatch.setattr("clipoteca.media.select.detect_scenes", lambda *_args, **_kwargs: [])
+    selected = rank_scene_windows(tmp_path / "unused.mp4", max_duration=5, max_clips=2)
+    assert len(selected) == 2
+    assert all(window.duration == 5 for window in selected)
+
+
 def test_timeout_fallback_skips_black_prefix_and_rejects_flat(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "clipoteca.media.select._sample_scores",

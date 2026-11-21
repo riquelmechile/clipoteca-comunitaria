@@ -164,7 +164,7 @@ def rank_scene_windows(
         starts.update(float(t) for t in range(0, min(math.ceil(horizon), 900), 2))
 
     ranked: list[tuple[float, SourceWindow]] = []
-    minimum_duration = min(8.0, horizon)
+    minimum_duration = min(8.0, max_duration, horizon)
     for start in sorted(starts):
         end = min(start + max_duration, horizon)
         if end - start + 1e-6 < minimum_duration:
