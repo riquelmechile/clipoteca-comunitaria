@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "id": "https://www.loc.gov/item/2021667581/",
+      "title": "Rain on the city",
+      "resources": [
+        {
+          "video": "https://tile.loc.gov/storage-services/service/mbrs/2021667581/rain.mp4"
+        }
+      ]
+    },
+    {
+      "id": "https://www.loc.gov/item/2017600201/",
+      "title": "Restricted film",
+      "download_restricted": true,
+      "resources": [
+        {
+          "video": "https://tile.loc.gov/storage-services/service/mbrs/restricted.mp4"
+        }
+      ]
+    },
+    {
+      "id": "https://www.loc.gov/item/2022888123/",
+      "title": "Archive stream",
+      "resources": [
+        {
+          "video_stream": [
+            {
+              "url": "https://tile.loc.gov/storage-services/service/mbrs/2022888123/stream.webm"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "pagination": {"total": 3}
+}

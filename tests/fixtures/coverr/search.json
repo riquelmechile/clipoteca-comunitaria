@@ -1,0 +1,31 @@
+{
+  "hits": [
+    {
+      "id": "coverr-rain-1",
+      "title": "Rain on glass",
+      "url": "https://coverr.co/videos/rain-on-glass",
+      "duration": 9,
+      "urls": {
+        "mp4_download": "https://cdn.coverr.co/videos/rain-on-glass.mp4",
+        "mp4_preview": "https://cdn.coverr.co/videos/rain-on-glass-preview.mp4"
+      }
+    },
+    {
+      "id": "coverr-night-2",
+      "title": "Noche urbana",
+      "url": "https://coverr.co/videos/noche-urbana",
+      "urls": {
+        "mp4_download": null,
+        "mp4_preview": "https://cdn.coverr.co/videos/noche-urbana-preview.mp4"
+      }
+    },
+    {
+      "id": "coverr-html-3",
+      "title": "Not direct media",
+      "url": "https://coverr.co/videos/not-direct",
+      "urls": {
+        "mp4_download": "https://coverr.co/videos/not-direct"
+      }
+    }
+  ]
+}
