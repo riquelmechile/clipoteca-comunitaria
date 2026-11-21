@@ -22,7 +22,7 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://www.googleapis.com/youtube/v3"
 LANGS = {"es", "en", "zh", "ru"}
@@ -53,7 +53,7 @@ class YouTube(Adapter):
 
     def __init__(self, *, api_key: str | None = None, client: httpx.AsyncClient | None = None):
         self.api_key = api_key if api_key is not None else os.getenv("YOUTUBE_API_KEY", "")
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         if not self.api_key:
