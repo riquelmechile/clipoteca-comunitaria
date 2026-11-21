@@ -21,4 +21,5 @@ uv run python scripts/render_candidates_report.py --input data/reports/candidate
 下雨 (Douyin) y rain (TikTok) quedan expresamente **pendientes** del smoke en
 main. Los fixtures offline y el CI verde no acreditan resultados de
 plataformas reales ni disponibilidad desde GitHub Actions. La sonda M12
-firmada informa status_code 2483 sin filtrar cookies ni URLs de firma.
+incluye el código de plataforma cuando exista una respuesta comprobada,
+sin filtrar cookies ni URLs de firma; no hay medición live de status_code 2483.

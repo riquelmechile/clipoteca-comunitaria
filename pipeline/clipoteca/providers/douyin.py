@@ -129,7 +129,10 @@ class Douyin(Adapter):
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         found: list[Candidate] = []
         seen: set[str] = set()
-        # Video-specific search first, then general search if it has no candidates.
+        # Only a legitimate empty item list can trigger general search:
+        # GuestSession.json first classifies 403/401, malformed/HTML bodies,
+        # captcha and verify_check as session_required, never as empty search.
+        # Video-specific search first, then general only after a valid empty response.
         for general in (False, True):
             for page in range(max(1, limits.max_pages)):
                 params = self._params(term, offset=page * 20, general=general)

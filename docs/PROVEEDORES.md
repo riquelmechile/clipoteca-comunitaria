@@ -141,14 +141,23 @@ M19 sustituye el adaptador histórico de cuenta autorizada de M6b; no necesita
 DOUYIN_ACCESS_TOKEN ni TIKTOK_ACCESS_TOKEN. Ambos adaptadores buscan por palabra
 clave y declaran búsqueda y descarga best_effort hasta medir el smoke en main.
 DOUYIN_COOKIE y TIKTOK_COOKIE son opcionales. Primero se obtiene ttwid de
-invitado y se consulta sin cookie privada. Sólo cuando el proveedor devuelve
-status_code 2483 (AUTH_REQUIRED: session_required) se intenta la sesión
-opcional. Sin cookie se declara el límite, no se inventan resultados.
+invitado y se consulta sin cookie privada. La cookie opcional se utiliza
+una sola vez cuando el invitado no basta: status_code 2483, HTTP 401/403,
+respuesta 200 vacía, HTML/no JSON, captcha o verify_check (incluido
+search_nil_info.search_nil_type). Si no hay cookie o también falla, se informa
+AUTH_REQUIRED: session_required. Una lista vacía válida de resultados
+(data/item_list explícitos) NO es bloqueo y permite probar la búsqueda general
+Douyin. Sin cookie se declara el límite, no se inventan resultados.
 
 | Fuente | Búsqueda | Paginación | Archivo | Acceso |
 |---|---|---|---|---|
 | Douyin | /aweme/v1/web/search/item/ y fallback /aweme/v1/web/general/search/single/ | offset/count | video.bit_rate[].play_addr.url_list[-1], playwm a play; detalle firmado | ttwid + msToken + a_bogus + X-Bogus Python |
-| TikTok | /api/search/item/full/ | offset más search_id | playAddr o bitrateInfo; detalle firmado | ttwid + X-Dynosaur + X-Gnarly Python |
+| TikTok | /api/search/item/full/ | offset acumulado con ítems recibidos y search_id de log_pb.impr_id primero | playAddr o bitrateInfo; detalle firmado | ttwid + X-Dynosaur + X-Gnarly Python |
+
+En TikTok un device_id aleatorio puede ocasionar un 403 al abrir URLs de
+video, aun con búsqueda funcional (Evil0ctal/Douyin_TikTok_Download_API
+issue #831). La disponibilidad live queda por medir y no se promete descarga
+universal.
 
 La descarga se limita a CDN enumerados, con HTTPS, seguridad SSRF/DNS/peer y
 allowlist en cada redirección. M13/M14 siguen decidiendo el corte por escena.

@@ -39,7 +39,10 @@ La extracción es sobre **archivo local ya descargado** por
 límites de bytes y allowlist CDN por salto. El módulo de embeddings rechaza
 URLs remotas y enlaces simbólicos; FFmpeg sólo permite los protocolos locales
 `file,pipe`, procesa como máximo 900 s, con timeout de 150 s y un máximo
-explícito de **480 fotogramas RGB de 128×128**. Nunca se envían URLs firmadas
+explícito de **480 fotogramas RGB de 128×128**. CLIP reescala internamente
+cada imagen a 224×224 para su encoder. En fuentes con más de 900 s se
+muestrean **sólo los primeros 900 s**, nunca una supuesta cobertura completa
+del video. Nunca se envían URLs firmadas
 a FFmpeg ni se desactivan las protecciones de descarga.
 
 - Video de hasta **180 s**: muestreo de **1 fps**.

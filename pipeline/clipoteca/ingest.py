@@ -8,8 +8,8 @@ import os
 import re
 import time
 import tempfile
+from functools import lru_cache
 
-import httpx
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -35,7 +35,6 @@ from .jobs import (
 )
 from .media.embeddings import (
     Encoder,
-    EmbeddingError,
     EmbeddingUnavailable,
     FrameEmbeddings,
     clip_vector,
@@ -67,6 +66,21 @@ from .security.hls import HLS_MIME_TYPES, download_hls
 from .storage.github import GitHubReleaseStorage, StorageError
 
 
+@lru_cache(maxsize=4)
+def _cached_embedding_encoder(loader: Callable) -> tuple[Encoder | None, str | None]:
+    """Cache unavailable model initialization per loader within this process.
+
+    Unlike load_encoder's lru_cache, an exception would otherwise be retried
+    on every candidate source, wasting CPU and repeatedly loading model files.
+    """
+    try:
+        return loader(), None
+    except EmbeddingUnavailable:
+        return None, "embeddings_unavailable:m14_quality_fallback"
+    except Exception:
+        return None, "embeddings_extraction_failed:m14_quality_fallback"
+
+
 def _candidate_windows(
     raw: Path,
     *,
@@ -84,34 +98,55 @@ def _candidate_windows(
     original deterministic M14 ranking and is recorded, never silently ignored.
     """
     scorer = None
+    warnings = job.setdefault("source_warnings", {})
     if query:
-        try:
-            encoder = embedding_encoder if embedding_encoder is not None else load_encoder()
-            samples = extract_frame_embeddings(raw, encoder)
-            similarities = cosine_scores(samples, encoder, query)
+        if embedding_encoder is None:
+            encoder, error = _cached_embedding_encoder(load_encoder)
+        else:
+            encoder, error = embedding_encoder, None
+        if error:
+            warnings[origin_id] = error
+        if encoder is not None:
+            try:
+                samples = extract_frame_embeddings(raw, encoder)
+                similarities = cosine_scores(samples, encoder, query)
 
-            def semantic_score(window: SourceWindow) -> float | None:
-                return window_similarity(samples, similarities, start=window.start, end=window.end)
+                def semantic_score(window: SourceWindow) -> float | None:
+                    return window_similarity(
+                        samples, similarities, start=window.start, end=window.end
+                    )
 
-            scorer = semantic_score
-            if embedding_frames is not None:
-                embedding_frames[origin_id] = samples
-            job.setdefault("source_warnings", {})[origin_id] = "embeddings_ranked"
-        except EmbeddingUnavailable:
-            job.setdefault("source_warnings", {})[origin_id] = (
-                "embeddings_unavailable:m14_quality_fallback"
-            )
-        except (EmbeddingError, OSError, ValueError):
-            job.setdefault("source_warnings", {})[origin_id] = (
-                "embeddings_extraction_failed:m14_quality_fallback"
-            )
+                scorer = semantic_score
+                if embedding_frames is not None:
+                    embedding_frames[origin_id] = samples
+                warnings[origin_id] = "embeddings_ranked"
+            except Exception:
+                warnings[origin_id] = "embeddings_extraction_failed:m14_quality_fallback"
     try:
-        return rank_scene_windows(
-            raw,
-            max_duration=duration_limit,
-            max_clips=max_clips,
-            semantic_scorer=scorer,
-        )
+        try:
+            return rank_scene_windows(
+                raw,
+                max_duration=duration_limit,
+                max_clips=max_clips,
+                semantic_scorer=scorer,
+            )
+        except (SceneSelectionTimeout, SceneQualityRejected):
+            raise
+        except Exception:
+            if scorer is None:
+                raise
+            # Scoring can fail within rank_scene_windows after extraction.
+            # Retry with M14's original quality rank without allowing the
+            # optional model to make ingest fail.
+            warnings[origin_id] = "embeddings_extraction_failed:m14_quality_fallback"
+            if embedding_frames is not None:
+                embedding_frames.pop(origin_id, None)
+            return rank_scene_windows(
+                raw,
+                max_duration=duration_limit,
+                max_clips=max_clips,
+                semantic_scorer=None,
+            )
     except SceneSelectionTimeout:
         duration = probe_media(raw, timeout=30).duration_seconds
         try:
@@ -119,19 +154,41 @@ def _candidate_windows(
                 raw, max_duration=duration_limit, total_duration=duration
             )
         except SceneSelectionTimeout:
-            job.setdefault("source_warnings", {})[origin_id] = (
-                "scene_selection_timeout:fallback_timeout_rejected"
+            timeout_key = (
+                f"{origin_id}:scene_selection"
+                if warnings.get(origin_id, "").startswith("embeddings_")
+                else origin_id
             )
+            warnings[timeout_key] = "scene_selection_timeout:fallback_timeout_rejected"
             raise SceneQualityRejected("fallback quality sampling timed out") from None
-        job.setdefault("source_warnings", {})[origin_id] = (
+        timeout_key = (
+            f"{origin_id}:scene_selection"
+            if warnings.get(origin_id, "").startswith("embeddings_")
+            else origin_id
+        )
+        warnings[timeout_key] = (
             f"scene_selection_timeout:quality_checked_fallback:{window.start:.3f}"
         )
         return [window]
 
 
 def _embedding_result(job: dict) -> str:
-    warnings = list(job.get("source_warnings", {}).values())
-    return next((s for s in reversed(warnings) if s.startswith("embeddings_")), "not_attempted")
+    """Aggregate across ALL source origins; report the worst semantic outcome."""
+    warnings = [
+        value
+        for value in job.get("source_warnings", {}).values()
+        if isinstance(value, str) and value.startswith("embeddings_")
+    ]
+    for prefix in (
+        "embeddings_persist_failed:",
+        "embeddings_extraction_failed:",
+        "embeddings_unavailable:",
+        "embeddings_ranked",
+    ):
+        hit = next((item for item in warnings if item.startswith(prefix)), None)
+        if hit:
+            return hit
+    return "not_attempted"
 
 
 def _published_source_complete(
@@ -253,6 +310,7 @@ async def ingest(
     ids: list[str] = []
     semantic_frames: dict[str, FrameEmbeddings] = {}
     embeddings_store = EmbeddingStore(job_root.parent / "embeddings")
+    remote_embeddings: GitHubEmbeddingWriter | None = None
     downloaded_count = 0
     failed_count = 0
     rate_limited_count = 0
@@ -605,10 +663,12 @@ async def ingest(
                                         )
                                         embeddings_store.put(identifier, vector)
                                         if os.environ.get("CLIPOTECA_PERSIST_JOBS") == "1":
-                                            GitHubEmbeddingWriter(repository, token).publish(
-                                                identifier, vector
-                                            )
-                                    except (EmbeddingError, OSError, ValueError, httpx.HTTPError):
+                                            if remote_embeddings is None:
+                                                remote_embeddings = GitHubEmbeddingWriter(
+                                                    repository, token
+                                                )
+                                            remote_embeddings.publish(identifier, vector)
+                                    except Exception:
                                         # The catalogue and verified MP4 are already durable.
                                         # An optional embedding must not reverse publication.
                                         job.setdefault("source_warnings", {})[
@@ -736,5 +796,7 @@ async def ingest(
             jobs.save(job)
         return IngestReport(rid, "failed", tuple(ids), (type(exc).__name__,))
     finally:
+        if remote_embeddings is not None:
+            remote_embeddings.close()
         if own_storage:
             storage.close()

@@ -1,0 +1,31 @@
+{
+  "repository": "Evil0ctal/Douyin_TikTok_Download_API",
+  "commit": "ed4ec42534b1194f8d8c18be7b4ba493334f5321",
+  "sources": [
+    "src/dtk/signing/native/xbogus.py",
+    "src/dtk/signing/native/abogus.py",
+    "src/dtk/signing/native/tiktok_sign.py",
+    "src/dtk/signing/base.py"
+  ],
+  "xbogus": "DFSzswVYLFJANSqMt8kkae9WX7ro",
+  "abogus": "Ey4RgtUidZ/cOdMGmcji9c1UJCjANsuySTiOSzpPtPTJT7eGNSNqDOGHaowhskgbVSpzwH37cVFlbDVcQUXzZFnpKmpkSmwWyGVIIgXo0qqmTMiQDrbTezfzFwMN0RTq-557iIWI8Ur96fnAiqQu/B-9SKoeQRSBF1x6k/TbY9Bh1FgALpnHPBGkwh4S",
+  "tiktok_signed": "aid=1988&keyword=rain&X-Dynosaur=MkIIHNSsxW1Dcr7TwoihHFyiEj-WPOo9wiU-FFK68CYszp1MKlxmN6TfPXPj-ggZYx7D1CDEhp6lvhVNYLHCp5yBPA9h1qKMp51169cIPTQJ464P8NuaWIQTC8vwFYZDArlpoMnXXLcXyraMCQAi9cbEqk7aKUbt8gmVNoEEcr4-TpBDZo2As/BN1-YnTFScbgia2/ndaV/81ePaY01KZ9A24fWvufBcqXq5SX6tg9-Ltlcf5yRSLuJUzCLZogdDIz1s3kiVLrXOJVxW8ewsDTw4BJAX-xS4m/hX864q9A3C3zPyzRa/7JY-uFw5syWlJTIYos9YKNx3SUdHDe8u8pSXoqwSfS-/CbBbo2ZLE74lzHS1OsK3gWtTi2LUgzpyhSzw0u==&msToken=&X-Bogus=1&X-Gnarly=MCSuLHxLbJBmYmMaPcsa4s6nIR9ViTIcGxAu7EYreLq5w2TUyiKY/Oe9TCPlLjkG3363C1mZKJ8E9seMoemWMB8WUmQfkcDm-vg29LzG/pYZfa5lq-5v5GpjrERLU8I5yMw3cLdjgwmNJnalH799QPg2vWErttTwOHB2D8TjOhJL/R59ElzzFpkhwRQQZAdzf9b4iGLEN1FERrEybnbSJiHyvO08RBDIq00bgdqmuxaMBrQqsFXppgkdmbZ3ozEfru96e85arJnWSlSF4rEcNIrsY5ZkA5QCZ5FDt1695sqZdxg232fWBUTkylzcOufYxGI=",
+  "tiktok_params": {
+    "X-Dynosaur": "MkIIHNSsxW1Dcr7TwoihHFyiEj-WPOo9wiU-FFK68CYszp1MKlxmN6TfPXPj-ggZYx7D1CDEhp6lvhVNYLHCp5yBPA9h1qKMp51169cIPTQJ464P8NuaWIQTC8vwFYZDArlpoMnXXLcXyraMCQAi9cbEqk7aKUbt8gmVNoEEcr4-TpBDZo2As/BN1-YnTFScbgia2/ndaV/81ePaY01KZ9A24fWvufBcqXq5SX6tg9-Ltlcf5yRSLuJUzCLZogdDIz1s3kiVLrXOJVxW8ewsDTw4BJAX-xS4m/hX864q9A3C3zPyzRa/7JY-uFw5syWlJTIYos9YKNx3SUdHDe8u8pSXoqwSfS-/CbBbo2ZLE74lzHS1OsK3gWtTi2LUgzpyhSzw0u==",
+    "msToken": "",
+    "X-Bogus": "1",
+    "X-Gnarly": "MCSuLHxLbJBmYmMaPcsa4s6nIR9ViTIcGxAu7EYreLq5w2TUyiKY/Oe9TCPlLjkG3363C1mZKJ8E9seMoemWMB8WUmQfkcDm-vg29LzG/pYZfa5lq-5v5GpjrERLU8I5yMw3cLdjgwmNJnalH799QPg2vWErttTwOHB2D8TjOhJL/R59ElzzFpkhwRQQZAdzf9b4iGLEN1FERrEybnbSJiHyvO08RBDIq00bgdqmuxaMBrQqsFXppgkdmbZ3ozEfru96e85arJnWSlSF4rEcNIrsY5ZkA5QCZ5FDt1695sqZdxg232fWBUTkylzcOufYxGI="
+  },
+  "secsdk": {
+    "repository": "Youhai020616/douyin",
+    "commit": "6b10a49a92ea3369d633043a99f20cfebb5d857e",
+    "source": "src/dy_cli/engines/api_client.py",
+    "params": {
+      "aweme_id": "123",
+      "aid": 6383,
+      "uifid": "UIFID-X",
+      "timestamp": "1700000000",
+      "x-secsdk-web-signature": "9e4df8ee9c97578ae11fc1a49d8b30c5"
+    }
+  }
+}
