@@ -350,6 +350,33 @@ def test_sampling_timeout_uses_v1_leading_window_and_records_warning(monkeypatch
     )
 
 
+def test_sampling_timeout_rejects_when_bounded_fallback_also_times_out(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from clipoteca.ingest import _candidate_windows
+
+    def timeout(*_args, **_kwargs):
+        raise SceneSelectionTimeout("deadline")
+
+    monkeypatch.setattr("clipoteca.ingest.rank_scene_windows", timeout)
+    monkeypatch.setattr("clipoteca.ingest.fallback_quality_window", timeout)
+    monkeypatch.setattr(
+        "clipoteca.ingest.probe_media",
+        lambda *_args, **_kwargs: SimpleNamespace(duration_seconds=75.0),
+    )
+    job = {}
+    with pytest.raises(SceneQualityRejected, match="fallback quality sampling timed out"):
+        _candidate_windows(
+            tmp_path / "source.mp4",
+            duration_limit=20,
+            max_clips=2,
+            job=job,
+            origin_id="pexels:slow",
+        )
+    assert job["source_warnings"]["pexels:slow"] == (
+        "scene_selection_timeout:fallback_timeout_rejected"
+    )
+
+
 def test_published_source_ranges_skip_before_download():
     from clipoteca.ingest import _published_source_complete
 

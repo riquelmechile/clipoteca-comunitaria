@@ -66,7 +66,15 @@ def _candidate_windows(
         return rank_scene_windows(raw, max_duration=duration_limit, max_clips=max_clips)
     except SceneSelectionTimeout:
         duration = probe_media(raw, timeout=30).duration_seconds
-        window = fallback_quality_window(raw, max_duration=duration_limit, total_duration=duration)
+        try:
+            window = fallback_quality_window(
+                raw, max_duration=duration_limit, total_duration=duration
+            )
+        except SceneSelectionTimeout:
+            job.setdefault("source_warnings", {})[origin_id] = (
+                "scene_selection_timeout:fallback_timeout_rejected"
+            )
+            raise SceneQualityRejected("fallback quality sampling timed out") from None
         job.setdefault("source_warnings", {})[origin_id] = (
             f"scene_selection_timeout:quality_checked_fallback:{window.start:.3f}"
         )
