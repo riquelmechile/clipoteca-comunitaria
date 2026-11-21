@@ -44,7 +44,9 @@ def render(report: dict) -> str:
             f"{'sí' if row.get('has_stream') is True else 'no'} |"
         )
     output += [
-        "", "## Ejecución y límites", "",
+        "",
+        "## Ejecución y límites",
+        "",
         "- No se guardaron tokens, cookies, payloads completos ni URLs firmadas.",
         "- Los estados 2483, 403 y 429 evidencian restricciones; no implican soporte.",
         "- Un resultado positivo debe verificarse con procesamiento real en el hito de la fuente.",

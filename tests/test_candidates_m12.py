@@ -53,12 +53,20 @@ def test_ok_html_and_rutube_safe_identifier():
 def test_wbi_signature_repeatable():
     # Synthetic URLs, not a live credential.
     chars = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF"
-    params = sign_wbi({"keyword": "rain"}, f"https://i.example/{chars}.png",
-                      f"https://i.example/{chars}.png", 1234567890)
+    params = sign_wbi(
+        {"keyword": "rain"},
+        f"https://i.example/{chars}.png",
+        f"https://i.example/{chars}.png",
+        1234567890,
+    )
     assert len(params["w_rid"]) == 32
     assert params["wts"] == "1234567890"
-    assert params == sign_wbi({"keyword": "rain"}, f"https://i.example/{chars}.png",
-                              f"https://i.example/{chars}.png", 1234567890)
+    assert params == sign_wbi(
+        {"keyword": "rain"},
+        f"https://i.example/{chars}.png",
+        f"https://i.example/{chars}.png",
+        1234567890,
+    )
 
 
 @pytest.mark.asyncio
@@ -76,12 +84,23 @@ async def test_guest_probe_redacts_payload_and_handles_blocked_http():
 
 
 def test_render_redacts_untrusted_payload():
-    report = {"mode": "candidates", "provider_languages": [{
-        "provider": "douyin", "language": "zh", "operation": "search",
-        "status_code": 403, "platform_code": 2483, "elapsed_ms": 24,
-        "count": 0, "has_stream": False, "access_token": "SECRET",
-        "url": "https://secret.invalid",
-    }]}
+    report = {
+        "mode": "candidates",
+        "provider_languages": [
+            {
+                "provider": "douyin",
+                "language": "zh",
+                "operation": "search",
+                "status_code": 403,
+                "platform_code": 2483,
+                "elapsed_ms": 24,
+                "count": 0,
+                "has_stream": False,
+                "access_token": "SECRET",
+                "url": "https://secret.invalid",
+            }
+        ],
+    }
     document = render(report)
     assert "2483" in document and "403" in document
     assert "SECRET" not in document and "secret.invalid" not in document
