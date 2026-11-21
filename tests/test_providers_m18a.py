@@ -53,16 +53,15 @@ async def test_library_of_congress_empty_fixture():
 
 
 @pytest.mark.asyncio
-async def test_coverr_prefers_download_and_falls_back_to_preview():
+async def test_coverr_uses_only_download_and_rejects_preview_only_rows():
     requests: list[httpx.Request] = []
     adapter = Coverr(
         api_key="fixture-key", client=http_client(fixture("coverr", "search.json"), requests)
     )
     found = await adapter.search("雨", "zh", SearchLimits(max_pages=1))
 
-    assert [item.provider_id for item in found] == ["coverr-rain-1", "coverr-night-2"]
+    assert [item.provider_id for item in found] == ["coverr-rain-1"]
     assert (await adapter.direct_media(found[0])).url.endswith("rain-on-glass.mp4")
-    assert (await adapter.direct_media(found[1])).url.endswith("noche-urbana-preview.mp4")
     assert requests[0].headers["Authorization"] == "Bearer fixture-key"
     assert requests[0].url.params["urls"] == "true"
 
