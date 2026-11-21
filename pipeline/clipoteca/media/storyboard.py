@@ -13,6 +13,14 @@ class StoryboardError(RuntimeError):
     pass
 
 
+def storyboard_timestamp(
+    duration: float, fps: float, index: int, count: int
+) -> float:
+    """Timestamp used by both generated frames and the public contract."""
+    last_decodable = max(0.0, duration - 1.5 / max(fps, 1))
+    return min(duration * (index + 0.5) / count, last_decodable)
+
+
 def create_storyboard(
     source: str | Path,
     target: str | Path,
@@ -38,8 +46,7 @@ def create_storyboard(
             # sub-second clips the final nominal timestamp can be after the
             # last encoded frame, especially with FFmpeg >=8. Bound it with
             # a 1.5-frame margin instead of producing an empty WebP.
-            last_decodable = max(0.0, duration - 1.5 / max(metadata.fps, 1))
-            moment = min(duration * (index + 0.5) / count, last_decodable)
+            moment = storyboard_timestamp(duration, metadata.fps, index, count)
             path = output_dir / f"storyboard-{index:02d}.webp"
             cmd = [
                 "ffmpeg",

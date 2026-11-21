@@ -103,6 +103,14 @@ export function searchTokens(value: string): string[] {
   return [...tokens];
 }
 
+
+export function storyboardTimestamp(
+  duration: number, fps: number, index: number, count: number,
+): number {
+  const lastDecodable = Math.max(0, duration - 1.5 / Math.max(fps, 1));
+  return Math.min(duration * (index + 0.5) / count, lastDecodable);
+}
+
 function matches(clip: Clip, params: URLSearchParams): boolean {
   const query = searchTokens(params.get("q") ?? "");
   const texts = [
@@ -189,7 +197,9 @@ export async function handleCatalog(request: Request, env: CatalogEnv): Promise<
       clip_id: clip.id,
       frames: links.map((link, index) => ({
         url: link, index,
-        timestamp_seconds: clip.media.duration_seconds * (index + 0.5) / links.length,
+        timestamp_seconds: storyboardTimestamp(
+          clip.media.duration_seconds, clip.media.fps, index, links.length,
+        ),
       })),
     });
   }
