@@ -112,7 +112,9 @@ def test_feedback_comments_labels_and_closes_only_after_publication():
 
 @pytest.mark.asyncio
 async def test_community_uses_url_filename_and_notes_without_query_expansion(monkeypatch):
-    data = issue(url="https://upload.wikimedia.org/wikipedia/commons/Waves_at_beach%2C_Sri_Lanka.webm")
+    data = issue(
+        url="https://upload.wikimedia.org/wikipedia/commons/Waves_at_beach%2C_Sri_Lanka.webm"
+    )
     data["title"] = "[Aporte pendiente] Olas en la playa"
     data["body"] += "\n\n### Control\n\nAutomático"
     row = parse_community_issue(data, 19)
@@ -129,7 +131,9 @@ async def test_community_uses_url_filename_and_notes_without_query_expansion(mon
         return IngestReport("a" * 64, "no_results", (), ())
 
     monkeypatch.setattr(contributions, "ingest", fake_ingest)
-    report = await contributions.run_community_issue(row, "riquelmechile/clipoteca-comunitaria", "token")
+    report = await contributions.run_community_issue(
+        row, "riquelmechile/clipoteca-comunitaria", "token"
+    )
     assert report.status == "no_results"
 
 
@@ -137,8 +141,13 @@ def test_community_translates_only_title_and_notes_not_search_terms():
     from clipoteca.providers.base import Candidate
 
     candidate = Candidate(
-        "community", "issue-19", "Expansión de consulta que no se debe traducir", "es",
-        "https://upload.wikimedia.org/waves.webm", "Waves on beach", "en",
+        "community",
+        "issue-19",
+        "Expansión de consulta que no se debe traducir",
+        "es",
+        "https://upload.wikimedia.org/waves.webm",
+        "Waves on beach",
+        "en",
         metadata={"description": "Olas en playa", "description_language": "es"},
     )
     translations = []
@@ -172,6 +181,7 @@ def test_all_translation_workflows_share_one_preparation_and_edited_retries():
     contribution = (root / ".github/workflows/contribution.yml").read_text(encoding="utf-8")
     assert "types: [opened, edited]" in contribution
     from clipoteca.jobs import RETRYABLE
+
     assert "failed" in RETRYABLE
 
 
@@ -185,12 +195,20 @@ def test_feedback_reports_safe_concrete_error_without_leaking_inputs():
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         send_feedback(
-            "riquelmechile/clipoteca-comunitaria", "secret-token", 26,
-            "failed", reason="translation_failed:en", client=client,
+            "riquelmechile/clipoteca-comunitaria",
+            "secret-token",
+            26,
+            "failed",
+            reason="translation_failed:en",
+            client=client,
         )
         send_feedback(
-            "riquelmechile/clipoteca-comunitaria", "secret-token", 26,
-            "failed", reason="https://bad.example/?token=secret-token", client=client,
+            "riquelmechile/clipoteca-comunitaria",
+            "secret-token",
+            26,
+            "failed",
+            reason="https://bad.example/?token=secret-token",
+            client=client,
         )
     assert "translation_failed:en" in comments[0]
     assert "editar el Issue" in comments[0]
