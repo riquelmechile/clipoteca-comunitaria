@@ -15,6 +15,7 @@ from clipoteca.security.hls import (
     choose_variant,
     download_hls,
     ffmpeg_hls_extension_capable,
+    _fetch,
     parse_master,
     parse_media,
 )
@@ -252,6 +253,7 @@ async def test_rutube_refuses_cross_origin_next():
 
 @pytest.mark.asyncio
 async def test_hls_500_segments_downloads_only_cut_window(monkeypatch, tmp_path):
+    monkeypatch.setattr("clipoteca.security.hls.ffmpeg_hls_extension_capable", lambda: True)
     """500 segments of a VOD must not exhaust limits for a 20-second cut."""
     seen = []
     commands = []
@@ -296,6 +298,7 @@ async def test_hls_500_segments_downloads_only_cut_window(monkeypatch, tmp_path)
 
 @pytest.mark.asyncio
 async def test_hls_30_second_single_segment_is_fetched_then_trimmed(monkeypatch, tmp_path):
+    monkeypatch.setattr("clipoteca.security.hls.ffmpeg_hls_extension_capable", lambda: True)
     commands = []
     responses = []
 
@@ -331,6 +334,7 @@ async def test_hls_30_second_single_segment_is_fetched_then_trimmed(monkeypatch,
 
 @pytest.mark.asyncio
 async def test_hls_start_offset_selects_intersecting_segments(monkeypatch, tmp_path):
+    monkeypatch.setattr("clipoteca.security.hls.ffmpeg_hls_extension_capable", lambda: True)
     paths = []
     commands = []
 
@@ -562,3 +566,88 @@ async def test_ingest_hls_mime_dispatches_to_bounded_hls_downloader(tmp_path, mo
     assert options["max_duration"] == 8
     assert options["referer"].startswith("https://rutube.ru/video/")
     assert options["allowed_hosts"] == RUTUBE_HLS_ALLOWED_HOSTS
+
+
+@pytest.mark.asyncio
+async def test_hls_retries_next_validated_ip_after_transport_failure():
+    attempts = []
+
+    def handler(request):
+        attempts.append(request.url.host)
+        if request.url.host == "8.8.8.8":
+            raise httpx.ConnectError("first validated address unavailable", request=request)
+        return httpx.Response(200, content=b"media")
+
+    async with async_client(handler) as client:
+        data = await _fetch(
+            client,
+            PUBLIC + "/media.ts",
+            referer=None,
+            resolver=lambda _host: ["8.8.8.8", "1.1.1.1"],
+            own_client=False,
+            max_bytes=100,
+        )
+    assert data == b"media"
+    assert attempts == ["8.8.8.8", "1.1.1.1"]
+
+
+@pytest.mark.asyncio
+async def test_hls_equivalent_ipv6_peer_not_rejected():
+    class Peer:
+        def get_extra_info(self, name):
+            assert name == "server_addr"
+            return ("2001:4860:4860:0:0:0:0:8888", 443)
+
+    async with async_client(
+        lambda _req: httpx.Response(200, content=b"ok", extensions={"network_stream": Peer()})
+    ) as client:
+        data = await _fetch(
+            client,
+            PUBLIC + "/media.ts",
+            referer=None,
+            resolver=lambda _host: ["2001:4860:4860::8888"],
+            own_client=False,
+            max_bytes=20,
+        )
+    assert data == b"ok"
+
+
+@pytest.mark.asyncio
+async def test_rutube_status_classification_without_keyword_detail():
+    for code in (403, 451):
+        async with async_client(
+            lambda _req: httpx.Response(code, json={"detail": "unavailable"})
+        ) as client:
+            with pytest.raises(RateLimited):
+                await Rutube(client=client).search("rain", "en", SearchLimits())
+
+
+@pytest.mark.asyncio
+async def test_rutube_429_retries_retry_after_even_with_json_detail(monkeypatch):
+    from clipoteca.providers.http import fetch_json
+
+    pauses = []
+    calls = []
+
+    async def fake_sleep(delay):
+        pauses.append(delay)
+
+    monkeypatch.setattr("clipoteca.providers.http.asyncio.sleep", fake_sleep)
+
+    def handler(_req):
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx.Response(
+                429, json={"detail": "unavailable"}, headers={"Retry-After": "10"}
+            )
+        return httpx.Response(200, json={"results": []})
+
+    async with async_client(handler) as client:
+        result = await fetch_json(
+            client,
+            "https://rutube.ru/api/search/video/",
+            detail_statuses=frozenset({403, 429, 451}),
+            max_retry_after_seconds=0.2,
+        )
+    assert result == {"results": []}
+    assert len(calls) == 2 and pauses == [0.2]

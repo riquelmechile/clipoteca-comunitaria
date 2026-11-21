@@ -22,6 +22,7 @@ import httpx
 from ..config import USER_AGENT
 from ..media.process_env import safe_media_env
 from .download import DownloadError, MAX_DOWNLOAD_BYTES
+from .pinning import matches_validated_ip
 from .ssrf import UnsafeMediaURL, _is_public, validate_public_url
 
 HLS_MIME_TYPES = frozenset(
@@ -31,6 +32,8 @@ HLS_MIME_TYPES = frozenset(
         "audio/mpegurl",
     }
 )
+
+
 @lru_cache(maxsize=1)
 def ffmpeg_hls_extension_capable() -> bool:
     """Probe the HLS demuxer option once per process, not FFmpeg's version string."""
@@ -156,51 +159,66 @@ async def _fetch(
         raise DownloadError("HLS host has no validated address")
     host = urlsplit(url).hostname
     assert host is not None
-    chosen_ip = addresses[0]
-    pinned_url = httpx.URL(url).copy_with(host=chosen_ip)
     headers = {"User-Agent": USER_AGENT, "Host": host}
     if referer:
-        if "\\r" in referer or "\\n" in referer or urlsplit(referer).scheme != "https":
+        if "\r" in referer or "\n" in referer or urlsplit(referer).scheme != "https":
             raise DownloadError("invalid HLS Referer")
         headers["Referer"] = referer
-    body = bytearray()
-    try:
-        async with client.stream(
-            "GET",
-            pinned_url,
-            headers=headers,
-            follow_redirects=False,
-            extensions={"sni_hostname": host},
-        ) as response:
-            peer_stream = response.extensions.get("network_stream")
-            if peer_stream is None:
-                # Only an explicit test transport can simulate an absent peer.
-                if not isinstance(getattr(client, "_transport", None), httpx.MockTransport):
-                    raise DownloadError("HLS connected peer unavailable")
-            else:
-                try:
-                    peer = str(peer_stream.get_extra_info("server_addr")[0])
-                except (TypeError, KeyError, AttributeError, IndexError) as exc:
-                    raise DownloadError("HLS connected peer could not be inspected") from exc
-                if not _is_public(peer) or peer != chosen_ip:
-                    raise DownloadError("HLS connected peer mismatch after IP pinning")
-            if response.status_code != 200:
-                raise DownloadError("HLS request blocked or redirected")
-            declared = response.headers.get("content-length")
-            if declared:
-                try:
-                    size = int(declared)
-                except ValueError as exc:
-                    raise DownloadError("invalid HLS Content-Length") from exc
-                if size > max_bytes:
-                    raise DownloadError("HLS segment exceeds byte cap")
-            async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
-                body.extend(chunk)
-                if len(body) > max_bytes:
-                    raise DownloadError("HLS streamed bytes exceed cap")
-    except httpx.HTTPError as exc:
-        raise DownloadError("HLS transport failure") from exc
-    return bytes(body)
+    last_transport_error: httpx.HTTPError | None = None
+    for chosen_ip in addresses:
+        # Never re-resolve on connect. Only previously validated public addresses
+        # may be used, retaining the original hostname for TLS SNI and Host.
+        pinned_url = httpx.URL(url).copy_with(host=chosen_ip)
+        body = bytearray()
+        try:
+            async with client.stream(
+                "GET",
+                pinned_url,
+                headers=headers,
+                follow_redirects=False,
+                extensions={"sni_hostname": host},
+            ) as response:
+                peer_stream = response.extensions.get("network_stream")
+                if peer_stream is None:
+                    if not isinstance(getattr(client, "_transport", None), httpx.MockTransport):
+                        raise DownloadError("HLS connected peer unavailable")
+                else:
+                    try:
+                        peer = str(peer_stream.get_extra_info("server_addr")[0])
+                    except (TypeError, KeyError, AttributeError, IndexError) as exc:
+                        raise DownloadError("HLS connected peer could not be inspected") from exc
+                    if not _is_public(peer) or not matches_validated_ip(
+                        peer, (chosen_ip,), normalize_ipv6=True
+                    ):
+                        # A mismatched/private peer is a security failure, never
+                        # retried against another address or silently accepted.
+                        raise DownloadError("HLS connected peer mismatch after IP pinning")
+                if response.status_code != 200:
+                    # A redirect is never followed to a new host.
+                    if response.status_code in {301, 302, 303, 307, 308}:
+                        raise DownloadError("HLS request blocked or redirected")
+                    # Non-redirect HTTP failures can be IP-specific.
+                    if chosen_ip != addresses[-1]:
+                        continue
+                    raise DownloadError("HLS request blocked or redirected")
+                declared = response.headers.get("content-length")
+                if declared:
+                    try:
+                        size = int(declared)
+                    except ValueError as exc:
+                        raise DownloadError("invalid HLS Content-Length") from exc
+                    if size > max_bytes:
+                        raise DownloadError("HLS segment exceeds byte cap")
+                async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
+                    body.extend(chunk)
+                    if len(body) > max_bytes:
+                        raise DownloadError("HLS streamed bytes exceed cap")
+            return bytes(body)
+        except httpx.HTTPError as exc:
+            last_transport_error = exc
+    raise DownloadError(
+        "HLS transport failure for all validated addresses"
+    ) from last_transport_error
 
 
 async def download_hls(

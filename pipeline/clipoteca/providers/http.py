@@ -43,16 +43,6 @@ async def fetch_json(
             raise ProviderTimeout("provider timeout") from exc
         except httpx.HTTPError as exc:
             raise ProviderError("provider request failed") from exc
-        if response.status_code in detail_statuses:
-            # Only trusted adapter opt-in may inspect an HTTP-error JSON body.
-            # Do not propagate raw error details to logs or user reports.
-            if "json" in response.headers.get("content-type", ""):
-                try:
-                    details = response.json()
-                except ValueError:
-                    details = None
-                if isinstance(details, dict) and details.get("detail"):
-                    return details
         if response.status_code not in retry_statuses:
             break
         if attempt == 2:
@@ -66,6 +56,10 @@ async def fetch_json(
             delay = 0.25 * (2**attempt)
         await asyncio.sleep(min(delay, max_retry_after_seconds))
     assert response is not None
+    if response.status_code in detail_statuses and response.status_code in {403, 429, 451}:
+        # Opt-in adapters classify by HTTP status, never untrusted JSON detail.
+        # 429 reached this point only after bounded Retry-After retries.
+        raise RateLimited("provider request blocked or rate limited")
     credentialed = bool(
         headers
         and any(
