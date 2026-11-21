@@ -217,6 +217,7 @@ def test_schema_keeps_old_clips_valid_and_distinguishes_source_windows():
     overlap["source"]["source_start"] = 30
     assert catalog.duplicate_match(overlap) is not None
 
+
 def test_slow_textured_motion_scores_above_static_title():
     # High-edge static bars model a flat title card. The second textured frame
     # changes only one luma level: absolute motion is gentle but real.
