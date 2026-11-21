@@ -34,6 +34,7 @@ from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
 from .translate.argos import public_translation_error
 from .translate.expand import QueryExpansion, expand_query
 from .security.download import DownloadError, download_media
+from .security.hls import HLS_MIME_TYPES, download_hls
 from .storage.github import GitHubReleaseStorage, StorageError
 
 
@@ -223,14 +224,23 @@ async def ingest(
                         translator=translator,
                         include_query_tags=candidate.provider != "community",
                     )
-                    raw = await (
-                        downloader(ref.url, temp)
-                        if downloader
-                        else download_media(ref.url, temp, expected_bytes=ref.size_bytes)
-                    )
+                    duration_limit = float((filters or {}).get("max_duration") or 20)
+                    if downloader:
+                        raw = await downloader(ref.url, temp)
+                    elif ref.mime in HLS_MIME_TYPES:
+                        raw = await download_hls(
+                            ref.url,
+                            temp,
+                            referer=ref.referer,
+                            allowed_hosts=ref.allowed_hosts,
+                            max_duration=duration_limit,
+                        )
+                    else:
+                        raw = await download_media(
+                            ref.url, temp, expected_bytes=ref.size_bytes
+                        )
                     downloaded_count += 1
                     advance("processing")
-                    duration_limit = float((filters or {}).get("max_duration") or 20)
                     normalized = normalize_media(
                         raw, temp / "normalized.mp4", max_duration_seconds=duration_limit
                     )

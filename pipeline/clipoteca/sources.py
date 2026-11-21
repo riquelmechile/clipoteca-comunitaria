@@ -71,7 +71,13 @@ SOURCES: tuple[SourceSpec, ...] = (
         "global_data_api",
         "Data API has no direct MP4 endpoint",
     ),
-    SourceSpec("rutube", Rutube, (), "public_search", "often HLS rather than a direct MP4"),
+    SourceSpec(
+        "rutube",
+        Rutube,
+        (),
+        "public_search",
+        "HLS download path implemented; live M12/M16 evidence still pending",
+    ),
     SourceSpec(
         "peertube",
         PeerTube,

@@ -188,8 +188,7 @@ async def download_hls(
     output = target_dir / ("clipoteca-hls-" + os.urandom(8).hex() + ".mp4")
     try:
         async with asyncio.timeout(180):
-            async with asyncio.TaskGroup() as group:
-                group.create_task(_validated(url, url, hosts, resolver))
+            await _validated(url, url, hosts, resolver)
             with tempfile.TemporaryDirectory(prefix="clipoteca-hls-", dir=target_dir) as tmp:
                 stage = Path(tmp)
                 master = (

@@ -104,8 +104,8 @@
   {
     "name": "rutube",
     "category": "social_video",
-    "status": "SUPPORTED_SEARCH_ONLY",
-    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
     "accepts_text_languages": [
       "es",
       "en",
@@ -114,9 +114,9 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_search",
-    "download_supported": false,
+    "download_supported": true,
     "credentials_present": true,
-    "notes": "often HLS rather than a direct MP4"
+    "notes": "HLS download path implemented; live M12/M16 evidence still pending"
   },
   {
     "name": "peertube",
