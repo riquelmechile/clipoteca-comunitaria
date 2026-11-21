@@ -94,7 +94,7 @@ def normalize_scenes(
     boundaries = sorted({round(t, 4) for t in boundaries if start <= t <= end})
     segments = [
         Scene(a, b)
-        for a, b in zip(boundaries, boundaries[1:], strict=True)
+        for a, b in zip(boundaries, boundaries[1:])
         if b > a
     ]
     if not segments:
@@ -116,10 +116,11 @@ def normalize_scenes(
     for segment in segments:
         cursor = segment.start
         if segment.duration > MAX_SCENE_SECONDS:
-            while segment.end - cursor > MAX_SCENE_SECONDS:
-                output.append(Scene(cursor, min(cursor + SPLIT_STEP_SECONDS, segment.end)))
-                cursor += SPLIT_STEP_SECONDS
-        if segment.end > cursor:
+            while cursor < segment.end:
+                next_cut = min(cursor + SPLIT_STEP_SECONDS, segment.end)
+                output.append(Scene(cursor, next_cut))
+                cursor = next_cut
+        elif segment.end > cursor:
             output.append(Scene(cursor, segment.end))
     if len(output) > max_scenes:
         # Hard cap without violating total scene coverage: merge the remaining
