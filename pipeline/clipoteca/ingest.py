@@ -12,7 +12,7 @@ from typing import Awaitable, Callable, Sequence
 
 from .catalog import DuplicateClip, GitHubCatalogWriter, IdentityCollision
 from .engine import SearchEngine
-from .jobs import STATUSES, GitHubJobWriter, JobStore, new_job, request_id
+from .jobs import MAX_ATTEMPTS, RETRYABLE, STATUSES, GitHubJobWriter, JobStore, new_job, request_id
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import normalize_media
 from .media.thumbnail import create_thumbnail
@@ -64,7 +64,14 @@ async def ingest(
     existing = jobs.load(rid)
     if existing and existing["status"] in {"published", "duplicate"}:
         return IngestReport(rid, "duplicate", tuple(existing.get("duplicate_ids", ())), ())
-    if existing and existing["status"] in {"failed", "no_results", "unavailable", "rate_limited"}:
+    if existing and existing["status"] == "dead_letter":
+        return IngestReport(rid, "dead_letter", (), ("retry_budget_exhausted",))
+    if existing and existing["status"] in RETRYABLE:
+        if existing.get("attempt", 1) >= MAX_ATTEMPTS:
+            blocked = dict(existing)
+            blocked["status"] = "dead_letter"
+            jobs.save(blocked)
+            return IngestReport(rid, "dead_letter", (), ("retry_budget_exhausted",))
         job = new_job(rid)
         job["attempt"] = existing.get("attempt", 1) + 1
     else:
@@ -102,7 +109,7 @@ async def ingest(
                 ),
                 next(iter(expansion.errors), "unknown"),
             )
-            job["status"] = "failed"
+            job["status"] = "dead_letter" if job.get("attempt", 1) >= MAX_ATTEMPTS else "failed"
             job["source_errors"]["translation"] = f"translation_failed:{missing}"
             jobs.save(job)
             return IngestReport(rid, "failed", (), ("translation_failed",))
@@ -140,11 +147,13 @@ async def ingest(
                 final = "unavailable"
             else:
                 final = "no_results"
-            job["status"] = final
+            job["status"] = (
+                "dead_letter" if final in RETRYABLE and job.get("attempt", 1) >= MAX_ATTEMPTS else final
+            )
             jobs.save(job)
             return IngestReport(
                 rid,
-                final,
+                job["status"],
                 tuple(job.get("duplicate_ids", ())) if final == "duplicate" else (),
                 (),
             )
@@ -321,6 +330,8 @@ async def ingest(
             job["status"] = "unavailable"
         else:
             job["status"] = "failed" if errors else "no_results"
+        if job["status"] in RETRYABLE and job.get("attempt", 1) >= MAX_ATTEMPTS:
+            job["status"] = "dead_letter"
         jobs.save(job)
         summary = discovery_metrics(search)
         summary.update(
