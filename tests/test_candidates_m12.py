@@ -109,7 +109,8 @@ def test_render_redacts_untrusted_payload():
     assert "SECRET" not in document and "secret.invalid" not in document
 
 
-PUBLIC_RESOLVER = lambda _host: ["8.8.8.8"]
+def PUBLIC_RESOLVER(_host):
+    return ["8.8.8.8"]
 
 
 def test_wbi_fixed_known_vector():
