@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
+import math
+import time
 
 import httpx
 import pytest
@@ -15,6 +17,7 @@ from clipoteca.providers.internet_archive import (
     build_query,
     normalize_terms,
     select_derivatives,
+    _score,
 )
 
 
@@ -37,7 +40,10 @@ def test_normalize_and_lucene_query_preserves_four_languages():
     query = build_query(terms, all_terms=True)
     assert BASE_QUERY in query
     assert "title:" in query and "subject:" in query and "shotlist:" in query
-    assert "\\:" not in query or "rain" in query
+    assert "title:\"rain\"" in query
+    assert "title:\"storm\"" in query
+    # Search terms containing literal Lucene operators must be escaped.
+    assert '\\:' in build_query(["rain:storm"], all_terms=True)
     assert len(normalize_terms("one two three four five six seven eight")) <= 6
 
 
@@ -103,7 +109,7 @@ async def test_query_echo_mismatch_is_rejected():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         adapter = InternetArchive(client=client, min_interval_seconds=0)
-        with pytest.raises(ProviderError, match="different query"):
+        with pytest.raises(ProviderError, match="query echo"):
             await adapter.search("rain", "en", SearchLimits())
 
 
@@ -142,6 +148,7 @@ async def test_metadata_exposes_scanning_derivative_and_caches():
         return httpx.Response(
             200,
             json={
+                "metadata": {"identifier": "documentary"},
                 "files": [
                     {
                         "name": "original.mov",
@@ -166,9 +173,15 @@ async def test_metadata_exposes_scanning_derivative_and_caches():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         adapter = InternetArchive(client=client, min_interval_seconds=0)
-        item = await adapter.metadata(example_candidate())
+        candidate = example_candidate()
+        object.__setattr__(candidate, "metadata", {})
+        item = await adapter.metadata(candidate)
         assert item["clipoteca_scan_media"]["name"] == "512Kb.mp4"
-        media = await adapter.direct_media(example_candidate())
+        assert candidate.metadata["scan_media"]["name"] == "512Kb.mp4"
+        item["clipoteca_scan_media"]["name"] = "tampered.mp4"
+        second = await adapter.metadata(candidate)
+        assert second["clipoteca_scan_media"]["name"] == "512Kb.mp4"
+        media = await adapter.direct_media(candidate)
     assert media and media.url.endswith("H264.mp4")
     assert count["/metadata/documentary"] == 1
 
@@ -183,10 +196,13 @@ async def test_429_retry_after_and_503_then_200(monkeypatch):
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
     statuses = [429, 503, 200]
 
-    def handler(_request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx.Request) -> httpx.Response:
         code = statuses.pop(0)
         if code == 200:
-            return httpx.Response(200, json={"response": {"docs": []}})
+            return httpx.Response(200, json={
+                "responseHeader": {"params": {"q": request.url.params["q"]}},
+                "response": {"docs": []},
+            })
         return httpx.Response(code, json={"detail": "rate limited"}, headers={"Retry-After": "2"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:

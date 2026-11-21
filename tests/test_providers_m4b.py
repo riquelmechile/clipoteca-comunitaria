@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from clipoteca.providers.base import Candidate, ProviderError, RateLimited, SearchLimits
-from clipoteca.providers.internet_archive import InternetArchive
+from clipoteca.providers.internet_archive import InternetArchive, build_query
 from clipoteca.providers.wikimedia_commons import WikimediaCommons
 
 
@@ -59,6 +59,7 @@ async def test_wikimedia_only_returns_true_video_file():
 async def test_archive_must_resolve_actual_movie_and_skip_giant_files():
     payloads = {
         "/advancedsearch.php": {
+            "responseHeader": {"params": {"q": build_query(["rain"], all_terms=True)}},
             "response": {
                 "docs": [
                     {"identifier": "city_rain", "title": "Rain in town", "mediatype": "movies"}
@@ -66,6 +67,7 @@ async def test_archive_must_resolve_actual_movie_and_skip_giant_files():
             }
         },
         "/metadata/city_rain": {
+            "metadata": {"identifier": "city_rain"},
             "files": [
                 {"name": "splash.jpg", "size": "1024"},
                 {"name": "rain-4k.mp4", "size": "19999999999"},
@@ -92,7 +94,13 @@ async def test_archive_must_resolve_actual_movie_and_skip_giant_files():
 )
 async def test_empty_and_429_and_500(adapter_cls, path):
     empty = adapter_cls(
-        client=transport({path: {"query": {"pages": {}}, "response": {"docs": []}}})
+        client=transport({
+            path: {
+                "query": {"pages": {}},
+                "responseHeader": {"params": {"q": build_query(["rain"], all_terms=True)}},
+                "response": {"docs": []},
+            }
+        })
     )
     assert await empty.search("rain", "en", SearchLimits()) == []
     for code, error in [(429, RateLimited), (500, ProviderError)]:
@@ -104,7 +112,12 @@ async def test_empty_and_429_and_500(adapter_cls, path):
 @pytest.mark.asyncio
 async def test_archive_no_files_means_search_only():
     adapter = InternetArchive(
-        client=transport({"/metadata/a": {"files": [{"name": "page.html", "size": "1000"}]}})
+        client=transport({
+            "/metadata/a": {
+                "metadata": {"identifier": "a"},
+                "files": [{"name": "page.html", "size": "1000"}],
+            }
+        })
     )
     candidate = Candidate(
         "internet_archive", "a", "rain", "en", "https://archive.org/details/a", "Rain", "en"
