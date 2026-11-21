@@ -131,7 +131,9 @@ def test_409_reloads_merges_and_retries():
 
     incoming = sample_clip("clip-000002")
     incoming["source"]["provider_id"] = "distinct-video"
+    incoming["source"]["source_url"] = "https://example.com/source/distinct-video"
     incoming["media"]["sha256"] = "b" * 64
+    incoming["media"]["perceptual_hash"] = "distinct-fingerprint"
     writer = GitHubCatalogWriter(
         "o/r", "secret", client=httpx.Client(transport=httpx.MockTransport(handler))
     )
@@ -145,7 +147,9 @@ def test_concurrent_identity_collisions_never_replace_existing():
     old = sample_clip()
     incoming = sample_clip()
     incoming["source"]["provider_id"] = "new"
+    incoming["source"]["source_url"] = "https://example.com/source/new"
     incoming["media"]["sha256"] = "b" * 64
+    incoming["media"]["perceptual_hash"] = "distinct-fingerprint"
     calls = []
 
     def handler(request: httpx.Request) -> httpx.Response:

@@ -478,6 +478,7 @@ async def test_ingest_hls_mime_dispatches_to_bounded_hls_downloader(tmp_path, mo
     import importlib
     from types import SimpleNamespace
 
+    from clipoteca.catalog import Catalog
     from clipoteca.providers.base import Adapter, MediaRef, SupportStatus
 
     module = importlib.import_module("clipoteca.ingest")
@@ -545,7 +546,7 @@ async def test_ingest_hls_mime_dispatches_to_bounded_hls_downloader(tmp_path, mo
         repository="riquelmechile/clipoteca-comunitaria",
         token="test-only",
         job_root=tmp_path / "jobs",
-        writer=SimpleNamespace(read_catalog=lambda: (None, None)),
+        writer=SimpleNamespace(read_catalog=lambda: (Catalog(), None)),
         storage=SimpleNamespace(),
         translator=lambda *_args: "rain",
         filters={"max_duration": 8},
