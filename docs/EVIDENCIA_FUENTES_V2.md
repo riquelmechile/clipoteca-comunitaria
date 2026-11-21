@@ -13,4 +13,6 @@ uv run python scripts/render_candidates_report.py --input data/reports/candidate
 
 **M17 (sin evidencia live):** OK.ru, VK Video anónimo y Dzen quedan declarados `best_effort`; los fixtures offline no se consideran confirmación de disponibilidad ni de CDN.
 
+**Clip real pendiente:** la consulta `дождь` y la descarga de un clip real de M17 deben ejecutarse desde `main`; este PR no presenta los fixtures offline como evidencia live.
+
 **Pendientes:** ejecutar la medición en GitHub Actions desde `main`, publicar la tabla fechada y comparar bloqueos de IP con runner propio (M20). El workflow actual no invoca automáticamente `--mode candidates`; es necesario configurarlo o ejecutarlo explícitamente en un entorno autorizado. La solicitud de nuevo YAML debe revisarse separadamente, sin modificar `.github/` en M12.
