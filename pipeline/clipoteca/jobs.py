@@ -8,6 +8,7 @@ import re
 import json
 import os
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -100,6 +101,7 @@ class GitHubJobWriter:
                 payload["sha"] = sha
             response = self.client.put(self.url(identifier), json=payload)
             if response.status_code in (409, 422) and attempt < retries:
+                time.sleep(min(0.2 * (2**attempt), 2.0))
                 continue
             response.raise_for_status()
             return
