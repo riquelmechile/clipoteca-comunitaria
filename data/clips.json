@@ -262,5 +262,62 @@
     },
     "status": "published",
     "created_at": "2026-11-21T02:58:56.766051Z"
+  },
+  {
+    "id": "clip-000006",
+    "title": {
+      "es": "Aerial paisaje de invierno con montañas cubiertas de nieve",
+      "en": "Aerial winter landscape with snow covered mountains"
+    },
+    "description": {
+      "es": "Aerial paisaje de invierno con montañas cubiertas de nieve",
+      "en": "Aerial winter landscape with snow covered mountains"
+    },
+    "tags": {
+      "es": [
+        "Aerial",
+        "paisaje",
+        "invierno",
+        "montañas",
+        "cubiertas",
+        "nieve"
+      ],
+      "en": [
+        "Aerial",
+        "winter",
+        "landscape",
+        "snow",
+        "covered",
+        "mountains"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "31340376",
+      "source_language": "en",
+      "source_title": "aerial-winter-landscape-with-snow-covered-mountains-31340376",
+      "source_url": "https://www.pexels.com/video/aerial-winter-landscape-with-snow-covered-mountains-31340376/"
+    },
+    "media": {
+      "duration_seconds": 20.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 11742713,
+      "sha256": "ceea8fb7c17c953cc1fbcb5c97b29757200315a04cabf9be0e1a28e48b889832",
+      "perceptual_hash": "971408faf64733b8~2208.71:970e08f9f7063738~2904.29:c64e19b9f3460e99~3136.39:d73b5ce0b31f0cc0~3622.41:d32a0c87f3722c9d~3340.11"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/clip_clip-000006.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/thumb_clip-000006.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-21T02:59:31.502129Z"
   }
 ]
