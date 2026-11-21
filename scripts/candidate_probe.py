@@ -6,12 +6,10 @@ cookie, signed media link or exception body reaches persisted evidence.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import re
 import time
-from collections.abc import Mapping
 from urllib.parse import urlparse
 
 import httpx
@@ -104,9 +102,11 @@ def sign_wbi(params: dict[str, str], img_url: str, sub_url: str, epoch: int) -> 
     """WBI algorithm based on Evil0ctal DTK (Apache-2.0); no copied source."""
     from urllib.parse import urlencode
 
-    stem = lambda url: urlparse(url).path.rsplit("/", 1)[-1].split(".")[0]
-    key = "".join((stem(img_url) + stem(sub_url))[i] for i in WBI_ORDER
-                  if i < len(stem(img_url) + stem(sub_url)))[:32]
+    def stem(url: str) -> str:
+        return urlparse(url).path.rsplit("/", 1)[-1].split(".")[0]
+
+    material = stem(img_url) + stem(sub_url)
+    key = "".join(material[i] for i in WBI_ORDER if i < len(material))[:32]
     if len(key) != 32:
         raise ValueError("missing wbi key")
     values = {**params, "wts": str(epoch)}
