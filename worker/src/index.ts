@@ -1,5 +1,6 @@
 import { handleCatalog, type CatalogEnv } from "./catalog";
 import { handleRest } from "./rest";
+import { handleMcp } from "./mcp";
 
 export interface Env extends CatalogEnv {
   CATALOG_TTL_SECONDS?: string;
@@ -8,6 +9,8 @@ export interface Env extends CatalogEnv {
   CATALOG_JOBS_URL?: string;
   CLIPOTECA_GITHUB_REPO?: string;
   CLIPOTECA_ISSUE_TOKEN?: string;
+  MCP_ALLOWED_HOSTS?: string;
+  MCP_ALLOWED_ORIGINS?: string;
 }
 
 const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), {
@@ -21,6 +24,7 @@ export default {
     if (request.method === "GET" && url.pathname === "/v1/health") {
       return json({ status: "ok", service: "clipoteca", version: "0.1.0" });
     }
+    if (new URL(request.url).pathname === "/mcp") return handleMcp(request, env);
     const restResponse = await handleRest(request, env);
     if (restResponse) return restResponse;
     const catalogResponse = await handleCatalog(request, env);
