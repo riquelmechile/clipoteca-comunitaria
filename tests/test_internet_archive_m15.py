@@ -210,3 +210,200 @@ async def test_429_retry_after_and_503_then_200(monkeypatch):
         assert await adapter.search("rain", "en", SearchLimits()) == []
     assert len(statuses) == 0
     assert delays == [2.0, 2.0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("echo", [None, {}, {"params": {}}, {"params": {"q": "wrong"}}])
+async def test_search_rejects_missing_or_mismatched_query_echo(echo):
+    def handler(_request):
+        response = {"response": {"docs": [{"identifier": "spoofed"}]}}
+        if echo is not None:
+            response["responseHeader"] = echo
+        return httpx.Response(200, json=response)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = InternetArchive(client=client, min_interval_seconds=0)
+        with pytest.raises(ProviderError, match="query echo"):
+            await adapter.search("rain", "en", SearchLimits())
+
+
+def test_scan_stays_in_the_same_recording_original_chain():
+    files = [
+        {"name": "A-master.mov", "size": "1000000000"},
+        {"name": "A-playable.mp4", "original": "A-master.mov",
+         "size": "5000000", "format": "h.264"},
+        {"name": "A-512kb.mp4", "original": "A-master.mov",
+         "size": "800000", "format": "512Kb MPEG4"},
+        {"name": "B-master.mov", "size": "1000000000"},
+        {"name": "B-512kb.mp4", "original": "B-master.mov",
+         "size": "10000", "format": "512Kb MPEG4"},
+    ]
+    playable, scan = select_derivatives(files, "multi_film")
+    assert playable and playable["name"] == "A-playable.mp4"
+    assert scan and scan["name"] == "A-512kb.mp4"
+
+
+def test_archive_ranking_accepts_decimal_and_grouped_downloads():
+    assert _score({"downloads": "12.5"}, []) == _score({"downloads": 12.5}, [])
+    assert _score({"downloads": "1,234"}, []) == _score({"downloads": 1234}, [])
+    assert _score({"downloads": "1,234.5"}, []) == _score({"downloads": 1234.5}, [])
+    assert _score({"downloads": "1,234"}, []) > _score({"downloads": "12.5"}, [])
+    assert math.isfinite(_score({"downloads": "NaN"}, []))
+
+
+@pytest.mark.asyncio
+async def test_item_without_video_is_search_only_and_not_caching_empty_files():
+    requests = Counter()
+
+    def handler(request):
+        requests[request.url.path] += 1
+        return httpx.Response(200, json={
+            "metadata": {"identifier": "no_video"},
+            "files": [{"name": "notes.txt", "size": "100"}],
+        })
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = InternetArchive(client=client, min_interval_seconds=0)
+        candidate = example_candidate("no_video")
+        assert await adapter.direct_media(candidate) is None
+        assert (await adapter.metadata(candidate))["clipoteca_media"] is None
+    assert requests["/metadata/no_video"] == 1
+
+    def empty_files(request):
+        requests[request.url.path] += 1
+        return httpx.Response(200, json={"metadata": {"identifier": "empty"}, "files": []})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(empty_files)) as client:
+        adapter = InternetArchive(client=client, min_interval_seconds=0)
+        empty = example_candidate("empty")
+        assert (await adapter.metadata(empty))["clipoteca_media"] is None
+        assert (await adapter.metadata(empty))["clipoteca_media"] is None
+    assert requests["/metadata/empty"] == 2
+
+
+@pytest.mark.asyncio
+async def test_invalid_metadata_identifier_is_never_cached():
+    requests = Counter()
+    payloads = [
+        {"metadata": {"identifier": "wrong"}, "files": []},
+        {"files": [{"name": "video.mp4", "size": "2000"}]},
+        {},
+    ]
+
+    def handler(request):
+        requests[request.url.path] += 1
+        return httpx.Response(200, json=payloads.pop(0))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = InternetArchive(client=client, min_interval_seconds=0)
+        for _ in range(3):
+            with pytest.raises(ProviderError, match="identifier mismatch"):
+                await adapter.metadata(example_candidate("wanted"))
+    assert requests["/metadata/wanted"] == 3
+    assert not adapter._metadata_cache
+
+
+@pytest.mark.asyncio
+async def test_cache_is_per_instance_limited_and_returns_deep_copies():
+    requests = Counter()
+
+    def handler(request):
+        requests[request.url.path] += 1
+        identifier = request.url.path.rsplit("/", 1)[-1]
+        return httpx.Response(200, json={
+            "metadata": {"identifier": identifier, "subject": ["original"]},
+            "files": [{"name": "film.mp4", "size": "1500", "format": "h.264"}],
+        })
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = InternetArchive(client=client, min_interval_seconds=0)
+        candidate = example_candidate("archive")
+        first = await adapter.metadata(candidate)
+        first["files"][0]["name"] = "mutated.mp4"
+        first["metadata"]["subject"][0] = "tampered"
+        again = await adapter.metadata(candidate)
+        assert again["files"][0]["name"] == "film.mp4"
+        assert again["metadata"]["subject"] == ["original"]
+        other = InternetArchive(client=client, min_interval_seconds=0)
+        await other.metadata(candidate)
+    assert requests["/metadata/archive"] == 2
+    assert len(adapter._metadata_cache) == 1
+
+
+@pytest.mark.asyncio
+async def test_host_rate_limit_shared_across_instances_and_direct_media():
+    calls = []
+
+    def handler(request):
+        calls.append(time.monotonic())
+        identifier = request.url.path.rsplit("/", 1)[-1]
+        return httpx.Response(200, json={
+            "metadata": {"identifier": identifier},
+            "files": [{"name": "film.mp4", "size": "2000", "format": "h.264"}],
+        })
+
+    with InternetArchive._slot_lock:
+        InternetArchive._next_by_host.clear()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        first = InternetArchive(client=client, min_interval_seconds=0.05)
+        second = InternetArchive(client=client, min_interval_seconds=0.05)
+        metadata, media = await asyncio.gather(
+            first.metadata(example_candidate("first")),
+            second.direct_media(example_candidate("second")),
+        )
+    assert metadata["metadata"]["identifier"] == "first"
+    assert media and media.url.endswith("film.mp4")
+    assert len(calls) == 2
+    assert abs(calls[1] - calls[0]) >= 0.035
+
+
+@pytest.mark.asyncio
+async def test_other_providers_keep_default_only_429_retries_and_one_second_cap(monkeypatch):
+    from clipoteca.providers.http import fetch_json
+
+    sleeps = []
+    async def fake_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    attempts = [429, 429, 200]
+    def handler(_req):
+        code = attempts.pop(0)
+        return httpx.Response(
+            code, json={"ok": True}, headers={"Retry-After": "99"}
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        assert (await fetch_json(client, "https://example.org/other"))["ok"] is True
+    assert sleeps == [1.0, 1.0]
+    requests = []
+    def unavailable(_req):
+        requests.append(1)
+        return httpx.Response(503, json={"detail": "unavailable"})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(unavailable)) as client:
+        with pytest.raises(ProviderError, match="HTTP 503"):
+            await fetch_json(client, "https://example.org/other")
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_ia_503_retries_cap_retry_after_at_five_seconds(monkeypatch):
+    sleeps = []
+    async def fake_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    attempts = [503, 503, 200]
+    def handler(_req):
+        status = attempts.pop(0)
+        return httpx.Response(
+            status,
+            json={"metadata": {"identifier": "m15"}, "files": []},
+            headers={"Retry-After": "500"},
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        adapter = InternetArchive(client=client, min_interval_seconds=0)
+        assert (await adapter.metadata(example_candidate("m15")))["clipoteca_media"] is None
+    assert not attempts
+    assert sleeps == [5.0, 5.0]
