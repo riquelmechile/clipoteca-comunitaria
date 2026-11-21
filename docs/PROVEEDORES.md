@@ -79,3 +79,12 @@ Los tests incluyen cuatro lenguas, vacío, 429/500, timeout, licencia/metadatos,
 - https://docs.joinpeertube.org/api-rest-reference/api/video.html
 - https://sepiasearch.org/api/v1/search/videos?search=rain&count=2
 - https://github.com/OdyseeTeam/odysee-frontend/blob/master/llms.txt
+
+## M6a: Bilibili y VK Video (20-11-2026)
+
+| Fuente | Endpoint | ES | EN | ZH | RU | Autenticación / estado / limitación |
+|---|---|---|---|---|---|---|
+| Bilibili | `GET https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=…&page=1`; `GET /x/web-interface/view?bvid=…` | texto | texto | texto | texto | `BILIBILI_COOKIE` opcional; búsqueda pública puede responder 0, -352/412 por controles anti-bot. Solo **SUPPORTED_SEARCH_ONLY** sin URL MP4 reutilizable autorizada. |
+| VK Video | `GET https://api.vk.com/method/video.search?q=…&access_token=…&v=5.199`; `video.get` | texto | texto | texto | texto | `VK_ACCESS_TOKEN` obligatorio; falta/invalidación → **AUTH_REQUIRED**; la presencia de `files.mp4_360` en API no prueba derechos de redistribución y no se importa automáticamente. **SUPPORTED_SEARCH_ONLY** por defecto. |
+
+**Prueba real desde Oracle:** Bilibili `/x/web-interface/search/type?search_type=video&keyword=rain&page=1` devolvió **HTTP 200 JSON** `code=0`, `message=OK`, `data.result[]` con `bvid`, `arcurl`, `title`, `duration`. No hubo login, descarga ni reproducción. VK: no había token OAuth autorizado y se limitaron las pruebas a fixtures exactos conforme al [esquema oficial de VK API v5.199](https://github.com/VKCOM/vk-api-schema/blob/master/video/methods.json). Riesgo Bilibili: búsqueda anónima no garantizada en otras redes ni regiones. Referencias: https://github.com/moushicheng/bilibili-API-collect/blob/master/docs/search/search_request.md, https://dev.vk.com/reference/methods, https://github.com/VKCOM/vk-api-schema.
