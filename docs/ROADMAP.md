@@ -44,3 +44,5 @@ Se pueden comenzar contratos REST/MCP antes, pero **no cerrar la versión 1.0 si
 ## Próxima evolución, posterior a 1.0 (fuera de alcance)
 
 Créditos/aportes obligatorios, página web Astro, búsqueda semántica/embeddings, almacenamiento alternativo R2/Hugging Face si escala, miniaturas animadas, ranking de calidad avanzado, incorporación de acuerdos comunitarios de uso y licencias. Estos elementos **no bloquean** el desarrollo técnico inicial.
+
+La evolución del motor (corte por escena, fuentes nuevas, Douyin/TikTok con búsqueda web, búsqueda semántica y tool guion → clips) está planificada en [ROADMAP_V2.md](ROADMAP_V2.md), hitos M11–M24.
