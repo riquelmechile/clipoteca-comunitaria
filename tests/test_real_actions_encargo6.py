@@ -144,7 +144,8 @@ def test_relocalize_clip_000002_repairs_real_source_and_drops_stale_argos_garbag
     assert after[1]["title"] == {"es": "Autopistas", "en": "Highways"}
     assert after[1]["source"]["source_language"] == "es"
     assert "highways" in [tag.casefold() for tag in after[1]["tags"]["en"]]
-    assert "rain" in [tag.casefold() for tag in after[1]["tags"]["en"]]
+    # Rebuilding from the factual title removes a stale, unrelated rain tag.
+    assert "rain" not in [tag.casefold() for tag in after[1]["tags"]["en"]]
     assert not any("mainstream" in tag for tag in after[1]["tags"]["en"])
     assert after[1]["storage"] == before[1]["storage"]
     assert after[2] == before[2]
