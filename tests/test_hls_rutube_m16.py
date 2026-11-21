@@ -477,6 +477,6 @@ def test_ingest_declares_hls_mime_and_uses_download_hls():
     import clipoteca.ingest as ingest
 
     assert "application/vnd.apple.mpegurl" in HLS_MIME_TYPES
-    code = inspect.getsource(ingest.ingest_query)
+    code = inspect.getsource(ingest.ingest)
     assert "ref.mime in HLS_MIME_TYPES" in code
     assert "raw = await download_hls(" in code

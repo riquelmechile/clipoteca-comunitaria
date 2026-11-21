@@ -73,7 +73,7 @@ async def test_rutube_options_real_hls_is_discovered_as_playlist():
     media = await adapter.direct_media(video)
     assert media and media.mime == "application/vnd.apple.mpegurl"
     assert media.url == "https://bl.rutube.ru/route/test.m3u8"
-    assert media.allowed_hosts == ("bl.rutube.ru",)
+    assert media.allowed_hosts == ("rutube.ru", ".rutube.ru", "rtbcdn.ru", ".rtbcdn.ru")
     assert media.referer == "https://rutube.ru/video/" + VIDEO + "/"
 
 
