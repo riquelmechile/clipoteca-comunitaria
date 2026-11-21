@@ -14,6 +14,7 @@ from .jobs import request_id as calculate_request_id
 from .providers.internet_archive import InternetArchive
 from .providers.nasa import NASA
 from .providers.pexels import Pexels
+from .providers.rutube import Rutube
 from .providers.pixabay import Pixabay
 from .providers.wikimedia_commons import WikimediaCommons
 from .providers.youtube import YouTube
@@ -89,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
                 InternetArchive(),
                 NASA(),
                 YouTube(),
+                Rutube(),
             ]
             try:
                 return await ingest(
