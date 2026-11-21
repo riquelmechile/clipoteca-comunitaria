@@ -30,8 +30,7 @@ class Flood(Adapter):
     async def search(self, term, lang, limits):
         self.search_calls += 1
         return [
-            Candidate(self.name, "id1", term, lang, "https://public.example.org/v",
-                      "Lluvia", "es")
+            Candidate(self.name, "id1", term, lang, "https://public.example.org/v", "Lluvia", "es")
         ]
 
     async def metadata(self, candidate):
@@ -48,8 +47,13 @@ async def test_three_attempts_then_dead_letter_without_unbounded_calls(tmp_path)
     seen = []
     for attempt in range(1, MAX_ATTEMPTS + 1):
         report = await ingest(
-            "lluvia", [source], repository="example/repo", token="test",
-            job_root=tmp_path, writer=Writer(), storage=Storage(),
+            "lluvia",
+            [source],
+            repository="example/repo",
+            token="test",
+            job_root=tmp_path,
+            writer=Writer(),
+            storage=Storage(),
         )
         seen.append(report.status)
         job = JobStore(tmp_path).load(report.request_id)
@@ -57,8 +61,13 @@ async def test_three_attempts_then_dead_letter_without_unbounded_calls(tmp_path)
     assert seen == ["rate_limited", "rate_limited", "dead_letter"]
     before = source.search_calls
     fourth = await ingest(
-        "lluvia", [source], repository="example/repo", token="test",
-        job_root=tmp_path, writer=Writer(), storage=Storage(),
+        "lluvia",
+        [source],
+        repository="example/repo",
+        token="test",
+        job_root=tmp_path,
+        writer=Writer(),
+        storage=Storage(),
     )
     assert fourth.status == "dead_letter"
     assert source.search_calls == before

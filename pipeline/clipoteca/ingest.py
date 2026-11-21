@@ -148,7 +148,9 @@ async def ingest(
             else:
                 final = "no_results"
             job["status"] = (
-                "dead_letter" if final in RETRYABLE and job.get("attempt", 1) >= MAX_ATTEMPTS else final
+                "dead_letter"
+                if final in RETRYABLE and job.get("attempt", 1) >= MAX_ATTEMPTS
+                else final
             )
             jobs.save(job)
             return IngestReport(
