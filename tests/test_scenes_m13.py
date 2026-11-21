@@ -272,7 +272,6 @@ def test_real_scenedetect_optional_window(tmp_path):
     assert all(0 < scene.duration <= 20 for scene in rows)
 
 
-
 def test_invalid_source_and_limits(tmp_path):
     with pytest.raises(ValueError):
         normalize_scenes([], start=0, end=901)
