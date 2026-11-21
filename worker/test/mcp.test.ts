@@ -8,6 +8,7 @@ const rpc = (method: string, params?: unknown) => new Request("https://clipoteca
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
     origin: "https://client.example",
+    host: "clipoteca.test",
   },
   body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
 });
