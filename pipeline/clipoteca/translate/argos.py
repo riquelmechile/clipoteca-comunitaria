@@ -66,7 +66,21 @@ def _validate_translation(term: str, value: str, src: str, dst: str) -> str:
     result = value.strip()
     if not result:
         raise TranslationFailed(src, dst, "empty_translation")
-    if len(result) > max(80, 5 * len(term)):
+    # Compare Unicode words and alphanumeric characters, not raw punctuation.
+    # Short bilingual notes and place names can expand significantly in Argos.
+    def size(text: str) -> tuple[int, int]:
+        words = re.findall(r"[^\\W_]+(?:['’\\-][^\\W_]+)*", text, flags=re.UNICODE)
+        return sum(len(word) for word in words), len(words)
+
+    source_chars, source_words = size(term)
+    result_chars, result_words = size(result)
+    if (
+        result_chars > max(480, 14 * max(source_chars, 1))
+        or (
+            result_chars > max(240, 6 * source_chars + 100)
+            and result_words > max(36, 6 * source_words + 12)
+        )
+    ):
         raise TranslationFailed(src, dst, "disproportionate_translation")
     if re.search(r"(.{3,24}?)\1{3,}", result, flags=re.IGNORECASE):
         raise TranslationFailed(src, dst, "repeated_translation")
