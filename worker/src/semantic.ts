@@ -594,21 +594,27 @@ function matchesFilters(clip:Clip,params:URLSearchParams):boolean{
     (!params.has("language")||clip.source.source_language===params.get("language")) &&
     (!params.has("has_audio")||clip.media.has_audio===(params.get("has_audio")==="true"));
 }
-function keywordMatches(clip:Clip,query:string):boolean{
-  const document=new Set(searchTokens([
+export function prepareSearchIndex(clips:Clip[]):Map<string,Set<string>>{
+  return new Map(clips.map(clip=>[clip.id,new Set(searchTokens([
     ...Object.values(clip.title),...Object.values(clip.description),
     ...clip.tags.es,...clip.tags.en,clip.source.source_title??"",
     ...(clip.source.keywords??[]),
-  ].join(" ")));
-  return searchTokens(query).every(token=>document.has(token));
+  ].join(" ")))]));
+}
+function keywordMatches(clip:Clip,tokens:string[],index:Map<string,Set<string>>):boolean{
+  const document=index.get(clip.id);
+  return !!document && tokens.every(token=>document.has(token));
 }
 export async function semanticSearch(
   request:Request,env:SemanticEnv,query:string,filters:URLSearchParams,
   allowQueryDispatch=true, catalogue?:Clip[],
+  precomputedIndex?:Map<string,Set<string>>,
 ):Promise<SemanticSearchResult>{
   const clips=catalogue??await loadCatalog(env);
   const eligible=clips.filter(c=>matchesFilters(c,filters));
-  const lexical=eligible.filter(c=>keywordMatches(c,query));
+  const index=precomputedIndex??prepareSearchIndex(clips);
+  const tokens=searchTokens(query);
+  const lexical=eligible.filter(c=>keywordMatches(c,tokens,index));
   const cursor=Number(filters.get("cursor")??0);
   const limit=Number(filters.get("limit")??20);
   const oldPage=()=>({
