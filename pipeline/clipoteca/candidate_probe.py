@@ -127,7 +127,7 @@ def parse_metrics(provider: str, payload: object, *, html: str = "") -> dict:
         )
         count = len(hits)
     elif provider == "ok_ru":
-        count = len(re.findall(r"data-props\\s*=", html, re.I))
+        count = len(re.findall(r"data-props\s*=", html, re.I))
         stream = False
     elif provider == "vk_video":
         response = _obj(data.get("response"))
