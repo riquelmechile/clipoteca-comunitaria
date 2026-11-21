@@ -137,8 +137,8 @@ async def fetch_json(
 ) -> dict:
     """Bounded retry with Retry-After and optional pre-request pacing.
 
-    Provider opt-in can inspect HTTP error JSON before the retry decision.
-    Other providers retain default 429-only retry and 403/429/451 handling.
+    Opt-in HTTP errors are classified by status, never untrusted JSON detail.
+    Other providers retain bounded retries and credential-aware handling.
     """
     request_headers = httpx.Headers(headers or {})
     request_headers.setdefault("User-Agent", USER_AGENT)
