@@ -271,9 +271,7 @@ def send_feedback(
         if success:
             # A prior failed attempt may have left this label on the Issue.
             # DELETE is idempotent for our purposes: GitHub returns 404 if absent.
-            response = connection.delete(
-                base + "/labels/clipoteca-ingest-failed", headers=headers
-            )
+            response = connection.delete(base + "/labels/clipoteca-ingest-failed", headers=headers)
             if response.status_code != 404:
                 response.raise_for_status()
             response = connection.patch(base, headers=headers, json={"state": "closed"})
