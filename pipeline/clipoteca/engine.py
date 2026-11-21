@@ -45,15 +45,26 @@ class SearchResult:
 class CircuitBreaker:
     failures: dict[str, int] = field(default_factory=dict)
     open_after: int = 3
+    cooldown_seconds: float = 60.0
+    opened_at: dict[str, float] = field(default_factory=dict)
+    clock: Callable[[], float] = time.monotonic
 
     def open(self, provider: str) -> bool:
+        opened = self.opened_at.get(provider)
+        if opened is not None and self.clock() - opened >= self.cooldown_seconds:
+            self.failures[provider] = 0
+            self.opened_at.pop(provider, None)
         return self.failures.get(provider, 0) >= self.open_after
 
     def record(self, provider: str, succeeded: bool) -> None:
         if succeeded:
             self.failures[provider] = 0
+            self.opened_at.pop(provider, None)
         else:
-            self.failures[provider] = self.failures.get(provider, 0) + 1
+            count = self.failures.get(provider, 0) + 1
+            self.failures[provider] = count
+            if count >= self.open_after:
+                self.opened_at.setdefault(provider, self.clock())
 
 
 def _local_hits(catalog: Catalog, query: str) -> list[dict]:
@@ -108,38 +119,50 @@ class SearchEngine:
         expansion = expansion or expand_query(query)
         start = self.clock()
         local = _local_hits(catalog, query)
+        if not expansion.complete or expansion.errors:
+            return SearchResult(expansion, local, [], [], self.clock() - start)
         sem = asyncio.Semaphore(self.concurrency)
+        provider_locks = {adapter.name: asyncio.Lock() for adapter in self.adapters}
         limits = SearchLimits(self.max_pages, self.max_candidates, self.per_source_seconds)
         tasks: dict[asyncio.Task, tuple[str, str, str]] = {}
 
         async def one(adapter: Adapter, language: str, term: str):
-            async with sem:
-                if self.breaker.open(adapter.name):
-                    return [], SupportStatus.UNAVAILABLE, "circuit_open"
-                try:
-                    candidates = await asyncio.wait_for(
-                        adapter.search(term, language, limits),
-                        timeout=self.per_source_seconds,
-                    )
-                    self.breaker.record(adapter.name, True)
-                    return candidates[: limits.max_candidates], adapter.support_status, ""
-                except RateLimited:
-                    self.breaker.record(adapter.name, False)
-                    return [], SupportStatus.RATE_LIMITED, "rate_limited"
-                except AuthRequired:
-                    return [], SupportStatus.AUTH_REQUIRED, "auth_required"
-                except asyncio.TimeoutError:
-                    self.breaker.record(adapter.name, False)
-                    return [], SupportStatus.TIMEOUT, "provider_timeout"
-                except ProviderError as exc:
-                    self.breaker.record(adapter.name, False)
-                    return [], exc.status, type(exc).__name__
-                except Exception as exc:
-                    self.breaker.record(adapter.name, False)
-                    return [], SupportStatus.UNAVAILABLE, type(exc).__name__
+            # Acquire per-provider slot BEFORE global semaphore to prevent starvation.
+            async with provider_locks[adapter.name]:
+                async with sem:
+                    started = self.clock()
+                    if self.breaker.open(adapter.name):
+                        return [], SupportStatus.UNAVAILABLE, "circuit_open", 0.0
+                    try:
+                        candidates = await asyncio.wait_for(
+                            adapter.search(term, language, limits),
+                            timeout=self.per_source_seconds,
+                        )
+                        self.breaker.record(adapter.name, True)
+                        return (
+                            candidates[: limits.max_candidates],
+                            adapter.support_status,
+                            "",
+                            self.clock() - started,
+                        )
+                    except RateLimited:
+                        # HTTP 429 does not trip the outage circuit breaker.
+                        return [], SupportStatus.RATE_LIMITED, "rate_limited", self.clock() - started
+                    except AuthRequired:
+                        return [], SupportStatus.AUTH_REQUIRED, "auth_required", self.clock() - started
+                    except asyncio.TimeoutError:
+                        self.breaker.record(adapter.name, False)
+                        return [], SupportStatus.TIMEOUT, "provider_timeout", self.clock() - started
+                    except ProviderError as exc:
+                        self.breaker.record(adapter.name, False)
+                        return [], exc.status, type(exc).__name__, self.clock() - started
+                    except Exception as exc:
+                        self.breaker.record(adapter.name, False)
+                        return [], SupportStatus.UNAVAILABLE, type(exc).__name__, self.clock() - started
 
-        for adapter in self.adapters:
-            for lang in ("es", "en", "zh", "ru"):
+        # Terms are queued round-robin by language, never four per provider first.
+        for lang in ("es", "en", "zh", "ru"):
+            for adapter in self.adapters:
                 term = expansion.terms.get(lang)
                 if term and lang in adapter.accepts_text_languages:
                     task = asyncio.create_task(one(adapter, lang, term))
@@ -166,9 +189,9 @@ class SearchEngine:
         for task in tasks:
             provider, language, term = tasks[task]
             if task in pending:
-                found, status, error = [], SupportStatus.TIMEOUT, "discovery_deadline"
+                found, status, error, elapsed = [], SupportStatus.TIMEOUT, "discovery_deadline", self.discovery_seconds
             else:
-                found, status, error = task.result()
+                found, status, error, elapsed = task.result()
             executions.append(
                 Execution(
                     provider,
@@ -176,7 +199,7 @@ class SearchEngine:
                     term,
                     status,
                     len(found),
-                    max(0.0, self.clock() - start),
+                    max(0.0, elapsed),
                     error,
                 )
             )
