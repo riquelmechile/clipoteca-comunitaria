@@ -1,8 +1,8 @@
 {
   "request_id": "e56ad34650f6e56a899b29890fbd77d4f61bce826319f892c96bff761418d63f",
-  "status": "queued",
+  "status": "searching",
   "attempt": 1,
-  "updated_at": "2026-11-21T02:56:59.849921Z",
+  "updated_at": "2026-11-21T02:57:02.358973Z",
   "language_counts": {},
   "provider_counts": {},
   "source_errors": {},
