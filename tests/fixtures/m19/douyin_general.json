@@ -1,0 +1,19 @@
+{
+  "status_code": 0,
+  "data": [
+    {
+      "aweme_info": {
+        "aweme_id": "7381000000000000002",
+        "desc": "Rain general",
+        "video": {
+          "play_addr": {
+            "url_list": [
+              "https://v5-web.douyinvod.com/playwm/general.mp4"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "has_more": false
+}

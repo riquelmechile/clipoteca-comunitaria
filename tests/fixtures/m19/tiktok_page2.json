@@ -1,0 +1,17 @@
+{
+  "status_code": 0,
+  "item_list": [
+    {
+      "id": "7400000000000000002",
+      "desc": "Rain hills",
+      "author": {
+        "uniqueId": "creator2"
+      },
+      "video": {
+        "playAddr": "https://v16.tiktokcdn.com/video-2.mp4",
+        "duration": 14
+      }
+    }
+  ],
+  "has_more": false
+}

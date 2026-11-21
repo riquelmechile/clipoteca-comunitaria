@@ -1,0 +1,20 @@
+{
+  "status_code": 0,
+  "item_list": [
+    {
+      "id": "7400000000000000001",
+      "desc": "Rain city",
+      "author": {
+        "uniqueId": "creator"
+      },
+      "video": {
+        "playAddr": "https://v16.tiktokcdn.com/video-1.mp4",
+        "duration": 12
+      }
+    }
+  ],
+  "has_more": true,
+  "extra": {
+    "logid": "SearchABC123"
+  }
+}

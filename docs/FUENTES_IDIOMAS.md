@@ -30,8 +30,8 @@ Esta tabla **no equivale a garantizar una API pública de descarga**. Cada adapt
 | Odysee/LBRY | video distribuido | búsqueda claims y resolución del contenido cuando exista | M5 |
 | Bilibili | plataforma china | investigar API oficial/accesible y crear adaptador con diagnóstico de límites | M6 |
 | VK Video | plataforma rusa | API/video.search cuando esté disponible y autorizado técnicamente | M6 |
-| Douyin | plataforma china | investigar integración oficial, documentar barreras y entregar adaptador de descubrimiento cuando exista vía accesible | M6 |
-| TikTok | video social | API oficial de usuario autorizado; evaluación de búsqueda pública general como capacidad separada | M6 |
+| Douyin | video social de China | búsqueda web por invitado y cookie opcional, descarga best_effort y firmas Python; idiomas es/en/zh/ru aún no medidos semánticamente live | M19 |
+| TikTok | video social | búsqueda web, paginación por search_id y cookie sólo si exige sesión, descarga best_effort; idiomas es/en/zh/ru pendientes de verificación live | M19 |
 | Instagram Reels | video social | evaluar capacidades para contenido propio/autorizado; búsquedas globales requieren acceso específico | M6 |
 | Snapchat | video social | evaluar APIs oficiales, feeds disponibles y condiciones técnicas | M6 |
 

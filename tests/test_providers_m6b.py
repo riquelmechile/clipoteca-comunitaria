@@ -1,4 +1,4 @@
-"""Official Douyin Open Platform and TikTok Display API contract fixtures."""
+"""M6b regressions updated for the M19 public-web provider contract."""
 
 import httpx
 import pytest
@@ -14,147 +14,113 @@ from clipoteca.providers.douyin import Douyin
 from clipoteca.providers.tiktok import TikTok
 
 
-def dy_client(payload, status=200):
-    return httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda _: httpx.Response(status, json=payload, headers={"Retry-After": "0"})
-        )
-    )
-
-
-def tk_client(payload, status=200):
-    return httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda _: httpx.Response(status, json=payload))
-    )
+def guest(request):
+    if request.url.host == "ttwid.bytedance.com":
+        return httpx.Response(200, json={}, headers={"Set-Cookie": "ttwid=guest-123; Path=/"})
+    return None
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("lang", ["es", "en", "zh", "ru"])
-async def test_douyin_authorized_owner_only_four_search_terms(lang):
+async def test_douyin_public_web_search_in_four_languages(lang):
     def handler(request):
-        assert request.url.path == "/video/list/"
-        assert request.headers["access-token"] == "test"
+        init = guest(request)
+        if init:
+            return init
+        assert request.url.path == "/aweme/v1/web/search/item/"
+        assert request.url.params["keyword"] == "rain"
         return httpx.Response(
             200,
             json={
-                "data": {
-                    "error_code": 0,
-                    "list": [
-                        {"item_id": "123456789101112", "title": "Rain in street"},
-                        {"item_id": "123456789101113", "title": "A city"},
-                    ],
-                }
+                "status_code": 0,
+                "data": [
+                    {"aweme_info": {"aweme_id": "7381000000000000001", "desc": "Rain street"}}
+                ],
             },
         )
 
-    adapter = Douyin(token="test", client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
-    found = await adapter.search("Rain", lang, SearchLimits())
-    assert len(found) == 1 and found[0].source_language == "en"
-    assert found[0].language == lang
-    assert await adapter.direct_media(found[0]) is None
-    assert found[0].metadata["scope"] == "authorized_account_only"
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await Douyin(client=client).search("rain", lang, SearchLimits(max_pages=1))
+    assert len(result) == 1 and result[0].language == lang
+    assert result[0].metadata["scope"] == "public_search"
 
 
 @pytest.mark.asyncio
-async def test_douyin_missing_or_invalid_oauth():
-    with pytest.raises(AuthRequired):
-        await Douyin(token="").search("rain", "es", SearchLimits())
-    with pytest.raises(AuthRequired):
-        await Douyin(token="bad", client=dy_client({"data": {"error_code": 2100004}})).search(
-            "rain", "zh", SearchLimits()
+@pytest.mark.parametrize("lang", ["es", "en", "zh", "ru"])
+async def test_tiktok_public_web_search_in_four_languages(lang):
+    def handler(request):
+        init = guest(request)
+        if init:
+            return init
+        assert request.url.path == "/api/search/item/full/"
+        assert request.url.params["X-Gnarly"]
+        return httpx.Response(
+            200,
+            json={
+                "status_code": 0,
+                "item_list": [{"id": "7400000000000000001", "desc": "Rain street"}],
+            },
         )
 
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("code,expected", [(429, RateLimited), (500, ProviderError)])
-async def test_douyin_errors(code, expected):
-    adapter = Douyin(token="test", client=dy_client({}, code))
-    with pytest.raises(expected):
-        await adapter.search("rain", "en", SearchLimits())
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await TikTok(client=client).search("rain", lang, SearchLimits(max_pages=1))
+    assert len(result) == 1 and result[0].language == lang
+    assert result[0].metadata["scope"] == "public_search"
 
 
 @pytest.mark.asyncio
-async def test_douyin_empty_and_timeout():
-    assert (
-        await Douyin(token="t", client=dy_client({"data": {"error_code": 0, "list": []}})).search(
-            "rain", "en", SearchLimits()
-        )
-        == []
-    )
+@pytest.mark.parametrize("cls", [Douyin, TikTok])
+async def test_missing_old_access_token_does_not_block_search(cls, monkeypatch):
+    monkeypatch.delenv("DOUYIN_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("TIKTOK_ACCESS_TOKEN", raising=False)
 
-    def timeout(_):
+    def handler(request):
+        init = guest(request)
+        if init:
+            return init
+        return httpx.Response(200, json={"status_code": 0, "data": [], "item_list": []})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        assert await cls(client=client).search("rain", "en", SearchLimits(max_pages=1)) == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cls", [Douyin, TikTok])
+@pytest.mark.parametrize("http_status,exc", [(429, RateLimited), (500, ProviderError)])
+async def test_http_error_mapping(cls, http_status, exc):
+    def handler(request):
+        init = guest(request)
+        if init:
+            return init
+        return httpx.Response(http_status, json={}, headers={"Retry-After": "0"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(exc):
+            await cls(client=client).search("rain", "en", SearchLimits(max_pages=1))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cls", [Douyin, TikTok])
+async def test_timeout_mapping(cls):
+    def handler(request):
+        if request.url.host == "ttwid.bytedance.com":
+            return httpx.Response(200, json={})
         raise httpx.ReadTimeout("timeout")
 
-    with pytest.raises(ProviderTimeout):
-        await Douyin(
-            token="t", client=httpx.AsyncClient(transport=httpx.MockTransport(timeout))
-        ).search("rain", "en", SearchLimits())
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(ProviderTimeout):
+            await cls(client=client).search("rain", "en", SearchLimits(max_pages=1))
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("lang", ["es", "en", "zh", "ru"])
-async def test_tiktok_display_list_is_account_only(lang):
+@pytest.mark.parametrize("cls", [Douyin, TikTok])
+async def test_session_required_is_not_generic_provider_error(cls):
     def handler(request):
-        assert request.method == "POST"
-        assert request.headers["Authorization"] == "Bearer test"
-        assert request.url.params["fields"].startswith("id,title")
-        return httpx.Response(
-            200,
-            json={
-                "data": {
-                    "videos": [
-                        {
-                            "id": "7077642457847994444",
-                            "title": "Rain in city",
-                            "share_url": "https://www.tiktok.com/@demo/video/7077642457847994444",
-                            "duration": 11,
-                        },
-                        {"id": "7077642457847994445", "title": "Sunny day"},
-                    ],
-                    "has_more": False,
-                },
-                "error": {"code": "ok", "message": ""},
-            },
-        )
+        init = guest(request)
+        if init:
+            return init
+        return httpx.Response(200, json={"status_code": 2483})
 
-    found = await TikTok(
-        token="test", client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    ).search("Rain", lang, SearchLimits())
-    assert len(found) == 1 and found[0].language == lang
-    assert found[0].source_language == "en"
-    assert found[0].duration_seconds == 11
-    assert await TikTok(token="test").direct_media(found[0]) is None
-
-
-@pytest.mark.asyncio
-async def test_tiktok_missing_invalid_token_and_empty():
-    with pytest.raises(AuthRequired):
-        await TikTok(token="").search("rain", "en", SearchLimits())
-    with pytest.raises(AuthRequired):
-        await TikTok(
-            token="no", client=tk_client({"error": {"code": "access_token_invalid"}}, 200)
-        ).search("rain", "en", SearchLimits())
-    assert (
-        await TikTok(
-            token="t", client=tk_client({"data": {"videos": []}, "error": {"code": "ok"}})
-        ).search("rain", "zh", SearchLimits())
-        == []
-    )
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("code,exc", [(429, RateLimited), (500, ProviderError)])
-async def test_tiktok_http_failures(code, exc):
-    with pytest.raises(exc):
-        await TikTok(token="test", client=tk_client({}, code)).search("rain", "en", SearchLimits())
-
-
-@pytest.mark.asyncio
-async def test_tiktok_timeout():
-    def timeout(_):
-        raise httpx.ConnectTimeout("timeout")
-
-    with pytest.raises(ProviderTimeout):
-        await TikTok(
-            token="test", client=httpx.AsyncClient(transport=httpx.MockTransport(timeout))
-        ).search("rain", "en", SearchLimits())
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(AuthRequired, match="session_required"):
+            await cls(client=client).search("rain", "en", SearchLimits(max_pages=1))

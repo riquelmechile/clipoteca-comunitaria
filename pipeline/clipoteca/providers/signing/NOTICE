@@ -1,0 +1,18 @@
+Clipoteca M19 native signing and parsing acknowledgements
+
+Apache-2.0: Evil0ctal/Douyin_TikTok_Download_API, v5
+https://github.com/Evil0ctal/Douyin_TikTok_Download_API
+Adapted files: src/dtk/signing/native/{abogus,xbogus,tiktok_sign,tokens,sm3}.py;
+src/dtk/platforms/tiktok/params.py (search_posts_params/base_params);
+src/dtk/signing/base.py (browser query encoding).
+Local changes: package imports, small compatibility definitions, and
+self-contained TikTok search parameters.
+Full Apache license in LICENSE-APACHE-2.0.txt.
+
+MIT: Youhai020616/douyin
+https://github.com/Youhai020616/douyin
+Adapted selected logic from src/dy_cli/engines/api_client.py:
+search, _parse_bit_rates, get_download_url, _secsdk_sign.
+Local changes: async HTTP through Clipoteca's safe fetchers, bounded
+result parsing and in-memory credential handling.
+MIT license in LICENSE-MIT.txt.

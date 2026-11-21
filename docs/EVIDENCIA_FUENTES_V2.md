@@ -16,3 +16,9 @@ uv run python scripts/render_candidates_report.py --input data/reports/candidate
 **Clip real pendiente:** la consulta `дождь` y la descarga de un clip real de M17 deben ejecutarse desde `main`; este PR no presenta los fixtures offline como evidencia live.
 
 **Pendientes:** ejecutar la medición en GitHub Actions desde `main`, publicar la tabla fechada y comparar bloqueos de IP con runner propio (M20). El workflow actual no invoca automáticamente `--mode candidates`; es necesario configurarlo o ejecutarlo explícitamente en un entorno autorizado. La solicitud de nuevo YAML debe revisarse separadamente, sin modificar `.github/` en M12.
+
+**M19 (sin evidencia live):** las publicaciones de clips reales de la consulta
+下雨 (Douyin) y rain (TikTok) quedan expresamente **pendientes** del smoke en
+main. Los fixtures offline y el CI verde no acreditan resultados de
+plataformas reales ni disponibilidad desde GitHub Actions. La sonda M12
+firmada informa status_code 2483 sin filtrar cookies ni URLs de firma.
