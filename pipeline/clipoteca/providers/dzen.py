@@ -79,9 +79,7 @@ class Dzen(Adapter):
                     source_url=WATCH + quote(identifier),
                     source_title=title,
                     source_language=detect_source_language(title),
-                    duration_seconds=duration(
-                        item.get("duration") or item.get("durationSeconds")
-                    ),
+                    duration_seconds=duration(item.get("duration") or item.get("durationSeconds")),
                     metadata={"provider": self.name},
                 )
             )
