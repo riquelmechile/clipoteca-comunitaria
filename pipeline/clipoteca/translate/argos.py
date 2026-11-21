@@ -69,7 +69,7 @@ def _validate_translation(term: str, value: str, src: str, dst: str) -> str:
     # Compare Unicode words and alphanumeric characters, not raw punctuation.
     # Short bilingual notes and place names can expand significantly in Argos.
     def size(text: str) -> tuple[int, int]:
-        words = re.findall(r"[^\\W_]+(?:['’\\-][^\\W_]+)*", text, flags=re.UNICODE)
+        words = re.findall(r"[^\W_]+(?:['’\-][^\W_]+)*", text, flags=re.UNICODE)
         return sum(len(word) for word in words), len(words)
 
     source_chars, source_words = size(term)
