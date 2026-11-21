@@ -239,6 +239,14 @@ async def test_direct_community_discovery_never_uses_four_language_expansion():
     "error,expected",
     [
         ("community:id:translation_failed:en", "translation_failed:en"),
+        (
+            "community:id:translation_failed:es->en:argos_runtime_error",
+            "translation_failed:es->en:argos_runtime_error",
+        ),
+        (
+            "community:id:translation_failed:en->es:unchanged_translation",
+            "translation_failed:en->es:unchanged_translation",
+        ),
         ("community:id:download_error", "download_error"),
         ("community:id:ffmpeg_failed", "ffmpeg_failed"),
         ("community:id:irrelevant_error", "processing_failed"),
@@ -246,3 +254,105 @@ async def test_direct_community_discovery_never_uses_four_language_expansion():
 )
 def test_failure_feedback_reason_is_structured_and_bounded(error, expected):
     assert contributions._feedback_reason((error,)) == expected
+
+
+def test_public_feedback_preserves_allowlisted_reason_and_redacts_unknown():
+    from clipoteca.translate.argos import public_translation_error
+
+    comments = []
+
+    def handler(request):
+        if request.url.path.endswith("/comments"):
+            comments.append(request.read().decode("utf-8"))
+        return httpx.Response(201, json={})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        for reason in (
+            "translation_failed:es->en:argos_runtime_error",
+            "translation_failed:es->en:malicious_error",
+        ):
+            send_feedback(
+                "riquelmechile/clipoteca-comunitaria",
+                "secret-token",
+                26,
+                "failed",
+                reason=reason,
+                client=client,
+            )
+    assert "translation_failed:es->en:argos_runtime_error" in comments[0]
+    assert "processing_failed" in comments[1]
+    assert "secret-token" not in "".join(comments)
+    assert (
+        public_translation_error("community:issue-26:translation_failed:es->en:package_missing")
+        == "translation_failed:es->en:package_missing"
+    )
+
+
+@pytest.mark.asyncio
+async def test_issue26_metadata_failure_persists_exact_safe_direction_and_reason(tmp_path):
+    from clipoteca.catalog import Catalog
+    from clipoteca.ingest import ingest
+    from clipoteca.jobs import JobStore
+
+    class Writer:
+        def read_catalog(self):
+            return Catalog(), "test-sha"
+
+    class Storage:
+        def close(self):
+            pass
+
+    payload = issue(
+        number=26,
+        url="https://upload.wikimedia.org/wikipedia/commons/1/16/"
+        "Waves_at_Hikkaduwa_beach%2C_Sri_Lanka.webm",
+    )
+    payload["title"] = "[Aporte pendiente] Olas en la playa"
+    adapter = CommunityContribution(parse_community_issue(payload, 26))
+
+    def fail(_text, _source, _target):
+        raise RuntimeError("sensitive diagnostics never leave the process")
+
+    report = await ingest(
+        "Olas en la playa",
+        [adapter],
+        repository="test/repo",
+        token="fake",
+        job_root=tmp_path,
+        writer=Writer(),
+        storage=Storage(),
+        translator=fail,
+        expand_search=False,
+    )
+    expected = "translation_failed:en->es:translator_error"
+    job = JobStore(tmp_path).load(report.request_id)
+    assert job["source_errors"][next(iter(job["source_errors"]))] == expected
+    assert expected in report.errors[0]
+    assert "sensitive" not in str(job["source_errors"])
+
+
+@pytest.mark.asyncio
+async def test_ordinary_spanish_ingest_preserves_expansion_error_reason(tmp_path):
+    from clipoteca.ingest import ingest
+    from clipoteca.jobs import JobStore
+
+    class UnusedAdapter(CommunityContribution):
+        async def search(self, term, lang, limits):
+            raise AssertionError("translation must fail before network")
+
+    def fail(_text, _source, _target):
+        raise RuntimeError("secret upstream detail")
+
+    adapter = UnusedAdapter(parse_community_issue(issue(), 19))
+    report = await ingest(
+        "Olas en la playa",
+        [adapter],
+        repository="test/repo",
+        token="fake",
+        job_root=tmp_path,
+        translator=fail,
+    )
+    assert report.status == "failed"
+    assert JobStore(tmp_path).load(report.request_id)["source_errors"]["translation"] == (
+        "translation_failed:es->en:translator_error"
+    )

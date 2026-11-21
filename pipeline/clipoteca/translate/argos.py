@@ -25,6 +25,36 @@ PAIRS = {
 }
 
 
+PUBLIC_TRANSLATION_REASONS = frozenset(
+    {
+        "unsupported_language_pair",
+        "model_pins_not_configured",
+        "invalid_model_pin",
+        "model_pin_mismatch",
+        "package_missing",
+        "package_sha256_mismatch",
+        "argos_not_installed",
+        "argos_runtime_error",
+        "translator_error",
+        "empty_translation",
+        "disproportionate_translation",
+        "repeated_translation",
+        "unchanged_translation",
+    }
+)
+_PUBLIC_TRANSLATION_PATTERN = re.compile(
+    r"translation_failed:(es|en|zh|ru)->(es|en|zh|ru):([a-z_]+)"
+)
+
+
+def public_translation_error(message: str) -> str | None:
+    """Extract only an allowlisted machine error, never upstream exception text."""
+    for match in _PUBLIC_TRANSLATION_PATTERN.finditer(message):
+        if match.group(3) in PUBLIC_TRANSLATION_REASONS:
+            return match.group(0)
+    return None
+
+
 class TranslationFailed(RuntimeError):
     def __init__(self, src: str, dst: str, reason: str) -> None:
         self.src, self.dst, self.reason = src, dst, reason
