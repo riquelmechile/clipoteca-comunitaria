@@ -19,6 +19,7 @@ from clipoteca.ingest import IngestReport
 from clipoteca.jobs import JobStore, new_job, request_id
 from clipoteca.providers.base import SearchLimits
 from clipoteca.providers.http import fetch_json
+from clipoteca.providers.odysee import Odysee
 from clipoteca.security.download import DownloadError, download_media
 
 
@@ -189,3 +190,24 @@ async def test_editing_issue_restarts_only_its_revision_budget(monkeypatch, tmp_
     assert store.load(old_id)["status"] == "dead_letter"
     assert store.load(new_id) is None
     assert request_id("olas", {}, "v1") == request_id("olas", {}, "v1")
+
+
+@pytest.mark.asyncio
+async def test_odysee_retry_keeps_identity_and_caller_headers():
+    seen = []
+
+    def serve(request: httpx.Request) -> httpx.Response:
+        seen.append((request.headers.get("user-agent"), request.headers.get("x-custom")))
+        if len(seen) == 1:
+            return httpx.Response(429)
+        return httpx.Response(200, json={})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(serve)) as client:
+        adapter = Odysee(client=client)
+        assert await adapter._request(
+            "POST",
+            "https://api.na-backend.odysee.com/api/v1/proxy",
+            headers={"X-Custom": "retained"},
+            json={"test": True},
+        ) == {}
+    assert seen == [(USER_AGENT, "retained"), (USER_AGENT, "retained")]
