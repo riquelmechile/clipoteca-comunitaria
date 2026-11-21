@@ -16,8 +16,7 @@ export function canonicalJson(value: unknown): string {
 
 export async function requestId(query: string, filters: Record<string, unknown>, horizon = "v1"): Promise<string> {
   const normalized = { ...filters };
-  if (!Object.prototype.hasOwnProperty.call(normalized, "aspect_ratio") ||
-      normalized.aspect_ratio === "") normalized.aspect_ratio = null;
+  if (normalized.aspect_ratio === "") normalized.aspect_ratio = null;
   if (normalized.max_duration !== undefined && normalized.max_duration !== null &&
       normalized.max_duration !== "") {
     const amount = Number(normalized.max_duration);
