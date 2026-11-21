@@ -51,8 +51,13 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/mcp") return handleMcp(request, env);
     if (url.pathname === "/v1/sources" && request.method === "GET") {
-      try { return json(await sourceSnapshot(env)); }
-      catch { return json({error:{code:"source_unavailable",message:"Source snapshot unavailable"}},503); }
+      try {
+        return json(await sourceSnapshot(env));
+      } catch {
+        return json({
+          error: { code: "source_unavailable", message: "Source snapshot unavailable" },
+        }, 503);
+      }
     }
     if (url.pathname === "/v1/health" && request.method === "GET") {
       return health(request, env);

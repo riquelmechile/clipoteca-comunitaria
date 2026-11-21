@@ -92,16 +92,21 @@ export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider:
     sources = base64Json(data);
   }
   if (!Array.isArray(sources)) throw new Error("malformed provider data");
-  const rows = sources.map((row: Record<string, unknown>) => ({
-    provider: String(row.name ?? row.provider ?? ""),
-    status: String(row.status ?? ""),
-    capabilities: {
-      search: String((row.capabilities as Record<string, unknown> | undefined)?.search ?? "unavailable"),
-      preview: String((row.capabilities as Record<string, unknown> | undefined)?.preview ?? "unavailable"),
-      download: String((row.capabilities as Record<string, unknown> | undefined)?.download ?? "unavailable"),
-    },
-  }));
-  if (rows.some(r => !r.provider || !r.status)) throw new Error("invalid provider row");
+  const rows = sources.map((rawRow: unknown) => {
+    if (!rawRow || typeof rawRow !== "object" || Array.isArray(rawRow)) {
+      throw new Error("invalid provider row");
+    }
+    const row = rawRow as Record<string, unknown>;
+    const provider = row.name ?? row.provider;
+    const status = row.status;
+    // Missing capabilities is invalid; do not silently invent "unavailable".
+    const parsed = sourceCapabilities.safeParse(row.capabilities);
+    if (typeof provider !== "string" || !provider ||
+        typeof status !== "string" || !status || !parsed.success) {
+      throw new Error("invalid provider row or capabilities");
+    }
+    return { provider, status, capabilities: parsed.data };
+  });
   return { sources: rows, kind: "actions_credential_presence_snapshot" };
 }
 
