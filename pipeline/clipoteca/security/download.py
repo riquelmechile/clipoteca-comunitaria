@@ -6,7 +6,7 @@ import asyncio
 import os
 import tempfile
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
@@ -29,6 +29,20 @@ class DownloadError(RuntimeError):
     pass
 
 
+def _allowed_host(url: str, allowed_hosts: tuple[str, ...]) -> bool:
+    if not allowed_hosts:
+        return True
+    try:
+        host = (urlsplit(url).hostname or "").casefold()
+    except ValueError:
+        return False
+    return any(
+        host == entry.casefold().lstrip(".")
+        or (entry.startswith(".") and host.endswith(entry.casefold()))
+        for entry in allowed_hosts
+    )
+
+
 def _magic_ok(data: bytes) -> bool:
     return (
         (len(data) >= 12 and data[4:8] == b"ftyp")
@@ -47,6 +61,7 @@ async def download_media(
     max_redirects: int = 4,
     total_seconds: float | None = None,
     expected_bytes: int | None = None,
+    allowed_hosts: tuple[str, ...] = (),
 ) -> Path:
     if max_bytes < 1:
         raise ValueError("max_bytes must be positive")
@@ -72,6 +87,8 @@ async def download_media(
         async with asyncio.timeout(total_seconds):
             current = url
             for hop in range(max_redirects + 1):
+                if not _allowed_host(current, allowed_hosts):
+                    raise DownloadError("media host outside provider allowlist")
                 validated_addresses: list[str] = []
                 await validate_public_url(
                     current, resolver=resolver, validated_addresses=validated_addresses

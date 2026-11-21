@@ -18,11 +18,21 @@ from .config import USER_AGENT
 from .security.ssrf import validate_public_url
 
 TERMS = {"es": "lluvia", "en": "rain", "zh": "下雨", "ru": "дождь"}
-PROVIDERS = ("rutube", "ok_ru", "vk_video", "library_of_congress", "douyin", "tiktok", "bilibili")
+PROVIDERS = (
+    "rutube",
+    "ok_ru",
+    "vk_video",
+    "dzen",
+    "library_of_congress",
+    "douyin",
+    "tiktok",
+    "bilibili",
+)
 PERMITTED_HOSTS = frozenset(
     {
         "rutube.ru",
         "ok.ru",
+        "dzen.ru",
         "login.vk.com",
         "api.vkvideo.ru",
         "www.loc.gov",
@@ -132,6 +142,13 @@ def parse_metrics(provider: str, payload: object, *, html: str = "") -> dict:
     elif provider == "ok_ru":
         count = len(re.findall(r"data-props\s*=", html, re.I))
         stream = False
+    elif provider == "dzen":
+        hits = _items(data.get("items") or _obj(data.get("data")).get("items"))
+        count = len(hits)
+        stream = any(
+            bool(_obj(item).get("videoMetaResponse") or _obj(item).get("oneVideoStreams"))
+            for item in hits
+        )
     elif provider == "vk_video":
         response = _obj(data.get("response"))
         count = len(_items(response.get("items") or response.get("videos")))
@@ -281,6 +298,13 @@ async def probe_candidate(
             "GET",
             "https://ok.ru/video/search",
             params={"st.cmd": "anonymVideo", "st.ft": "search", "st.gsq": term, "st.m": "SEARCH"},
+        )
+    elif provider == "dzen":
+        await sample(
+            "search",
+            "GET",
+            "https://dzen.ru/api/web/v1/zen-search",
+            params={"query": term, "type_filter": "video", "page": 0},
         )
     elif provider == "vk_video":
         # Candidate web client_id is not authenticated; M12 measures its validity.
