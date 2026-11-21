@@ -56,3 +56,12 @@ variables normales ni catálogos.
 - `smoke.yml`: desde Actions, en main, ejecutar `workflow_dispatch` y conservar el artefacto JSON por proveedor/idioma. El JSON contiene tiempo observado y bytes de Releases (hasta la primera página), no costos de facturación inventados.
 
 Consultar [OPERACION_M10](OPERACION_M10.md) e [INFORME_V1](INFORME_V1.md). Todo despliegue o integración a main queda fuera del alcance de estos PRs.
+
+**HLS seguro y FFmpeg:** requiere el demuxer HLS con `-allowed_segment_extensions`
+(backports en **4.4.6+**, **6.1.3+**, **7.0.3+** o **7.1.2+**; **8.0+**; las
+compilaciones pueden variar). FFmpeg 6.1 de Ubuntu 24.04 no ofrece esta
+opción. Comprueba con `ffmpeg -hide_banner -h demuxer=hls` que figure
+`allowed_segment_extensions`: la aplicación también comprueba la capacidad
+una vez por proceso y **rechaza HLS sin la opción**, nunca deshabilita el
+control para admitir instalaciones antiguas.
+Referencia: https://ffmpeg.org/pipermail/ffmpeg-cvslog/2025-August/149555.html

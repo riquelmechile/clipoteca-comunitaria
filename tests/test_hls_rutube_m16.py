@@ -14,6 +14,7 @@ from clipoteca.security.hls import (
     HLS_MIME_TYPES,
     choose_variant,
     download_hls,
+    ffmpeg_hls_extension_capable,
     parse_master,
     parse_media,
 )
@@ -51,6 +52,9 @@ high.m3u8
         parse_media("#EXTM3U\n#EXT-X-BYTERANGE:100@0\n#EXTINF:1,\na.ts\n")
 
 
+@pytest.mark.skipif(
+    not ffmpeg_hls_extension_capable(), reason="FFmpeg lacks HLS allowed_segment_extensions"
+)
 @pytest.mark.asyncio
 async def test_hls_m3u8_to_mp4_with_mock_http_and_real_ffmpeg(tmp_path):
     source = tmp_path / "segment.ts"

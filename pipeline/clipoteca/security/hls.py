@@ -13,6 +13,7 @@ import os
 import re
 import subprocess
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
@@ -30,6 +31,25 @@ HLS_MIME_TYPES = frozenset(
         "audio/mpegurl",
     }
 )
+@lru_cache(maxsize=1)
+def ffmpeg_hls_extension_capable() -> bool:
+    """Probe the HLS demuxer option once per process, not FFmpeg's version string."""
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-h", "demuxer=hls"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+            env=safe_media_env(),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0 and "allowed_segment_extensions" in (
+        result.stdout + result.stderr
+    )
+
+
 MAX_PLAYLIST_BYTES = 256 * 1024
 MAX_HLS_DURATION = 20.0
 STREAM_RE = re.compile(r"RESOLUTION=(\d+)x(\d+)")
@@ -307,6 +327,11 @@ async def download_hls(
                 local_playlist.append("#EXT-X-ENDLIST")
                 playlist_path = stage / "local.m3u8"
                 playlist_path.write_text("\n".join(local_playlist) + "\n", encoding="utf-8")
+                if not ffmpeg_hls_extension_capable():
+                    raise DownloadError(
+                        "FFmpeg HLS requires -allowed_segment_extensions ts "
+                        "(e.g. FFmpeg 6.1.3+, 7.0.3+, 7.1.2+ or 8.0+)"
+                    )
                 command = [
                     "ffmpeg",
                     "-nostdin",
