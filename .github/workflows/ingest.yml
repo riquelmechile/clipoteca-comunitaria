@@ -61,18 +61,8 @@ jobs:
         with:
           python-version: "3.13"
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            .cache/argos
-            ~/.local/share/argos-translate
-          key: clipoteca-argos-v2-${{ hashFiles('uv.lock', 'data/argos-pins.json') }}
-      - run: uv sync --frozen --extra translate
-      - name: Download and verify pinned translation models
-        env:
-          ARGOS_MODEL_CACHE_DIR: .cache/argos
-          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
-        run: uv run python -m clipoteca.translate.download_models
+      - name: Prepare verified translation resources
+        uses: ./.github/actions/prepare-translations
       - name: Publish credential-presence source snapshot
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
