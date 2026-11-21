@@ -14,6 +14,7 @@ import httpx
 
 from clipoteca.providers.base import AuthRequired, RateLimited, SearchLimits
 from clipoteca.sources import SOURCES
+from scripts.candidate_probe import candidates_smoke
 
 TERMS = {"es": "lluvia", "en": "rain", "zh": "下雨", "ru": "дождь"}
 REPO = "riquelmechile/clipoteca-comunitaria"
@@ -132,8 +133,9 @@ async def main_async() -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="data/reports/smoke.json")
+    parser.add_argument("--mode", choices=("providers", "candidates"), default="providers")
     args = parser.parse_args(argv)
-    data = asyncio.run(main_async())
+    data = asyncio.run(candidates_smoke() if args.mode == "candidates" else main_async())
     path = Path(args.output)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

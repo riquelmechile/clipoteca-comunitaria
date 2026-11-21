@@ -45,8 +45,10 @@ const jobOutputSchema = z.object({
   terms: z.record(z.string(), z.string()).optional(),
   duplicate_ids: z.array(z.string()).optional(),
 });
+const capabilityLevel = z.enum(["supported", "best_effort", "unavailable"]);
+const sourceCapabilities = z.object({ search: capabilityLevel, preview: capabilityLevel, download: capabilityLevel });
 const sourcesOutputSchema = z.object({
-  sources: z.array(z.object({ provider: z.string(), status: z.string() })),
+  sources: z.array(z.object({ provider: z.string(), status: z.string(), capabilities: sourceCapabilities })),
   kind: z.string().optional(),
 });
 const answer = (result: object) => ({
@@ -72,7 +74,7 @@ const base64Json = (data: string): object => {
   return JSON.parse(new TextDecoder().decode(bytes)) as object;
 };
 
-async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider: string; status: string}[];kind: string }> {
+export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider: string; status: string; capabilities: {search: string; preview: string; download: string}}[];kind: string }> {
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error("invalid repository");
   const response = await fetch(
@@ -93,6 +95,11 @@ async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider: string
   const rows = sources.map((row: Record<string, unknown>) => ({
     provider: String(row.name ?? row.provider ?? ""),
     status: String(row.status ?? ""),
+    capabilities: {
+      search: String((row.capabilities as Record<string, unknown> | undefined)?.search ?? "unavailable"),
+      preview: String((row.capabilities as Record<string, unknown> | undefined)?.preview ?? "unavailable"),
+      download: String((row.capabilities as Record<string, unknown> | undefined)?.download ?? "unavailable"),
+    },
   }));
   if (rows.some(r => !r.provider || !r.status)) throw new Error("invalid provider row");
   return { sources: rows, kind: "actions_credential_presence_snapshot" };
