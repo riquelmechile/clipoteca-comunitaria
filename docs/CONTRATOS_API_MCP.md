@@ -14,6 +14,13 @@
 | POST | `/v1/import` | solicita ingesta externa | credencial/permiso específico |
 | POST | `/v1/contributions` | registra Issue/URL de contribución | autenticación GitHub o control antiabuso |
 
+M22: POST /v1/search y MCP search_clips incluyen semantic
+(ready, pending, unavailable). En ready, scores mapea IDs a puntaje
+combinado RRF con k=60; en pending indica vector aún no disponible y
+un dispatch de cálculo solicitado; unavailable conserva el ranking léxico.
+El objeto Clip no adquiere campos obligatorios, y GET /v1/clips mantiene
+su contrato previo.
+
 `GET /v1/clips` jamás dispara trabajo costoso. `POST /v1/search` puede devolver `200` con coincidencias o `202` con coincidencias y `request_id` de búsqueda ampliada. El sistema devuelve enlaces de descarga cuando el archivo ya fue publicado; antes de eso solo hay `processing`.
 
 ## Herramientas MCP remotas (SDK oficial TS v2, Streamable HTTP)
@@ -84,3 +91,5 @@ Usar tolerancia definida y testeada (p. ej. `abs(w/h - target) < 0.01`); no reco
 - Indexar cadenas Unicode normalizadas y ambas lenguas de metadatos; guardar también keywords del idioma original para dedup y trazabilidad.
 - Filtros: `aspect_ratio`, `max_duration`, `min_width`, `fps`, `source`, `language`, `has_audio`.
 - Paginación con cursor estable cuando el catálogo supere 1000 clips.
+
+M22 r2: `semantic_reason` es opcional y solo expone la categoría de degradación, jamás errores upstream. La comparación semántica exige `SEMANTIC_SEARCH=1`, umbral de coseno 0,30 y presupuesto de clips. El estado `pending` exige `CLIPOTECA_QUERY_DISPATCH_MODE=1` y el YAML de modo liviano; de lo contrario retorna `unavailable` sin iniciar ingest solo para calcular el vector.

@@ -58,6 +58,39 @@
             "unavailable",
             "dead_letter"
           ]
+        },
+        "semantic": {
+          "enum": [
+            "ready",
+            "pending",
+            "unavailable"
+          ]
+        },
+        "scores": {
+          "type": "object",
+          "patternProperties": {
+            "^clip-[0-9]{6}$": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "semantic_reason": {
+          "type": "string",
+          "enum": [
+            "semantic_disabled",
+            "empty_corpus",
+            "query_vector_unavailable",
+            "query_encoder_unavailable",
+            "shard_corrupt",
+            "manifest_too_large",
+            "cpu_budget_exceeded",
+            "manifest_invalid",
+            "semantic_error",
+            "legacy_index_invalid",
+            "invalid_repository"
+          ]
         }
       }
     }

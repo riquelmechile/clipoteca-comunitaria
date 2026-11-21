@@ -44,6 +44,7 @@ from .media.embeddings import (
     window_similarity,
 )
 from .media.embedding_store import EmbeddingStore, GitHubEmbeddingWriter
+from .media.shards import GitHubQueries, GitHubShards, QueryStore
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import NormalizeError, normalize_media
 from .media.select import (
@@ -341,6 +342,27 @@ async def ingest(
 
     try:
         advance("searching")
+        # Save the same multilingual CLIP text vector used by M21 for M22.
+        # The query can be cached even if discovery finds no clips.
+        try:
+            encoder, failure = (
+                (embedding_encoder, None)
+                if embedding_encoder is not None
+                else _cached_embedding_encoder(load_encoder)
+            )
+            if encoder is not None:
+                query_vector = encoder.encode_text(query)
+                QueryStore(job_root.parent / "embeddings").put(query, query_vector)
+                if os.environ.get("CLIPOTECA_PERSIST_JOBS") == "1":
+                    if remote_embeddings is None:
+                        remote_embeddings = GitHubEmbeddingWriter(repository, token)
+                    GitHubQueries(remote_embeddings.client, repository).publish(query, query_vector)
+            elif failure:
+                job.setdefault("source_warnings", {})["semantic_query"] = failure
+        except Exception:
+            job.setdefault("source_warnings", {})["semantic_query"] = (
+                "query_vector_cache_unavailable"
+            )
         expansion = (
             expand_query(query, translator=translator)
             if expand_search
@@ -668,6 +690,9 @@ async def ingest(
                                                     repository, token
                                                 )
                                             remote_embeddings.publish(identifier, vector)
+                                            GitHubShards(
+                                                remote_embeddings.client, repository
+                                            ).publish(identifier, vector)
                                     except Exception:
                                         # The catalogue and verified MP4 are already durable.
                                         # An optional embedding must not reverse publication.

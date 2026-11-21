@@ -5,11 +5,11 @@ No credentials, signed URLs, or guest cookies enter Candidate metadata.
 
 from __future__ import annotations
 
-import json
 from collections.abc import Awaitable, Callable
 from urllib.parse import urlsplit
 
 import httpx
+import json
 
 from .base import AuthRequired, ProviderError, ProviderTimeout, RateLimited
 from .http import ProviderPayloadError, fetch_json, fetch_response
@@ -27,27 +27,39 @@ def safe_code(payload: dict) -> int:
 
 
 def require_success(payload: dict) -> None:
-    # A JSON 200 can still be an HTML/captcha or Web-session challenge.
-    # Empty result arrays with an explicit "data"/"item_list" key are genuine
-    # empty search responses and must NOT trigger a secret-cookie retry.
-    if not payload:
-        raise AuthRequired("session_required")
+    """Classify actual guest verification fields, never user-generated titles.
+
+    A nonempty status-only body is *not* a successful empty search; the
+    provider must return an explicit result structure or detail record.
+    """
     search_nil = payload.get("search_nil_info")
-    if (
-        isinstance(search_nil, dict) and search_nil.get("search_nil_type") == "verify_check"
-    ) or "verify_check" in json.dumps(payload, ensure_ascii=False).casefold():
+    if isinstance(search_nil, dict) and search_nil.get("search_nil_type") == "verify_check":
         raise AuthRequired("session_required")
-    if "captcha" in json.dumps(payload, ensure_ascii=False).casefold():
+    if any(
+        key in payload and payload[key] not in (None, False, "", 0)
+        for key in ("verify_data", "verify_center_decision_conf", "captcha")
+    ):
         raise AuthRequired("session_required")
     code = safe_code(payload)
-    if code == 2483:
+    if code in (2483, 401, 403):
         raise AuthRequired("session_required")
-    if code in (401, 403):
-        raise AuthRequired("provider session required")
     if code == 429:
         raise RateLimited("provider rate limit")
     if code:
         raise ProviderError(f"provider status {code}")
+    if not any(
+        key in payload
+        for key in (
+            "data",
+            "aweme_list",
+            "item_list",
+            "items",
+            "aweme_detail",
+            "itemInfo",
+            "item_info",
+        )
+    ):
+        raise AuthRequired("session_required")
 
 
 def media_url(value: object, roots: tuple[str, ...]) -> str | None:
