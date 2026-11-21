@@ -163,6 +163,7 @@ def test_relocalize_clip_000003_keeps_english_source_and_correct_spanish_directi
         ),
     )
     after = json.loads(target.read_text(encoding="utf-8"))
+    assert any("mainstremain" in tag for tag in before[2]["tags"]["en"])
     assert after[2]["title"]["en"] == "A man walking down a sidewalk in the rain"
     assert after[2]["title"]["es"] == "Un hombre caminando por una acera en la lluvia"
     assert after[2]["source"]["source_language"] == "en"

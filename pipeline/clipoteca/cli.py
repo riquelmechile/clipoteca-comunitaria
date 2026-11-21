@@ -6,11 +6,17 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
 from .ingest import ingest
-from .jobs import request_id as calculate_request_id
+from .jobs import (
+    GitHubJobWriter,
+    JobStore,
+    new_job,
+    request_id as calculate_request_id,
+)
 from .translate.expand import expand_query
 from .sources import SOURCES, list_sources
 from .providers.base import Adapter, SupportStatus
@@ -37,6 +43,26 @@ class _UnavailableAdapter(Adapter):
 
     async def direct_media(self, candidate):
         return None
+
+
+def _persist_request_id_mismatch(identifier: str, repository: str, token: str, root: Path) -> None:
+    """Preserve a failed job receipt for an accepted but mismatched dispatch.
+
+    Never overwrite a terminal successful job on a wrong identifier.
+    """
+    if not re.fullmatch(r"[0-9a-f]{64}", identifier):
+        return
+    remote = (
+        GitHubJobWriter(repository, token) if os.getenv("CLIPOTECA_PERSIST_JOBS") == "1" else None
+    )
+    jobs = JobStore(root, remote=remote)
+    old = jobs.load(identifier)
+    if old is not None and old["status"] in {"published", "duplicate", "no_results", "dead_letter"}:
+        return
+    record = dict(old) if old is not None else new_job(identifier)
+    record["status"] = "failed"
+    record["source_errors"] = {**record.get("source_errors", {}), "pipeline": "request_id_mismatch"}
+    jobs.save(record)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -172,6 +198,14 @@ def main(argv: list[str] | None = None) -> int:
                 filters["providers"] = sorted(selected)
         expected = calculate_request_id(args.query, filters, args.horizon)
         if args.request_id and args.request_id != expected:
+            try:
+                _persist_request_id_mismatch(
+                    args.request_id, repository, token, Path(args.job_root)
+                )
+            except Exception:
+                # Never echo an upstream exception that may contain credentials.
+                print("request_id mismatch; job persistence unavailable", file=sys.stderr)
+                return 2
             print("request_id mismatch", file=sys.stderr)
             return 2
 

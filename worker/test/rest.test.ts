@@ -67,6 +67,76 @@ describe("M7 REST contract", () => {
     expect(await job.json()).toMatchObject({ error: { code: "job_not_found" } });
   });
 
+  it("uses the Python canonical filters on the real import-to-dispatch path", async () => {
+    const examples = fixtures.filter((entry) => "worker_import_filters" in entry);
+    expect(examples).toHaveLength(2);
+    for (const example of examples) {
+      const ip = example.query === "nieve" ? "203.0.113.7" : "203.0.113.8";
+      const response = await worker.fetch(new Request("https://api.test/v1/import", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json", "cf-connecting-ip": ip,
+          authorization: "Bearer a-secret-token-that-is-long",
+        },
+        body: JSON.stringify({ query: example.query, filters: example.worker_import_filters }),
+      }), {
+        CLIPOTECA_WRITE_TOKEN: "a-secret-token-that-is-long",
+        CLIPOTECA_DISPATCH_TOKEN: "test-secret",
+      });
+      expect(response.status).toBe(202);
+      expect(await response.json()).toMatchObject({ request_id: example.request_id });
+      const calls = vi.mocked(fetch).mock.calls.filter(([url]) =>
+        String(url instanceof Request ? url.url : url).includes("/dispatches"));
+      const [, options] = calls.at(-1)!;
+      const body = JSON.parse(String(options?.body)) as { inputs: Record<string, string> };
+      expect(body.inputs.request_id).toBe(example.request_id);
+      expect(body.inputs.filters_json).toBeDefined();
+      expect(JSON.parse(body.inputs.filters_json!)).toEqual(example.filters);
+    }
+  });
+
+  it("returns idempotent 202 before per-IP quota for the same request within 15s", async () => {
+    const stored = new Map<string, Response>();
+    vi.stubGlobal("caches", { default: {
+      match: vi.fn(async (key: Request) => stored.get(key.url)),
+      put: vi.fn(async (key: Request, value: Response) => { stored.set(key.url, value); }),
+    } });
+    const makeRequest = (query: string) => new Request("https://api.test/v1/import", {
+      method: "POST",
+      headers: { "content-type": "application/json",
+        authorization: "Bearer a-secret-token-that-is-long",
+        "cf-connecting-ip": "198.51.100.7" },
+      body: JSON.stringify({ query, filters: { aspect_ratio: "16:9" } }),
+    });
+    const env = {
+      CLIPOTECA_WRITE_TOKEN: "a-secret-token-that-is-long",
+      CLIPOTECA_DISPATCH_TOKEN: "test-secret",
+    };
+    const first = await worker.fetch(makeRequest("nieve"), env);
+    const second = await worker.fetch(makeRequest("nieve"), env);
+    expect(first.status).toBe(202);
+    expect(second.status).toBe(202);
+    expect(await first.json()).toEqual(await second.json());
+    const dispatched = vi.mocked(fetch).mock.calls.filter(([url]) =>
+      String(url instanceof Request ? url.url : url).includes("/dispatches"));
+    expect(dispatched).toHaveLength(1);
+    const different = await worker.fetch(makeRequest("lluvia"), env);
+    expect(different.status).toBe(429);
+    expect(await different.json()).toMatchObject({ error: { code: "rate_limited" } });
+  });
+
+  it("names unknown body fields and points to nested filters", async () => {
+    const bad = await worker.fetch(new Request("https://api.test/v1/search", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query: "lluvia", aspect_ratio: "16:9" }),
+    }));
+    expect(bad.status).toBe(400);
+    const payload = await bad.json() as { error: { message: string } };
+    expect(payload.error.message).toContain("aspect_ratio");
+    expect(payload.error.message).toContain("filters");
+    expect(payload.error.message).not.toContain("query must be nonempty");
+  });
+
   it("never returns 202 when dispatch fails", async () => {
     const request = new Request("https://api.test/v1/import", {
       method: "POST", headers: {
