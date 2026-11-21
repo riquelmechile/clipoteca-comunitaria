@@ -9,7 +9,7 @@ from urllib.parse import quote, urlsplit, urlunsplit
 import httpx
 
 from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://images-api.nasa.gov"
 
@@ -22,7 +22,7 @@ class NASA(Adapter):
 
     def __init__(self, *, api_key: str | None = None, client: httpx.AsyncClient | None = None):
         self.api_key = api_key if api_key is not None else os.getenv("NASA_API_KEY", "DEMO_KEY")
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         payload = await fetch_json(
