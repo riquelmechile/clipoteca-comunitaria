@@ -72,11 +72,14 @@ async def test_provider_json_adds_user_agent_without_overwriting_auth():
         return httpx.Response(200, json={})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(serve)) as client:
-        assert await fetch_json(
-            client,
-            "https://example.com/json",
-            headers={"Authorization": "Bearer placeholder"},
-        ) == {}
+        assert (
+            await fetch_json(
+                client,
+                "https://example.com/json",
+                headers={"Authorization": "Bearer placeholder"},
+            )
+            == {}
+        )
     assert seen == [(USER_AGENT, "Bearer placeholder")]
 
 
