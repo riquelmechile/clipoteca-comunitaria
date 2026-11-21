@@ -191,7 +191,7 @@ class GitHubCatalogWriter:
         else:
             if payload.get("encoding", "base64") != "base64":
                 raise ValueError("unknown catalogue content encoding")
-            raw = base64.b64decode(payload["content"], validate=True)
+            raw = base64.b64decode(re.sub(r"\s+", "", payload["content"]), validate=True)
         if not raw.strip():
             raise ValueError("empty remote catalogue, refusing overwrite")
         data = json.loads(raw)
