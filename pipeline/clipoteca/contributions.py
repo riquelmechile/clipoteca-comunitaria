@@ -209,8 +209,7 @@ async def run_community_issue(issue: CommunityIssue, repository: str, token: str
         filters={"max_duration": 20},
         # Revisions create independent retry budgets without clearing the old dead letter.
         horizon=(
-            f"community-issue-{issue.number}"
-            + (f"-{issue.revision}" if issue.revision else "")
+            f"community-issue-{issue.number}" + (f"-{issue.revision}" if issue.revision else "")
         ),
         expand_search=False,
     )
