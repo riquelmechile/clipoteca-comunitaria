@@ -92,5 +92,52 @@
     },
     "status": "published",
     "created_at": "2026-11-21T01:15:55.368269Z"
+  },
+  {
+    "id": "clip-000003",
+    "title": {
+      "es": "a-man-walking-down-a-sidewalk-en-the-rain-27690364",
+      "en": "a-man-walking-down-a-sidewalk-in-the-rain-27690364"
+    },
+    "description": {
+      "es": "a-man-walking-down-a-sidewalk-en-the-rain-27690364",
+      "en": "a-man-walking-down-a-sidewalk-in-the-rain-27690364"
+    },
+    "tags": {
+      "es": [
+        "lluvia"
+      ],
+      "en": [
+        "rain"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "27690364",
+      "source_language": "en",
+      "source_title": "a-man-walking-down-a-sidewalk-in-the-rain-27690364",
+      "source_url": "https://www.pexels.com/video/a-man-walking-down-a-sidewalk-in-the-rain-27690364/"
+    },
+    "media": {
+      "duration_seconds": 17.76,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 7974365,
+      "sha256": "e82755fc6aa551686731bec1f3a3eb6028f56e6fed71ab069eb19760e01d7ee3",
+      "perceptual_hash": "bec1dff4c10d2621~2518.08:be43dcd4e1492327~2405.39:bc46daf4c6c84927~2383.14:bc47ce98c2d9d807~2358.95:bc47ce98c3cdd803~2395.76"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/clip_clip-000003.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/thumb_clip-000003.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-21T01:16:33.946933Z"
   }
 ]
