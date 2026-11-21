@@ -276,7 +276,14 @@ def test_candidate_report_displays_error_type_and_search_nil_info():
 
 
 def test_smoke_no_mode_runs_both_report_families(tmp_path, monkeypatch):
-    import scripts.smoke_sources as smoke
+    import importlib.util
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "smoke_sources.py"
+    spec = importlib.util.spec_from_file_location("clipoteca_sources_smoke", script)
+    assert spec is not None and spec.loader is not None
+    smoke = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(smoke)
 
     provider = {
         "mode": "live_network_probes",
