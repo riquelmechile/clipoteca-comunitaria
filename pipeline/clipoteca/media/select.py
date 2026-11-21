@@ -55,7 +55,7 @@ def _scores(frames: bytes) -> list[float]:
     if not count:
         raise SceneSelectionError("FFmpeg returned no scene samples")
 
-    metrics: list[tuple[float, float, float, int]] = []
+    metrics: list[tuple[float, float, float, int, float]] = []
     previous: memoryview | None = None
     for index in range(count):
         frame = memoryview(frames)[index * FRAME_SIZE : (index + 1) * FRAME_SIZE]
@@ -68,24 +68,30 @@ def _scores(frames: bytes) -> list[float]:
             if previous is not None
             else 0.0
         )
-        metrics.append((luminance, spatial, motion, len(set(frame))))
+        histogram = [0] * 256
+        for value in frame:
+            histogram[value] += 1
+        dominant_fraction = max(histogram) / FRAME_SIZE
+        metrics.append((luminance, spatial, motion, len(set(frame)), dominant_fraction))
         previous = frame
 
-    nonzero_motion = [motion for _, _, motion, _ in metrics if motion > STATIC_MOTION_EPSILON]
+    nonzero_motion = [motion for _, _, motion, _, _ in metrics if motion > STATIC_MOTION_EPSILON]
     # Relative normalization keeps gentle rain/camera drift meaningful even when
     # its absolute pixel delta is far below a fast test pattern.
     motion_reference = max(_percentile(nonzero_motion, 0.75), 0.35)
     results: list[float] = []
-    for index, (luminance, spatial, motion, diversity) in enumerate(metrics):
+    for index, (luminance, spatial, motion, diversity, dominant_fraction) in enumerate(metrics):
         if index == 0 and len(metrics) > 1:
             motion = metrics[1][2]
         if luminance < 30 or luminance > 235 or spatial < 3:
             results.append(0.0)
         elif motion <= STATIC_MOTION_EPSILON:
             # One-frame sub-second media cannot expose motion. Preserve genuinely
-            # textured imagery, but reject high-edge title cards with few tones.
+            # textured imagery, but reject title cards whose antialiasing creates
+            # many tones over an otherwise nearly uniform background.
             if len(metrics) == 1:
-                results.append(0.15 if diversity >= 24 else 0.0)
+                textured = diversity >= 24 and dominant_fraction < 0.65
+                results.append(0.15 if textured else 0.0)
             else:
                 results.append(0.03)
         else:

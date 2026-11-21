@@ -240,6 +240,49 @@ def test_single_frame_title_is_rejected_but_real_texture_survives():
     assert _scores(textured)[0] >= 0.12
 
 
+def test_antialiased_drawtext_is_rejected_but_mandelbrot_survives(tmp_path):
+    def render(name, source):
+        target = tmp_path / name
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-nostdin",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                source,
+                "-t",
+                "1",
+                "-c:v",
+                "libx264",
+                "-threads",
+                "1",
+                "-preset",
+                "ultrafast",
+                str(target),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=45,
+        )
+        return target
+
+    title = render(
+        "title.mp4",
+        "color=c=gray:s=320x180:r=12,"
+        "drawtext=text='TITLE':fontcolor=white:fontsize=54:borderw=2:"
+        "bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2",
+    )
+    texture = render("texture.mp4", "mandelbrot=size=320x180:rate=12")
+    with pytest.raises(SceneQualityRejected, match="minimum quality"):
+        rank_scene_windows(title)
+    assert rank_scene_windows(texture)[0].duration == pytest.approx(1, abs=0.1)
+
+
 def test_short_high_quality_tail_cannot_be_primary(monkeypatch, tmp_path):
     from types import SimpleNamespace
     from clipoteca.media.scenes import Scene
