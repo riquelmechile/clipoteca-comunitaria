@@ -1,4 +1,4 @@
-"""The 15-source contract used by CLI, health checks and future MCP list_sources.
+"""The source contract used by CLI, health checks and MCP list_sources.
 
 Status is a capability/credential snapshot, never a promise that a query
 will find downloadable videos. Environment variable VALUES are never exposed.
@@ -10,6 +10,12 @@ import os
 from dataclasses import dataclass
 
 from .providers.bilibili import Bilibili
+from .providers.coverr import Coverr
+from .providers.dpla import DPLA
+from .providers.europeana import Europeana
+from .providers.library_of_congress import LibraryOfCongress
+from .providers.nara import NARA
+from .providers.smithsonian import Smithsonian
 from .providers.douyin import Douyin
 from .providers.instagram import Instagram
 from .providers.internet_archive import InternetArchive
@@ -37,6 +43,48 @@ class SourceSpec:
 
 
 SOURCES: tuple[SourceSpec, ...] = (
+    SourceSpec(
+        "library_of_congress",
+        LibraryOfCongress,
+        (),
+        "public_archive",
+        "public catalog; restricted downloads are excluded",
+    ),
+    SourceSpec(
+        "coverr",
+        Coverr,
+        ("COVERR_API_KEY",),
+        "catalog_search",
+        "key required; download MP4 preferred over preview",
+    ),
+    SourceSpec(
+        "europeana",
+        Europeana,
+        ("EUROPEANA_API_KEY",),
+        "cultural_archive",
+        "key required; direct video media only",
+    ),
+    SourceSpec(
+        "nara",
+        NARA,
+        ("NARA_API_KEY",),
+        "government_archive",
+        "key required; explicit direct video resources only",
+    ),
+    SourceSpec(
+        "dpla",
+        DPLA,
+        ("DPLA_API_KEY",),
+        "cultural_archive",
+        "key required; moving-image search, usually metadata only",
+    ),
+    SourceSpec(
+        "smithsonian",
+        Smithsonian,
+        ("SMITHSONIAN_API_KEY",),
+        "cultural_archive",
+        "key required; video search, usually metadata only",
+    ),
     SourceSpec(
         "pexels",
         Pexels,
@@ -137,6 +185,12 @@ SOURCES: tuple[SourceSpec, ...] = (
 # never evidence of a successful live request. M12 candidate probes measure that.
 CAPABILITY_LEVELS = frozenset({"supported", "best_effort", "unavailable"})
 SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
+    "library_of_congress": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "coverr": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "europeana": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "nara": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "dpla": {"search": "best_effort", "preview": "unavailable", "download": "unavailable"},
+    "smithsonian": {"search": "best_effort", "preview": "unavailable", "download": "unavailable"},
     "pexels": {"search": "supported", "preview": "best_effort", "download": "supported"},
     "pixabay": {"search": "supported", "preview": "best_effort", "download": "supported"},
     "wikimedia_commons": {"search": "supported", "preview": "best_effort", "download": "supported"},
