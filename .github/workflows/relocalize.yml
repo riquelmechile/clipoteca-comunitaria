@@ -33,18 +33,8 @@ jobs:
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           python-version: "3.13"
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            .cache/argos
-            ~/.local/share/argos-translate
-          key: clipoteca-argos-v2-${{ hashFiles('uv.lock', 'data/argos-pins.json') }}
-      - run: uv sync --frozen --extra translate
-      - name: Download verified pinned Argos models
-        env:
-          ARGOS_MODEL_CACHE_DIR: .cache/argos
-          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
-        run: uv run python -m clipoteca.translate.download_models
+      - name: Prepare verified translation resources
+        uses: ./.github/actions/prepare-translations
       - name: Rebuild ES/EN metadata only
         env:
           ARGOS_MODEL_CACHE_DIR: .cache/argos

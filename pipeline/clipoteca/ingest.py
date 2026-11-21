@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 import tempfile
 from dataclasses import dataclass
@@ -24,13 +25,14 @@ from .jobs import (
     request_id,
 )
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
-from .media.normalize import normalize_media
+from .media.normalize import NormalizeError, normalize_media
+from .media.probe import ProbeError
 from .media.thumbnail import create_thumbnail
-from .metadata import localize_candidate
+from .metadata import MetadataTranslationError, localize_candidate
 from .metrics import discovery_metrics, write_metrics
 from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
-from .translate.expand import expand_query
-from .security.download import download_media
+from .translate.expand import QueryExpansion, expand_query
+from .security.download import DownloadError, download_media
 from .storage.github import GitHubReleaseStorage, StorageError
 
 
@@ -57,7 +59,10 @@ async def ingest(
     storage: GitHubReleaseStorage | None = None,
     downloader: Callable[[str, Path], Awaitable[Path]] | None = None,
     translator=None,
+    expand_search: bool = True,
 ) -> IngestReport:
+    if not expand_search and (len(adapters) != 1 or adapters[0].name != "community"):
+        raise ValueError("partial expansion is allowed only for a direct community URL")
     if concurrency < 1 or concurrency > 16:
         raise ValueError("concurrency must be 1..16")
     if max_results < 1 or max_results > 50:
@@ -112,9 +117,13 @@ async def ingest(
 
     try:
         advance("searching")
-        expansion = expand_query(query, translator=translator)
+        expansion = (
+            expand_query(query, translator=translator)
+            if expand_search
+            else QueryExpansion(concept=query, terms={"es": query})
+        )
         job["terms"] = dict(expansion.terms)
-        if not expansion.complete or expansion.errors:
+        if expand_search and (not expansion.complete or expansion.errors):
             missing = next(
                 (
                     language
@@ -126,10 +135,13 @@ async def ingest(
             job["status"] = "dead_letter" if job.get("attempt", 1) >= MAX_ATTEMPTS else "failed"
             job["source_errors"]["translation"] = f"translation_failed:{missing}"
             jobs.save(job)
-            return IngestReport(rid, "failed", (), ("translation_failed",))
+            return IngestReport(rid, "failed", (), (f"translation_failed:{missing}",))
         catalogue, _ = writer.read_catalog()
         search = await SearchEngine(adapters, concurrency=concurrency).search(
-            query, catalog=catalogue, expansion=expansion
+            query,
+            catalog=catalogue,
+            expansion=expansion,
+            allow_partial_expansion=not expand_search,
         )
         for execution in search.executions:
             job["language_counts"][execution.language] = (
@@ -203,7 +215,11 @@ async def ingest(
                         job["source_errors"][candidate.origin_id] = "search_only"
                         continue
                     # Fail multilingual metadata before spending bandwidth on a large video.
-                    localized = localize_candidate(candidate, translator=translator)
+                    localized = localize_candidate(
+                        candidate,
+                        translator=translator,
+                        include_query_tags=candidate.provider != "community",
+                    )
                     raw = await (
                         downloader(ref.url, temp)
                         if downloader
@@ -357,7 +373,20 @@ async def ingest(
                 except Exception as exc:
                     failed_count += 1
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
-                    errors.append(f"{candidate.origin_id}:{type(exc).__name__}")
+                    error_code = type(exc).__name__
+                    if isinstance(exc, DownloadError):
+                        error_code = "download_error"
+                    elif isinstance(exc, (NormalizeError, ProbeError)):
+                        error_code = "ffmpeg_failed"
+                    elif isinstance(exc, MetadataTranslationError):
+                        direction = re.search(
+                            r"translation_failed:(?:es|en|zh|ru)->(es|en|zh|ru)",
+                            str(exc),
+                        )
+                        if direction:
+                            error_code = f"translation_failed:{direction.group(1)}"
+                    job["source_errors"][candidate.origin_id] = error_code
+                    errors.append(f"{candidate.origin_id}:{error_code}")
         if ids:
             job["status"] = "published"
         elif errors and all(":duplicate" in entry for entry in errors):

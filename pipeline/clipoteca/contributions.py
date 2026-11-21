@@ -15,11 +15,12 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
 from .ingest import ingest
+from .metadata import humanize_source_title
 from .providers.base import (
     Adapter,
     Candidate,
@@ -42,6 +43,7 @@ class CommunityIssue:
     source_url: str
     author: str
     issue_url: str
+    notes: str = ""
 
 
 def parse_community_issue(
@@ -101,8 +103,22 @@ def parse_community_issue(
         raise ValueError("invalid Issue author")
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repository):
         raise ValueError("invalid repository")
+    notes_match = re.search(
+        r"(?ms)^### (?:Nota del remitente|Notas de procedencia)[ \t]*\n(.*?)(?=^### |\Z)",
+        body,
+    )
+    notes = notes_match.group(1).strip() if notes_match else ""
+    if notes.casefold() == "sin notas":
+        notes = ""
+    if len(notes) > 1000:
+        raise ValueError("contribution notes too long")
     return CommunityIssue(
-        issue_number, title, url, author, f"https://github.com/{repository}/issues/{issue_number}"
+        issue_number,
+        title,
+        url,
+        author,
+        f"https://github.com/{repository}/issues/{issue_number}",
+        notes,
     )
 
 
@@ -143,6 +159,13 @@ class CommunityContribution(Adapter):
             return []
         issue = self.issue
         digest = hashlib.sha256(issue.source_url.encode("utf-8")).hexdigest()[:12]
+        # The direct media filename is the factual title; the Issue title is
+        # merely an intake label, never a search query for external providers.
+        filename = unquote(Path(urlsplit(issue.source_url).path).stem)
+        if len(filename) > 120 or re.search(r"[\x00-\x1f]", filename):
+            raise ValueError("unsafe media filename")
+        source_title = humanize_source_title(filename)
+        description = issue.notes or source_title
         return [
             Candidate(
                 provider=self.name,
@@ -150,9 +173,11 @@ class CommunityContribution(Adapter):
                 term=term,
                 language=lang,
                 source_url=issue.source_url,
-                source_title=issue.title,
-                source_language=detect_source_language(issue.title),
+                source_title=source_title,
+                source_language=detect_source_language(source_title),
                 metadata={
+                    "description": description,
+                    "description_language": detect_source_language(description),
                     "issue_number": issue.number,
                     "issue_author": issue.author,
                     "issue_url": issue.issue_url,
@@ -179,11 +204,18 @@ async def run_community_issue(issue: CommunityIssue, repository: str, token: str
         max_results=1,
         filters={"max_duration": 20},
         horizon=f"community-issue-{issue.number}",
+        expand_search=False,
     )
 
 
 def send_feedback(
-    repository: str, token: str, number: int, status: str, *, client: httpx.Client | None = None
+    repository: str,
+    token: str,
+    number: int,
+    status: str,
+    *,
+    reason: str = "",
+    client: httpx.Client | None = None,
 ) -> None:
     """Fixed GitHub paths and bounded, sanitized status text; no untrusted body or URLs."""
     if repository != OWNER_REPOSITORY or number < 1 or not token:
@@ -197,6 +229,15 @@ def send_feedback(
         "User-Agent": "clipoteca-community",
     }
     success = status in {"published", "duplicate"}
+    # Only documented, bounded error codes may be sent to public Issues.
+    safe_reason = (
+        reason
+        if re.fullmatch(
+            r"(?:translation_failed:(?:es|en|zh|ru)|download_error|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
+            reason,
+        )
+        else "processing_failed"
+    )
     try:
         response = connection.post(
             base + "/comments",
@@ -206,6 +247,7 @@ def send_feedback(
                     "Clipoteca: aporte catalogado correctamente (" + status + ")."
                     if success
                     else "Clipoteca: el procesamiento no se completó (" + status + "). "
+                    "Motivo: " + safe_reason + ". "
                     "Corrige el enlace o vuelve a editar el Issue para reintentar."
                 )
             },
@@ -225,6 +267,21 @@ def send_feedback(
             connection.close()
 
 
+def _feedback_reason(errors: tuple[str, ...]) -> str:
+    """Map internal structured failures to a small public, secret-free taxonomy."""
+    for error in errors:
+        match = re.search(r"translation_failed:(es|en|zh|ru)(?![a-z])", error)
+        if match:
+            return f"translation_failed:{match.group(1)}"
+        if "download" in error.casefold():
+            return "download_error"
+        if "ffmpeg" in error.casefold() or "MediaProcessingError" in error:
+            return "ffmpeg_failed"
+        if "retry_budget_exhausted" in error:
+            return "retry_budget_exhausted"
+    return "processing_failed"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Automatic GitHub Issue -> secured Clipoteca ingest"
@@ -234,15 +291,17 @@ def main(argv: list[str] | None = None) -> int:
     repository = os.environ.get("GITHUB_REPOSITORY", "")
     token = os.environ.get("GITHUB_TOKEN", "")
     status = "failed"
+    reason = "processing_failed"
     try:
         issue = load_community_issue(repository, token, args.issue_number)
         report = asyncio.run(run_community_issue(issue, repository, token))
         status = report.status
+        reason = _feedback_reason(report.errors)
     except Exception as exc:
         # Do not echo untrusted Issue input, upstream messages or credentials.
         status = "failed_" + type(exc).__name__
     try:
-        send_feedback(repository, token, args.issue_number, status)
+        send_feedback(repository, token, args.issue_number, status, reason=reason)
     except Exception as exc:
         print("issue_feedback_failed:" + type(exc).__name__)
         return 1

@@ -1,0 +1,22 @@
+name: Prepare verified translation and sentence resources
+description: Shared translation setup for every pipeline using Argos
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          .cache/argos
+          ~/.cache/argos-translate
+          ~/.local/share/argos-translate
+          ~/stanza_resources
+          ~/.cache/spacy
+        key: clipoteca-translation-v3-${{ hashFiles('uv.lock', 'data/argos-pins.json', 'pipeline/clipoteca/translate/prepare_resources.py') }}
+    - shell: bash
+      run: uv sync --frozen --extra translate
+    - name: Download verified models and sentence resources
+      shell: bash
+      env:
+        ARGOS_MODEL_CACHE_DIR: .cache/argos
+        ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+      run: uv run python -m clipoteca.translate.prepare_resources
