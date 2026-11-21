@@ -446,7 +446,7 @@ def test_published_source_ranges_skip_before_download():
 
 
 @pytest.mark.asyncio
-async def test_quality_rejected_source_is_terminal_and_not_downloaded_again(monkeypatch, tmp_path):
+async def test_quality_rejected_source_is_quarantined_for_24_hours(monkeypatch, tmp_path):
     from clipoteca.catalog import Catalog
     from clipoteca.ingest import ingest
     from test_ingest_m4c import FixtureAdapter
@@ -484,8 +484,16 @@ async def test_quality_rejected_source_is_terminal_and_not_downloaded_again(monk
     }
     first = await ingest("rain", [FixtureAdapter("pexels")], **kwargs)
     second = await ingest("rain", [FixtureAdapter("pexels")], **kwargs)
-    assert first.status == second.status == "no_results"
+    assert first.status == second.status == "dead_letter"
     assert downloads == 1
+
+    job_path = next((tmp_path / "jobs").glob("*.json"))
+    stored = json.loads(job_path.read_text())
+    stored["updated_at"] = "2000-01-01T00:00:00Z"
+    job_path.write_text(json.dumps(stored))
+    third = await ingest("rain", [FixtureAdapter("pexels")], **kwargs)
+    assert third.status == "dead_letter"
+    assert downloads == 2
 
 
 @pytest.mark.asyncio

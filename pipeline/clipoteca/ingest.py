@@ -612,7 +612,10 @@ async def ingest(
         elif errors and unavailable_count and unavailable_count == len(errors):
             job["status"] = "unavailable"
         elif errors and all(":scene_quality_rejected" in entry for entry in errors):
-            job["status"] = "no_results"
+            # Quality heuristics can produce false positives. Keep the URLs
+            # terminal within this retry window, but permit a fresh search after
+            # the same bounded 24 h quarantine used by dead-lettered work.
+            job["status"] = "dead_letter"
         else:
             job["status"] = "failed" if errors else "no_results"
         if job["status"] in RETRYABLE and job.get("attempt", 1) >= MAX_ATTEMPTS:
