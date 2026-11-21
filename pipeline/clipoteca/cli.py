@@ -16,6 +16,7 @@ from .providers.nasa import NASA
 from .providers.pexels import Pexels
 from .providers.pixabay import Pixabay
 from .providers.wikimedia_commons import WikimediaCommons
+from .providers.youtube import YouTube
 from .translate.expand import expand_query
 
 
@@ -81,7 +82,14 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
         async def run():
-            adapters = [Pexels(), Pixabay(), WikimediaCommons(), InternetArchive(), NASA()]
+            adapters = [
+                Pexels(),
+                Pixabay(),
+                WikimediaCommons(),
+                InternetArchive(),
+                NASA(),
+                YouTube(),
+            ]
             try:
                 return await ingest(
                     args.query,
