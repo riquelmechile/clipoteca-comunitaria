@@ -32,9 +32,14 @@ from .jobs import (
 )
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import NormalizeError, normalize_media
-from .media.select import rank_scene_windows
+from .media.select import (
+    SceneQualityRejected,
+    SceneSelectionTimeout,
+    SourceWindow,
+    rank_scene_windows,
+)
 from .media.storyboard import create_storyboard
-from .media.probe import ProbeError
+from .media.probe import ProbeError, probe_media
 from .media.thumbnail import create_thumbnail
 from .metadata import MetadataTranslationError, localize_candidate
 from .metrics import discovery_metrics, write_metrics
@@ -44,6 +49,48 @@ from .translate.expand import QueryExpansion, expand_query
 from .security.download import DownloadError, download_media
 from .security.hls import HLS_MIME_TYPES, download_hls
 from .storage.github import GitHubReleaseStorage, StorageError
+
+
+
+
+def _candidate_windows(
+    raw: Path,
+    *,
+    duration_limit: float,
+    max_clips: int,
+    job: dict,
+    origin_id: str,
+) -> list[SourceWindow]:
+    """Rank scenes, falling back to the v1 leading window only on timeout."""
+    try:
+        return rank_scene_windows(raw, max_duration=duration_limit, max_clips=max_clips)
+    except SceneSelectionTimeout:
+        job.setdefault("source_warnings", {})[origin_id] = (
+            "scene_selection_timeout:v1_leading_window"
+        )
+        duration = probe_media(raw, timeout=30).duration_seconds
+        return [SourceWindow(0, min(duration_limit, duration))]
+
+
+def _published_source_complete(
+    clips: Sequence[dict], candidate_url: str, max_clips: int
+) -> dict | None:
+    """Skip a deterministic source once all requested explicit windows exist."""
+    matching = [
+        clip
+        for clip in clips
+        if candidate_url
+        and canonical_source_url(str(clip["source"].get("source_url", ""))) == candidate_url
+    ]
+    legacy = next((clip for clip in matching if "source_start" not in clip["source"]), None)
+    if legacy is not None:
+        return legacy
+    ranged = [
+        clip
+        for clip in matching
+        if "source_start" in clip["source"] and "source_end" in clip["source"]
+    ]
+    return ranged[0] if len(ranged) >= max_clips else None
 
 
 @dataclass(frozen=True)
@@ -235,24 +282,15 @@ async def ingest(
                 errors.append(f"{candidate.origin_id}:search_only")
                 job["source_errors"][candidate.origin_id] = "search_only"
                 continue
-            # Before downloading, only an identical canonical URL is sufficient
-            # for an early duplicate. Never reject on title or provider ID here;
-            # content evidence is only available after the verified download.
+            # Avoid downloading deterministic sources whose requested scene ranges
+            # are already represented. One legacy whole-source clip is also complete.
             candidate_url = canonical_source_url(candidate.source_url)
-            if candidate_url:
-                early_match = next(
-                    (
-                        published
-                        for published in catalogue.clips
-                        if canonical_source_url(str(published["source"].get("source_url", "")))
-                        == candidate_url
-                        and "source_start" not in published["source"]
-                    ),
-                    None,
-                )
-                if early_match is not None:
-                    record_duplicate(candidate, early_match, "canonical_url")
-                    continue
+            early_match = _published_source_complete(
+                catalogue.clips, candidate_url, max_clips_per_source
+            )
+            if early_match is not None:
+                record_duplicate(candidate, early_match, "canonical_url")
+                continue
             with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
                 temp = Path(work)
                 try:
@@ -283,8 +321,12 @@ async def ingest(
                         raw = await download_media(ref.url, temp, expected_bytes=ref.size_bytes)
                     downloaded_count += 1
                     advance("processing")
-                    windows = rank_scene_windows(
-                        raw, max_duration=duration_limit, max_clips=max_clips_per_source
+                    windows = _candidate_windows(
+                        raw,
+                        duration_limit=duration_limit,
+                        max_clips=max_clips_per_source,
+                        job=job,
+                        origin_id=candidate.origin_id,
                     )
                     for window_index, window in enumerate(windows):
                         if len(ids) >= max_results:
@@ -481,6 +523,10 @@ async def ingest(
                                 break
                         else:
                             errors.append(f"{candidate.origin_id}:identity_collision")
+                except SceneQualityRejected:
+                    failed_count += 1
+                    job["source_errors"][candidate.origin_id] = "scene_quality_rejected"
+                    errors.append(f"{candidate.origin_id}:scene_quality_rejected")
                 except RateLimited:
                     failed_count += 1
                     rate_limited_count += 1
