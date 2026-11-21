@@ -147,6 +147,7 @@ def localize_candidate(
     candidate: Candidate,
     *,
     translator: Callable[[str, str, str], str] | None = None,
+    include_query_tags: bool = True,
 ) -> LocalizedMetadata:
     original = candidate.source_title.strip()
     if not original:
@@ -159,14 +160,23 @@ def localize_candidate(
         description.strip() if isinstance(description, str) and description.strip() else readable
     )
     title = _bilingual(readable, candidate.source_language, translator)
-    desc = _bilingual(raw_description, candidate.source_language, translator)
+    description_language = (
+        source_data.get("description_language") if isinstance(source_data, dict) else None
+    )
+    if description_language not in {"es", "en", "zh", "ru"}:
+        description_language = candidate.source_language
+    desc = _bilingual(raw_description, description_language, translator)
     # Translate query tags separately, not as sentences. Never retain
     # hallucinated repeated fragments or language stopwords in the index.
     tags = {}
     for language in ("es", "en"):
         words = [
             *_title_tags(title[language]),
-            *_keyword_tags(candidate.term, candidate.language, language, translator),
+            *(
+                _keyword_tags(candidate.term, candidate.language, language, translator)
+                if include_query_tags
+                else []
+            ),
         ]
         seen = set()
         tags[language] = []
