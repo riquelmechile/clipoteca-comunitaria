@@ -25,13 +25,19 @@ def main() -> None:
         raise RuntimeError("spacy_sentence_resources_unavailable")
 
     import stanza  # type: ignore[import-untyped]
+    from argostranslate.sbd import get_stanza_processors  # type: ignore[import-untyped]
 
     for language in ("es", "en", "zh", "ru"):
+        # Download the resources manifest before mirroring Argos's MWT selection.
         stanza.download(language, processors="tokenize", logging_level="ERROR")
+        resources = stanza.resources.common.load_resources_json()
+        processors = get_stanza_processors(language, resources)
+        if processors != "tokenize":
+            stanza.download(language, processors=processors, logging_level="ERROR")
         # Fail at setup, not at the first user contribution.
         stanza.Pipeline(
             lang=language,
-            processors="tokenize",
+            processors=processors,
             use_gpu=False,
             logging_level="ERROR",
             download_method=stanza.DownloadMethod.REUSE_RESOURCES,
