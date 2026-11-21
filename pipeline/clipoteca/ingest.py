@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import re
 import time
@@ -32,7 +33,15 @@ from .jobs import (
 )
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import NormalizeError, normalize_media
-from .media.probe import ProbeError
+from .media.select import (
+    SceneQualityRejected,
+    SceneSelectionTimeout,
+    SourceWindow,
+    fallback_quality_window,
+    rank_scene_windows,
+)
+from .media.storyboard import create_storyboard
+from .media.probe import ProbeError, probe_media
 from .media.thumbnail import create_thumbnail
 from .metadata import MetadataTranslationError, localize_candidate
 from .metrics import discovery_metrics, write_metrics
@@ -42,6 +51,64 @@ from .translate.expand import QueryExpansion, expand_query
 from .security.download import DownloadError, download_media
 from .security.hls import HLS_MIME_TYPES, download_hls
 from .storage.github import GitHubReleaseStorage, StorageError
+
+
+def _candidate_windows(
+    raw: Path,
+    *,
+    duration_limit: float,
+    max_clips: int,
+    job: dict,
+    origin_id: str,
+) -> list[SourceWindow]:
+    """Rank scenes, falling back to the v1 leading window only on timeout."""
+    try:
+        return rank_scene_windows(raw, max_duration=duration_limit, max_clips=max_clips)
+    except SceneSelectionTimeout:
+        duration = probe_media(raw, timeout=30).duration_seconds
+        window = fallback_quality_window(raw, max_duration=duration_limit, total_duration=duration)
+        job.setdefault("source_warnings", {})[origin_id] = (
+            f"scene_selection_timeout:quality_checked_fallback:{window.start:.3f}"
+        )
+        return [window]
+
+
+def _published_source_complete(
+    clips: Sequence[dict],
+    candidate_url: str,
+    max_clips: int,
+    *,
+    candidate_duration: float | None = None,
+    max_duration: float = 20,
+) -> dict | None:
+    """Skip a deterministic source once all requested explicit windows exist."""
+    matching = [
+        clip
+        for clip in clips
+        if candidate_url
+        and canonical_source_url(str(clip["source"].get("source_url", ""))) == candidate_url
+    ]
+    legacy = next((clip for clip in matching if "source_start" not in clip["source"]), None)
+    if legacy is not None:
+        return legacy
+    ranged = [
+        clip
+        for clip in matching
+        if "source_start" in clip["source"] and "source_end" in clip["source"]
+    ]
+    if len(ranged) >= max_clips:
+        return ranged[0]
+    if candidate_duration and candidate_duration > 0:
+        if any(
+            float(clip["source"]["source_start"]) <= 0.001
+            and float(clip["source"]["source_end"]) + 0.001 >= candidate_duration
+            for clip in ranged
+        ):
+            return ranged[0]
+        possible = min(max_clips, max(1, math.ceil(candidate_duration / max_duration)))
+        if len(ranged) >= possible:
+            return ranged[0]
+    return None
 
 
 @dataclass(frozen=True)
@@ -60,6 +127,7 @@ async def ingest(
     token: str,
     job_root: Path = Path("data/jobs"),
     max_results: int = 3,
+    max_clips_per_source: int = 2,
     concurrency: int = 4,
     filters: dict | None = None,
     horizon: str = "v1",
@@ -75,6 +143,8 @@ async def ingest(
         raise ValueError("concurrency must be 1..16")
     if max_results < 1 or max_results > 50:
         raise ValueError("max_results must be 1..50")
+    if not 1 <= max_clips_per_source <= 3:
+        raise ValueError("max_clips_per_source must be 1..3")
     if float((filters or {}).get("max_duration") or 20) > 20:
         raise ValueError("max_duration must be at most 20 seconds")
     rid = request_id(query, filters or {}, horizon)
@@ -101,6 +171,7 @@ async def ingest(
             return IngestReport(rid, "dead_letter", (), ("retry_budget_exhausted",))
         job = new_job(rid)
         job["attempt"] = existing.get("attempt", 1) + 1
+        job["terminal_sources"] = list(existing.get("terminal_sources", ()))
     else:
         job = existing or new_job(rid)
     if existing is None or job is not existing:
@@ -230,23 +301,24 @@ async def ingest(
                 errors.append(f"{candidate.origin_id}:search_only")
                 job["source_errors"][candidate.origin_id] = "search_only"
                 continue
-            # Before downloading, only an identical canonical URL is sufficient
-            # for an early duplicate. Never reject on title or provider ID here;
-            # content evidence is only available after the verified download.
+            # Avoid downloading deterministic sources whose requested scene ranges
+            # are already represented. One legacy whole-source clip is also complete.
             candidate_url = canonical_source_url(candidate.source_url)
-            if candidate_url:
-                early_match = next(
-                    (
-                        published
-                        for published in catalogue.clips
-                        if canonical_source_url(str(published["source"].get("source_url", "")))
-                        == candidate_url
-                    ),
-                    None,
-                )
-                if early_match is not None:
-                    record_duplicate(candidate, early_match, "canonical_url")
-                    continue
+            if candidate_url in job.get("terminal_sources", ()):
+                errors.append(f"{candidate.origin_id}:scene_quality_rejected")
+                job["source_errors"][candidate.origin_id] = "scene_quality_rejected"
+                continue
+            duration_limit = float((filters or {}).get("max_duration") or 20)
+            early_match = _published_source_complete(
+                catalogue.clips,
+                candidate_url,
+                max_clips_per_source,
+                candidate_duration=candidate.duration_seconds,
+                max_duration=duration_limit,
+            )
+            if early_match is not None:
+                record_duplicate(candidate, early_match, "canonical_url")
+                continue
             with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
                 temp = Path(work)
                 try:
@@ -262,7 +334,6 @@ async def ingest(
                         translator=translator,
                         include_query_tags=candidate.provider != "community",
                     )
-                    duration_limit = float((filters or {}).get("max_duration") or 20)
                     if downloader:
                         raw = await downloader(ref.url, temp)
                     elif ref.mime in HLS_MIME_TYPES:
@@ -277,162 +348,215 @@ async def ingest(
                         raw = await download_media(ref.url, temp, expected_bytes=ref.size_bytes)
                     downloaded_count += 1
                     advance("processing")
-                    normalized = normalize_media(
-                        raw, temp / "normalized.mp4", max_duration_seconds=duration_limit
+                    windows = _candidate_windows(
+                        raw,
+                        duration_limit=duration_limit,
+                        max_clips=max_clips_per_source,
+                        job=job,
+                        origin_id=candidate.origin_id,
                     )
-                    desired_aspect = (filters or {}).get("aspect_ratio")
-                    if desired_aspect and normalized.media.aspect_ratio != desired_aspect:
-                        errors.append(f"{candidate.origin_id}:aspect_filter")
-                        continue
-                    desired_width = (filters or {}).get("min_width")
-                    desired_fps = (filters or {}).get("fps")
-                    desired_audio = (filters or {}).get("has_audio")
-                    if (
-                        (desired_width and normalized.media.width < int(desired_width))
-                        or (desired_fps and normalized.media.fps < float(desired_fps))
-                        or (
-                            desired_audio is not None
-                            and normalized.media.has_audio != desired_audio
+                    for window_index, window in enumerate(windows):
+                        if len(ids) >= max_results:
+                            break
+                        normalized = normalize_media(
+                            raw,
+                            temp / f"normalized-{window_index}.mp4",
+                            start_seconds=window.start,
+                            max_duration_seconds=window.duration,
                         )
-                    ):
-                        errors.append(f"{candidate.origin_id}:media_filter")
-                        continue
-                    thumb_path = create_thumbnail(normalized.path, temp / "thumbnail.webp")
-                    digest = sha256_file(normalized.path)
-                    frame_hash = perceptual_hash(normalized.path)
-                    # Optimistic read before expensive release upload; writer rechecks on PUT.
-                    remote, _ = writer.read_catalog()
-                    draft = {
-                        "source": {
-                            "provider": candidate.provider,
-                            "provider_id": candidate.provider_id,
-                            "source_title": localized.original_title,
-                            "source_url": safe_source_url(candidate.source_url),
-                        },
-                        "media": {
-                            "sha256": digest,
-                            "perceptual_hash": frame_hash,
-                            "duration_seconds": normalized.media.duration_seconds,
-                        },
-                    }
-                    match = remote.duplicate_match(draft, phash_similar=perceptually_similar)
-                    if match:
-                        record_duplicate(candidate, *match)
-                        continue
-                    release = storage.get_or_create_batch_release(date.today())
-                    reserved = (
-                        storage.reserved_ids(release) if hasattr(storage, "reserved_ids") else set()
-                    )
-                    for _attempt in range(4):
-                        identifier = remote.next_id(reserved_ids=reserved)
-                        clip = {
-                            "id": identifier,
-                            "title": localized.title,
-                            "description": localized.description,
-                            "tags": localized.tags,
+                        desired_aspect = (filters or {}).get("aspect_ratio")
+                        if desired_aspect and normalized.media.aspect_ratio != desired_aspect:
+                            errors.append(f"{candidate.origin_id}:aspect_filter")
+                            continue
+                        desired_width = (filters or {}).get("min_width")
+                        desired_fps = (filters or {}).get("fps")
+                        desired_audio = (filters or {}).get("has_audio")
+                        if (
+                            (desired_width and normalized.media.width < int(desired_width))
+                            or (desired_fps and normalized.media.fps < float(desired_fps))
+                            or (
+                                desired_audio is not None
+                                and normalized.media.has_audio != desired_audio
+                            )
+                        ):
+                            errors.append(f"{candidate.origin_id}:media_filter")
+                            continue
+                        thumb_path = create_thumbnail(
+                            normalized.path, temp / f"thumbnail-{window_index}.webp"
+                        )
+                        storyboard_paths = create_storyboard(
+                            normalized.path, temp / f"storyboard-{window_index}"
+                        )
+                        digest = sha256_file(normalized.path)
+                        frame_hash = perceptual_hash(normalized.path)
+                        # Optimistic read before expensive release upload; writer rechecks on PUT.
+                        remote, _ = writer.read_catalog()
+                        draft = {
                             "source": {
                                 "provider": candidate.provider,
                                 "provider_id": candidate.provider_id,
-                                "source_language": localized.original_language,
                                 "source_title": localized.original_title,
                                 "source_url": safe_source_url(candidate.source_url),
-                                **(
-                                    {
-                                        key: candidate.metadata[key]
-                                        for key in ("issue_number", "issue_author", "issue_url")
-                                        if candidate.metadata and key in candidate.metadata
-                                    }
-                                    if candidate.provider == "community"
-                                    else {}
-                                ),
+                                "source_start": window.start,
+                                "source_end": window.end,
                             },
                             "media": {
-                                "duration_seconds": normalized.media.duration_seconds,
-                                "width": normalized.media.width,
-                                "height": normalized.media.height,
-                                "fps": normalized.media.fps,
-                                "aspect_ratio": normalized.media.aspect_ratio,
-                                "orientation": normalized.media.orientation,
-                                "codec": normalized.media.codec,
-                                "container": normalized.media.container,
-                                "has_audio": normalized.media.has_audio,
-                                "size_bytes": normalized.path.stat().st_size,
                                 "sha256": digest,
                                 "perceptual_hash": frame_hash,
+                                "duration_seconds": normalized.media.duration_seconds,
                             },
-                            "storage": {
-                                "provider": "github_releases",
-                                "asset_url": "",
-                                "thumbnail_url": "",
-                            },
-                            "status": "published",
-                            "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                         }
-                        advance("publishing")
-                        name_video, name_thumb = (
-                            f"clip_{identifier}.mp4",
-                            f"thumb_{identifier}.webp",
+                        match = remote.duplicate_match(draft, phash_similar=perceptually_similar)
+                        if match:
+                            record_duplicate(candidate, *match)
+                            continue
+                        release = storage.get_or_create_batch_release(date.today())
+                        reserved = (
+                            storage.reserved_ids(release)
+                            if hasattr(storage, "reserved_ids")
+                            else set()
                         )
-                        publish_started = time.monotonic()
-                        try:
-                            video = storage.upload_asset(release, normalized.path, name_video)
-                            video = storage.verify_asset(
-                                name_video, normalized.path.stat().st_size, digest, release.id
+                        for _attempt in range(4):
+                            identifier = remote.next_id(reserved_ids=reserved)
+                            clip = {
+                                "id": identifier,
+                                "title": localized.title,
+                                "description": localized.description,
+                                "tags": localized.tags,
+                                "source": {
+                                    "provider": candidate.provider,
+                                    "provider_id": candidate.provider_id,
+                                    "source_language": localized.original_language,
+                                    "source_title": localized.original_title,
+                                    "source_url": safe_source_url(candidate.source_url),
+                                    "source_start": window.start,
+                                    "source_end": window.end,
+                                    **(
+                                        {
+                                            key: candidate.metadata[key]
+                                            for key in ("issue_number", "issue_author", "issue_url")
+                                            if candidate.metadata and key in candidate.metadata
+                                        }
+                                        if candidate.provider == "community"
+                                        else {}
+                                    ),
+                                },
+                                "media": {
+                                    "duration_seconds": normalized.media.duration_seconds,
+                                    "width": normalized.media.width,
+                                    "height": normalized.media.height,
+                                    "fps": normalized.media.fps,
+                                    "aspect_ratio": normalized.media.aspect_ratio,
+                                    "orientation": normalized.media.orientation,
+                                    "codec": normalized.media.codec,
+                                    "container": normalized.media.container,
+                                    "has_audio": normalized.media.has_audio,
+                                    "size_bytes": normalized.path.stat().st_size,
+                                    "sha256": digest,
+                                    "perceptual_hash": frame_hash,
+                                },
+                                "storage": {
+                                    "provider": "github_releases",
+                                    "asset_url": "",
+                                    "thumbnail_url": "",
+                                },
+                                "status": "published",
+                                "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                            }
+                            advance("publishing")
+                            name_video, name_thumb = (
+                                f"clip_{identifier}.mp4",
+                                f"thumb_{identifier}.webp",
                             )
-                            thumbnail_digest = sha256_file(thumb_path)
-                            thumbnail = storage.upload_asset(release, thumb_path, name_thumb)
-                            thumbnail = storage.verify_asset(
-                                name_thumb, thumb_path.stat().st_size, thumbnail_digest, release.id
-                            )
-                        except StorageError:
-                            # A partial upload reserves this ID. Never overwrite or delete
-                            # another attempt's asset; a retry gets a distinct clip ID.
-                            reserved.add(identifier)
-                            remote, _ = writer.read_catalog()
-                            if remote.find_duplicate(draft, phash_similar=perceptually_similar):
-                                errors.append(f"{candidate.origin_id}:duplicate")
+                            publish_started = time.monotonic()
+                            try:
+                                video = storage.upload_asset(release, normalized.path, name_video)
+                                video = storage.verify_asset(
+                                    name_video, normalized.path.stat().st_size, digest, release.id
+                                )
+                                thumbnail_digest = sha256_file(thumb_path)
+                                thumbnail = storage.upload_asset(release, thumb_path, name_thumb)
+                                thumbnail = storage.verify_asset(
+                                    name_thumb,
+                                    thumb_path.stat().st_size,
+                                    thumbnail_digest,
+                                    release.id,
+                                )
+                                # Preview frames use the same verified immutable Releases
+                                # pipeline as both the MP4 and its thumbnail.
+                                story_assets = []
+                                for image_index, preview in enumerate(storyboard_paths):
+                                    name_story = f"story_{identifier}_{image_index:02d}.webp"
+                                    preview_digest = sha256_file(preview)
+                                    storage.upload_asset(release, preview, name_story)
+                                    verified = storage.verify_asset(
+                                        name_story,
+                                        preview.stat().st_size,
+                                        preview_digest,
+                                        release.id,
+                                    )
+                                    story_assets.append(verified)
+                            except StorageError:
+                                # A partial upload reserves this ID. Never overwrite or delete
+                                # another attempt's asset; a retry gets a distinct clip ID.
+                                reserved.add(identifier)
+                                remote, _ = writer.read_catalog()
+                                if remote.find_duplicate(draft, phash_similar=perceptually_similar):
+                                    errors.append(f"{candidate.origin_id}:duplicate")
+                                    break
+                                continue
+                            clip["storage"]["asset_url"] = video.browser_download_url
+                            clip["storage"]["thumbnail_url"] = thumbnail.browser_download_url
+                            clip["storage"]["storyboard_urls"] = [
+                                asset.browser_download_url for asset in story_assets
+                            ]
+                            try:
+                                writer.update(
+                                    [clip],
+                                    verified_assets={identifier: (video, thumbnail, *story_assets)},
+                                    phash_similar=perceptually_similar,
+                                )
+                                ids.append(identifier)
+                                storage_bytes += (
+                                    video.size + thumbnail.size + sum(a.size for a in story_assets)
+                                )
+                                published_seconds += time.monotonic() - publish_started
+                                catalogue.merge([clip])
                                 break
-                            continue
-                        clip["storage"]["asset_url"] = video.browser_download_url
-                        clip["storage"]["thumbnail_url"] = thumbnail.browser_download_url
-                        try:
-                            writer.update(
-                                [clip],
-                                verified_assets={identifier: (video, thumbnail)},
-                                phash_similar=perceptually_similar,
-                            )
-                            ids.append(identifier)
-                            storage_bytes += video.size + thumbnail.size
-                            published_seconds += time.monotonic() - publish_started
-                            catalogue.merge([clip])
-                            break
-                        except IdentityCollision:
-                            reserved.add(identifier)
-                            remote, _ = writer.read_catalog()
-                            continue
-                        except DuplicateClip as duplicate:
-                            # Writer's optimistic CAS detected a concurrent
-                            # publication. Re-read before attributing provenance.
-                            remote, _ = writer.read_catalog()
-                            match = remote.duplicate_match(
-                                draft, phash_similar=perceptually_similar
-                            )
-                            if match and match[0]["id"] == duplicate.clip_id:
-                                record_duplicate(candidate, *match)
-                            else:
-                                errors.append(
-                                    f"{candidate.origin_id}:duplicate:"
-                                    f"{duplicate.clip_id}:concurrent_catalog"
+                            except IdentityCollision:
+                                reserved.add(identifier)
+                                remote, _ = writer.read_catalog()
+                                continue
+                            except DuplicateClip as duplicate:
+                                # Writer's optimistic CAS detected a concurrent
+                                # publication. Re-read before attributing provenance.
+                                remote, _ = writer.read_catalog()
+                                match = remote.duplicate_match(
+                                    draft, phash_similar=perceptually_similar
                                 )
-                                duplicate_ids = job.setdefault("duplicate_ids", [])
-                                if duplicate.clip_id not in duplicate_ids:
-                                    duplicate_ids.append(duplicate.clip_id)
-                                job["source_errors"][candidate.origin_id] = (
-                                    f"duplicate:concurrent_catalog:{duplicate.clip_id}"
-                                )
-                            break
-                    else:
-                        errors.append(f"{candidate.origin_id}:identity_collision")
+                                if match and match[0]["id"] == duplicate.clip_id:
+                                    record_duplicate(candidate, *match)
+                                else:
+                                    errors.append(
+                                        f"{candidate.origin_id}:duplicate:"
+                                        f"{duplicate.clip_id}:concurrent_catalog"
+                                    )
+                                    duplicate_ids = job.setdefault("duplicate_ids", [])
+                                    if duplicate.clip_id not in duplicate_ids:
+                                        duplicate_ids.append(duplicate.clip_id)
+                                    job["source_errors"][candidate.origin_id] = (
+                                        f"duplicate:concurrent_catalog:{duplicate.clip_id}"
+                                    )
+                                break
+                        else:
+                            errors.append(f"{candidate.origin_id}:identity_collision")
+                except SceneQualityRejected:
+                    failed_count += 1
+                    job["source_errors"][candidate.origin_id] = "scene_quality_rejected"
+                    errors.append(f"{candidate.origin_id}:scene_quality_rejected")
+                    rejected = job.setdefault("terminal_sources", [])
+                    if candidate_url not in rejected:
+                        rejected.append(candidate_url)
                 except RateLimited:
                     failed_count += 1
                     rate_limited_count += 1
@@ -472,6 +596,8 @@ async def ingest(
             job["status"] = "rate_limited"
         elif errors and unavailable_count and unavailable_count == len(errors):
             job["status"] = "unavailable"
+        elif errors and all(":scene_quality_rejected" in entry for entry in errors):
+            job["status"] = "no_results"
         else:
             job["status"] = "failed" if errors else "no_results"
         if job["status"] in RETRYABLE and job.get("attempt", 1) >= MAX_ATTEMPTS:

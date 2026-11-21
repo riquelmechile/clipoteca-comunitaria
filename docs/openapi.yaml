@@ -90,6 +90,21 @@ components:
           type: array
           items: {$ref: "#/components/schemas/SourceRow"}
         kind: {type: string, enum: [actions_credential_presence_snapshot]}
+    StoryboardFrame:
+      type: object
+      additionalProperties: false
+      required: [url, index, timestamp_seconds]
+      properties:
+        url: {type: string, format: uri}
+        index: {type: integer, minimum: 0}
+        timestamp_seconds: {type: number, minimum: 0}
+    StoryboardResponse:
+      type: object
+      additionalProperties: false
+      required: [clip_id, frames]
+      properties:
+        clip_id: {type: string, pattern: "^clip-[0-9]{6}$"}
+        frames: {type: array, maxItems: 8, items: {$ref: "#/components/schemas/StoryboardFrame"}}
     ContributionBody:
       type: object
       additionalProperties: false
@@ -149,6 +164,24 @@ paths:
         - {name: id, in: path, required: true, schema: {type: string, pattern: "^clip-[0-9]{6}$"}}
       responses:
         "200": {description: Clip metadata}
+        "404": {description: Clip not found}
+        "503": {description: Catalogue unavailable}
+  /v1/clips/{id}/storyboard:
+    get:
+      operationId: getStoryboard
+      description: |
+        Public immutable WebP 320px previews of a normalized clip, sampled
+        evenly across the selected source window. Older clips yield frames: [].
+        Original source_start/source_end are optional source metadata returned
+        by getClip; storage.storyboard_urls is an optional clip schema field.
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, pattern: "^clip-[0-9]{6}$"}}
+      responses:
+        "200":
+          description: Verified storyboard frame URLs and relative timestamps
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/StoryboardResponse"}
         "404": {description: Clip not found}
         "503": {description: Catalogue unavailable}
   /v1/clips/{id}/download:

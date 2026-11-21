@@ -88,6 +88,12 @@ def main(argv: list[str] | None = None) -> int:
     ingest_parser.add_argument("--query", required=True)
     ingest_parser.add_argument("--request-id", default="")
     ingest_parser.add_argument("--max-results", type=int, default=3)
+    ingest_parser.add_argument(
+        "--max-clips-per-source",
+        type=int,
+        default=2,
+        help="Maximum disjoint windows per video (1..3)",
+    )
     ingest_parser.add_argument("--aspect-ratio")
     ingest_parser.add_argument("--max-duration", type=float, default=20)
     ingest_parser.add_argument("--horizon", default="v1")
@@ -229,6 +235,7 @@ def main(argv: list[str] | None = None) -> int:
                     repository=repository,
                     token=token,
                     max_results=min(int(filters.get("limit") or args.max_results), 50),
+                    max_clips_per_source=args.max_clips_per_source,
                     concurrency=args.concurrency,
                     job_root=Path(args.job_root),
                     filters=filters,
