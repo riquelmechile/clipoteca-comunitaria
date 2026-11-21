@@ -162,6 +162,8 @@ class CommunityContribution(Adapter):
         # The direct media filename is the factual title; the Issue title is
         # merely an intake label, never a search query for external providers.
         filename = unquote(Path(urlsplit(issue.source_url).path).stem)
+        if len(filename) > 120 or re.search(r"[\x00-\x1f]", filename):
+            raise ValueError("unsafe media filename")
         source_title = humanize_source_title(filename)
         description = issue.notes or source_title
         return [
