@@ -46,7 +46,7 @@ class NASA(Adapter):
                     language=lang,
                     source_url=f"https://images.nasa.gov/details/{quote(nasa_id, safe='')}",
                     source_title=str(data.get("title") or nasa_id),
-                    source_language=detect_source_language(str(data.get('title') or nasa_id)),
+                    source_language=detect_source_language(str(data.get("title") or nasa_id)),
                     metadata={"data": data, "item": item},
                 )
             )
@@ -72,7 +72,9 @@ class NASA(Adapter):
             url = str(item.get("href") or "")
             parsed = urlsplit(url)
             if parsed.scheme == "http" and parsed.hostname == "images-assets.nasa.gov":
-                url = urlunsplit(("https", parsed.netloc, parsed.path, parsed.query, parsed.fragment))
+                url = urlunsplit(
+                    ("https", parsed.netloc, parsed.path, parsed.query, parsed.fragment)
+                )
             if url.startswith("https://") and url.lower().split("?", 1)[0].endswith(".mp4"):
                 urls.append(url)
         if not urls:

@@ -147,9 +147,19 @@ class SearchEngine:
                         )
                     except RateLimited:
                         # HTTP 429 does not trip the outage circuit breaker.
-                        return [], SupportStatus.RATE_LIMITED, "rate_limited", self.clock() - started
+                        return (
+                            [],
+                            SupportStatus.RATE_LIMITED,
+                            "rate_limited",
+                            self.clock() - started,
+                        )
                     except AuthRequired:
-                        return [], SupportStatus.AUTH_REQUIRED, "auth_required", self.clock() - started
+                        return (
+                            [],
+                            SupportStatus.AUTH_REQUIRED,
+                            "auth_required",
+                            self.clock() - started,
+                        )
                     except asyncio.TimeoutError:
                         self.breaker.record(adapter.name, False)
                         return [], SupportStatus.TIMEOUT, "provider_timeout", self.clock() - started
@@ -158,7 +168,12 @@ class SearchEngine:
                         return [], exc.status, type(exc).__name__, self.clock() - started
                     except Exception as exc:
                         self.breaker.record(adapter.name, False)
-                        return [], SupportStatus.UNAVAILABLE, type(exc).__name__, self.clock() - started
+                        return (
+                            [],
+                            SupportStatus.UNAVAILABLE,
+                            type(exc).__name__,
+                            self.clock() - started,
+                        )
 
         # Terms are queued round-robin by language, never four per provider first.
         for lang in ("es", "en", "zh", "ru"):
@@ -189,7 +204,12 @@ class SearchEngine:
         for task in tasks:
             provider, language, term = tasks[task]
             if task in pending:
-                found, status, error, elapsed = [], SupportStatus.TIMEOUT, "discovery_deadline", self.discovery_seconds
+                found, status, error, elapsed = (
+                    [],
+                    SupportStatus.TIMEOUT,
+                    "discovery_deadline",
+                    self.discovery_seconds,
+                )
             else:
                 found, status, error, elapsed = task.result()
             executions.append(

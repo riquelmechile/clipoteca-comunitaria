@@ -5,7 +5,7 @@ import asyncio
 import pytest
 
 from clipoteca.engine import CircuitBreaker, SearchEngine
-from clipoteca.providers.base import Adapter, Candidate, MediaRef, RateLimited, SearchLimits, SupportStatus
+from clipoteca.providers.base import Adapter, Candidate, MediaRef, RateLimited, SupportStatus
 from clipoteca.translate.expand import QueryExpansion
 
 

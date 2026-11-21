@@ -7,7 +7,15 @@ from typing import Any
 
 import httpx
 
-from .base import detect_source_language, Adapter, AuthRequired, Candidate, MediaRef, SearchLimits, SupportStatus
+from .base import (
+    detect_source_language,
+    Adapter,
+    AuthRequired,
+    Candidate,
+    MediaRef,
+    SearchLimits,
+    SupportStatus,
+)
 from .http import fetch_json
 
 SEARCH_ENDPOINT = "https://api.pexels.com/v1/videos/search"
@@ -43,7 +51,9 @@ class Pexels(Adapter):
                     term=term,
                     language=lang,
                     source_url=str(row.get("url", "")),
-                    source_title=(str(row.get("url") or "").rstrip("/").split("/")[-1] or str(row["id"])),
+                    source_title=(
+                        str(row.get("url") or "").rstrip("/").split("/")[-1] or str(row["id"])
+                    ),
                     source_language=detect_source_language(str(row.get("url") or "")),
                     duration_seconds=row.get("duration"),
                     width=row.get("width"),

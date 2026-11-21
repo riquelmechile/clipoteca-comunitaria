@@ -5,13 +5,17 @@ import pytest
 from clipoteca.ingest import ingest
 from clipoteca.jobs import JobStore, request_id
 from clipoteca.providers.base import (
-    Adapter, AuthRequired, Candidate, MediaRef, RateLimited, SearchLimits, SupportStatus,
+    Adapter,
+    AuthRequired,
+    RateLimited,
+    SupportStatus,
 )
 
 
 class FakeWriter:
     def read_catalog(self):
         from clipoteca.catalog import Catalog
+
         return Catalog(), "test-sha"
 
 
@@ -60,8 +64,14 @@ async def test_ingest_translation_failure_is_terminal_and_skips_providers(tmp_pa
         raise RuntimeError("missing local model")
 
     report = await ingest(
-        "a novel unknown phrase", [adapter], repository="test/repo", token="fake",
-        job_root=tmp_path, writer=FakeWriter(), storage=FakeStorage(), translator=fail,
+        "a novel unknown phrase",
+        [adapter],
+        repository="test/repo",
+        token="fake",
+        job_root=tmp_path,
+        writer=FakeWriter(),
+        storage=FakeStorage(),
+        translator=fail,
     )
     assert report.status == "failed"
     assert adapter.calls == 0
@@ -71,11 +81,18 @@ async def test_ingest_translation_failure_is_terminal_and_skips_providers(tmp_pa
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("error,expected", [("429", "rate_limited"), ("auth", "unavailable"), ("none", "no_results")])
+@pytest.mark.parametrize(
+    "error,expected", [("429", "rate_limited"), ("auth", "unavailable"), ("none", "no_results")]
+)
 async def test_ingest_no_candidates_have_truthful_terminal_state(tmp_path, error, expected):
     report = await ingest(
-        "lluvia", [Broken(error)], repository="test/repo", token="fake",
-        job_root=tmp_path, writer=FakeWriter(), storage=FakeStorage(),
+        "lluvia",
+        [Broken(error)],
+        repository="test/repo",
+        token="fake",
+        job_root=tmp_path,
+        writer=FakeWriter(),
+        storage=FakeStorage(),
     )
     assert report.status == expected
 
@@ -84,6 +101,10 @@ async def test_ingest_no_candidates_have_truthful_terminal_state(tmp_path, error
 async def test_ingest_rejects_duration_above_limit(tmp_path):
     with pytest.raises(ValueError, match="max_duration"):
         await ingest(
-            "lluvia", [], repository="test/repo", token="fake",
-            job_root=tmp_path, filters={"max_duration": 21},
+            "lluvia",
+            [],
+            repository="test/repo",
+            token="fake",
+            job_root=tmp_path,
+            filters={"max_duration": 21},
         )

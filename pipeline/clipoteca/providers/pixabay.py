@@ -7,7 +7,15 @@ from typing import Any
 
 import httpx
 
-from .base import detect_source_language, Adapter, AuthRequired, Candidate, MediaRef, SearchLimits, SupportStatus
+from .base import (
+    detect_source_language,
+    Adapter,
+    AuthRequired,
+    Candidate,
+    MediaRef,
+    SearchLimits,
+    SupportStatus,
+)
 from .http import fetch_json
 
 SEARCH_ENDPOINT = "https://pixabay.com/api/videos/"

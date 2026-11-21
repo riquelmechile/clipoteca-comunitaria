@@ -77,7 +77,11 @@ async def ingest(
         job["terms"] = dict(expansion.terms)
         if not expansion.complete or expansion.errors:
             missing = next(
-                (language for language in ("es", "en", "zh", "ru") if not expansion.terms.get(language)),
+                (
+                    language
+                    for language in ("es", "en", "zh", "ru")
+                    if not expansion.terms.get(language)
+                ),
                 next(iter(expansion.errors), "unknown"),
             )
             job["status"] = "failed"
@@ -105,7 +109,8 @@ async def ingest(
             elif statuses and all(item == SupportStatus.RATE_LIMITED for item in statuses):
                 final = "rate_limited"
             elif statuses and all(
-                item in {
+                item
+                in {
                     SupportStatus.UNAVAILABLE,
                     SupportStatus.AUTH_REQUIRED,
                     SupportStatus.TIMEOUT,

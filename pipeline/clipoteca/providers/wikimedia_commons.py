@@ -58,7 +58,12 @@ class WikimediaCommons(Adapter):
                     provider_id=str(page.get("pageid", title)),
                     term=term,
                     language=lang,
-                    source_url=str(page.get("fullurl") or page.get("canonicalurl") or "https://commons.wikimedia.org/wiki/" + quote(title.replace(" ", "_"), safe=":()")),
+                    source_url=str(
+                        page.get("fullurl")
+                        or page.get("canonicalurl")
+                        or "https://commons.wikimedia.org/wiki/"
+                        + quote(title.replace(" ", "_"), safe=":()")
+                    ),
                     source_title=title.removeprefix("File:").replace("_", " "),
                     source_language=detect_source_language(title),
                     width=info.get("width"),

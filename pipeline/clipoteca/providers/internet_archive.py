@@ -9,10 +9,10 @@ import httpx
 
 from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
 from .http import fetch_json
+from ..security.download import MAX_DOWNLOAD_BYTES
 
 SEARCH = "https://archive.org/advancedsearch.php"
 VIDEO_SUFFIXES = (".mp4", ".webm", ".ogv", ".m4v")
-from ..security.download import MAX_DOWNLOAD_BYTES
 
 MAX_MEDIA_BYTES = MAX_DOWNLOAD_BYTES
 

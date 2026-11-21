@@ -25,9 +25,9 @@ async def fetch_json(client: httpx.AsyncClient, url: str, *, params=None, header
             raise RateLimited("provider rate limit")
         retry_after = response.headers.get("Retry-After", "")
         try:
-            delay = max(0.0, float(retry_after)) if retry_after else 0.25 * (2 ** attempt)
+            delay = max(0.0, float(retry_after)) if retry_after else 0.25 * (2**attempt)
         except ValueError:
-            delay = 0.25 * (2 ** attempt)
+            delay = 0.25 * (2**attempt)
         await asyncio.sleep(min(delay, 1.0))
     assert response is not None
     credentialed = bool(headers and (headers.get("Authorization") or headers.get("authorization")))

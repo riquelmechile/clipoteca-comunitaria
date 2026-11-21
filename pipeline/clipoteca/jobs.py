@@ -22,7 +22,10 @@ def request_id(query: str, filters: dict[str, Any], horizon: str) -> str:
     normalized_filters = dict(filters)
     if normalized_filters.get("aspect_ratio") == "":
         normalized_filters["aspect_ratio"] = None
-    if "max_duration" in normalized_filters and normalized_filters["max_duration"] not in (None, ""):
+    if "max_duration" in normalized_filters and normalized_filters["max_duration"] not in (
+        None,
+        "",
+    ):
         duration = float(normalized_filters["max_duration"])
         normalized_filters["max_duration"] = int(duration) if duration.is_integer() else duration
     canonical = json.dumps(
