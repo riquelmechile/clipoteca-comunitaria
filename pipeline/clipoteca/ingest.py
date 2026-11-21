@@ -25,13 +25,14 @@ from .jobs import (
     request_id,
 )
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
-from .media.normalize import normalize_media
+from .media.normalize import NormalizeError, normalize_media
+from .media.probe import ProbeError
 from .media.thumbnail import create_thumbnail
 from .metadata import MetadataTranslationError, localize_candidate
 from .metrics import discovery_metrics, write_metrics
 from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
 from .translate.expand import QueryExpansion, expand_query
-from .security.download import download_media
+from .security.download import DownloadError, download_media
 from .storage.github import GitHubReleaseStorage, StorageError
 
 
@@ -373,7 +374,11 @@ async def ingest(
                     failed_count += 1
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
                     error_code = type(exc).__name__
-                    if isinstance(exc, MetadataTranslationError):
+                    if isinstance(exc, DownloadError):
+                        error_code = "download_error"
+                    elif isinstance(exc, (NormalizeError, ProbeError)):
+                        error_code = "ffmpeg_failed"
+                    elif isinstance(exc, MetadataTranslationError):
                         direction = re.search(
                             r"translation_failed:(?:es|en|zh|ru)->(es|en|zh|ru)",
                             str(exc),
