@@ -41,11 +41,20 @@ def discovery_metrics(result: SearchResult) -> dict:
 
 
 _ALLOWED_METRICS = {
-    "search_requests_total", "search_requests_by_language",
-    "provider_search_attempts", "provider_timeout_rate", "provider_success_rate",
-    "provider_rate_limit_rate", "new_candidates", "deduplicated_clips",
-    "mean_discovery_duration", "downloaded_clips", "published_clips",
-    "failed_imports", "assets_storage_bytes", "mean_publish_duration_seconds",
+    "search_requests_total",
+    "search_requests_by_language",
+    "provider_search_attempts",
+    "provider_timeout_rate",
+    "provider_success_rate",
+    "provider_rate_limit_rate",
+    "new_candidates",
+    "deduplicated_clips",
+    "mean_discovery_duration",
+    "downloaded_clips",
+    "published_clips",
+    "failed_imports",
+    "assets_storage_bytes",
+    "mean_publish_duration_seconds",
     "runner_elapsed_minutes_estimate",
 }
 

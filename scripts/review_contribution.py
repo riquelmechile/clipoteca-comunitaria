@@ -79,8 +79,15 @@ def main() -> int:
         raise ValueError("missing token")
 
     # Use validated repo/issue number, fixed GitHub host and constant label only.
-    uri = f"https://api.github.com/repos/{repository}/issues/{number}/labels"
-    payload = json.dumps({"labels": [label]}).encode()
+    # GitHub Issue comments do not require pre-created labels in the repository.
+    # Triage is review-only and never fetches the submitted video.
+    uri = f"https://api.github.com/repos/{repository}/issues/{number}/comments"
+    message = (
+        "Clipoteca: URL apta para revisión humana, sin importar el vídeo."
+        if label == "clipoteca-pending-review"
+        else "Clipoteca: URL inválida; se requiere una dirección HTTPS pública."
+    )
+    payload = json.dumps({"body": message}).encode()
     request = Request(
         uri,
         data=payload,
