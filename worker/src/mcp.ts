@@ -5,6 +5,7 @@ import {
 import * as z from "zod/v4";
 import { handleCatalog } from "./catalog";
 import { handleRest, type RestEnv } from "./rest";
+import { handleScript } from "./script";
 
 export interface McpEnv extends RestEnv {
   MCP_ALLOWED_HOSTS?: string;
@@ -39,6 +40,43 @@ const searchOutputSchema = z.object({
   semantic: z.enum(["ready", "pending", "unavailable"]).optional(),
   semantic_reason: z.string().optional(),
   scores: z.record(z.string().regex(/^clip-\d{6}$/), z.number().finite()).optional(),
+});
+const scriptSceneInput = z.strictObject({
+  id:z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
+  narration:z.string().min(1).max(1500),
+  query:z.string().min(1).max(200),
+  orientation:z.enum(["9:16","16:9","1:1","other",
+    "portrait","vertical","landscape","horizontal","square"]),
+  min_duration:z.number().positive().max(20),
+});
+const scriptSourceSchema = z.object({
+  provider:z.string(),source_language:z.string(),
+  provider_id:z.string().optional(),source_title:z.string().optional(),
+  source_url:z.string().optional(),
+  source_start:z.number().nonnegative().optional(),
+  source_end:z.number().positive().optional(),
+});
+const scriptMediaSchema = z.object({
+  type:z.literal("video"),clip_id:z.string().regex(/^clip-\d{6}$/),
+  url:z.string().url(),
+  thumbnail_url:z.string().url().nullable(),
+  storyboard_urls:z.array(z.string().url()),
+  duration_seconds:z.number().positive(),
+  source:scriptSourceSchema,
+});
+const scriptOutputSchema = z.object({
+  script_id:z.string().regex(/^[a-f0-9]{64}$/),
+  scenes:z.array(z.object({
+    id:z.string(),narration:z.string(),query:z.string(),
+    orientation:z.string(),min_duration:z.number(),
+    status:z.enum(["matched","queued","missing"]),
+    media:scriptMediaSchema.nullable(),
+    reason:z.string().optional(),
+    request_id:z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    job:z.object({request_id:z.string(),status:z.string()}).optional(),
+  })).min(1).max(50),
+  summary:z.object({matched:z.number().int(),queued:z.number().int(),
+    missing:z.number().int()}),
 });
 const getClipOutputSchema = z.object({ clip: clipSchema });
 const downloadOutputSchema = z.object({ url: z.string().url(), clip_id: z.string().optional() });
@@ -166,6 +204,20 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     toolRequest("/v1/search", "POST", {
       query, filters: { ...filters, ...(import_if_missing ? { import_if_missing } : {}) },
     }), env));
+
+  server.registerTool("resolve_script", {
+    title:"Resolve script scenes to verified video clips",
+    description:"Resolve up to 50 storyboard scenes from existing clips and optionally queue imports with shared throttling.",
+    inputSchema:z.strictObject({
+      scenes:z.array(scriptSceneInput).min(1).max(50),
+    }),
+    outputSchema:scriptOutputSchema,
+    annotations:{readOnlyHint:false,openWorldHint:true},
+  },async ({scenes}) => {
+    const response=await handleScript(toolRequest("/v1/script","POST",{scenes}),env);
+    if(!response.ok)return fail("Clipoteca API error "+response.status);
+    return answer(await response.json() as object);
+  });
 
   server.registerTool("get_clip", {
     title: "Get clip", description: "Return catalogue metadata for one verified clip.",

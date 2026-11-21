@@ -1,6 +1,7 @@
 import { handleCatalog, loadCatalog, type CatalogEnv } from "./catalog";
 import { handleRest } from "./rest";
 import { createClipotecaServer, handleMcp, sourceSnapshot } from "./mcp";
+import { handleScript } from "./script";
 
 export interface Env extends CatalogEnv {
   CATALOG_TTL_SECONDS?: string;
@@ -45,10 +46,10 @@ const METHOD_PATHS = [
   /^\/v1\/sources$/,
   /^\/v1\/clips(?:\/clip-\d{6}(?:\/download)?)?$/,
   /^\/v1\/jobs\/[a-z0-9]+$/,
-  /^\/v1\/(?:search|import|contributions)$/,
+  /^\/v1\/(?:search|import|contributions|script)$/,
 ];
 const knownMethod = (path: string) =>
-  ["/v1/search", "/v1/import", "/v1/contributions"].includes(path) ? "POST" : "GET";
+  ["/v1/search", "/v1/import", "/v1/contributions", "/v1/script"].includes(path) ? "POST" : "GET";
 
 export default {
   async fetch(request: Request, env: Env = {}): Promise<Response> {
@@ -72,6 +73,9 @@ export default {
       const response = json({error:{code:"method_not_allowed", message:"Method not allowed"}},405);
       response.headers.set("Allow", allowed);
       return response;
+    }
+    if (url.pathname === "/v1/script" && request.method === "POST") {
+      return handleScript(request, env);
     }
     const restResponse = await handleRest(request, env);
     if (restResponse) return restResponse;
