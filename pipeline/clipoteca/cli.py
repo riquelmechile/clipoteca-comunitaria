@@ -18,6 +18,8 @@ from .providers.tiktok import TikTok
 from .providers.vk_video import VKVideo
 from .providers.nasa import NASA
 from .providers.pexels import Pexels
+from .providers.instagram import Instagram
+from .providers.snapchat import Snapchat
 from .providers.peertube import PeerTube
 from .providers.odysee import Odysee
 from .providers.rutube import Rutube
@@ -25,12 +27,14 @@ from .providers.pixabay import Pixabay
 from .providers.wikimedia_commons import WikimediaCommons
 from .providers.youtube import YouTube
 from .translate.expand import expand_query
+from .sources import list_sources
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="clipoteca")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("version")
+    commands.add_parser("list_sources", aliases=["list-sources"])
     search = commands.add_parser("search")
     search.add_argument("query")
     search.add_argument("--aspect-ratio")
@@ -49,6 +53,10 @@ def main(argv: list[str] | None = None) -> int:
     ingest_parser.add_argument("--job-root", default="data/jobs")
 
     args = parser.parse_args(argv)
+    if args.command in ("list_sources", "list-sources"):
+        sources = list_sources()
+        print(json.dumps({"count": len(sources), "sources": sources}, ensure_ascii=False, indent=2))
+        return 0
     if args.command == "version":
         print("clipoteca 0.1.0")
         return 0
@@ -103,6 +111,8 @@ def main(argv: list[str] | None = None) -> int:
                 VKVideo(),
                 Douyin(),
                 TikTok(),
+                Instagram(),
+                Snapchat(),
             ]
             try:
                 return await ingest(
