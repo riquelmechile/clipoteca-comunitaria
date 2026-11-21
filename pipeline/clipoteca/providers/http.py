@@ -15,28 +15,41 @@ def provider_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=15, follow_redirects=False, headers={"User-Agent": USER_AGENT})
 
 
-async def fetch_json(client: httpx.AsyncClient, url: str, *, params=None, headers=None) -> dict:
+async def fetch_json(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    params=None,
+    headers=None,
+    before_request=None,
+    retry_statuses=(429,),
+    max_retry_after_seconds=1.0,
+) -> dict:
     """Bounded 429 retry with Retry-After. 403 is auth only with credentials."""
     request_headers = httpx.Headers(headers or {})
     request_headers.setdefault("User-Agent", USER_AGENT)
     response = None
     for attempt in range(3):
+        if before_request is not None:
+            await before_request()
         try:
             response = await client.get(url, params=params, headers=request_headers)
         except httpx.TimeoutException as exc:
             raise ProviderTimeout("provider timeout") from exc
         except httpx.HTTPError as exc:
             raise ProviderError("provider request failed") from exc
-        if response.status_code != 429:
+        if response.status_code not in retry_statuses:
             break
         if attempt == 2:
-            raise RateLimited("provider rate limit")
+            if response.status_code == 429:
+                raise RateLimited("provider rate limit")
+            raise ProviderError(f"provider HTTP {response.status_code}")
         retry_after = response.headers.get("Retry-After", "")
         try:
             delay = max(0.0, float(retry_after)) if retry_after else 0.25 * (2**attempt)
         except ValueError:
             delay = 0.25 * (2**attempt)
-        await asyncio.sleep(min(delay, 1.0))
+        await asyncio.sleep(min(delay, max_retry_after_seconds))
     assert response is not None
     credentialed = bool(
         headers
