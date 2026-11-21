@@ -25,7 +25,7 @@ Las futuras normas comunitarias quedan fuera de la versión técnica v1.
 Requiere Python 3.13, `uv`, Node.js 22 y FFmpeg.
 
 ```bash
-uv sync --extra dev
+uv sync --frozen --extra dev
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
