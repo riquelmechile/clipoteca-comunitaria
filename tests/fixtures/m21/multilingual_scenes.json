@@ -1,0 +1,25 @@
+{
+  "description": "Four-language identical scene target; fake encoder supplies 512D normalized vectors without models.",
+  "queries": {
+    "es": "lluvia",
+    "en": "rain",
+    "zh": "下雨",
+    "ru": "дождь"
+  },
+  "total_seconds": 40,
+  "scenes": [
+    {
+      "start": 0,
+      "end": 20,
+      "m14_quality": 0.9,
+      "semantic_cosine": 0.05
+    },
+    {
+      "start": 20,
+      "end": 40,
+      "m14_quality": 0.48,
+      "semantic_cosine": 0.95
+    }
+  ],
+  "expected_scene_start": 20
+}

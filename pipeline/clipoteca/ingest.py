@@ -8,6 +8,8 @@ import os
 import re
 import time
 import tempfile
+
+import httpx
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -31,6 +33,18 @@ from .jobs import (
     new_job,
     request_id,
 )
+from .media.embeddings import (
+    Encoder,
+    EmbeddingError,
+    EmbeddingUnavailable,
+    FrameEmbeddings,
+    clip_vector,
+    cosine_scores,
+    extract_frame_embeddings,
+    load_encoder,
+    window_similarity,
+)
+from .media.embedding_store import EmbeddingStore, GitHubEmbeddingWriter
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import NormalizeError, normalize_media
 from .media.select import (
@@ -60,10 +74,44 @@ def _candidate_windows(
     max_clips: int,
     job: dict,
     origin_id: str,
+    query: str = "",
+    embedding_encoder: Encoder | None = None,
+    embedding_frames: dict[str, FrameEmbeddings] | None = None,
 ) -> list[SourceWindow]:
-    """Rank scenes, falling back to the v1 leading window only on timeout."""
+    """Keep M14's hard quality gate; rank valid windows by 3s-smoothed cosine.
+
+    Missing optional models or any bounded extraction failure falls back to the
+    original deterministic M14 ranking and is recorded, never silently ignored.
+    """
+    scorer = None
+    if query:
+        try:
+            encoder = embedding_encoder if embedding_encoder is not None else load_encoder()
+            samples = extract_frame_embeddings(raw, encoder)
+            similarities = cosine_scores(samples, encoder, query)
+
+            def semantic_score(window: SourceWindow) -> float | None:
+                return window_similarity(samples, similarities, start=window.start, end=window.end)
+
+            scorer = semantic_score
+            if embedding_frames is not None:
+                embedding_frames[origin_id] = samples
+            job.setdefault("source_warnings", {})[origin_id] = "embeddings_ranked"
+        except EmbeddingUnavailable:
+            job.setdefault("source_warnings", {})[origin_id] = (
+                "embeddings_unavailable:m14_quality_fallback"
+            )
+        except (EmbeddingError, OSError, ValueError):
+            job.setdefault("source_warnings", {})[origin_id] = (
+                "embeddings_extraction_failed:m14_quality_fallback"
+            )
     try:
-        return rank_scene_windows(raw, max_duration=duration_limit, max_clips=max_clips)
+        return rank_scene_windows(
+            raw,
+            max_duration=duration_limit,
+            max_clips=max_clips,
+            semantic_scorer=scorer,
+        )
     except SceneSelectionTimeout:
         duration = probe_media(raw, timeout=30).duration_seconds
         try:
@@ -79,6 +127,11 @@ def _candidate_windows(
             f"scene_selection_timeout:quality_checked_fallback:{window.start:.3f}"
         )
         return [window]
+
+
+def _embedding_result(job: dict) -> str:
+    warnings = list(job.get("source_warnings", {}).values())
+    return next((s for s in reversed(warnings) if s.startswith("embeddings_")), "not_attempted")
 
 
 def _published_source_complete(
@@ -132,6 +185,7 @@ class IngestReport:
     status: str
     published_ids: tuple[str, ...]
     errors: tuple[str, ...]
+    embedding_status: str = "not_attempted"
 
 
 async def ingest(
@@ -151,6 +205,7 @@ async def ingest(
     downloader: Callable[[str, Path], Awaitable[Path]] | None = None,
     translator=None,
     expand_search: bool = True,
+    embedding_encoder: Encoder | None = None,
 ) -> IngestReport:
     if not expand_search and (len(adapters) != 1 or adapters[0].name != "community"):
         raise ValueError("partial expansion is allowed only for a direct community URL")
@@ -196,6 +251,8 @@ async def ingest(
     storage = storage or GitHubReleaseStorage(repository, token=token)
     errors: list[str] = []
     ids: list[str] = []
+    semantic_frames: dict[str, FrameEmbeddings] = {}
+    embeddings_store = EmbeddingStore(job_root.parent / "embeddings")
     downloaded_count = 0
     failed_count = 0
     rate_limited_count = 0
@@ -374,6 +431,9 @@ async def ingest(
                         max_clips=max_clips_per_source,
                         job=job,
                         origin_id=candidate.origin_id,
+                        query=query,
+                        embedding_encoder=embedding_encoder,
+                        embedding_frames=semantic_frames,
                     )
                     for window_index, window in enumerate(windows):
                         if len(ids) >= max_results:
@@ -537,6 +597,23 @@ async def ingest(
                                     phash_similar=perceptually_similar,
                                 )
                                 ids.append(identifier)
+                                samples = semantic_frames.get(candidate.origin_id)
+                                if samples is not None:
+                                    try:
+                                        vector = clip_vector(
+                                            samples, start=window.start, end=window.end
+                                        )
+                                        embeddings_store.put(identifier, vector)
+                                        if os.environ.get("CLIPOTECA_PERSIST_JOBS") == "1":
+                                            GitHubEmbeddingWriter(repository, token).publish(
+                                                identifier, vector
+                                            )
+                                    except (EmbeddingError, OSError, ValueError, httpx.HTTPError):
+                                        # The catalogue and verified MP4 are already durable.
+                                        # An optional embedding must not reverse publication.
+                                        job.setdefault("source_warnings", {})[
+                                            candidate.origin_id
+                                        ] = "embeddings_persist_failed:clip_published"
                                 storage_bytes += (
                                     video.size + thumbnail.size + sum(a.size for a in story_assets)
                                 )
@@ -639,7 +716,11 @@ async def ingest(
         )
         write_metrics(summary, job_root / (rid + ".metrics.json"))
         return IngestReport(
-            rid, job["status"], tuple(ids or job.get("duplicate_ids", ())), tuple(errors)
+            rid,
+            job["status"],
+            tuple(ids or job.get("duplicate_ids", ())),
+            tuple(errors),
+            _embedding_result(job),
         )
     except asyncio.CancelledError:
         job["status"] = "failed"
