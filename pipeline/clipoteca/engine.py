@@ -115,12 +115,13 @@ class SearchEngine:
         *,
         catalog: Catalog | None = None,
         expansion: QueryExpansion | None = None,
+        allow_partial_expansion: bool = False,
     ) -> SearchResult:
         catalog = catalog or Catalog()
         expansion = expansion or expand_query(query)
         start = self.clock()
         local = _local_hits(catalog, query)
-        if not expansion.complete or expansion.errors:
+        if not allow_partial_expansion and (not expansion.complete or expansion.errors):
             return SearchResult(expansion, local, [], [], self.clock() - start)
         sem = asyncio.Semaphore(self.concurrency)
         provider_locks = {adapter.name: asyncio.Lock() for adapter in self.adapters}
