@@ -28,6 +28,8 @@ from .providers.wikimedia_commons import WikimediaCommons
 from .providers.youtube import YouTube
 from .translate.expand import expand_query
 from .sources import list_sources
+from .relocalize import relocalize_catalog
+from .metadata import MetadataTranslationError
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,6 +39,11 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser("list_sources", aliases=["list-sources"])
     export = commands.add_parser("export_sources", aliases=["export-sources"])
     export.add_argument("--output", default="data/sources.json")
+    relocalize = commands.add_parser("relocalize")
+    relocalize.add_argument("--ids", nargs="+", required=True)
+    relocalize.add_argument("--language-overrides", nargs="*", default=[])
+    relocalize.add_argument("--catalog", default="data/clips.json")
+    relocalize.add_argument("--index-root", default="data/index")
     search = commands.add_parser("search")
     search.add_argument("query")
     search.add_argument("--aspect-ratio")
@@ -68,6 +75,24 @@ def main(argv: list[str] | None = None) -> int:
             encoding="utf-8",
         )
         print(target)
+        return 0
+    if args.command == "relocalize":
+        try:
+            identifiers = [part for value in args.ids for part in value.replace(",", " ").split()]
+            overrides = {}
+            for value in args.language_overrides:
+                for pair in value.replace(",", " ").split():
+                    identifier, language = pair.split(":", 1)
+                    overrides[identifier] = language
+            updated = relocalize_catalog(
+                Path(args.catalog), identifiers,
+                index_root=Path(args.index_root),
+                language_overrides=overrides,
+            )
+        except (ValueError, MetadataTranslationError) as exc:
+            print(f"relocalize_failed:{exc}", file=sys.stderr)
+            return 2
+        print(json.dumps({"relocalized_ids": updated}, ensure_ascii=False))
         return 0
     if args.command == "version":
         print("clipoteca 0.1.0")

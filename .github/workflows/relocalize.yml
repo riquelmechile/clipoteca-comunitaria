@@ -1,0 +1,66 @@
+name: Relocalize existing clip metadata (no media uploads)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: "Existing clip IDs separated by spaces, e.g. clip-000002 clip-000003"
+        required: true
+        type: string
+      language_overrides:
+        description: "Optional ID:language pairs, e.g. clip-000002:es"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clipoteca-catalog
+  cancel-in-progress: false
+
+jobs:
+  relocalize:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: true
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            .cache/argos
+            ~/.local/share/argos-translate
+          key: clipoteca-argos-v2-${{ hashFiles('uv.lock', 'data/argos-pins.json') }}
+      - run: uv sync --frozen --extra translate
+      - name: Download verified pinned Argos models
+        env:
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+        run: uv run python -m clipoteca.translate.download_models
+      - name: Rebuild ES/EN metadata only
+        env:
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+          CLIPOTECA_IDS: ${{ inputs.ids }}
+          CLIPOTECA_OVERRIDES: ${{ inputs.language_overrides }}
+        run: |
+          uv run python -m clipoteca relocalize \
+            --ids "$CLIPOTECA_IDS" \
+            --language-overrides "$CLIPOTECA_OVERRIDES"
+      - name: Commit catalogue text and regenerated indexes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/clips.json data/index/
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(metadata): relocalize existing verified clips'
+            git push origin HEAD:main
+          fi
