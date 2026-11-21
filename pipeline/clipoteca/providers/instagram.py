@@ -23,7 +23,7 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://graph.instagram.com/v27.0"
 
@@ -44,7 +44,7 @@ class Instagram(Adapter):
     ) -> None:
         self.token = token if token is not None else os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
         self.user_id = user_id if user_id is not None else os.getenv("INSTAGRAM_USER_ID", "")
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def _own_media(self, max_results: int) -> list[dict]:
         if not self.token or not re.fullmatch(r"[0-9]{5,30}", self.user_id):

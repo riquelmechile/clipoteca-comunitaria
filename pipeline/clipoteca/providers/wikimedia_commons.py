@@ -7,11 +7,12 @@ from urllib.parse import quote
 
 import httpx
 
+from ..config import USER_AGENT
+
 from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "ClipotecaCommunity/1.0 (https://github.com/riquelmechile/clipoteca-comunitaria)"
 VIDEO_MIMES = {"video/webm", "video/ogg", "video/mp4", "application/ogg"}
 
 
@@ -21,7 +22,7 @@ class WikimediaCommons(Adapter):
     support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
 
     def __init__(self, *, client: httpx.AsyncClient | None = None):
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         payload = await fetch_json(

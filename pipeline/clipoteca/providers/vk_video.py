@@ -18,7 +18,7 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://api.vk.com/method"
 VERSION = "5.199"
@@ -33,7 +33,7 @@ class VKVideo(Adapter):
 
     def __init__(self, *, token: str | None = None, client: httpx.AsyncClient | None = None):
         self.token = token if token is not None else os.getenv("VK_ACCESS_TOKEN", "")
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def _call(self, method: str, params: dict[str, Any]) -> dict:
         if not self.token:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 import tempfile
 from dataclasses import dataclass
@@ -377,7 +378,12 @@ async def ingest(
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
                     error_code = type(exc).__name__
                     if isinstance(exc, DownloadError):
-                        error_code = "download_error"
+                        http_status = re.fullmatch(r"HTTP ([1-5][0-9]{2})", str(exc))
+                        error_code = (
+                            "download_error:HTTP " + http_status.group(1)
+                            if http_status
+                            else "download_error"
+                        )
                     elif isinstance(exc, (NormalizeError, ProbeError)):
                         error_code = "ffmpeg_failed"
                     elif isinstance(exc, MetadataTranslationError):

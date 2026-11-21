@@ -8,6 +8,9 @@ from typing import Any
 
 import httpx
 
+from ..config import USER_AGENT
+
+from .http import provider_client
 from .base import (
     Adapter,
     AuthRequired,
@@ -33,7 +36,7 @@ class TikTok(Adapter):
 
     def __init__(self, *, token: str | None = None, client: httpx.AsyncClient | None = None):
         self.token = token if token is not None else os.getenv("TIKTOK_ACCESS_TOKEN", "")
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def _list(self, max_results: int) -> list[dict]:
         if not self.token:
@@ -45,6 +48,7 @@ class TikTok(Adapter):
                 headers={
                     "Authorization": "Bearer " + self.token,
                     "Content-Type": "application/json",
+                    "User-Agent": USER_AGENT,
                 },
                 json={"max_count": min(20, max_results)},
             )

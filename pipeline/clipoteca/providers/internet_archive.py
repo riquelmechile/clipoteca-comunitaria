@@ -8,7 +8,7 @@ from urllib.parse import quote
 import httpx
 
 from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
-from .http import fetch_json
+from .http import fetch_json, provider_client
 from ..security.download import MAX_DOWNLOAD_BYTES
 
 SEARCH = "https://archive.org/advancedsearch.php"
@@ -23,7 +23,7 @@ class InternetArchive(Adapter):
     support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
 
     def __init__(self, *, client: httpx.AsyncClient | None = None):
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         escaped = term.replace(chr(92), chr(92) * 2).replace('"', chr(92) + '"')

@@ -13,7 +13,10 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 
+from ..config import USER_AGENT
+
 from ..security.download import MAX_DOWNLOAD_BYTES
+from .http import provider_client
 from .base import (
     Adapter,
     AuthRequired,
@@ -40,12 +43,14 @@ class Odysee(Adapter):
     accepts_text_languages = ("es", "en", "zh", "ru")
 
     def __init__(self, *, client: httpx.AsyncClient | None = None) -> None:
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def _request(self, method: str, url: str, **kwargs: Any) -> Any:
+        headers = httpx.Headers(kwargs.pop("headers", None) or {})
+        headers.setdefault("User-Agent", USER_AGENT)
         for attempt in range(3):
             try:
-                response = await self.client.request(method, url, **kwargs)
+                response = await self.client.request(method, url, headers=headers, **kwargs)
             except httpx.TimeoutException as exc:
                 raise ProviderTimeout("Odysee request timed out") from exc
             except httpx.HTTPError as exc:
