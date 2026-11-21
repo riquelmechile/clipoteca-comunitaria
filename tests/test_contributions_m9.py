@@ -233,3 +233,16 @@ async def test_direct_community_discovery_never_uses_four_language_expansion():
     )
     assert len(direct.candidates) == 1
     assert [execution.language for execution in direct.executions] == ["es"]
+
+
+@pytest.mark.parametrize(
+    "error,expected",
+    [
+        ("community:id:translation_failed:en", "translation_failed:en"),
+        ("community:id:download_error", "download_error"),
+        ("community:id:ffmpeg_failed", "ffmpeg_failed"),
+        ("community:id:irrelevant_error", "processing_failed"),
+    ],
+)
+def test_failure_feedback_reason_is_structured_and_bounded(error, expected):
+    assert contributions._feedback_reason((error,)) == expected
