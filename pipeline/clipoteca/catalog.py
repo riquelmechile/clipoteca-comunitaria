@@ -12,6 +12,7 @@ import unicodedata
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 import httpx
 from jsonschema import Draft202012Validator, FormatChecker
@@ -39,6 +40,62 @@ def normalize_text(value: str) -> str:
     return "".join(
         c for c in unicodedata.normalize("NFKD", compatibility) if unicodedata.category(c) != "Mn"
     )
+
+
+_TRACKING_QUERY_KEYS = {
+    "_hsenc",
+    "_hsmi",
+    "dclid",
+    "fbclid",
+    "feature",
+    "gclid",
+    "igshid",
+    "mc_cid",
+    "mc_eid",
+    "msclkid",
+    "si",
+}
+
+
+def canonical_source_url(value: str) -> str:
+    """Return a stable public source identity without transport/tracking noise."""
+    try:
+        parsed = urlsplit(value.strip())
+        host = (parsed.hostname or "").encode("idna").decode("ascii").casefold()
+    except (UnicodeError, ValueError):
+        return ""
+    if parsed.scheme.casefold() not in {"http", "https"} or not host:
+        return ""
+    if host.startswith("www."):
+        host = host[4:]
+    try:
+        port = parsed.port
+    except ValueError:
+        return ""
+    if ":" in host:
+        host = f"[{host}]"
+    if port and port not in {80, 443}:
+        host = f"{host}:{port}"
+    path = quote(unquote(parsed.path or "/"), safe="/%:@!$&'()*+,;=-._~")
+    if path != "/":
+        path = path.rstrip("/")
+    query = [
+        (key, item)
+        for key, item in parse_qsl(parsed.query, keep_blank_values=True)
+        if not key.casefold().startswith("utm_") and key.casefold() not in _TRACKING_QUERY_KEYS
+    ]
+    return urlunsplit(("https", host, path, urlencode(sorted(query)), ""))
+
+
+def normalized_source_title(value: str) -> str:
+    """Normalize case, accents and punctuation for cross-provider comparison."""
+    return " ".join(re.findall(r"\w+", normalize_text(value), flags=re.UNICODE))
+
+
+def _distinctive_title(value: str) -> bool:
+    """Avoid collapsing generic stock labels such as ``rain`` across providers."""
+    words = value.split()
+    return len(words) >= 2 and len(value) >= 12
 
 
 def canonical_tokens(value: str) -> set[str]:
@@ -92,30 +149,50 @@ class Catalog:
             merged[item["id"]] = item
         self.clips = sorted(merged.values(), key=lambda item: item["id"])
 
-    def find_duplicate(
+    def duplicate_match(
         self,
         candidate: dict[str, Any],
         *,
         phash_similar: Callable[[str, str], bool] | None = None,
-    ) -> dict[str, Any] | None:
-        source = candidate["source"]
-        media = candidate["media"]
+    ) -> tuple[dict[str, Any], str] | None:
+        source = candidate.get("source", {})
+        media = candidate.get("media", {})
+        candidate_url = canonical_source_url(str(source.get("source_url", "")))
+        candidate_title = normalized_source_title(str(source.get("source_title", "")))
         for clip in self.clips:
             if (clip["source"]["provider"], clip["source"]["provider_id"]) == (
-                source["provider"],
-                source["provider_id"],
+                source.get("provider"),
+                source.get("provider_id"),
             ):
-                return clip
+                return clip, "provider_id"
             if media.get("sha256") and clip["media"].get("sha256") == media["sha256"]:
-                return clip
+                return clip, "sha256"
+            cross_provider = clip["source"]["provider"] != source.get("provider")
+            if cross_provider and candidate_url:
+                clip_url = canonical_source_url(str(clip["source"].get("source_url", "")))
+                if clip_url and clip_url == candidate_url:
+                    return clip, "canonical_url"
+            if cross_provider and _distinctive_title(candidate_title):
+                clip_title = normalized_source_title(str(clip["source"].get("source_title", "")))
+                if clip_title == candidate_title:
+                    return clip, "normalized_title"
             if (
                 phash_similar
                 and media.get("perceptual_hash")
                 and clip["media"].get("perceptual_hash")
                 and phash_similar(clip["media"]["perceptual_hash"], media["perceptual_hash"])
             ):
-                return clip
+                return clip, "perceptual_hash"
         return None
+
+    def find_duplicate(
+        self,
+        candidate: dict[str, Any],
+        *,
+        phash_similar: Callable[[str, str], bool] | None = None,
+    ) -> dict[str, Any] | None:
+        match = self.duplicate_match(candidate, phash_similar=phash_similar)
+        return match[0] if match else None
 
     def add_verified(
         self, clip: dict[str, Any], schema: dict[str, Any], *, asset_verified: bool

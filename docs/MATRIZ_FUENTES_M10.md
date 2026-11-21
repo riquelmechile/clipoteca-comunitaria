@@ -2,7 +2,7 @@
 
 **Fecha del inventario:** 20 de noviembre de 2026. **Ámbito:** código, contratos y pruebas con fixtures de GitHub Actions; no se interpreta como prueba online de cuentas de terceros.
 
-La matriz se genera a partir de `data/sources.json`, que representa las **15 fuentes conocidas con variables de credenciales ausentes**. Un estado dinámico real depende de la configuración de Actions, la red, licencias y cuotas. Las cuatro columnas de idioma indican que el adaptador admite recibir texto, no que la búsqueda semántica haya sido verificada en vivo.
+La matriz se genera a partir de `data/sources.json`, que representa las **21 fuentes conocidas con variables de credenciales ausentes**. Un estado dinámico real depende de la configuración de Actions, la red, licencias y cuotas. Las cuatro columnas de idioma indican que el adaptador admite recibir texto, no que la búsqueda semántica haya sido verificada en vivo.
 
 | Fuente | ES | EN | ZH | RU | Capacidad anunciada | Estado sin credenciales | Credenciales |
 |---|---|---|---|---|---|---|---|
