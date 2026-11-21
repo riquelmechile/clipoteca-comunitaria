@@ -73,7 +73,7 @@ El comando valida el JSON completo contra schema, no acepta IDs duplicados, reco
 
 ## Aportes y límites
 
-`POST /v1/contributions` crea Issue para **revisión humana**, no procesa ni publica el URL aportado. El workflow de triage sólo deja una clasificación. La automatización de aprobación, descarga licenciada y publicación del aporte continúa **pendiente**. Usuarios sin permiso pueden dejar URL/Issue si las cuotas lo permiten.
+`POST /v1/contributions` crea Issue para **revisión humana** y el workflow de triage solo clasifica. La automatización de importación está implementada en `contribution-approve.yml` **únicamente después** de que un mantenedor verifica licencia, aplica `clipoteca-approved` y dispara `workflow_dispatch` desde `main` con `rights_confirmed=yes`. El adaptador `community_contribution` reutiliza SSRF, FFmpeg, deduplicación, Releases y JobStore. **Falta probarlo con un archivo autorizado real**; no se han ejecutado workflows de publicación ni aprobado Issues en esta entrega.
 
 GitHub Free limita los adjuntos; por eso el aporte por URL es la interfaz inicial. Los costos cero dependen de cuotas de Actions, Workers, proveedores y políticas de Releases. Al exceder cuota: desactivar dispatch y conservar la API de lectura.
 
@@ -82,6 +82,6 @@ GitHub Free limita los adjuntos; por eso el aporte por URL es la interfaz inicia
 - Worker Cloudflare y MCP desplegados con allowlists y secretos válidos.
 - E2E real de descarga y publicación con dos proveedores, incluyendo uno M5, y medición de costos/uso reales.
 - Comprobación de resultados multilingües por proveedor y pruebas de red en runners confiables.
-- Flujo seguro de aprobación y publicación de aportes de terceros.
+- Prueba E2E real y evidencia de publicación de un aporte aprobado con derechos comprobados.
 
 No marcar esos puntos como hechos por ver un CI verde.
