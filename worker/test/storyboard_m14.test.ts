@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
-import { handleCatalog } from "../src/catalog";
+import { handleCatalog, storyboardTimestamp } from "../src/catalog";
 
 const clip = {
   id: "clip-000042",
@@ -63,6 +63,23 @@ describe("M14 storyboard metadata is public and bounded", () => {
       ? JSON.parse(raw) : JSON.parse(raw.match(/(?:^|\n)data: (.+)/m)![1]!);
     expect(data.result.structuredContent.frames).toHaveLength(6);
     expect(raw).not.toContain("clip.mp4");
+  });
+
+
+
+  it("uses the same last-decodable timestamp as the storyboard generator", () => {
+    const duration = 0.5;
+    const fps = 12;
+    const timestamps = Array.from({length: 6}, (_, index) =>
+      storyboardTimestamp(duration, fps, index, 6));
+    expect(timestamps).toEqual([
+      0.5 / 12,
+      0.5 * 1.5 / 6,
+      0.5 * 2.5 / 6,
+      0.5 * 3.5 / 6,
+      0.375,
+      0.375,
+    ]);
   });
 
   it("legacy clips without preview links give an empty list", async () => {

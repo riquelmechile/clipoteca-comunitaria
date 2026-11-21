@@ -12,7 +12,14 @@ from jsonschema import Draft202012Validator
 from clipoteca.catalog import Catalog
 from clipoteca.media.normalize import normalize_media
 from clipoteca.media.probe import probe_media
-from clipoteca.media.select import rank_scene_windows
+from clipoteca.media.select import (
+    FRAME_SIZE,
+    SceneQualityRejected,
+    SceneSelectionTimeout,
+    SourceWindow,
+    _scores,
+    rank_scene_windows,
+)
 from clipoteca.media.storyboard import create_storyboard
 from clipoteca.media.thumbnail import create_thumbnail
 
@@ -199,9 +206,86 @@ def test_schema_keeps_old_clips_valid_and_distinguishes_source_windows():
     second["media"]["perceptual_hash"] = "unique"
     catalog = Catalog([first])
     assert catalog.duplicate_match(second) is None
+    # Similar frames from disjoint windows of the same origin are independent.
+    second["media"]["perceptual_hash"] = first["media"]["perceptual_hash"]
+    assert catalog.duplicate_match(second, phash_similar=lambda _a, _b: True) is None
+    cross_source = json.loads(json.dumps(second))
+    cross_source["source"]["provider_id"] = "another-video"
+    cross_source["source"]["source_url"] = "https://example.test/another-video"
+    assert catalog.duplicate_match(cross_source, phash_similar=lambda _a, _b: True)
     overlap = json.loads(json.dumps(second))
     overlap["source"]["source_start"] = 30
     assert catalog.duplicate_match(overlap) is not None
+
+
+
+
+def test_slow_textured_motion_scores_above_static_title():
+    # High-edge static bars model a flat title card. The second textured frame
+    # changes only one luma level: absolute motion is gentle but real.
+    static = bytes((40 if (i // 8) % 2 else 210) for i in range(FRAME_SIZE))
+    textured_a = bytes(70 + (i * 37) % 120 for i in range(FRAME_SIZE))
+    textured_b = bytes(min(255, value + (1 if i % 5 == 0 else 0)) for i, value in enumerate(textured_a))
+    static_score = _scores(static + static)
+    slow_score = _scores(textured_a + textured_b)
+    assert max(static_score) <= 0.03
+    assert min(slow_score) >= 0.12
+
+
+def test_all_black_45s_is_rejected(tmp_path):
+    source = tmp_path / "black.mp4"
+    subprocess.run(
+        [
+            "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+            "-f", "lavfi", "-i", "color=c=black:s=320x180:r=12:d=45",
+            "-c:v", "libx264", "-threads", "1", "-preset", "ultrafast", str(source),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=60,
+    )
+    with pytest.raises(SceneQualityRejected, match="minimum quality"):
+        rank_scene_windows(source, max_clips=2)
+
+
+def test_sampling_timeout_uses_v1_leading_window_and_records_warning(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from clipoteca.ingest import _candidate_windows
+
+    def timeout(*_args, **_kwargs):
+        raise SceneSelectionTimeout("deadline")
+
+    monkeypatch.setattr("clipoteca.ingest.rank_scene_windows", timeout)
+    monkeypatch.setattr(
+        "clipoteca.ingest.probe_media",
+        lambda *_args, **_kwargs: SimpleNamespace(duration_seconds=75.0),
+    )
+    job = {}
+    windows = _candidate_windows(
+        tmp_path / "source.mp4",
+        duration_limit=20,
+        max_clips=2,
+        job=job,
+        origin_id="pexels:slow",
+    )
+    assert windows == [SourceWindow(0, 20)]
+    assert job["source_warnings"]["pexels:slow"] == (
+        "scene_selection_timeout:v1_leading_window"
+    )
+
+
+def test_published_source_ranges_skip_before_download():
+    from clipoteca.ingest import _published_source_complete
+
+    clips = [
+        {"source": {"source_url": "https://example.test/video?id=7", "source_start": 0, "source_end": 20}},
+        {"source": {"source_url": "https://example.test/video?id=7", "source_start": 20, "source_end": 40}},
+    ]
+    matched = _published_source_complete(
+        clips, "https://example.test/video?id=7", max_clips=2
+    )
+    assert matched is clips[0]
+    assert _published_source_complete(clips[:1], "https://example.test/video?id=7", 2) is None
 
 
 @pytest.mark.asyncio
