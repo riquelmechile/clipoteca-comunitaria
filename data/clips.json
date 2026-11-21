@@ -148,5 +148,62 @@
     },
     "status": "published",
     "created_at": "2026-11-21T01:16:33.946933Z"
+  },
+  {
+    "id": "clip-000004",
+    "title": {
+      "es": "Persona caminando por el camino nevado en invierno",
+      "en": "Person walking on snowy path in winter"
+    },
+    "description": {
+      "es": "Persona caminando por el camino nevado en invierno",
+      "en": "Person walking on snowy path in winter"
+    },
+    "tags": {
+      "es": [
+        "Persona",
+        "caminando",
+        "camino",
+        "nevado",
+        "invierno",
+        "nieve"
+      ],
+      "en": [
+        "Person",
+        "walking",
+        "snowy",
+        "path",
+        "winter",
+        "snow"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35307709",
+      "source_language": "en",
+      "source_title": "person-walking-on-snowy-path-in-winter-35307709",
+      "source_url": "https://www.pexels.com/video/person-walking-on-snowy-path-in-winter-35307709/"
+    },
+    "media": {
+      "duration_seconds": 13.983333,
+      "width": 1920,
+      "height": 1080,
+      "fps": 60.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 9320569,
+      "sha256": "98de6c00e83587ba796653a3e7c3174cd43b91c9b71a55b01e1f7b895624755b",
+      "perceptual_hash": "da0a15d2f2d6e24d~2871.83:cc4c0db5b5a5a54b~2024.64:cc0c1cb7b5b7a04b~1673.13:8e081eb5b5b7a06b~1603.70:9e081eb5b5b7a06a~1584.26"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/clip_clip-000004.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/thumb_clip-000004.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-21T02:58:15.912591Z"
   }
 ]
