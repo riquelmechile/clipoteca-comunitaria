@@ -1,8 +1,63 @@
 {
   "request_id": "87a0bfce534c4ec3b19ca4af396a7440418f9ec1f949bfd69d3dabf4fc6ae648",
-  "status": "searching",
-  "language_counts": {},
-  "provider_counts": {},
-  "source_errors": {},
-  "terms": {}
+  "status": "fetching",
+  "language_counts": {
+    "es": 15,
+    "en": 15,
+    "zh": 15,
+    "ru": 15
+  },
+  "provider_counts": {
+    "pexels": 320,
+    "pixabay": 400,
+    "wikimedia_commons": 196,
+    "internet_archive": 200,
+    "nasa": 100,
+    "youtube": 0,
+    "rutube": 0,
+    "peertube": 3,
+    "odysee": 196,
+    "bilibili": 0,
+    "vk_video": 0,
+    "douyin": 0,
+    "tiktok": 0,
+    "instagram": 0,
+    "snapchat": 0
+  },
+  "source_errors": {
+    "youtube:es": "auth_required",
+    "bilibili:es": "rate_limited",
+    "vk_video:es": "auth_required",
+    "douyin:es": "auth_required",
+    "tiktok:es": "auth_required",
+    "instagram:es": "auth_required",
+    "snapchat:es": "auth_required",
+    "youtube:en": "auth_required",
+    "bilibili:en": "rate_limited",
+    "vk_video:en": "auth_required",
+    "douyin:en": "auth_required",
+    "tiktok:en": "auth_required",
+    "instagram:en": "auth_required",
+    "snapchat:en": "auth_required",
+    "youtube:zh": "auth_required",
+    "bilibili:zh": "rate_limited",
+    "vk_video:zh": "auth_required",
+    "douyin:zh": "auth_required",
+    "tiktok:zh": "auth_required",
+    "instagram:zh": "auth_required",
+    "snapchat:zh": "auth_required",
+    "youtube:ru": "auth_required",
+    "bilibili:ru": "rate_limited",
+    "vk_video:ru": "auth_required",
+    "douyin:ru": "auth_required",
+    "tiktok:ru": "auth_required",
+    "instagram:ru": "auth_required",
+    "snapchat:ru": "auth_required"
+  },
+  "terms": {
+    "es": "lluvia",
+    "en": "rain",
+    "zh": "下雨",
+    "ru": "дождь"
+  }
 }
