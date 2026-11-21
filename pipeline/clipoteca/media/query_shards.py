@@ -18,7 +18,27 @@ import httpx
 import numpy as np
 
 from .embedding_store import EmbeddingError, VECTOR_BYTES, decode_vector, vector_bytes
-from .shards import _atomic, git_blob_sha, query_digest
+
+
+# Delay shared helper resolution until invocation so shards.py can re-export
+# the real QueryStore / GitHubQueries classes without an import cycle.
+def _atomic(path: Path, data: bytes) -> None:
+    from .shards import _atomic as write_atomic
+
+    write_atomic(path, data)
+
+
+def git_blob_sha(data: bytes) -> str:
+    from .shards import git_blob_sha as calculate_sha
+
+    return calculate_sha(data)
+
+
+def query_digest(query: str) -> str:
+    from .shards import query_digest as calculate_digest
+
+    return calculate_digest(query)
+
 
 CAPACITY = 64
 MAX_QUERIES = 512
@@ -210,8 +230,13 @@ def change_batch(
         > MAX_QUERIES
     ):
         oldest = current["shards"].pop(0)
-        paths[oldest["path"]] = None
-        paths[oldest["ids_path"]] = None
+        # A shard created and evicted within this very batch never existed
+        # in the remote base tree. Do not send sha:null for that path.
+        for name in (oldest["path"], oldest["ids_path"]):
+            if name in paths and paths[name] is not None:
+                del paths[name]
+            else:
+                paths[name] = None
     validate_query_manifest(current)
     paths["manifest.json"] = _json(current)
     return current, paths

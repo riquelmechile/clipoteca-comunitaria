@@ -447,15 +447,6 @@ class GitHubShards:
 
 # Stable import surface for M22's callers; bounded query-shard storage
 # moved to its own module to keep clip-shard semantics unchanged.
-class QueryStore:
-    def __new__(cls, *args, **kwargs):
-        from .query_shards import QueryStore as QueryShardStore
-
-        return QueryShardStore(*args, **kwargs)
-
-
-class GitHubQueries:
-    def __new__(cls, *args, **kwargs):
-        from .query_shards import GitHubQueries as QueryShardWriter
-
-        return QueryShardWriter(*args, **kwargs)
+# Re-export real classes. Lazy wrappers change type identity and isinstance
+# behavior, which breaks callers and dependency injection.
+from .query_shards import GitHubQueries, QueryStore  # noqa: E402,F401
