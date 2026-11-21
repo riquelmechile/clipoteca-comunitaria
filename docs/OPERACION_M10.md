@@ -2,7 +2,7 @@
 
 ## Estado de esta entrega
 
-Los cambios se proponen mediante PR encadenados de desarrollo. **No** están desplegados en Cloudflare ni integrados en `main`. El CI sólo ejecuta pruebas locales y simulaciones de redes/GitHub; no confundirlo con el smoke E2E en producción.
+**Estado verificado 21-11-2026:** Worker Cloudflare desplegado en `https://clipoteca-worker.sc-plasticov.workers.dev` con REST `/v1/*` y MCP `/mcp`; 8 clips reales publicados (Pexels, PeerTube y aporte comunitario). Los workflows reales de ingesta, importación desde Worker, PeerTube, aporte automático y smoke cuentan con evidencias enlazadas en [INFORME_V1.md](INFORME_V1.md). El CI de preparación del release debe validarse aparte; los mocks no sustituyen E2E.
 
 
 ## Gates de CI sin red
@@ -27,11 +27,11 @@ Requiere Python 3.13, Node 22 o superior y FFmpeg. Para métricas y 15 proveedor
 4. La API sólo entrega links de GitHub Releases previamente verificados. No actúa como proxy de MP4.
 5. El Worker usa Cache API para rate-limit e idempotencia de corta duración; **no constituye un lock global** ni evita todas las carreras entre centros. El JobStore y el catálogo deben conservar la idempotencia persistente.
 
-## Smoketest después de aprobar y desplegar
+## Smoketest del servicio ya desplegado
 
 ```bash
 set -euo pipefail
-: "${CLIPOTECA_API:?debe ser URL pública HTTPS}"
+CLIPOTECA_API="${CLIPOTECA_API:-https://clipoteca-worker.sc-plasticov.workers.dev}"
 curl --fail-with-body -sS "${CLIPOTECA_API}/v1/health"
 curl --fail-with-body -sS "${CLIPOTECA_API}/v1/clips?q=lluvia&aspect_ratio=9%3A16"
 curl --fail-with-body -sS -H 'content-type: application/json' \
@@ -43,7 +43,7 @@ curl --fail-with-body -sS -H 'content-type: application/json' \
 # consultar /v1/jobs/{request_id} hasta terminal y repetir para probar dedup.
 ```
 
-La demostración obligatoria es: cuatro términos ES/EN/ZH/RU registrados, clip real (<=20 s), FFmpeg, miniatura, SHA real, Release, catálogo ES/EN, búsqueda REST/MCP y redirect 302 a un asset existente. La ejecución de estos comandos y la captura de evidencias requieren los secrets y el despliegue, por lo que no se reemplazan por mocks.
+Las rutas principales ya se probaron con el Worker desplegado y hay publicaciones reales. Para regresión, ejecutar los comandos anteriores y conservar respuestas HTTP/IDs, sin copiar tokens ni URLs firmadas. La cobertura por proveedor e idioma y la facturación real siguen siendo verificaciones separadas; ver [INFORME_V1.md](INFORME_V1.md).
 
 ## Retries y dead letters
 
@@ -78,16 +78,24 @@ el formulario **Aportar escena**. Sin etiqueta de aprobación y sin disparo manu
 el adaptador `community` utiliza las mismas verificaciones de URL,
 DNS/SSRF, MIME/tamaño, FFmpeg, deduplicación y persistencia que otras fuentes.
 Los estados se comentan en el Issue y el éxito lo cierra; ver
-[APORTES_M9.md](APORTES_M9.md). Todavía se necesita evidencia E2E real.
+[APORTES_M9.md](APORTES_M9.md). **E2E verificado**: [Issue #26](https://github.com/riquelmechile/clipoteca-comunitaria/issues/26) → `clip-000008` publicado ([run 44863391766](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44863391766)). Tras un éxito, la etiqueta previa `clipoteca-ingest-failed` debe retirarse aunque proviniera de un intento anterior.
 
 Los costos cero dependen de cuotas de Actions, Workers, proveedores y Releases.
 Si se excede la cuota, pausar nuevos despachos y mantener la API de lectura.
 
-## Puertas de salida que todavía bloquean v1.0
+## Evidencias reales de cierre M10
 
-- Worker Cloudflare y MCP desplegados con allowlists y secretos válidos.
-- E2E real de descarga y publicación con dos proveedores, incluyendo uno M5, y medición de costos/uso reales.
-- Comprobación de resultados multilingües por proveedor y pruebas de red en runners confiables.
-- Prueba E2E real de publicación automática desde un Issue comunitario.
+- Ingesta: [run 44848918832](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44848918832).
+- Importación Worker → Actions: [run 44858494471](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44858494471).
+- Fuente PeerTube (M5): [run 44858474026](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44858474026).
+- Aporte M9 sin aprobación manual: [run 44863391766](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44863391766).
+- Smoke real: [run 44858482821](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44858482821).
 
-No marcar esos puntos como hechos por ver un CI verde.
+## Verificaciones aún pendientes o recurrentes
+
+- Confirmar los gates Python, Worker y real Argos en la rama de release, sin saltar fallos del runner.
+- Registrar resultados online detallados por los 15 proveedores y cada idioma realmente admitido; `AUTH_REQUIRED` es un estado legítimo, no una prueba de descarga.
+- Medir minutos/costos facturados de Actions, GitHub y Cloudflare desde sus paneles; no inferir gasto desde duraciones.
+- Revalidar adaptadores sujetos a bloqueo de IP (Bilibili), políticas de cuentas, cambios de API, límites y tokens.
+
+**Publicación:** la preparación técnica se presenta en PR para revisión; los tags, GitHub Releases y merges quedan fuera de este encargo.

@@ -101,13 +101,30 @@ def test_feedback_comments_labels_and_closes_only_after_publication():
         send_feedback(
             "riquelmechile/clipoteca-comunitaria", "test-token", 19, "published", client=client
         )
-    assert [method for method, _ in seen] == ["POST", "POST", "PATCH"]
+    assert [method for method, _ in seen] == ["POST", "POST", "DELETE", "PATCH"]
+    assert seen[2][1].endswith("/labels/clipoteca-ingest-failed")
     seen.clear()
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         send_feedback(
             "riquelmechile/clipoteca-comunitaria", "test-token", 19, "failed", client=client
         )
     assert [method for method, _ in seen] == ["POST", "POST"]
+
+
+@pytest.mark.parametrize("status_code", [200, 404])
+def test_feedback_success_removes_failed_label_even_if_missing(status_code):
+    calls = []
+
+    def handler(request):
+        calls.append((request.method, request.url.path))
+        if request.method == "DELETE":
+            return httpx.Response(status_code)
+        return httpx.Response(201 if request.method == "POST" else 200, json={})
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        send_feedback(contributions.OWNER_REPOSITORY, "test-token", 26, "duplicate", client=client)
+    assert [method for method, _ in calls] == ["POST", "POST", "DELETE", "PATCH"]
+    assert calls[2][1].endswith("/issues/26/labels/clipoteca-ingest-failed")
 
 
 @pytest.mark.asyncio

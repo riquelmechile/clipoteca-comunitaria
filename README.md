@@ -14,7 +14,30 @@
 
 ---
 
-> **Estado: implementación técnica de M6–M10, pendiente de despliegue.** El repositorio integra código y pruebas para búsqueda externa, REST, MCP, ingesta por Actions y aportes mediante Issues. La publicación real de videos, el despliegue de Worker, la validación online de 15 proveedores y la ingesta real desde un Issue comunitario y su validación E2E siguen pendientes de aceptación. Ver [runbook M10](docs/OPERACION_M10.md) y [matriz de fuentes](docs/MATRIZ_FUENTES_M10.md).
+> **Estado v1.0.0: Worker desplegado y flujos E2E reales comprobados.** Servicio: [clipoteca-worker.sc-plasticov.workers.dev](https://clipoteca-worker.sc-plasticov.workers.dev), con API REST `/v1/*` y MCP Streamable HTTP `/mcp`. Hay **8 clips reales publicados** en el catálogo, con material de Pexels, PeerTube y un aporte comunitario ([Issue #26](https://github.com/riquelmechile/clipoteca-comunitaria/issues/26), `clip-000008`). La ingesta admite consultas ES/EN/ZH/RU. Los proveedores que requieren credenciales ausentes se clasifican `AUTH_REQUIRED`; Bilibili bloquea solicitudes desde determinadas IP de centros de datos. La verificación real no equivale a disponibilidad universal de las 15 fuentes ni a costos facturados conocidos. Ver [evidencias v1](docs/INFORME_V1.md) y [operación M10](docs/OPERACION_M10.md).
+
+## Uso
+
+Buscar clips públicos desde la API REST (el filtro `aspect_ratio` usa URL encoding):
+
+```bash
+curl --fail-with-body -sS 'https://clipoteca-worker.sc-plasticov.workers.dev/v1/clips?q=lluvia&aspect_ratio=9%3A16'
+```
+
+Conectar un cliente MCP compatible con HTTP remoto usando la dirección `https://clipoteca-worker.sc-plasticov.workers.dev/mcp`. Ejemplo de configuración para un cliente que acepta `mcpServers`:
+
+```json
+{
+  "mcpServers": {
+    "clipoteca": {
+      "url": "https://clipoteca-worker.sc-plasticov.workers.dev/mcp"
+    }
+  }
+}
+```
+
+Para aportar una escena, [abre el formulario «Aportar escena»](https://github.com/riquelmechile/clipoteca-comunitaria/issues/new/choose) en GitHub Issues, indica una URL HTTPS directa a MP4/WebM/OGV y los datos de procedencia. El Issue se procesa automáticamente; no requiere permisos de escritura del repositorio. Ver [guía de colaboración](CONTRIBUTING.md).
+
 
 ## La idea
 
@@ -31,9 +54,9 @@ Buscar una escena no debería significar encontrarla y descargarla de cero una y
 
 Las búsquedas externas en **español, inglés, chino y ruso son requisitos obligatorios**, no características opcionales. Todos los clips se catalogarán con títulos, descripciones y etiquetas en **español e inglés**, conservando el idioma y fuente de origen.
 
-## Qué se construirá
+## Componentes de v1
 
-| Componente | Responsabilidad prevista |
+| Componente | Responsabilidad |
 |---|---|
 | **API REST + MCP** | Buscar clips por concepto, duración, proporción, orientación y fuente; obtener sus archivos |
 | **Motor multilingüe** | Ejecutar búsquedas paralelas ES/EN/ZH/RU con límites y fallos aislados |
@@ -41,7 +64,7 @@ Las búsquedas externas en **español, inglés, chino y ruso son requisitos obli
 | **Catálogo público** | Metadatos ES/EN, 9:16 o 16:9, resolución, FPS, duración y procedencia |
 | **GitHub Releases** | Almacenar los clips procesados y hacerlos recuperables sin buscar dos veces |
 
-**Stack planificado:** Cloudflare Workers + TypeScript (API y MCP), GitHub Actions + Python/FFmpeg (procesamiento), GitHub Releases y catálogo JSON. No se necesita un servidor Oracle ni una web Astro.
+**Stack:** Cloudflare Workers + TypeScript (API y MCP), GitHub Actions + Python/FFmpeg (procesamiento), GitHub Releases y catálogo JSON. No se necesita un servidor Oracle ni una web Astro.
 
 ## Fuentes del roadmap
 

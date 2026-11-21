@@ -30,7 +30,7 @@ async function health(request: Request, env: Env): Promise<Response> {
   return json({
     status: healthy ? "ok" : "degraded",
     service: "clipoteca",
-    version: "0.1.0",
+    version: "1.0.0",
     checks: {catalogue, mcp, items},
     ...(!healthy ? {error: {code: "health_unavailable"}} : {}),
   }, healthy ? 200 : 503);

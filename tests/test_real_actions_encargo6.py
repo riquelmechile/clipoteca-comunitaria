@@ -114,6 +114,59 @@ def test_argos_rejects_real_degenerate_and_unchanged_outputs(value, reason):
         translate_pair("Autopistas", "es", "en", translator=lambda *_: value)
 
 
+@pytest.mark.parametrize(
+    ("source", "translated", "src", "dst"),
+    [
+        ("Olas en la playa", "Waves on the beach", "es", "en"),
+        (
+            "Waves at Hikkaduwa beach, Sri Lanka",
+            "Olas en la playa de Hikkaduwa, Sri Lanka",
+            "en",
+            "es",
+        ),
+        (
+            "Prueba E2E de M9. (reintento tras corrección)",
+            "M9 end-to-end test (retry after correction).",
+            "es",
+            "en",
+        ),
+        (
+            "A person walking down a sidewalk in the rain",
+            "Una persona camina por la acera bajo la lluvia.",
+            "en",
+            "es",
+        ),
+        (
+            "Video corto de las olas del mar en la playa de Sri Lanka.",
+            "A short video of ocean waves on the beach in Sri Lanka.",
+            "es",
+            "en",
+        ),
+        (
+            "Snow falling on a quiet street at night.",
+            "Nieve cayendo sobre una calle tranquila de noche.",
+            "en",
+            "es",
+        ),
+    ],
+)
+def test_argos_size_guard_accepts_realistic_es_en_texts(source, translated, src, dst):
+    assert translate_pair(source, src, dst, translator=lambda *_: translated) == translated
+
+
+@pytest.mark.parametrize(
+    ("source", "output", "reason"),
+    [
+        ("olas", "word " * 100, "disproportionate_translation"),
+        ("Olas en la playa", "mainstre" * 18, "repeated_translation"),
+        ("Autopistas", "mainstre" * 70, "disproportionate_translation"),
+    ],
+)
+def test_argos_size_guard_rejects_degenerate_repetitions(source, output, reason):
+    with pytest.raises(TranslationFailed, match=reason):
+        translate_pair(source, "es", "en", translator=lambda *_: output)
+
+
 def test_curated_fallback_only_for_corrupt_model_output_not_missing_models(monkeypatch):
     assert (
         translate_text("Autopistas", "es", "en", translator=lambda text, src, dst: "Autopistas")
