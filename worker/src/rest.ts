@@ -1,6 +1,7 @@
 import { loadCatalog, type Clip } from "./catalog";
 import { loadJob, requestId } from "./jobs";
 import { dispatchIngest } from "./dispatch";
+import { submitContribution } from "./contributions";
 
 export interface RestEnv {
   CATALOG_URL?: string;
@@ -172,9 +173,7 @@ export async function handleRest(request: Request, env: RestEnv): Promise<Respon
   if (path === "/v1/import" && !bearer(request, env.CLIPOTECA_WRITE_TOKEN)) {
     return error("unauthorized", "Bearer token required", 401);
   }
-  if (path === "/v1/contributions") {
-    return error("not_implemented", "Contribution intake not configured", 503);
-  }
+  if (path === "/v1/contributions") return submitContribution(request, env);
   let parsed: SearchInput;
   try { parsed = parseSearch(await validateJson(request)); }
   catch (err) { return error("invalid_input", err instanceof Error ? err.message : "Invalid input", 400); }
