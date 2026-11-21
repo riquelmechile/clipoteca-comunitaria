@@ -12,9 +12,7 @@ from .base import AuthRequired, ProviderError, ProviderTimeout, RateLimited
 
 def provider_client() -> httpx.AsyncClient:
     """Use the same project identity for all live provider HTTP clients."""
-    return httpx.AsyncClient(
-        timeout=15, follow_redirects=False, headers={"User-Agent": USER_AGENT}
-    )
+    return httpx.AsyncClient(timeout=15, follow_redirects=False, headers={"User-Agent": USER_AGENT})
 
 
 async def fetch_json(client: httpx.AsyncClient, url: str, *, params=None, headers=None) -> dict:
