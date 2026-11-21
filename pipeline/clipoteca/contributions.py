@@ -113,7 +113,11 @@ def parse_community_issue(
     if len(notes) > 1000:
         raise ValueError("contribution notes too long")
     return CommunityIssue(
-        issue_number, title, url, author, f"https://github.com/{repository}/issues/{issue_number}",
+        issue_number,
+        title,
+        url,
+        author,
+        f"https://github.com/{repository}/issues/{issue_number}",
         notes,
     )
 
@@ -224,10 +228,14 @@ def send_feedback(
     }
     success = status in {"published", "duplicate"}
     # Only documented, bounded error codes may be sent to public Issues.
-    safe_reason = reason if re.fullmatch(
-        r"(?:translation_failed:(?:es|en|zh|ru)|download_error|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
-        reason,
-    ) else "processing_failed"
+    safe_reason = (
+        reason
+        if re.fullmatch(
+            r"(?:translation_failed:(?:es|en|zh|ru)|download_error|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
+            reason,
+        )
+        else "processing_failed"
+    )
     try:
         response = connection.post(
             base + "/comments",
