@@ -319,5 +319,56 @@
     },
     "status": "published",
     "created_at": "2026-11-21T02:59:31.502129Z"
+  },
+  {
+    "id": "clip-000007",
+    "title": {
+      "es": "Cinco minutos de lluvia",
+      "en": "Five minutes of rain"
+    },
+    "description": {
+      "es": "Cinco minutos de lluvia",
+      "en": "Five minutes of rain"
+    },
+    "tags": {
+      "es": [
+        "Cinco",
+        "minutos",
+        "lluvia"
+      ],
+      "en": [
+        "Five",
+        "minutes",
+        "rain"
+      ]
+    },
+    "source": {
+      "provider": "peertube",
+      "provider_id": "84ed4b77-a3e5-411f-8723-026106481b6e",
+      "source_language": "en",
+      "source_title": "Five minutes of rain",
+      "source_url": "https://pt.na4.eu/videos/watch/84ed4b77-a3e5-411f-8723-026106481b6e"
+    },
+    "media": {
+      "duration_seconds": 20.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 60.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 11426199,
+      "sha256": "6bd8cdfe90c9c7cfdd2eb8bf7c3743542395602164e78aa6af10dab983b55f5a",
+      "perceptual_hash": "c3d4352685f8935e~4232.71:c3d4352685f8935e~4224.56:c3d435268df8835e~4231.10:c3d435268df8835e~4195.80:c3d435268df8835e~4203.79"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/clip_clip-000007.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/thumb_clip-000007.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-21T03:00:59.746049Z"
   }
 ]
