@@ -16,7 +16,7 @@ from clipoteca.config import USER_AGENT
 
 def test_capabilities_single_declaration_no_secret_leak():
     rows = list_sources(env={})
-    assert len(SOURCE_CAPABILITIES) == len(SOURCES) == len(rows) == 21
+    assert len(SOURCE_CAPABILITIES) == len(SOURCES) == len(rows) == 23
     assert {r["name"] for r in rows} == set(SOURCE_CAPABILITIES)
     for row in rows:
         assert row["capabilities"] == SOURCE_CAPABILITIES[row["name"]]
@@ -32,6 +32,7 @@ def test_capabilities_single_declaration_no_secret_leak():
         ("rutube", {"results": [{"id": "abc"}]}, 1, False, None),
         ("rutube", {"video_balancer": {"hls": "https://test.invalid"}}, 0, True, None),
         ("vk_video", {"response": {"items": [{"files": {"hls": "x"}}]}}, 1, True, None),
+        ("dzen", {"items": [{"oneVideoStreams": {"hls": "x"}}]}, 1, True, None),
         ("library_of_congress", {"results": [{"resources": [{"video": ["x"]}]}]}, 1, True, None),
         ("douyin", {"status_code": 2483, "search_nil_info": {"reason": "session"}}, 0, False, 2483),
         ("tiktok", {"item_list": [{"video": {"playAddr": "x"}}]}, 1, True, None),

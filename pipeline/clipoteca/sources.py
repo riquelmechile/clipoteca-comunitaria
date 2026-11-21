@@ -17,10 +17,12 @@ from .providers.library_of_congress import LibraryOfCongress
 from .providers.nara import NARA
 from .providers.smithsonian import Smithsonian
 from .providers.douyin import Douyin
+from .providers.dzen import Dzen
 from .providers.instagram import Instagram
 from .providers.internet_archive import InternetArchive
 from .providers.nasa import NASA
 from .providers.odysee import Odysee
+from .providers.ok_ru import OkRu
 from .providers.peertube import PeerTube
 from .providers.pexels import Pexels
 from .providers.pixabay import Pixabay
@@ -144,11 +146,25 @@ SOURCES: tuple[SourceSpec, ...] = (
         "risk control/WBI may block search; media not reusable",
     ),
     SourceSpec(
+        "ok_ru",
+        OkRu,
+        (),
+        "public_search",
+        "anonymous HTML discovery; CDN download remains best-effort pending live smoke",
+    ),
+    SourceSpec(
         "vk_video",
         VKVideo,
-        ("VK_ACCESS_TOKEN",),
-        "oauth_search",
-        "third-party copying requires separate rights",
+        (),
+        "public_search",
+        "anonymous Web2 token; VK_ACCESS_TOKEN remains optional",
+    ),
+    SourceSpec(
+        "dzen",
+        Dzen,
+        (),
+        "public_search",
+        "cookie-aware public search; stream availability is best-effort",
     ),
     SourceSpec(
         "douyin",
@@ -205,7 +221,9 @@ SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
     "peertube": {"search": "supported", "preview": "supported", "download": "supported"},
     "odysee": {"search": "supported", "preview": "best_effort", "download": "supported"},
     "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
-    "vk_video": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "ok_ru": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "vk_video": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "dzen": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "douyin": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
     "tiktok": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
     "instagram": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
