@@ -13,6 +13,8 @@ from .ingest import ingest
 from .jobs import request_id as calculate_request_id
 from .providers.internet_archive import InternetArchive
 from .providers.bilibili import Bilibili
+from .providers.douyin import Douyin
+from .providers.tiktok import TikTok
 from .providers.vk_video import VKVideo
 from .providers.nasa import NASA
 from .providers.pexels import Pexels
@@ -99,6 +101,8 @@ def main(argv: list[str] | None = None) -> int:
                 Odysee(),
                 Bilibili(),
                 VKVideo(),
+                Douyin(),
+                TikTok(),
             ]
             try:
                 return await ingest(
