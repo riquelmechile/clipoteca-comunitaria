@@ -241,6 +241,7 @@ def detect_scenes(
     source: str | Path,
     *,
     start: float = 0,
+    max_window: float = 900,
     headers: dict[str, str] | None = None,
     prefer_scenedetect: bool = False,
     runner: Callable | None = None,
