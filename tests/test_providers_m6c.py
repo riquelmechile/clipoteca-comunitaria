@@ -106,7 +106,6 @@ async def test_instagram_http_error(status, exc):
 
 @pytest.mark.asyncio
 async def test_instagram_timeout_typed():
-
     def timeout(_):
         raise httpx.ReadTimeout("timeout")
 
@@ -173,7 +172,6 @@ async def test_snapchat_http_error(code, exc):
 
 @pytest.mark.asyncio
 async def test_snapchat_timeout():
-
     def timeout(_):
         raise httpx.ReadTimeout("timeout")
 
