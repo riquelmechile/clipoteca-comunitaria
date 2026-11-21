@@ -204,10 +204,13 @@ async def test_odysee_retry_keeps_identity_and_caller_headers():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(serve)) as client:
         adapter = Odysee(client=client)
-        assert await adapter._request(
-            "POST",
-            "https://api.na-backend.odysee.com/api/v1/proxy",
-            headers={"X-Custom": "retained"},
-            json={"test": True},
-        ) == {}
+        assert (
+            await adapter._request(
+                "POST",
+                "https://api.na-backend.odysee.com/api/v1/proxy",
+                headers={"X-Custom": "retained"},
+                json={"test": True},
+            )
+            == {}
+        )
     assert seen == [(USER_AGENT, "retained"), (USER_AGENT, "retained")]
