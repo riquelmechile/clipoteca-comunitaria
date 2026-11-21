@@ -22,7 +22,7 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://open.douyin.com/video/list/"
 
@@ -38,7 +38,7 @@ class Douyin(Adapter):
         self, *, token: str | None = None, client: httpx.AsyncClient | None = None
     ) -> None:
         self.token = token if token is not None else os.getenv("DOUYIN_ACCESS_TOKEN", "")
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def _own_videos(self, limit: int) -> list[dict]:
         if not self.token:
