@@ -14,6 +14,9 @@ from urllib.parse import quote
 
 import httpx
 
+from ..config import USER_AGENT
+
+from .http import provider_client
 from .base import (
     Adapter,
     Candidate,
@@ -39,11 +42,11 @@ class Bilibili(Adapter):
 
     def __init__(self, *, cookie: str | None = None, client: httpx.AsyncClient | None = None):
         self.cookie = cookie if cookie is not None else os.getenv("BILIBILI_COOKIE", "")
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
         self._http_412_count = 0
 
     async def _get(self, endpoint: str, params: dict) -> dict:
-        headers = {"User-Agent": "Mozilla/5.0 Clipoteca/1.0"}
+        headers = {"User-Agent": USER_AGENT}
         if self.cookie:
             headers["Cookie"] = self.cookie
         try:
