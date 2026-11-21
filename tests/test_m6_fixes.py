@@ -9,7 +9,15 @@ from clipoteca.catalog import Catalog
 from clipoteca.engine import SearchEngine
 from clipoteca.jobs import JobStore, new_job, request_id
 from clipoteca.metadata import MetadataTranslationError, humanize_source_title, localize_candidate
-from clipoteca.providers.base import Adapter, Candidate, MediaRef, RateLimited, SearchLimits, SupportStatus, ProviderError
+from clipoteca.providers.base import (
+    Adapter,
+    Candidate,
+    MediaRef,
+    RateLimited,
+    SearchLimits,
+    SupportStatus,
+    ProviderError,
+)
 from clipoteca.providers.bilibili import Bilibili
 from clipoteca.providers.http import fetch_json
 from clipoteca.providers.vk_video import VKVideo
@@ -17,9 +25,19 @@ from clipoteca.providers.vk_video import VKVideo
 
 def test_humanized_source_and_argos_required_even_for_dictionary_term():
     assert humanize_source_title("rain-on-the-streets-27690364") == "Rain on the streets"
-    candidate = Candidate("pexels", "27690364", "lluvia", "es", "https://pexels.com/video/27690364",
-                          "rain-on-the-streets-27690364", "en", metadata={"description": "Wet road"})
-    translated = localize_candidate(candidate, translator=lambda text, src, dst: f"ES: {text}" if dst == "es" else f"EN: {text}")
+    candidate = Candidate(
+        "pexels",
+        "27690364",
+        "lluvia",
+        "es",
+        "https://pexels.com/video/27690364",
+        "rain-on-the-streets-27690364",
+        "en",
+        metadata={"description": "Wet road"},
+    )
+    translated = localize_candidate(
+        candidate, translator=lambda text, src, dst: f"ES: {text}" if dst == "es" else f"EN: {text}"
+    )
     assert translated.title == {"es": "ES: Rain on the streets", "en": "Rain on the streets"}
     assert translated.description == {"es": "ES: Wet road", "en": "Wet road"}
     assert translated.original_title == "rain-on-the-streets-27690364"
@@ -79,9 +97,18 @@ class YoutubeSlow(Fast):
 
 @pytest.mark.asyncio
 async def test_youtube_is_nonblocking_and_existing_duplicate_has_real_id():
-    existing = Catalog([{"id": "clip-000099", "source": {"provider": "fast", "provider_id": "same"},
-                         "title": {"es": "Lluvia", "en": "Rain"}, "description": {"es": "Lluvia", "en": "Rain"},
-                         "tags": {"es": [], "en": []}, "media": {"sha256": "a" * 64}}])
+    existing = Catalog(
+        [
+            {
+                "id": "clip-000099",
+                "source": {"provider": "fast", "provider_id": "same"},
+                "title": {"es": "Lluvia", "en": "Rain"},
+                "description": {"es": "Lluvia", "en": "Rain"},
+                "tags": {"es": [], "en": []},
+                "media": {"sha256": "a" * 64},
+            }
+        ]
+    )
     result = await SearchEngine([YoutubeSlow(), Fast()], discovery_seconds=0.2).search(
         "lluvia", catalog=existing
     )
@@ -97,10 +124,13 @@ async def test_403_with_access_token_is_auth_not_generic_provider_error(credenti
     client = httpx.AsyncClient(
         transport=httpx.MockTransport(lambda _: httpx.Response(403, json={"error": "forbidden"}))
     )
-    kwargs = {"headers": {"access-token": "fake"}} if credential == "header" else {
-        "params": {"access_token": "fake"}
-    }
+    kwargs = (
+        {"headers": {"access-token": "fake"}}
+        if credential == "header"
+        else {"params": {"access_token": "fake"}}
+    )
     from clipoteca.providers.base import AuthRequired
+
     with pytest.raises(AuthRequired):
         await fetch_json(client, "https://api.example.org/videos", **kwargs)
 
@@ -119,8 +149,10 @@ async def test_bilibili_three_412_errors_become_ip_blocked():
 @pytest.mark.asyncio
 @pytest.mark.parametrize("code", [6, 9])
 async def test_vk_api_flood_codes_rate_limited(code):
-    client = httpx.AsyncClient(transport=httpx.MockTransport(
-        lambda _: httpx.Response(200, json={"error": {"error_code": code}})
-    ))
+    client = httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"error": {"error_code": code}})
+        )
+    )
     with pytest.raises(RateLimited):
         await VKVideo(token="fake", client=client).search("rain", "en", SearchLimits())

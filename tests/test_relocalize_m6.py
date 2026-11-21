@@ -20,9 +20,12 @@ def test_relocalize_real_catalogue_fixture_without_media_download(tmp_path):
         index_root=tmp_path / "index",
         language_overrides={"clip-000002": "es"},
         translator=lambda text, src, dst: (
-            "Highways" if src == "es" and dst == "en"
-            else "Autopistas" if src == "es" and dst == "es"
-            else "Un hombre caminando bajo la lluvia" if dst == "es"
+            "Highways"
+            if src == "es" and dst == "en"
+            else "Autopistas"
+            if src == "es" and dst == "es"
+            else "Un hombre caminando bajo la lluvia"
+            if dst == "es"
             else text
         ),
     )

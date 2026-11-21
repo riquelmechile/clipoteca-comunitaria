@@ -62,9 +62,7 @@ async def ingest(
     jobs = JobStore(job_root, remote=remote_jobs)
     existing = jobs.load(rid)
     if existing and existing["status"] in {"published", "duplicate"}:
-        return IngestReport(
-            rid, "duplicate", tuple(existing.get("duplicate_ids", ())), ()
-        )
+        return IngestReport(rid, "duplicate", tuple(existing.get("duplicate_ids", ())), ())
     if existing and existing["status"] in {"failed", "no_results", "unavailable", "rate_limited"}:
         job = new_job(rid)
         job["attempt"] = existing.get("attempt", 1) + 1
@@ -172,7 +170,9 @@ async def ingest(
                     # Fail multilingual metadata before spending bandwidth on a large video.
                     localized = localize_candidate(candidate, translator=translator)
                     raw = await (
-                        downloader(ref.url, temp) if downloader else download_media(ref.url, temp, expected_bytes=ref.size_bytes)
+                        downloader(ref.url, temp)
+                        if downloader
+                        else download_media(ref.url, temp, expected_bytes=ref.size_bytes)
                     )
                     downloaded_count += 1
                     advance("processing")

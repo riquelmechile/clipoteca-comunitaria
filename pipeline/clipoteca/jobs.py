@@ -84,7 +84,8 @@ class GitHubJobWriter:
             if existing and existing != job:
                 if existing["status"] in (*TERMINAL, "published"):
                     retry = (
-                        existing["status"] in {"failed", "rate_limited", "unavailable", "no_results"}
+                        existing["status"]
+                        in {"failed", "rate_limited", "unavailable", "no_results"}
                         and job["status"] == "queued"
                         and job.get("attempt", 1) == existing.get("attempt", 1) + 1
                     )

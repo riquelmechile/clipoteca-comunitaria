@@ -85,7 +85,8 @@ def main(argv: list[str] | None = None) -> int:
                     identifier, language = pair.split(":", 1)
                     overrides[identifier] = language
             updated = relocalize_catalog(
-                Path(args.catalog), identifiers,
+                Path(args.catalog),
+                identifiers,
                 index_root=Path(args.index_root),
                 language_overrides=overrides,
             )
@@ -156,7 +157,9 @@ def main(argv: list[str] | None = None) -> int:
                 Snapchat(),
             ]
             try:
-                allowed = [adapter for adapter in adapters if not selected or adapter.name in selected]
+                allowed = [
+                    adapter for adapter in adapters if not selected or adapter.name in selected
+                ]
                 return await ingest(
                     args.query,
                     allowed,

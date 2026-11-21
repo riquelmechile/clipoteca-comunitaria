@@ -214,7 +214,8 @@ class SearchEngine:
         ordered_tasks = sorted(
             tasks,
             key=lambda task: (
-                tasks[task][0] not in {
+                tasks[task][0]
+                not in {
                     adapter.name
                     for adapter in self.adapters
                     if adapter.support_status == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
