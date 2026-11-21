@@ -52,3 +52,15 @@ El filtro `videoDuration=short` significa menos de 4 minutos, **no** 20 segundos
 - https://developers.google.com/youtube/data/reference/rest/v3/search/list
 - https://developers.google.com/youtube/data/reference/rest/v3/videos/list
 - https://developers.google.com/youtube/v3/docs/videos
+
+## M5b: Rutube (API pública, 20-11-2026)
+
+| Fuente | Endpoint | es | en | zh | ru | Archivo directo / estado |
+|---|---|---|---|---|---|---|
+| Rutube | `/api/search/video/?query=…&per_page=N`; `/api/video/<id>/`; `/api/play/options/<id>/` | texto | texto | texto | texto | **SUPPORTED_SEARCH_ONLY** habitual: `video_balancer.default` expone HLS `.m3u8`, no MP4; solo un MP4 HTTPS explícito puede ser importado por el downloader acotado |
+
+**Evidencia HTTP directa en entorno Oracle el 20-11-2026:** `GET /api/search/video/?query=rain&limit=2` → **200 application/json** con `count=69`, `results[0].id` de 32 hex, `title`, `duration`, `video_url`; `GET /api/video/8411dde9e6521796b6805e5966ad4297/` → **200 JSON**; `GET /api/play/options/8411dde9e6521796b6805e5966ad4297/` → **200 JSON**, `video_balancer.default` con `https://bl.rutube.ru/route/….m3u8`. El downloader actual NO abre playlists HLS anidadas por su riesgo SSRF. No se probaron descargas HLS reales ni copyright. Fixtures incluyen cuatro idiomas, vacío, 429, 500, timeout, metadata y no-media.
+
+- https://rutube.ru/info/embed/
+- https://rutube.ru/api/search/video/?query=rain&limit=2
+- https://rutube.ru/api/play/options/8411dde9e6521796b6805e5966ad4297/
