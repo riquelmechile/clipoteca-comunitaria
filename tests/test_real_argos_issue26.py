@@ -51,33 +51,38 @@ def test_real_argos_issue26_and_ordinary_olas():
     ]
     assert candidate.source_language == "en"
     assert candidate.metadata["description_language"] == "es"
-    # The pinned real es->en model is nondeterministic for the longer Issue
-    # notes: on x86 it sometimes emits thousands of repeated "mainstre" tokens.
-    # A valid translation may pass; a corrupted one MUST fail closed. Neither
-    # outcome should make this integration gate flaky.
+    # An intermittent fail-closed result is acceptable, but repeated corruption
+    # must fail this real integration gate rather than pass without translating.
     translated_title = translate_pair(candidate.source_title, "en", "es")
     assert "Hikkaduwa" in translated_title
     assert "Olas" in translated_title
-    try:
-        localized = localize_candidate(candidate, include_query_tags=False)
-    except MetadataTranslationError as exc:
-        assert str(exc) in {
-            "translation_failed:es->en:disproportionate_translation",
-            "translation_failed:es->en:repeated_translation",
-        }
-    else:
-        assert "Hikkaduwa" in localized.title["es"]
-        assert "Waves" in localized.title["en"]
-        assert localized.description["es"] != localized.description["en"]
-        assert "Hikkaduwa" in localized.description["en"]
-        assert localized.tags["es"] and localized.tags["en"]
-    # The pinned real model may return a useful translation or corruption. A
-    # useful result is asserted; only the two fail-closed outcomes covered by
-    # the deterministic contract above are accepted as model nondeterminism.
-    try:
-        translated_query = translate_pair("olas", "es", "en")
-    except TranslationFailed as exc:
-        assert exc.reason in {"disproportionate_translation", "repeated_translation"}
-    else:
-        assert translated_query.casefold() != "olas"
-        assert translated_query.strip()
+
+    localized = None
+    for _attempt in range(5):
+        try:
+            localized = localize_candidate(candidate, include_query_tags=False)
+        except MetadataTranslationError as exc:
+            assert str(exc) in {
+                "translation_failed:es->en:disproportionate_translation",
+                "translation_failed:es->en:repeated_translation",
+            }
+        else:
+            break
+    assert localized is not None, "real Argos never localized candidate after 5 tries"
+    assert "Hikkaduwa" in localized.title["es"]
+    assert "Waves" in localized.title["en"]
+    assert localized.description["es"] != localized.description["en"]
+    assert "Hikkaduwa" in localized.description["en"]
+    assert localized.tags["es"] and localized.tags["en"]
+
+    translated_query = None
+    for _attempt in range(5):
+        try:
+            translated_query = translate_pair("olas", "es", "en")
+        except TranslationFailed as exc:
+            assert exc.reason in {"disproportionate_translation", "repeated_translation"}
+        else:
+            assert translated_query.strip()
+            assert translated_query.casefold() != "olas"
+            break
+    assert translated_query is not None, "real Argos never translated olas after 5 tries"

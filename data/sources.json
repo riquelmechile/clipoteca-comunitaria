@@ -12,14 +12,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_archive",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "public catalog; restricted downloads are excluded",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "best_effort"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "public catalog; restricted downloads are excluded"
   },
   {
     "name": "coverr",
@@ -34,14 +34,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "catalog_search",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "key required; download MP4 preferred over preview",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "best_effort"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; download MP4 preferred over preview"
   },
   {
     "name": "europeana",
@@ -56,14 +56,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "cultural_archive",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "key required; direct video media only",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "best_effort"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; direct video media only"
   },
   {
     "name": "nara",
@@ -78,14 +78,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "government_archive",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "key required; explicit direct video resources only",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "best_effort"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; explicit direct video resources only"
   },
   {
     "name": "dpla",
@@ -100,14 +100,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "cultural_archive",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "key required; moving-image search, usually metadata only",
     "capabilities": {
       "search": "best_effort",
       "preview": "unavailable",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; moving-image search, usually metadata only"
   },
   {
     "name": "smithsonian",
@@ -122,14 +122,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "cultural_archive",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "key required; video search, usually metadata only",
     "capabilities": {
       "search": "best_effort",
       "preview": "unavailable",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; video search, usually metadata only"
   },
   {
     "name": "pexels",
@@ -144,14 +144,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "catalog_search",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "key required; direct MP4 when present",
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
       "download": "supported"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "key required; direct MP4 when present"
   },
   {
     "name": "pixabay",
@@ -166,14 +166,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "catalog_search",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "key required; video variants when present",
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
       "download": "supported"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "key required; video variants when present"
   },
   {
     "name": "wikimedia_commons",
@@ -188,14 +188,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_commons",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "file namespace, inspect rights",
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
       "download": "supported"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "file namespace, inspect rights"
   },
   {
     "name": "internet_archive",
@@ -210,14 +210,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_archive",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "movie catalog; rights vary",
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
       "download": "supported"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "movie catalog; rights vary"
   },
   {
     "name": "nasa",
@@ -232,14 +232,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_archive",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "asset manifest; source title from NASA metadata",
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
       "download": "supported"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "asset manifest; source title from NASA metadata"
   },
   {
     "name": "youtube",
@@ -254,14 +254,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "global_data_api",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "Data API has no direct MP4 endpoint",
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "Data API has no direct MP4 endpoint"
   },
   {
     "name": "rutube",
@@ -276,14 +276,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_search",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "bounded HLS download; live CDN evidence from M12 still pending",
     "capabilities": {
       "search": "supported",
       "preview": "supported",
       "download": "best_effort"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "bounded HLS download; live CDN evidence from M12 still pending"
   },
   {
     "name": "peertube",
@@ -298,14 +298,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "trusted_federation",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "allowed instances only; bounded direct MP4/WebM",
     "capabilities": {
       "search": "supported",
       "preview": "supported",
       "download": "supported"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "allowed instances only; bounded direct MP4/WebM"
   },
   {
     "name": "odysee",
@@ -320,14 +320,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_search",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "SDK claim resolution, size and rights gates",
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
       "download": "supported"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "SDK claim resolution, size and rights gates"
   },
   {
     "name": "bilibili",
@@ -342,14 +342,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_search",
-    "download_supported": false,
-    "credentials_present": true,
-    "notes": "risk control/WBI may block search; media not reusable",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": true,
+    "notes": "risk control/WBI may block search; media not reusable"
   },
   {
     "name": "vk_video",
@@ -364,14 +364,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "oauth_search",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "third-party copying requires separate rights",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "third-party copying requires separate rights"
   },
   {
     "name": "douyin",
@@ -386,14 +386,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "authorized_account_only",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "no general global video search",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "no general global video search"
   },
   {
     "name": "tiktok",
@@ -408,14 +408,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "authorized_account_only",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "Display API, no global search",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "Display API, no global search"
   },
   {
     "name": "instagram",
@@ -430,14 +430,14 @@
     ],
     "languages_semantically_verified": false,
     "scope": "authorized_professional_account_only",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "no general global video search",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "no general global video search"
   },
   {
     "name": "snapchat",
@@ -452,13 +452,13 @@
     ],
     "languages_semantically_verified": false,
     "scope": "authorized_profile_only",
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "profile Spotlight list, no global video search",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "unavailable"
-    }
+    },
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "profile Spotlight list, no global video search"
   }
 ]

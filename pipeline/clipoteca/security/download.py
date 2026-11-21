@@ -11,6 +11,7 @@ from urllib.parse import urljoin
 import httpx
 
 from ..config import USER_AGENT
+from .pinning import matches_validated_ip
 from .ssrf import UnsafeMediaURL, _is_public, validate_public_url
 
 MAX_DOWNLOAD_BYTES = 350 * 1024 * 1024
@@ -88,7 +89,9 @@ async def download_media(
                             peer = str(address[0])
                         except (TypeError, KeyError, AttributeError, IndexError) as exc:
                             raise DownloadError("cannot inspect connected peer IP") from exc
-                        if not _is_public(peer) or peer not in validated_addresses:
+                        if not _is_public(peer) or not matches_validated_ip(
+                            peer, validated_addresses
+                        ):
                             raise DownloadError("connected peer changed after DNS validation")
                     if response.status_code in {301, 302, 303, 307, 308}:
                         location = response.headers.get("location")
