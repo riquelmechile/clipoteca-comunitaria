@@ -10,6 +10,13 @@ from ..config import USER_AGENT
 from .base import AuthRequired, ProviderError, ProviderTimeout, RateLimited
 
 
+def provider_client() -> httpx.AsyncClient:
+    """Use the same project identity for all live provider HTTP clients."""
+    return httpx.AsyncClient(
+        timeout=15, follow_redirects=False, headers={"User-Agent": USER_AGENT}
+    )
+
+
 async def fetch_json(client: httpx.AsyncClient, url: str, *, params=None, headers=None) -> dict:
     """Bounded 429 retry with Retry-After. 403 is auth only with credentials."""
     request_headers = httpx.Headers(headers or {})
