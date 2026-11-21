@@ -8,7 +8,7 @@
 
 **Multilingüe · Abierta · Reutilizable · Hasta 20 segundos**
 
-[📋 Roadmap](docs/ROADMAP.md) · [🧭 Arquitectura](docs/ARQUITECTURA.md) · [🌐 Fuentes e idiomas](docs/FUENTES_IDIOMAS.md) · [🎨 Identidad](docs/IDENTIDAD.md) · [🤝 Colaborar](CONTRIBUTING.md)
+[📋 Roadmap](docs/ROADMAP.md) · [🚀 Roadmap v2](docs/ROADMAP_V2.md) · [🧭 Arquitectura](docs/ARQUITECTURA.md) · [🌐 Fuentes e idiomas](docs/FUENTES_IDIOMAS.md) · [🎨 Identidad](docs/IDENTIDAD.md) · [🤝 Colaborar](CONTRIBUTING.md)
 
 </div>
 
@@ -89,6 +89,7 @@ El roadmap tiene **11 hitos, de M0 a M10**: estructura inicial, catálogo y Rele
 | [Fuentes e idiomas](docs/FUENTES_IDIOMAS.md) | Proveedores y cuatro idiomas obligatorios |
 | [Contratos REST/MCP](docs/CONTRATOS_API_MCP.md) | Interfaces y metadatos previstos |
 | [Roadmap](docs/ROADMAP.md) | Hitos, pruebas y condiciones de cierre |
+| [Roadmap v2](docs/ROADMAP_V2.md) | Hitos M11–M24 del motor post-1.0 |
 | [QA y operación](docs/QA_OPERACION.md) | Verificación, controles y costos |
 | [Especificación completa](docs/ESPECIFICACION_COMPLETA.md) | Documento integral original, conservado sin cambios de contenido |
 | [Identidad visual](docs/IDENTIDAD.md) | Mascota Klipi, paleta y SVG |
