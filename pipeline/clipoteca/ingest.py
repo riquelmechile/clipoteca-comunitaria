@@ -235,6 +235,15 @@ async def ingest(
                                 "source_language": localized.original_language,
                                 "source_title": localized.original_title,
                                 "source_url": candidate.source_url,
+                                **(
+                                    {
+                                        key: candidate.metadata[key]
+                                        for key in ("issue_number", "issue_author", "issue_url")
+                                        if candidate.metadata and key in candidate.metadata
+                                    }
+                                    if candidate.provider == "community"
+                                    else {}
+                                ),
                             },
                             "media": {
                                 "duration_seconds": normalized.media.duration_seconds,

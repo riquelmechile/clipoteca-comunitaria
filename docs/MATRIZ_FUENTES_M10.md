@@ -22,7 +22,7 @@ La matriz se genera a partir de `data/sources.json`, que representa las **15 fue
 | Instagram Reels | D* | D* | D* | D* | solo búsqueda | AUTH_REQUIRED | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID` |
 | Snapchat | D* | D* | D* | D* | solo búsqueda | AUTH_REQUIRED | `SNAPCHAT_ACCESS_TOKEN`, `SNAPCHAT_PROFILE_ID` |
 
-**D*** = idioma declarado para consulta en el adaptador, **sin verificación semántica online**. No equivale a resultados ni a descarga publicada. `AUTH_REQUIRED` corresponde a configuración ausente, no a un fallo comprobado del proveedor. `SUPPORTED_SEARCH_ONLY` no autoriza obtener MP4 por APIs públicas. `SUPPORTED_SEARCH_DOWNLOAD` exige además validar cada URL, derechos, hash, FFmpeg y Releases.
+**D*** = idioma declarado para consulta en el adaptador, **sin verificación semántica online**. No equivale a resultados ni a descarga publicada. `AUTH_REQUIRED` corresponde a configuración ausente, no a un fallo comprobado del proveedor. `SUPPORTED_SEARCH_ONLY` no autoriza obtener MP4 por APIs públicas. `SUPPORTED_SEARCH_DOWNLOAD` exige además validar cada URL, seguridad, hash, FFmpeg y Releases.
 
 ## Evidencia técnica reproducible (sin secretos ni llamadas externas)
 
@@ -40,7 +40,7 @@ Los fixtures cubren la presencia de los proveedores, clasificación de errores y
 
 1. Comprobar desde un runner confiable cada endpoint público y registrar por proveedor/idioma: código HTTP, término solicitado, tiempo de respuesta y número de resultados, sin tokens ni URLs firmadas.
 2. En fuentes que requieren tokens, usar secretos propios de cuenta autorizada y registrar explícitamente qué permisos existían.
-3. Descargar y procesar al menos un archivo realmente reutilizable de M5; constatar licencias y publicación a Releases.
+3. Descargar y procesar al menos un archivo de M5; constatar integridad, límites y publicación a Releases.
 4. Confirmar filtros y términos ES/EN/ZH/RU desde el Worker desplegado y las seis herramientas MCP.
 5. Confirmar que el despacho de Actions escribe un job durable, finaliza publicación real y la segunda petición no duplica clips.
 

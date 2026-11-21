@@ -3,8 +3,8 @@ import worker from "../src/index";
 import { safePublicSourceUrl, validateSubmission } from "../src/contributions";
 
 const token = "secure-test-issue-token";
-const body = { title: "Lluvia en una calle", url: "https://videos.example.org/watch/123",
-  license_confirmed: true, notes: "Autor afirma tener permiso" };
+const body = { title: "Lluvia en una calle", url: "https://videos.example.org/scene.mp4",
+  notes: "Lluvia capturada por un colaborador" };
 const env = { CLIPOTECA_ISSUE_TOKEN: token };
 
 describe("M9 URL-only contribution", () => {
@@ -22,8 +22,8 @@ describe("M9 URL-only contribution", () => {
     expect(() => safePublicSourceUrl(url)).toThrow();
   });
 
-  it("requires explicit license confirmation and rejects unknown input fields", () => {
-    expect(() => validateSubmission({ ...body, license_confirmed: false })).toThrow();
+  it("accepts an Issue without approval and rejects unknown input fields", () => {
+    expect(validateSubmission(body).title).toBe(body.title);
     expect(() => validateSubmission({ ...body, hidden: "script" })).toThrow();
   });
 
@@ -33,7 +33,7 @@ describe("M9 URL-only contribution", () => {
       requests.push(String(url));
       const sent = JSON.parse(String(opts?.body)) as { title: string; body: string };
       expect(sent.body).toContain(body.url);
-      expect(sent.body).toContain("revisión humana");
+      expect(sent.body).toContain("pipeline automatizado");
       expect(sent.body).not.toContain(token);
       return Response.json({
         number: 19, html_url: "https://github.com/riquelmechile/clipoteca-comunitaria/issues/19",
@@ -44,7 +44,7 @@ describe("M9 URL-only contribution", () => {
       body: JSON.stringify(body),
     }), env);
     expect(response.status).toBe(201);
-    expect(await response.json()).toMatchObject({ status: "pending_human_review", issue_number: 19 });
+    expect(await response.json()).toMatchObject({ status: "queued", issue_number: 19 });
     expect(requests).toEqual(["https://api.github.com/repos/riquelmechile/clipoteca-comunitaria/issues"]);
   });
 
