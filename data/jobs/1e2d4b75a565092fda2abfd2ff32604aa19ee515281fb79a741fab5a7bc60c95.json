@@ -1,8 +1,8 @@
 {
   "request_id": "1e2d4b75a565092fda2abfd2ff32604aa19ee515281fb79a741fab5a7bc60c95",
-  "status": "publishing",
+  "status": "published",
   "attempt": 1,
-  "updated_at": "2026-11-21T03:55:05.986510Z",
+  "updated_at": "2026-11-21T03:55:10.865540Z",
   "language_counts": {
     "es": 1
   },
