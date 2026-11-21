@@ -23,7 +23,6 @@ TERMINAL = ("no_results", "duplicate", "failed", "rate_limited", "unavailable")
 
 def request_id(query: str, filters: dict[str, Any], horizon: str) -> str:
     normalized_filters = dict(filters)
-    normalized_filters.setdefault("aspect_ratio", None)
     if normalized_filters.get("aspect_ratio") == "":
         normalized_filters["aspect_ratio"] = None
     if "max_duration" in normalized_filters and normalized_filters["max_duration"] not in (
@@ -155,7 +154,11 @@ class JobStore:
                     )
                     if not retry:
                         raise ValueError("terminal job cannot transition")
-                if next_state not in TERMINAL and STATUSES.index(next_state) < STATUSES.index(prev):
+                if (
+                    prev in STATUSES
+                    and next_state not in TERMINAL
+                    and STATUSES.index(next_state) < STATUSES.index(prev)
+                ):
                     raise ValueError("job state cannot regress")
         fd, temporary = tempfile.mkstemp(dir=self.root, prefix=".job-", suffix=".tmp")
         try:

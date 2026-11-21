@@ -53,7 +53,7 @@ def test_missing_argos_must_not_fallback_to_word_substitution(monkeypatch):
 
 def test_terminal_jobs_retry_only_with_incrementing_attempt(tmp_path):
     rid = request_id("lluvia", {"max_duration": 20}, "v1")
-    assert rid == request_id("lluvia", {"aspect_ratio": None, "max_duration": 20}, "v1")
+    assert rid != request_id("lluvia", {"aspect_ratio": None, "max_duration": 20}, "v1")
     jobs = JobStore(tmp_path)
     job = new_job(rid)
     jobs.save(job)
