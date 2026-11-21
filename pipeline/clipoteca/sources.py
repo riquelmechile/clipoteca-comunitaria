@@ -143,7 +143,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         Bilibili,
         (),
         "public_search",
-        "risk control/WBI may block search; media not reusable",
+        "WBI search best effort; download only after successful main-branch smoke",
     ),
     SourceSpec(
         "ok_ru",
@@ -220,7 +220,7 @@ SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
     "rutube": {"search": "supported", "preview": "supported", "download": "best_effort"},
     "peertube": {"search": "supported", "preview": "supported", "download": "supported"},
     "odysee": {"search": "supported", "preview": "best_effort", "download": "supported"},
-    "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
     "ok_ru": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "vk_video": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "dzen": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},

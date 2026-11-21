@@ -204,29 +204,40 @@ async def download_dash(
                 }
             ),
         )
-        proc = await asyncio.create_subprocess_exec(
-            "ffmpeg",
-            "-v",
-            "error",
-            "-nostdin",
-            "-y",
-            "-i",
-            str(video),
-            "-i",
-            str(audio),
-            "-map",
-            "0:v:0",
-            "-map",
-            "1:a:0",
-            "-c",
-            "copy",
-            "-shortest",
-            "-movflags",
-            "+faststart",
-            str(output),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "ffmpeg",
+                "-v",
+                "error",
+                "-nostdin",
+                "-y",
+                "-f",
+                "mp4",
+                "-protocol_whitelist",
+                "file",
+                "-i",
+                str(video),
+                "-f",
+                "mp4",
+                "-protocol_whitelist",
+                "file",
+                "-i",
+                str(audio),
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                "-c",
+                "copy",
+                "-shortest",
+                "-movflags",
+                "+faststart",
+                str(output),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except FileNotFoundError as exc:
+            raise DownloadError("ffmpeg_unavailable") from exc
         try:
             await asyncio.wait_for(proc.communicate(), timeout=120)
         except TimeoutError as exc:

@@ -7,6 +7,7 @@ Only public navigation keys are used. No cookie is required.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import html
 import os
@@ -147,7 +148,10 @@ def _media_host(url: str) -> str:
         or parts.username
         or parts.password
         or (port not in (None, 443))
-        or not (any(name.endswith(domain) for domain in CDN_SUFFIXES) or name in CDN_EXACT)
+        or not (
+            any(name == domain[1:] or name.endswith(domain) for domain in CDN_SUFFIXES)
+            or name in CDN_EXACT
+        )
     ):
         raise ProviderError("Bilibili media CDN host rejected")
     return name
@@ -157,7 +161,8 @@ class Bilibili(Adapter):
     name = "bilibili"
     category = "social_video"
     auth = "BILIBILI_COOKIE_optional"
-    support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+    # Download stays disabled until a real main-branch Bilibili smoke succeeds.
+    support_status = SupportStatus.SUPPORTED_SEARCH_ONLY
     accepts_text_languages = ("es", "en", "zh", "ru")
 
     def __init__(self, *, cookie: str | None = None, client: httpx.AsyncClient | None = None):
@@ -166,15 +171,19 @@ class Bilibili(Adapter):
         self._http_412_count = 0
         self._mixin: str | None = None
         self._keys_since = 0.0
+        self._key_lock = asyncio.Lock()
+        self._blocked = False
 
     @property
     def _headers(self) -> dict[str, str]:
-        headers = {"User-Agent": USER_AGENT, "Referer": REFERER}
+        headers = {"User-Agent": os.getenv("BILIBILI_USER_AGENT") or USER_AGENT, "Referer": REFERER}
         if self.cookie:
             headers["Cookie"] = self.cookie
         return headers
 
     async def _request(self, endpoint: str, query: str | dict[str, object] = ()) -> dict:
+        if self._blocked:
+            raise ProviderError("ip_blocked")
         url = API + endpoint
         if isinstance(query, str):
             url += "?" + query
@@ -192,6 +201,7 @@ class Bilibili(Adapter):
         if response.status_code == 412:
             self._http_412_count += 1
             if self._http_412_count >= 3:
+                self._blocked = True
                 raise ProviderError("ip_blocked")
             raise RateLimited("Bilibili HTTP 412 risk control")
         self._http_412_count = 0
@@ -208,17 +218,21 @@ class Bilibili(Adapter):
         return payload
 
     async def _keys(self, *, refresh: bool = False) -> str:
-        age = time.monotonic() - self._keys_since
-        if self._mixin and age < 86400 and not refresh:
+        if self._mixin and time.monotonic() - self._keys_since < 86400 and not refresh:
             return self._mixin
-        payload = await self._request("/x/web-interface/nav")
-        data = payload.get("data") or {}
-        images = data.get("wbi_img") if isinstance(data, dict) else None
-        if not isinstance(images, dict):
-            raise ProviderError("Bilibili WBI navigation keys unavailable")
-        self._mixin = wbi_mixin(_key_stem(images.get("img_url")), _key_stem(images.get("sub_url")))
-        self._keys_since = time.monotonic()
-        return self._mixin
+        async with self._key_lock:
+            if self._mixin and time.monotonic() - self._keys_since < 86400 and not refresh:
+                return self._mixin
+            payload = await self._request("/x/web-interface/nav")
+            data = payload.get("data") or {}
+            images = data.get("wbi_img") if isinstance(data, dict) else None
+            if not isinstance(images, dict):
+                raise ProviderError("Bilibili WBI navigation keys unavailable")
+            self._mixin = wbi_mixin(
+                _key_stem(images.get("img_url")), _key_stem(images.get("sub_url"))
+            )
+            self._keys_since = time.monotonic()
+            return self._mixin
 
     async def _signed(self, endpoint: str, params: dict[str, object]) -> dict:
         for attempt in range(2):
@@ -305,6 +319,45 @@ class Bilibili(Adapter):
         cid = fields.get("cid")
         if not isinstance(cid, int) or cid <= 0:
             return None
+        # Browser HTML5 mode prefers one MP4 and avoids the ffmpeg DASH mux.
+        data = await self._signed(
+            "/x/player/wbi/playurl",
+            {
+                "bvid": candidate.provider_id,
+                "cid": cid,
+                "qn": 64,
+                "fnval": 1,
+                "platform": "html5",
+                "high_quality": 1,
+            },
+        )
+
+        def allowed_url(primary: object, backups: object, *, mp4: bool) -> tuple[str, str] | None:
+            entries = [primary]
+            if isinstance(backups, (list, tuple)):
+                entries.extend(backups)
+            for value in entries:
+                if not isinstance(value, str):
+                    continue
+                try:
+                    if mp4 and not urlsplit(value).path.lower().endswith((".mp4", ".m4v")):
+                        continue
+                    return value, _media_host(value)
+                except ProviderError:
+                    continue
+            return None
+
+        for entry in data.get("durl") or ():
+            if not isinstance(entry, dict):
+                continue
+            selected = allowed_url(
+                entry.get("url"), entry.get("backupUrl") or entry.get("backup_url"), mp4=True
+            )
+            if selected:
+                video, host = selected
+                return MediaRef(url=video, mime="video/mp4", referer=REFERER, allowed_hosts=(host,))
+
+        # No usable durl: request separate DASH tracks through WBI.
         data = await self._signed(
             "/x/player/wbi/playurl",
             {
@@ -315,40 +368,37 @@ class Bilibili(Adapter):
                 "platform": "pc",
             },
         )
-        # Prefer a regular MP4 when the player offers one.
-        durl = data.get("durl") or []
-        for item in durl:
-            if not isinstance(item, dict) or not isinstance(item.get("url"), str):
-                continue
-            video = item["url"]
-            if not urlsplit(video).path.lower().endswith((".mp4", ".m4v")):
-                continue
-            host = _media_host(video)
-            return MediaRef(url=video, mime="video/mp4", referer=REFERER, allowed_hosts=(host,))
         dash = data.get("dash") or {}
         if not isinstance(dash, dict):
             return None
-        video_streams = dash.get("video") or []
-        audio_streams = dash.get("audio") or []
-        if not video_streams or not audio_streams:
+
+        def bandwidth(entry: dict) -> int:
+            try:
+                value = int(entry.get("bandwidth") or 0)
+                return max(0, value)
+            except (ValueError, TypeError, OverflowError):
+                return 0
+
+        def select_stream(streams: object) -> tuple[str, str] | None:
+            if not isinstance(streams, list):
+                return None
+            for entry in sorted(
+                (x for x in streams if isinstance(x, dict)), key=bandwidth, reverse=True
+            ):
+                resolved = allowed_url(
+                    entry.get("baseUrl") or entry.get("base_url"),
+                    entry.get("backupUrl") or entry.get("backup_url"),
+                    mp4=False,
+                )
+                if resolved:
+                    return resolved
             return None
-        video_streams = sorted(
-            (entry for entry in video_streams if isinstance(entry, dict)),
-            key=lambda entry: int(entry.get("bandwidth") or 0),
-            reverse=True,
-        )
-        audio_streams = sorted(
-            (entry for entry in audio_streams if isinstance(entry, dict)),
-            key=lambda entry: int(entry.get("bandwidth") or 0),
-            reverse=True,
-        )
-        if not video_streams or not audio_streams:
+
+        video = select_stream(dash.get("video"))
+        audio = select_stream(dash.get("audio"))
+        if video is None or audio is None:
             return None
-        video = str(video_streams[0].get("baseUrl") or video_streams[0].get("base_url") or "")
-        audio = str(audio_streams[0].get("baseUrl") or audio_streams[0].get("base_url") or "")
-        if not video or not audio:
-            return None
-        hosts = tuple(sorted({_media_host(video), _media_host(audio)}))
+        hosts = tuple(sorted({video[1], audio[1]}))
         return MediaRef(
-            url=video, mime="video/mp4", referer=REFERER, allowed_hosts=hosts, audio_url=audio
+            url=video[0], mime="video/mp4", referer=REFERER, allowed_hosts=hosts, audio_url=audio[0]
         )
