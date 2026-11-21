@@ -15,10 +15,20 @@ FRAME_WIDTH = 96
 FRAME_HEIGHT = 54
 FRAME_SIZE = FRAME_WIDTH * FRAME_HEIGHT
 MAX_SAMPLES = 900
+MIN_WINDOW_QUALITY = 0.12
+STATIC_MOTION_EPSILON = 0.08
 
 
 class SceneSelectionError(RuntimeError):
     """Source scene scoring could not complete safely."""
+
+
+class SceneSelectionTimeout(SceneSelectionError):
+    """Bounded scene sampling exceeded its deadline."""
+
+
+class SceneQualityRejected(SceneSelectionError):
+    """The source contains no publishable scene window."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,13 +41,21 @@ class SourceWindow:
         return self.end - self.start
 
 
+def _percentile(values: list[float], fraction: float) -> float:
+    ordered = sorted(values)
+    if not ordered:
+        return 0.0
+    return ordered[min(len(ordered) - 1, int((len(ordered) - 1) * fraction))]
+
+
 def _scores(frames: bytes) -> list[float]:
     if len(frames) % FRAME_SIZE:
         raise SceneSelectionError("FFmpeg returned truncated scene samples")
     count = len(frames) // FRAME_SIZE
     if not count:
         raise SceneSelectionError("FFmpeg returned no scene samples")
-    results: list[float] = []
+
+    metrics: list[tuple[float, float, float]] = []
     previous: memoryview | None = None
     for index in range(count):
         frame = memoryview(frames)[index * FRAME_SIZE : (index + 1) * FRAME_SIZE]
@@ -46,19 +64,30 @@ def _scores(frames: bytes) -> list[float]:
             abs(frame[i] - frame[i - 1]) for i in range(1, FRAME_SIZE) if i % FRAME_WIDTH
         ) / (FRAME_SIZE - FRAME_HEIGHT)
         motion = (
-            (sum(abs(a - b) for a, b in zip(frame, previous)) / FRAME_SIZE)
+            sum(abs(a - b) for a, b in zip(frame, previous)) / FRAME_SIZE
             if previous is not None
             else 0.0
         )
+        metrics.append((luminance, spatial, motion))
         previous = frame
-        # Black fades, overexposed frames and flat cards have almost no value.
+
+    nonzero_motion = [motion for _, _, motion in metrics if motion > STATIC_MOTION_EPSILON]
+    # Relative normalization keeps gentle rain/camera drift meaningful even when
+    # its absolute pixel delta is far below a fast test pattern.
+    motion_reference = max(_percentile(nonzero_motion, 0.75), 0.35)
+    results: list[float] = []
+    for index, (luminance, spatial, motion) in enumerate(metrics):
+        if index == 0 and len(metrics) > 1:
+            motion = metrics[1][2]
         if luminance < 30 or luminance > 235 or spatial < 3:
             results.append(0.0)
-        elif motion < 2.5:
-            # Text/cards can have high edges while still being static.
+        elif motion <= STATIC_MOTION_EPSILON:
+            # A high-edge title card is still static; textured slow motion is not.
             results.append(0.03)
         else:
-            results.append(min(1.0, spatial / 26) * 0.4 + min(1.0, motion / 22) * 0.6)
+            texture = min(1.0, spatial / 26)
+            relative_motion = min(1.0, motion / motion_reference)
+            results.append(texture * 0.4 + relative_motion * 0.6)
     return results
 
 
@@ -79,7 +108,7 @@ def _sample_scores(source: Path, seconds: float, *, timeout: float) -> list[floa
         f"{seconds:.3f}",
         "-an",
         "-vf",
-        f"fps=1,scale={FRAME_WIDTH}:{FRAME_HEIGHT},format=gray",
+        f"scale=160:-2:flags=fast_bilinear,fps=1,scale={FRAME_WIDTH}:{FRAME_HEIGHT},format=gray",
         "-f",
         "rawvideo",
         "-pix_fmt",
@@ -94,6 +123,8 @@ def _sample_scores(source: Path, seconds: float, *, timeout: float) -> list[floa
             timeout=timeout,
             env=safe_media_env(),
         )
+    except subprocess.TimeoutExpired as exc:
+        raise SceneSelectionTimeout("bounded FFmpeg scene sampling timed out") from exc
     except (subprocess.SubprocessError, OSError) as exc:
         raise SceneSelectionError("bounded FFmpeg scene sampling failed") from exc
     if len(result.stdout) > MAX_SAMPLES * FRAME_SIZE:
@@ -108,40 +139,42 @@ def rank_scene_windows(
     max_clips: int = 2,
     timeout: float = 90,
 ) -> list[SourceWindow]:
-    """Best non-overlapping <=20s windows, tied by earliest source timestamp."""
+    """Return publishable non-overlapping windows, best quality then earliest."""
     if not 0 < max_duration <= 20:
         raise ValueError("max_duration must be in (0, 20]")
     if not 1 <= max_clips <= 3:
         raise ValueError("max_clips must be 1..3")
     if timeout <= 0:
         raise ValueError("timeout must be positive")
+
     path = Path(source)
     total = probe_media(path, timeout=min(timeout, 30)).duration_seconds
-    if total <= max_duration:
-        return [SourceWindow(0, total)]
     horizon = min(total, MAX_WINDOW_SECONDS)
-    scenes = detect_scenes(path, start=0, max_window=horizon)
     scores = _sample_scores(path, horizon, timeout=timeout)
     starts = {0.0}
-    starts.update(scene.start for scene in scenes if scene.duration >= MIN_SCENE_SECONDS)
-    # Additional 2s candidates permit avoiding title cards or fades when M13
-    # returns one long take, while preserving a finite CPU scoring budget.
-    starts.update(float(t) for t in range(0, min(math.ceil(horizon), 900), 2))
+    if total > max_duration:
+        scenes = detect_scenes(path, start=0, max_window=horizon)
+        starts.update(scene.start for scene in scenes if scene.duration >= MIN_SCENE_SECONDS)
+        # Additional 2s candidates permit avoiding title cards or fades when M13
+        # returns one long take, while preserving a finite CPU scoring budget.
+        starts.update(float(t) for t in range(0, min(math.ceil(horizon), 900), 2))
+
     ranked: list[tuple[float, SourceWindow]] = []
     for start in sorted(starts):
         end = min(start + max_duration, horizon)
-        if end - start < MIN_SCENE_SECONDS:
+        if end - start < MIN_SCENE_SECONDS and total > max_duration:
             continue
         a = int(start)
         b = min(len(scores), max(a + 1, math.ceil(end)))
         selected = scores[a:b]
         if not selected:
             continue
-        # Mean prioritizes windows without long bad portions; a low quality
-        # penalty discourages black/static title-card frames within a window.
         quality = sum(selected) / len(selected)
         bad_fraction = sum(x <= 0.03 for x in selected) / len(selected)
-        ranked.append((quality - bad_fraction * 0.35, SourceWindow(start, end)))
+        adjusted = quality - bad_fraction * 0.35
+        if adjusted >= MIN_WINDOW_QUALITY:
+            ranked.append((adjusted, SourceWindow(start, end)))
+
     ranked.sort(key=lambda pair: (-pair[0], pair[1].start))
     chosen: list[SourceWindow] = []
     for _quality, window in ranked:
@@ -149,4 +182,6 @@ def rank_scene_windows(
             chosen.append(window)
             if len(chosen) == max_clips:
                 break
-    return chosen or [SourceWindow(0, min(max_duration, horizon))]
+    if not chosen:
+        raise SceneQualityRejected("no scene window meets the minimum quality threshold")
+    return chosen
