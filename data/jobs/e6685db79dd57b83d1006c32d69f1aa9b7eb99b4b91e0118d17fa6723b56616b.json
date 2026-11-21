@@ -1,14 +1,10 @@
 {
   "request_id": "e6685db79dd57b83d1006c32d69f1aa9b7eb99b4b91e0118d17fa6723b56616b",
-  "status": "failed",
-  "attempt": 1,
-  "updated_at": "2026-11-21T03:04:32.183467Z",
+  "status": "queued",
+  "attempt": 2,
+  "updated_at": "2026-11-21T03:18:49.505827Z",
   "language_counts": {},
   "provider_counts": {},
-  "source_errors": {
-    "translation": "translation_failed:en"
-  },
-  "terms": {
-    "es": "Olas en la playa"
-  }
+  "source_errors": {},
+  "terms": {}
 }
