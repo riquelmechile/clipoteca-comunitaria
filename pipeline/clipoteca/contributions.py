@@ -208,7 +208,10 @@ async def run_community_issue(issue: CommunityIssue, repository: str, token: str
         max_results=1,
         filters={"max_duration": 20},
         # Revisions create independent retry budgets without clearing the old dead letter.
-        horizon=f"community-issue-{issue.number}" + (f"-{issue.revision}" if issue.revision else ""),
+        horizon=(
+            f"community-issue-{issue.number}"
+            + (f"-{issue.revision}" if issue.revision else "")
+        ),
         expand_search=False,
     )
 
@@ -239,7 +242,8 @@ def send_feedback(
         reason
         if public_translation_error(reason) == reason
         or re.fullmatch(
-            r"(?:translation_failed:(?:es|en|zh|ru)|download_error(?::HTTP [1-5]\\d{2})?|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
+            r"(?:translation_failed:(?:es|en|zh|ru)|download_error(?::HTTP [1-5][0-9]{2})?"
+            r"|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
             reason,
         )
         else "processing_failed"
@@ -282,7 +286,7 @@ def _feedback_reason(errors: tuple[str, ...]) -> str:
         match = re.search(r"translation_failed:(es|en|zh|ru)(?![a-z])", error)
         if match:
             return f"translation_failed:{match.group(1)}"
-        http_status = re.search(r"download_error:HTTP ([1-5]\\d{2})(?!\\d)", error)
+        http_status = re.search(r"download_error:HTTP ([1-5][0-9]{2})(?![0-9])", error)
         if http_status:
             return "download_error:HTTP " + http_status.group(1)
         if "download" in error.casefold():
