@@ -215,3 +215,21 @@ def test_feedback_reports_safe_concrete_error_without_leaking_inputs():
     assert "processing_failed" in comments[1]
     assert "bad.example" not in "".join(comments)
     assert "secret-token" not in "".join(comments)
+
+
+@pytest.mark.asyncio
+async def test_direct_community_discovery_never_uses_four_language_expansion():
+    from clipoteca.catalog import Catalog
+    from clipoteca.engine import SearchEngine
+    from clipoteca.translate.expand import QueryExpansion
+
+    item = parse_community_issue(issue(), 19)
+    engine = SearchEngine([CommunityContribution(item)])
+    partial = QueryExpansion(concept=item.title, terms={"es": item.title})
+    ordinary = await engine.search(item.title, catalog=Catalog(), expansion=partial)
+    assert ordinary.candidates == []
+    direct = await engine.search(
+        item.title, catalog=Catalog(), expansion=partial, allow_partial_expansion=True
+    )
+    assert len(direct.candidates) == 1
+    assert [execution.language for execution in direct.executions] == ["es"]
