@@ -31,7 +31,6 @@ HLS_MIME_TYPES = frozenset(
     }
 )
 MAX_PLAYLIST_BYTES = 256 * 1024
-MAX_SEGMENTS = 80
 MAX_HLS_DURATION = 20.0
 STREAM_RE = re.compile(r"RESOLUTION=(\d+)x(\d+)")
 BANDWIDTH_RE = re.compile(r"BANDWIDTH=(\d+)")
@@ -94,15 +93,22 @@ def parse_media(text: str) -> list[tuple[float, str]]:
             if not (0 < duration < math.inf):
                 raise DownloadError("HLS duration out of bounds")
             segments.append((duration, rows[index + 1]))
-    if not segments or len(segments) > MAX_SEGMENTS:
-        raise DownloadError("HLS segment count out of bounds")
+    if not segments:
+        raise DownloadError("HLS has no playable segments")
     return segments
 
 
 async def _validated(url: str, base: str, allowed_hosts: frozenset[str], resolver) -> str:
     address = urljoin(base, url)
     parsed = urlsplit(address)
-    if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
+    host = parsed.hostname or ""
+    # Exact hosts or explicitly scoped suffixes, e.g. ".rtbcdn.ru"; never a
+    # substring match. Even an allowed hostname still needs public DNS.
+    allowed = host in allowed_hosts or any(
+        entry.startswith(".") and host.endswith(entry) and host != entry[1:]
+        for entry in allowed_hosts
+    )
+    if parsed.scheme != "https" or not allowed:
         raise UnsafeMediaURL("HLS URI host or scheme not allowed")
     await validate_public_url(address, resolver=resolver)
     return address
@@ -117,27 +123,47 @@ async def _fetch(
     own_client: bool,
     max_bytes: int,
 ) -> bytes:
+    """Connect to the previously validated public IP, not a second DNS answer.
+
+    HTTPS SNI and certificate verification retain the original hostname.
+    MockTransport is allowed for isolated tests; all other transports must
+    expose a matching connected peer. A foreign injected client does not
+    bypass validation or pinning.
+    """
     addresses: list[str] = []
     await validate_public_url(url, resolver=resolver, validated_addresses=addresses)
-    headers = {"User-Agent": USER_AGENT}
+    if not addresses:
+        raise DownloadError("HLS host has no validated address")
+    host = urlsplit(url).hostname
+    assert host is not None
+    chosen_ip = addresses[0]
+    pinned_url = httpx.URL(url).copy_with(host=chosen_ip)
+    headers = {"User-Agent": USER_AGENT, "Host": host}
     if referer:
-        if "\r" in referer or "\n" in referer or urlsplit(referer).scheme != "https":
+        if "\\r" in referer or "\\n" in referer or urlsplit(referer).scheme != "https":
             raise DownloadError("invalid HLS Referer")
         headers["Referer"] = referer
     body = bytearray()
     try:
-        async with client.stream("GET", url, headers=headers, follow_redirects=False) as response:
+        async with client.stream(
+            "GET",
+            pinned_url,
+            headers=headers,
+            follow_redirects=False,
+            extensions={"sni_hostname": host},
+        ) as response:
             peer_stream = response.extensions.get("network_stream")
             if peer_stream is None:
-                if own_client:
+                # Only an explicit test transport can simulate an absent peer.
+                if not isinstance(getattr(client, "_transport", None), httpx.MockTransport):
                     raise DownloadError("HLS connected peer unavailable")
             else:
                 try:
                     peer = str(peer_stream.get_extra_info("server_addr")[0])
                 except (TypeError, KeyError, AttributeError, IndexError) as exc:
                     raise DownloadError("HLS connected peer could not be inspected") from exc
-                if not _is_public(peer) or peer not in addresses:
-                    raise DownloadError("HLS peer changed after DNS resolution")
+                if not _is_public(peer) or peer != chosen_ip:
+                    raise DownloadError("HLS connected peer mismatch after IP pinning")
             if response.status_code != 200:
                 raise DownloadError("HLS request blocked or redirected")
             declared = response.headers.get("content-length")
@@ -164,6 +190,7 @@ async def download_hls(
     referer: str | None = None,
     allowed_hosts: tuple[str, ...] = (),
     max_duration: float = 20.0,
+    start: float = 0.0,
     max_bytes: int = MAX_DOWNLOAD_BYTES,
     client: httpx.AsyncClient | None = None,
     resolver=None,
@@ -171,6 +198,8 @@ async def download_hls(
     """Download bounded HLS segments and let FFmpeg read *local* media only."""
     if not 0 < max_duration <= MAX_HLS_DURATION:
         raise ValueError("HLS max_duration must be in (0, 20]")
+    if not 0 <= start < math.inf:
+        raise ValueError("HLS start must be a finite nonnegative offset")
     if not 0 < max_bytes <= MAX_DOWNLOAD_BYTES:
         raise ValueError("invalid HLS max_bytes")
     parsed = urlsplit(url)
@@ -226,34 +255,39 @@ async def download_hls(
                         )
                     ).decode("utf-8", errors="replace")
                 segments = parse_media(media_text)
-                # A malicious URI anywhere in the selected playlist is rejected,
-                # including after our eventual 20-second cut.
-                validated = [
-                    await _validated(uri, media_url, hosts, resolver) for _duration, uri in segments
-                ]
-                used = 0
-                elapsed = 0.0
-                selected_duration = 0.0
-                selected: list[float] = []
-                for duration, _uri in segments:
-                    if selected_duration >= max_duration:
+                # Select only a window from the start offset. Long VOD may
+                # contain hundreds of segments; URI validation/download is
+                # limited to exactly those intersecting the requested cut.
+                current = 0.0
+                selected: list[tuple[float, str]] = []
+                first_start = 0.0
+                for duration, uri in segments:
+                    segment_end = current + duration
+                    if segment_end > start and current < start + max_duration:
+                        if not selected:
+                            first_start = current
+                        selected.append((duration, uri))
+                    current = segment_end
+                    if current >= start + max_duration:
                         break
-                    if duration > MAX_HLS_DURATION:
-                        raise DownloadError("HLS segment exceeds duration limit")
-                    selected.append(duration)
-                    selected_duration += duration
-                target_duration = max(1, math.ceil(max(selected)))
+                if not selected:
+                    raise DownloadError("HLS requested window is outside playlist")
+                # Validate all selected URIs before downloading any media.
+                validated = [
+                    await _validated(uri, media_url, hosts, resolver)
+                    for duration, uri in selected
+                ]
+                target_duration = max(1, math.ceil(max(duration for duration, _uri in selected)))
                 local_playlist = [
                     "#EXTM3U",
                     "#EXT-X-VERSION:3",
                     f"#EXT-X-TARGETDURATION:{target_duration}",
                     "#EXT-X-MEDIA-SEQUENCE:0",
                 ]
+                used = 0
                 for index, ((duration, _uri), segment_url) in enumerate(
-                    zip(segments, validated, strict=True)
+                    zip(selected, validated, strict=True)
                 ):
-                    if elapsed >= max_duration:
-                        break
                     remaining = max_bytes - used
                     if remaining <= 0:
                         raise DownloadError("HLS aggregate byte cap reached")
@@ -268,11 +302,9 @@ async def download_hls(
                     if not payload:
                         raise DownloadError("HLS empty media segment")
                     used += len(payload)
-                    suffix = ".ts"
-                    filename = f"part-{index:03d}{suffix}"
+                    filename = f"part-{index:03d}.ts"
                     (stage / filename).write_bytes(payload)
                     local_playlist.extend([f"#EXTINF:{duration:.4f},", filename])
-                    elapsed += duration
                 local_playlist.append("#EXT-X-ENDLIST")
                 playlist_path = stage / "local.m3u8"
                 playlist_path.write_text("\n".join(local_playlist) + "\n", encoding="utf-8")
@@ -285,10 +317,12 @@ async def download_hls(
                     "-y",
                     "-protocol_whitelist",
                     "file,crypto",
-                    "-allowed_extensions",
-                    "ALL",
+                    "-allowed_segment_extensions",
+                    "ts",
                     "-i",
                     str(playlist_path),
+                    "-ss",
+                    str(max(0.0, start - first_start)),
                     "-t",
                     str(max_duration),
                     "-fs",
@@ -319,7 +353,11 @@ async def download_hls(
                         timeout=180,
                         env=safe_media_env(),
                     )
-                except (subprocess.SubprocessError, OSError) as exc:
+                except (subprocess.CalledProcessError, OSError) as exc:
+                    if "allowed_segment_extensions" in str(getattr(exc, "stderr", "")):
+                        raise DownloadError("FFmpeg lacks secure HLS segment extension option") from exc
+                    raise DownloadError("HLS FFmpeg remux failed") from exc
+                except subprocess.SubprocessError as exc:
                     raise DownloadError("HLS FFmpeg remux failed") from exc
                 if not output.is_file() or not 0 < output.stat().st_size <= max_bytes:
                     raise DownloadError("HLS output violated byte cap")
