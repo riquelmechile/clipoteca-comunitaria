@@ -15,7 +15,7 @@ def detect_source_language(text: str) -> str:
         return "zh"
     if re.search(r"[\u0400-\u04ff]", text):
         return "ru"
-    if re.search(r"[áéíóúñü¿¡]", text.casefold()):
+    if re.search(r"[\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1\u00fc\u00bf\u00a1]", text.casefold()):
         return "es"
     if re.search(r"\b(el|la|los|las|una|unas|lluvia|calle|cielo|noche|paisaje)\b", text.casefold()):
         return "es"
@@ -80,6 +80,7 @@ class MediaRef:
     size_bytes: int | None = None
     referer: str | None = None
     allowed_hosts: tuple[str, ...] = ()
+    audio_url: str | None = None
 
 
 class Adapter(ABC):

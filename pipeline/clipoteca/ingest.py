@@ -63,7 +63,7 @@ from .metrics import discovery_metrics, write_metrics
 from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
 from .translate.argos import public_translation_error
 from .translate.expand import QueryExpansion, expand_query
-from .security.download import DownloadError, download_media
+from .security.download import DownloadError, download_dash, download_media
 from .security.hls import HLS_MIME_TYPES, download_hls
 from .storage.github import GitHubReleaseStorage, StorageError
 
@@ -491,6 +491,14 @@ async def ingest(
                     )
                     if downloader:
                         raw = await downloader(ref.url, temp)
+                    elif ref.audio_url:
+                        raw = await download_dash(
+                            ref.url,
+                            ref.audio_url,
+                            temp,
+                            allowed_hosts=ref.allowed_hosts,
+                            referer=ref.referer or "https://www.bilibili.com/",
+                        )
                     elif ref.mime in HLS_MIME_TYPES:
                         raw = await download_hls(
                             ref.url,
@@ -505,6 +513,7 @@ async def ingest(
                             temp,
                             expected_bytes=ref.size_bytes,
                             allowed_hosts=ref.allowed_hosts,
+                            referer=ref.referer if candidate.provider == "bilibili" else None,
                         )
                     downloaded_count += 1
                     advance("processing")

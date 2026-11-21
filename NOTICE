@@ -1,0 +1,8 @@
+
+Bilibili WBI algorithm reference (Apache-2.0)
+Evil0ctal / Douyin_TikTok_Download_API
+https://github.com/Evil0ctal/Douyin_TikTok_Download_API
+commit: ed4ec42534b1194f8d8c18be7b4ba493334f5321
+Reference files: src/dtk/signing/native/wbi.py, wbi_keys.py,
+src/dtk/platforms/bilibili/params.py.
+This project implements public WBI signing separately, using tested reference vectors.

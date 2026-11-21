@@ -13,11 +13,25 @@ from clipoteca.providers.base import (
 from clipoteca.providers.bilibili import Bilibili
 from clipoteca.providers.vk_video import VKVideo
 
+_WBI_NAV = {
+    "code": -101,
+    "data": {
+        "wbi_img": {
+            "img_url": "https://i0.hdslb.com/bfs/wbi/7cd084941338484aae1ad9425b84077c.png",
+            "sub_url": "https://i0.hdslb.com/bfs/wbi/4932caff0ff746eab6f01bf08b70ac45.png",
+        }
+    },
+}
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("lang", ["es", "en", "zh", "ru"])
 async def test_bilibili_search_real_shape(lang):
     def handler(req):
+        if req.url.path.endswith("/nav"):
+            return httpx.Response(200, json=_WBI_NAV)
+        if req.url.path.endswith("/view"):
+            return httpx.Response(200, json={"code": 0, "data": {}})
         assert req.url.params["search_type"] == "video"
         return httpx.Response(
             200,
@@ -52,22 +66,24 @@ async def test_bilibili_search_real_shape(lang):
     "code,exc", [(-352, RateLimited), (-412, RateLimited), (500, ProviderError)]
 )
 async def test_bilibili_error_codes(code, exc):
-    adapter = Bilibili(
-        client=httpx.AsyncClient(
-            transport=httpx.MockTransport(lambda _: httpx.Response(200, json={"code": code}))
-        )
-    )
+    def handler(req):
+        if req.url.path.endswith("/nav"):
+            return httpx.Response(200, json=_WBI_NAV)
+        return httpx.Response(200, json={"code": code})
+
+    adapter = Bilibili(client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
     with pytest.raises(exc):
         await adapter.search("rain", "en", SearchLimits())
 
 
 @pytest.mark.asyncio
 async def test_bilibili_empty_and_network_timeout():
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda _: httpx.Response(200, json={"code": 0, "data": {"result": []}})
-        )
-    )
+    def handler(req):
+        if req.url.path.endswith("/nav"):
+            return httpx.Response(200, json=_WBI_NAV)
+        return httpx.Response(200, json={"code": 0, "data": {"result": []}})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     assert await Bilibili(client=client).search("rain", "en", SearchLimits()) == []
 
     def timeout(_):
@@ -106,7 +122,7 @@ async def test_vk_search_official_shape(lang):
     adapter = VKVideo(
         token="test", client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
     )
-    found = await adapter.search("дождь", lang, SearchLimits())
+    found = await adapter.search("\u0434\u043e\u0436\u0434\u044c", lang, SearchLimits())
     assert found[0].source_url == "https://vk.com/video-77_42"
     assert found[0].source_language == "en"
     assert found[0].language == lang
