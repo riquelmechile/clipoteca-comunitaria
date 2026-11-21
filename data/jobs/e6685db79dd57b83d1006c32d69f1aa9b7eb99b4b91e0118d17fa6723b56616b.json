@@ -1,18 +1,10 @@
 {
   "request_id": "e6685db79dd57b83d1006c32d69f1aa9b7eb99b4b91e0118d17fa6723b56616b",
-  "status": "failed",
-  "attempt": 2,
-  "updated_at": "2026-11-21T03:19:11.907478Z",
-  "language_counts": {
-    "es": 1
-  },
-  "provider_counts": {
-    "community": 1
-  },
-  "source_errors": {
-    "community:issue-26-b716cfea3efc": "translation_failed:en"
-  },
-  "terms": {
-    "es": "Olas en la playa"
-  }
+  "status": "queued",
+  "attempt": 3,
+  "updated_at": "2026-11-21T03:37:21.566816Z",
+  "language_counts": {},
+  "provider_counts": {},
+  "source_errors": {},
+  "terms": {}
 }
