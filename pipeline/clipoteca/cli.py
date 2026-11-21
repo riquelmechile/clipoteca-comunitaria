@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"relocalized_ids": updated}, ensure_ascii=False))
         return 0
     if args.command == "version":
-        print("clipoteca 0.1.0")
+        print("clipoteca 1.0.0")
         return 0
     if args.command == "search":
         expansion = expand_query(args.query)
