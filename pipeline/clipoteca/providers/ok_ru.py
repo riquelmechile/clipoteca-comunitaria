@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import html
 import re
 from typing import Any
 from urllib.parse import quote
@@ -124,7 +125,7 @@ class OkRu(Adapter):
                 metadata = item.get("metadata") or item.get("flashvars.metadata")
                 if isinstance(metadata, str):
                     try:
-                        expanded.append(json.loads(metadata))
+                        expanded.append(json.loads(html.unescape(metadata)))
                     except ValueError:
                         pass
                 metadata_url = item.get("metadataUrl")

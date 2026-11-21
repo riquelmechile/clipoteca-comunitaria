@@ -15,10 +15,12 @@ def json_attributes(document: str, attribute: str) -> list[object]:
     pattern = re.compile(rf"{re.escape(attribute)}\s*=\s*(['\"])(.*?)\1", re.I | re.S)
     values: list[object] = []
     for match in pattern.finditer(document):
-        try:
-            values.append(json.loads(html.unescape(match.group(2))))
-        except (TypeError, ValueError):
-            continue
+        for candidate in (match.group(2), html.unescape(match.group(2))):
+            try:
+                values.append(json.loads(candidate))
+                break
+            except (TypeError, ValueError):
+                continue
     return values
 
 

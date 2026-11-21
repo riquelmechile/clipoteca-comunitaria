@@ -20,16 +20,18 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import provider_client
+from .http import fetch_json, provider_client
 from .m17_common import allowed_https, duration, response_json, walk
 
 LOGIN = "https://login.vk.com/"
 API = "https://api.vkvideo.ru/method"
+CLASSIC_API = "https://api.vk.com/method"
 VERSION = "5.282"
+CLASSIC_VERSION = "5.199"
 WEB_CLIENT_ID = "6287487"
 ORIGIN = "https://vkvideo.ru"
 ID = re.compile(r"-?[0-9]+_[0-9]+")
-ROOTS = ("vkvideo.ru", "vkuser.net", "userapi.com", "vk-cdn.net")
+ROOTS = ("vkvideo.ru", "vk.com", "vkuser.net", "userapi.com", "vk-cdn.net")
 HLS = "application/vnd.apple.mpegurl"
 _TOKEN: tuple[str, float] | None = None
 
@@ -117,7 +119,19 @@ class VKVideo(Adapter):
         _TOKEN = (token, expires)
         return token
 
-    async def _call(self, method: str, params: dict[str, Any]) -> dict:
+    async def _classic_call(self, method: str, params: dict[str, Any]) -> dict:
+        payload = await fetch_json(
+            self.client,
+            CLASSIC_API + "/" + method,
+            params={**params, "access_token": self.token, "v": CLASSIC_VERSION},
+        )
+        _error(payload)
+        result = payload.get("response")
+        if not isinstance(result, dict):
+            raise ProviderError("VK API response missing")
+        return result
+
+    async def _web_call(self, method: str, params: dict[str, Any]) -> dict:
         token = await self._token()
         response = await self.client.get(
             API + "/" + method,
@@ -132,14 +146,25 @@ class VKVideo(Adapter):
         return result
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
-        data = await self._call(
-            "catalog.getVideoSearchWeb2",
-            {
-                "q": term,
-                "count": min(30, limits.max_candidates),
-                "content_type": "video",
-            },
-        )
+        if self.token:
+            data = await self._classic_call(
+                "video.search",
+                {
+                    "q": term,
+                    "count": min(50, limits.max_candidates),
+                    "adult": 0,
+                    "sort": 0,
+                },
+            )
+        else:
+            data = await self._web_call(
+                "catalog.getVideoSearchWeb2",
+                {
+                    "q": term,
+                    "count": min(30, limits.max_candidates),
+                    "content_type": "video",
+                },
+            )
         found: list[Candidate] = []
         seen: set[str] = set()
         for item in _video_rows(data):
@@ -157,7 +182,8 @@ class VKVideo(Adapter):
                     provider_id=identifier,
                     term=term,
                     language=lang,
-                    source_url="https://vkvideo.ru/video" + identifier,
+                    source_url=("https://vk.com/video" if self.token else "https://vkvideo.ru/video")
+                    + identifier,
                     source_title=title,
                     source_language=detect_source_language(title),
                     duration_seconds=duration(item.get("duration")),
@@ -171,10 +197,13 @@ class VKVideo(Adapter):
     async def metadata(self, candidate: Candidate) -> dict[str, Any]:
         if not ID.fullmatch(candidate.provider_id):
             return {}
-        data = await self._call(
-            "video.getByIds",
-            {"videos": candidate.provider_id, "video_fields": "files"},
-        )
+        if self.token:
+            data = await self._classic_call("video.get", {"videos": candidate.provider_id})
+        else:
+            data = await self._web_call(
+                "video.getByIds",
+                {"videos": candidate.provider_id, "video_fields": "files"},
+            )
         rows = _video_rows(data)
         return rows[0] if rows else {}
 
@@ -183,7 +212,9 @@ class VKVideo(Adapter):
         link = _file_url(item.get("files"))
         if not link:
             return None
-        referer = "https://vkvideo.ru/video" + candidate.provider_id
+        referer = (
+            "https://vk.com/video" if self.token else "https://vkvideo.ru/video"
+        ) + candidate.provider_id
         if ".m3u8" in link.casefold():
             return MediaRef(
                 link,
@@ -192,6 +223,8 @@ class VKVideo(Adapter):
                 allowed_hosts=(
                     "vkvideo.ru",
                     ".vkvideo.ru",
+                    "vk.com",
+                    ".vk.com",
                     "vkuser.net",
                     ".vkuser.net",
                     "userapi.com",
