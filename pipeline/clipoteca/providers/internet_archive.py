@@ -1,14 +1,17 @@
 """Internet Archive v2: relevance-first search and lightweight movie derivatives.
 
-Ranking and derivative selection are independent, inspired by broll-mcp (MIT).
-No third-party code is copied. Only archive.org HTTPS media URLs are returned.
+Ranking and derivative selection are original implementations informed by the
+public broll-mcp project (MIT): https://github.com/edigeh/broll-mcp
+No broll-mcp code was copied. Only archive.org HTTPS media URLs are returned.
 """
 
 from __future__ import annotations
 
 import asyncio
+from copy import deepcopy
 import math
 import re
+import threading
 import time
 from typing import Any
 from urllib.parse import quote
@@ -112,10 +115,16 @@ def _score(doc: dict, terms: list[str]) -> float:
         (3 if term in title else 0) + (2 if term in subject else 0) + (1 if term in shotlist else 0)
         for term in terms
     )
+    raw_downloads = str(doc.get("downloads") or "1").strip()
+    # IA exposes both decimal numbers ("12.5") and grouped thousands
+    # ("1,234"); never collapse valid counts to one on int() failure.
+    if re.fullmatch(r"[0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?", raw_downloads):
+        raw_downloads = raw_downloads.replace(",", "")
     try:
-        downloads = max(1, int(doc.get("downloads") or 1))
-    except (TypeError, ValueError):
-        downloads = 1
+        parsed_downloads = float(raw_downloads)
+        downloads = max(1.0, parsed_downloads) if math.isfinite(parsed_downloads) else 1.0
+    except ValueError:
+        downloads = 1.0
     score += math.log10(downloads) / 2
     if "h.264" in _text(doc.get("format")).casefold():
         score += 1
@@ -220,7 +229,11 @@ def select_derivatives(files: list, identifier: str) -> tuple[dict | None, dict 
         for group in groups.values()
     ]
     chosen = min(candidates, key=lambda x: (not x["derived"], x["kind"], x["size"], x["name"]))
-    scanners = [item for item in valid if item["kind"] == 2]
+    # The 512Kb scan must belong to the very same original-chain root as
+    # the chosen playable derivative. Archives often contain multiple films.
+    scanners = [
+        item for item in groups[chosen["root"]] if item["kind"] == 2
+    ]
     scan = min(scanners, key=lambda x: (x["size"], x["name"])) if scanners else None
 
     def public(item: dict | None) -> dict | None:
@@ -237,6 +250,12 @@ class InternetArchive(Adapter):
     support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
     rate_limit = 1
 
+    # Shared process-local slot reservation, keyed to the archive.org host.
+    # Threading lock allows independent async event loops and adapter
+    # instances to reserve unique slots without holding a lock while asleep.
+    _slot_lock = threading.Lock()
+    _next_by_host: dict[str, float] = {}
+
     def __init__(
         self,
         *,
@@ -247,16 +266,19 @@ class InternetArchive(Adapter):
             raise ValueError("rate limit must be non-negative")
         self.client = client or provider_client()
         self._interval = min_interval_seconds
-        self._next_request = 0.0
-        self._lock = asyncio.Lock()
+        # Instance-local, bounded 100-item cache with no TTL. Invalid or
+        # empty metadata is never cached; every caller receives a deep copy.
         self._metadata_cache: dict[str, dict] = {}
 
     async def _wait_for_slot(self) -> None:
-        async with self._lock:
+        if self._interval == 0:
+            return
+        with self._slot_lock:
             now = time.monotonic()
-            if now < self._next_request:
-                await asyncio.sleep(self._next_request - now)
-            self._next_request = time.monotonic() + self._interval
+            slot = max(now, self._next_by_host.get("archive.org", 0.0))
+            self._next_by_host["archive.org"] = slot + self._interval
+        if slot > now:
+            await asyncio.sleep(slot - now)
 
     async def _json(self, url: str, *, params=None) -> dict:
         return await fetch_json(
@@ -280,11 +302,10 @@ class InternetArchive(Adapter):
             ("output", "json"),
         ]
         payload = await self._json(SEARCH, params=params)
-        response_params = payload.get("responseHeader", {})
-        if isinstance(response_params, dict):
-            echo = response_params.get("params", {})
-            if isinstance(echo, dict) and "q" in echo and echo["q"] != query:
-                raise ProviderError("Internet Archive returned a different query")
+        response_params = payload.get("responseHeader")
+        echo = response_params.get("params") if isinstance(response_params, dict) else None
+        if not isinstance(echo, dict) or echo.get("q") != query:
+            raise ProviderError("Internet Archive missing or mismatched query echo")
         response = payload.get("response", {})
         docs = response.get("docs", []) if isinstance(response, dict) else []
         if not isinstance(docs, list):
@@ -324,25 +345,44 @@ class InternetArchive(Adapter):
                     metadata={
                         "ranking_score": _score(item, terms),
                         "downloads": item.get("downloads"),
-                        "scan_media": None,
+                        # Scanning URLs are populated only by metadata(),
+                        # which fetches the original-chain 512Kb derivative.
                     },
                 )
             )
         return found[: limits.max_candidates]
 
     async def metadata(self, candidate: Candidate) -> dict[str, Any]:
+        """Resolve trusted derivatives; cache only valid nonempty responses.
+
+        The cache is instance-local (max 100 identifiers) and has no TTL.
+        Return independent deep copies to prevent caller mutation from
+        corrupting cached data. Enrich mutable candidate.metadata lazily
+        after the real metadata resolves, never invent an empty scan URL.
+        """
         identifier = candidate.provider_id
-        if identifier in self._metadata_cache:
-            return self._metadata_cache[identifier]
-        item = await self._json(f"https://archive.org/metadata/{quote(identifier, safe='')}")
-        enriched = dict(item)
-        files = item.get("files", [])
-        media, scan = select_derivatives(files if isinstance(files, list) else [], identifier)
-        enriched["clipoteca_media"] = media
-        enriched["clipoteca_scan_media"] = scan
-        if len(self._metadata_cache) >= 100:
-            self._metadata_cache.pop(next(iter(self._metadata_cache)))
-        self._metadata_cache[identifier] = enriched
+        cached = self._metadata_cache.get(identifier)
+        if cached is not None:
+            enriched = deepcopy(cached)
+        else:
+            item = await self._json(f"https://archive.org/metadata/{quote(identifier, safe='')}")
+            metadata = item.get("metadata")
+            if not isinstance(metadata, dict) or metadata.get("identifier") != identifier:
+                raise ProviderError("Internet Archive metadata identifier mismatch")
+            files = item.get("files")
+            enriched = deepcopy(item)
+            media, scan = select_derivatives(files if isinstance(files, list) else [], identifier)
+            enriched["clipoteca_media"] = media
+            enriched["clipoteca_scan_media"] = scan
+            if isinstance(files, list) and files:
+                if len(self._metadata_cache) >= 100:
+                    self._metadata_cache.pop(next(iter(self._metadata_cache)))
+                self._metadata_cache[identifier] = deepcopy(enriched)
+        if isinstance(candidate.metadata, dict):
+            if enriched["clipoteca_scan_media"] is not None:
+                candidate.metadata["scan_media"] = deepcopy(enriched["clipoteca_scan_media"])
+            else:
+                candidate.metadata.pop("scan_media", None)
         return enriched
 
     async def direct_media(self, candidate: Candidate) -> MediaRef | None:
