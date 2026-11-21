@@ -21,6 +21,7 @@ import httpx
 
 from .ingest import ingest
 from .metadata import humanize_source_title
+from .translate.argos import public_translation_error
 from .providers.base import (
     Adapter,
     Candidate,
@@ -232,7 +233,8 @@ def send_feedback(
     # Only documented, bounded error codes may be sent to public Issues.
     safe_reason = (
         reason
-        if re.fullmatch(
+        if public_translation_error(reason) == reason
+        or re.fullmatch(
             r"(?:translation_failed:(?:es|en|zh|ru)|download_error|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
             reason,
         )
@@ -270,6 +272,9 @@ def send_feedback(
 def _feedback_reason(errors: tuple[str, ...]) -> str:
     """Map internal structured failures to a small public, secret-free taxonomy."""
     for error in errors:
+        detail = public_translation_error(error)
+        if detail:
+            return detail
         match = re.search(r"translation_failed:(es|en|zh|ru)(?![a-z])", error)
         if match:
             return f"translation_failed:{match.group(1)}"

@@ -40,7 +40,7 @@ jobs:
           CLIPOTECA_ISSUE_NUMBER: ${{ github.event.issue.number }}
           ARGOS_MODEL_CACHE_DIR: .cache/argos
           ARGOS_MODEL_PINS_JSON: data/argos-pins.json
-        run: uv run python -m clipoteca.contributions --issue-number "$CLIPOTECA_ISSUE_NUMBER"
+        run: uv run --no-sync python -m clipoteca.contributions --issue-number "$CLIPOTECA_ISSUE_NUMBER"
       - name: Save job artifacts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

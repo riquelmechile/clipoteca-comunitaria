@@ -80,7 +80,7 @@ jobs:
           SNAPCHAT_PROFILE_ID: ${{ vars.SNAPCHAT_PROFILE_ID }}
           BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
           PEERTUBE_ALLOWED_INSTANCES: ${{ vars.PEERTUBE_ALLOWED_INSTANCES }}
-        run: uv run python -m clipoteca.source_snapshot --publish
+        run: uv run --no-sync python -m clipoteca.source_snapshot --publish
       - name: Ingest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -110,7 +110,7 @@ jobs:
           CLIPOTECA_FILTERS_JSON: ${{ inputs.filters_json }}
           CLIPOTECA_PERSIST_JOBS: '1'
         run: |
-          uv run python -m clipoteca ingest \
+          uv run --no-sync python -m clipoteca ingest \
             --query "$CLIPOTECA_QUERY" \
             --aspect-ratio "$CLIPOTECA_ASPECT" \
             --max-duration "$CLIPOTECA_MAX_SECONDS" \

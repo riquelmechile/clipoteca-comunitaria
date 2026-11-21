@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-import re
 import time
 import tempfile
 from dataclasses import dataclass
@@ -31,6 +30,7 @@ from .media.thumbnail import create_thumbnail
 from .metadata import MetadataTranslationError, localize_candidate
 from .metrics import discovery_metrics, write_metrics
 from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
+from .translate.argos import public_translation_error
 from .translate.expand import QueryExpansion, expand_query
 from .security.download import DownloadError, download_media
 from .storage.github import GitHubReleaseStorage, StorageError
@@ -133,9 +133,11 @@ async def ingest(
                 next(iter(expansion.errors), "unknown"),
             )
             job["status"] = "dead_letter" if job.get("attempt", 1) >= MAX_ATTEMPTS else "failed"
-            job["source_errors"]["translation"] = f"translation_failed:{missing}"
+            code = public_translation_error(expansion.errors.get(missing, ""))
+            code = code or f"translation_failed:{missing}"
+            job["source_errors"]["translation"] = code
             jobs.save(job)
-            return IngestReport(rid, "failed", (), (f"translation_failed:{missing}",))
+            return IngestReport(rid, "failed", (), (code,))
         catalogue, _ = writer.read_catalog()
         search = await SearchEngine(adapters, concurrency=concurrency).search(
             query,
@@ -379,12 +381,9 @@ async def ingest(
                     elif isinstance(exc, (NormalizeError, ProbeError)):
                         error_code = "ffmpeg_failed"
                     elif isinstance(exc, MetadataTranslationError):
-                        direction = re.search(
-                            r"translation_failed:(?:es|en|zh|ru)->(es|en|zh|ru)",
-                            str(exc),
+                        error_code = (
+                            public_translation_error(str(exc)) or "metadata_translation_error"
                         )
-                        if direction:
-                            error_code = f"translation_failed:{direction.group(1)}"
                     job["source_errors"][candidate.origin_id] = error_code
                     errors.append(f"{candidate.origin_id}:{error_code}")
         if ids:
