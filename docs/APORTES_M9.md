@@ -1,16 +1,31 @@
-# Aportes de la comunidad: aprobación explícita antes de importar
+# M9 · Ingesta automática de aportes comunitarios
 
-`POST /v1/contributions` y la plantilla GitHub Issue **sólo crean una propuesta**, sin descargar el URL.
-El triage valida formato y deja un comentario; no publica archivos.
+Un colaborador sin acceso de escritura abre el formulario **Aportar escena** y entrega
+un enlace HTTPS público que apunta directamente a MP4, WebM u OGV.
+El workflow `.github/workflows/contribution.yml` se activa por `issues.opened` o
+`issues.edited`, solo en el repositorio dueño. No requiere etiqueta de aprobación,
+intervención manual, ni ninguna declaración comunitaria sobre permisos.
 
-## Pasos del revisor con acceso de escritura
+## Flujo operativo
 
-1. Revisar que el vídeo sea **archivo directo MP4/WebM/OGV** con URL HTTPS pública, sin query con tokens y sin red privada. Confirmar derechos de redistribución y condiciones de la fuente, no solo declaración del remitente.
-2. Añadir manualmente la etiqueta `clipoteca-approved` al Issue **después de la revisión**. Ningún webhook público añade esa etiqueta.
-3. Disparar manualmente `Approved community contribution ingest` desde `main`: ingresar `issue_number` (entero positivo) y `rights_confirmed=yes`. Requiere permisos de Actions de colaborador; un Issue público por sí solo **jamás** ejecuta la ingesta.
-4. El workflow recupera otra vez el Issue desde GitHub, exige estado abierto, etiqueta y declaración de derechos; no acepta redirects a la API ni texto de Issue como comando.
-5. Solo entonces crea un adaptador aislado `community_contribution` (aparte de las 15 fuentes) y ejecuta el mismo `ingest()`: SSRF/DNS, MIME/firma, FFmpeg, dedup, hash, miniatura, Releases, catálogo y job persistente. Las descargas fallidas conservan un job con estado real, no un clip falso.
+1. Actions recibe el número del Issue como dato, nunca construye comandos con el cuerpo.
+2. Python recupera el Issue desde la API fija de GitHub y valida título, estado,
+   autor y URL pública. Se rechazan destinos privados, credenciales embebidas,
+   redirects inseguros, rutas no multimedia y consultas con tokens.
+3. El adaptador `community` entrega un candidato con ID determinista
+   `issue-{número}-{hash SHA256 URL[:12]}` al mismo pipeline de 15 proveedores.
+   Se aplican las defensas existentes de SSRF/DNS, límites de descarga,
+   MIME/firma, Argos, FFmpeg, deduplicación, Releases y catálogo.
+4. La fuente conserva URL original, número y autor del Issue y su URL pública.
+5. Actions comenta el estado saneado; etiqueta el éxito `clipoteca-ingested`,
+   cierra el Issue cuando se publicó o se detectó duplicado y mantiene abierto
+   el fallo como `clipoteca-ingest-failed` para editar y reintentar.
 
-**Limitación:** todavía se necesita un ejercicio con un enlace real autorizado para verificar la publicación E2E. Una URL a una página web (YouTube, Instagram, etc.) se rechaza; no se hace scraping. Si el revisor no puede confirmar derechos, el Issue no se aprueba.
+Los procesos FFmpeg/ffprobe sólo reciben `safe_media_env()` sin credenciales.
+`GITHUB_TOKEN` se ofrece únicamente al paso Python de ingesta, no a pasos
+de shell que interpolen contenido del Issue. Permisos limitados por job.
 
-El workflow usa `concurrency: clipoteca-catalog` y tokens efímeros Actions con permisos mínimos de `contents:write` e `issues:read`. No se despliega ni se ejecuta desde esta rama de desarrollo.
+El endpoint `POST /v1/contributions` puede crear el mismo tipo de Issue;
+retorna `queued` tras recibir confirmación de creación. No presupone publicación:
+sigue siendo necesario probar un enlace real en Actions, y no se declara
+desplegada la solución hasta contar con evidencia E2E.

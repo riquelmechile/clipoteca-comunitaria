@@ -1,39 +1,26 @@
 name: "Aportar escena"
-description: "Sugiere un vídeo público; un humano verifica su licencia y seguridad antes de importarlo."
+description: "Comparte un enlace directo HTTPS a video para que Clipoteca lo procese automáticamente."
 title: "[Aporte pendiente] "
 labels: []
 body:
   - type: markdown
     attributes:
       value: |
-        Esta solicitud NO autoriza descargar ni republicar automáticamente un vídeo.
-        Usa una URL HTTPS pública. No pegues credenciales ni URLs privadas.
+        La ingesta se inicia automáticamente al crear o editar este Issue.
+        Introduce una URL HTTPS pública directa a MP4, WebM u OGV.
+        No agregues credenciales, información privada ni enlaces internos.
   - type: input
     id: source_url
     attributes:
       label: "URL pública del vídeo"
-      description: "Enlace al origen, no dirección de una red interna."
-      placeholder: "https://example.org/video"
+      description: "Archivo de video directo; no página HTML."
+      placeholder: "https://videos.example.org/escena.mp4"
     validations:
       required: true
-  - type: input
-    id: scene_title
-    attributes:
-      label: "Título descriptivo de la escena"
-      placeholder: "Lluvia sobre una calle"
-    validations:
-      required: true
-  - type: checkboxes
-    id: permissions
-    attributes:
-      label: "Derechos de uso"
-      options:
-        - label: "Confirmo que cuento con autorización para proponer este material; acepto revisión humana."
-          required: true
   - type: textarea
     id: notes
     attributes:
-      label: "Notas de procedencia y licencia"
-      description: "Detalles opcionales para que un revisor verifique derechos."
+      label: "Notas de procedencia"
+      description: "Contexto factual opcional de la escena."
     validations:
       required: false

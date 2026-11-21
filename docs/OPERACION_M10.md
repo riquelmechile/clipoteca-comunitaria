@@ -4,7 +4,6 @@
 
 Los cambios se proponen mediante PR encadenados de desarrollo. **No** están desplegados en Cloudflare ni integrados en `main`. El CI sólo ejecuta pruebas locales y simulaciones de redes/GitHub; no confundirlo con el smoke E2E en producción.
 
-El operador debe revisar derechos de uso de cada vídeo; la ingesta automática no concede licencia y una contribución humana nunca se republica sin revisión.
 
 ## Gates de CI sin red
 
@@ -24,7 +23,7 @@ Requiere Python 3.13, Node 22 o superior y FFmpeg. Para métricas y 15 proveedor
 
 1. Verificar `CATALOG_URL`, `CATALOG_JOBS_URL`, `CATALOG_TTL_SECONDS`, `MCP_ALLOWED_HOSTS`, `MCP_ALLOWED_ORIGINS` del Worker.
 2. Guardar `CLIPOTECA_DISPATCH_TOKEN`, `CLIPOTECA_WRITE_TOKEN` y `CLIPOTECA_ISSUE_TOKEN` como secretos **distintos** de Cloudflare, con privilegios mínimos de GitHub.
-3. Mantener credenciales de proveedores en Actions Secrets, nunca en variables públicas ni URLs. Probar `workflow_dispatch` únicamente desde `main` después de revisión humana.
+3. Mantener credenciales de proveedores en Actions Secrets, nunca en variables públicas ni URLs. Probar `workflow_dispatch` únicamente desde `main` tras pasar las comprobaciones técnicas.
 4. La API sólo entrega links de GitHub Releases previamente verificados. No actúa como proxy de MP4.
 5. El Worker usa Cache API para rate-limit e idempotencia de corta duración; **no constituye un lock global** ni evita todas las carreras entre centros. El JobStore y el catálogo deben conservar la idempotencia persistente.
 
@@ -73,15 +72,22 @@ El comando valida el JSON completo contra schema, no acepta IDs duplicados, reco
 
 ## Aportes y límites
 
-`POST /v1/contributions` crea Issue para **revisión humana** y el workflow de triage solo clasifica. La automatización de importación está implementada en `contribution-approve.yml` **únicamente después** de que un mantenedor verifica licencia, aplica `clipoteca-approved` y dispara `workflow_dispatch` desde `main` con `rights_confirmed=yes`. El adaptador `community_contribution` reutiliza SSRF, FFmpeg, deduplicación, Releases y JobStore. **Falta probarlo con un archivo autorizado real**; no se han ejecutado workflows de publicación ni aprobado Issues en esta entrega.
+`POST /v1/contributions` registra un Issue con estado `queued`.
+El workflow `contribution.yml` se dispara automáticamente cuando se crea o edita
+el formulario **Aportar escena**. Sin etiqueta de aprobación y sin disparo manual,
+el adaptador `community` utiliza las mismas verificaciones de URL,
+DNS/SSRF, MIME/tamaño, FFmpeg, deduplicación y persistencia que otras fuentes.
+Los estados se comentan en el Issue y el éxito lo cierra; ver
+[APORTES_M9.md](APORTES_M9.md). Todavía se necesita evidencia E2E real.
 
-GitHub Free limita los adjuntos; por eso el aporte por URL es la interfaz inicial. Los costos cero dependen de cuotas de Actions, Workers, proveedores y políticas de Releases. Al exceder cuota: desactivar dispatch y conservar la API de lectura.
+Los costos cero dependen de cuotas de Actions, Workers, proveedores y Releases.
+Si se excede la cuota, pausar nuevos despachos y mantener la API de lectura.
 
 ## Puertas de salida que todavía bloquean v1.0
 
 - Worker Cloudflare y MCP desplegados con allowlists y secretos válidos.
 - E2E real de descarga y publicación con dos proveedores, incluyendo uno M5, y medición de costos/uso reales.
 - Comprobación de resultados multilingües por proveedor y pruebas de red en runners confiables.
-- Prueba E2E real y evidencia de publicación de un aporte aprobado con derechos comprobados.
+- Prueba E2E real de publicación automática desde un Issue comunitario.
 
 No marcar esos puntos como hechos por ver un CI verde.

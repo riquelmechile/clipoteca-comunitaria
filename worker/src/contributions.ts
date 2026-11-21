@@ -7,7 +7,6 @@ export interface ContributionEnv {
 export type Submission = {
   title: string;
   url: string;
-  license_confirmed: true;
   notes?: string;
 };
 
@@ -26,7 +25,8 @@ export function safePublicSourceUrl(raw: string): string {
       /^\d+(\.\d+){3}$/.test(hostname) ||
       /(^|\.)(localhost|local|internal|invalid|test|example|onion)$/.test(hostname) ||
       /^(169\.254|127\.|10\.|192\.168\.|172\.)/.test(hostname) ||
-      hostname === "metadata.google.internal") {
+      hostname === "metadata.google.internal" || url.search ||
+      !/\.(mp4|webm|ogv)$/i.test(url.pathname)) {
     throw new TypeError("public HTTPS URL required");
   }
   return url.href;
@@ -36,7 +36,7 @@ export function validateSubmission(raw: unknown): Submission {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new TypeError("invalid body");
   const row = raw as Record<string, unknown>;
   if (Object.keys(row).some((key) =>
-      !["title", "url", "license_confirmed", "notes"].includes(key))) {
+      !["title", "url", "notes"].includes(key))) {
     throw new TypeError("unknown field");
   }
   if (typeof row.title !== "string" || row.title.trim().length < 3 ||
@@ -44,7 +44,6 @@ export function validateSubmission(raw: unknown): Submission {
     throw new TypeError("invalid title");
   }
   if (typeof row.url !== "string") throw new TypeError("invalid URL");
-  if (row.license_confirmed !== true) throw new TypeError("license confirmation required");
   if (row.notes !== undefined &&
       (typeof row.notes !== "string" || row.notes.length > 1000 ||
         /[\x00-\x08\x0b\x0e-\x1f]/.test(row.notes))) {
@@ -53,7 +52,6 @@ export function validateSubmission(raw: unknown): Submission {
   return {
     title: row.title.trim(),
     url: safePublicSourceUrl(row.url),
-    license_confirmed: true,
     ...(typeof row.notes === "string" ? { notes: row.notes.trim() } : {}),
   };
 }
@@ -112,9 +110,8 @@ export async function submitContribution(request: Request, env: ContributionEnv)
   // Only construct an Issue, never download URL or run commands from it.
   const issueBody = [
     "### URL pública del vídeo", submission.url,
-    "### Derechos de uso", "Declaración de autorización del remitente; revisión humana requerida",
     "### Nota del remitente", submission.notes ?? "Sin notas",
-    "### Control", "No descargar, redistribuir ni ejecutar esta URL sin verificación independiente",
+    "### Control", "Se verificará técnicamente mediante el pipeline automatizado",
   ].join("\n\n");
   let upstream: Response;
   try {
@@ -147,6 +144,6 @@ export async function submitContribution(request: Request, env: ContributionEnv)
     return err("issue_unavailable", "Invalid Issue receipt", 503);
   }
   return Response.json({
-    status: "pending_human_review", issue_number: obj.number, issue_url: obj.html_url,
+    status: "queued", issue_number: obj.number, issue_url: obj.html_url,
   }, { status: 201, headers: { "cache-control": "no-store" } });
 }
