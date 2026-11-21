@@ -137,7 +137,9 @@ async def ingest(
             return IngestReport(rid, "failed", (), (f"translation_failed:{missing}",))
         catalogue, _ = writer.read_catalog()
         search = await SearchEngine(adapters, concurrency=concurrency).search(
-            query, catalog=catalogue, expansion=expansion,
+            query,
+            catalog=catalogue,
+            expansion=expansion,
             allow_partial_expansion=not expand_search,
         )
         for execution in search.executions:
@@ -213,7 +215,8 @@ async def ingest(
                         continue
                     # Fail multilingual metadata before spending bandwidth on a large video.
                     localized = localize_candidate(
-                        candidate, translator=translator,
+                        candidate,
+                        translator=translator,
                         include_query_tags=candidate.provider != "community",
                     )
                     raw = await (
