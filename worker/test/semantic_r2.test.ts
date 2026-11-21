@@ -48,11 +48,12 @@ function fakeRemote(opts:{
     if(url===env.CATALOG_URL)return Response.json([rain,sun]);
     if(url.includes("/data/jobs/"))return new Response(null,{status:404});
     if(url.endsWith("/dispatches"))return new Response(null,{status:opts.dispatchStatus??204});
+    if(url.endsWith("/queries/manifest.json"))return new Response(null,{status:404});
     if(url.endsWith("/manifest.json"))
       return opts.oversize?new Response(new Uint8Array(1_000_025).buffer):
       Response.json(opts.manifest??fixture.manifest);
-    if(url.endsWith("/shards/tail.f16"))return binary(fixture.tail_base64);
-    if(url.endsWith("/ids/tail.json"))return binary(fixture.tail_ids_base64);
+    if(/\/shards\/tail-[0-9a-f]{64}\.f16$/.test(url))return binary(fixture.tail_base64);
+    if(/\/ids\/tail-[0-9a-f]{64}\.json$/.test(url))return binary(fixture.tail_ids_base64);
     if(url.includes("/shards/shard-"))return new Response(null,{status:404});
     if(url.includes("/ids/shard-"))return new Response(null,{status:404});
     const cached=Object.values(fixture.queries).find(x=>url.endsWith("/"+x.query_sha256+".json"));

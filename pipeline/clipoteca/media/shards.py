@@ -33,8 +33,8 @@ SHARD_CAPACITY = 4096
 SEAL_CAPACITY = 256
 MAX_SHARDS = 500
 MAX_SHARD_BYTES = SHARD_CAPACITY * VECTOR_BYTES
-TAIL_PATH = "shards/tail.f16"
-TAIL_IDS_PATH = "ids/tail.json"
+TAIL_RE = re.compile(r"shards/tail-[0-9a-f]{64}\.f16\Z")
+TAIL_IDS_RE = re.compile(r"ids/tail-[0-9a-f]{64}\.json\Z")
 SHARD_RE = re.compile(r"shards/shard-[0-9]{6}-[0-9a-f]{64}\.f16\Z")
 IDS_RE = re.compile(r"ids/shard-[0-9]{6}-[0-9a-f]{64}\.json\Z")
 
@@ -42,7 +42,14 @@ IDS_RE = re.compile(r"ids/shard-[0-9]{6}-[0-9a-f]{64}\.json\Z")
 def normalized_query(text: str) -> str:
     # Unicode casefold also handles Greek final sigma, Cherokee and sharp S.
     # U+FEFF is made a space deliberately to match the Worker regex.
-    canonical = unicodedata.normalize("NFKC", text).casefold().replace("\ufeff", " ")
+    # Python 3.13 ships Unicode 15.1; U+1C89 entered lowercase mappings
+    # later. Keep the Worker Unicode 17.0 casefold digest identical.
+    canonical = (
+        unicodedata.normalize("NFKC", text)
+        .casefold()
+        .replace("\u1c89", "\u1c8a")
+        .replace("\ufeff", " ")
+    )
     normalized = " ".join(canonical.split())
     if not normalized or len(normalized) > 200:
         raise ValueError("query must be 1..200 normalized characters")
@@ -135,7 +142,14 @@ def validate_manifest(value: dict) -> dict:
                 "ids_path"
             ].endswith(entry["ids_sha256"] + ".json"):
                 raise EmbeddingError("embedding_shard_invalid")
-        elif entry.get("path") != TAIL_PATH or entry.get("ids_path") != TAIL_IDS_PATH:
+        elif (
+            not isinstance(entry.get("path"), str)
+            or not TAIL_RE.fullmatch(entry["path"])
+            or not entry["path"].endswith(entry["sha256"] + ".f16")
+            or not isinstance(entry.get("ids_path"), str)
+            or not TAIL_IDS_RE.fullmatch(entry["ids_path"])
+            or not entry["ids_path"].endswith(entry["ids_sha256"] + ".json")
+        ):
             raise EmbeddingError("embedding_tail_invalid")
     return value
 
@@ -246,16 +260,24 @@ def _append_many(
             manifest["shards"].append(_entry(path, ids_path, tail_blob, tail_ids))
             changes[path] = tail_blob
             changes[ids_path] = ids_raw
-            changes[TAIL_PATH] = None
-            changes[TAIL_IDS_PATH] = None
             tail_ids, tail_blob = [], b""
     if not newly_added:
         # A repeated batch must not write unchanged tail or advance the branch.
         return original, {}
+    if tail is not None:
+        # Remove only paths that actually existed in the previous tree. This
+        # avoids a sha:null tree entry on the first full 256-vector seal.
+        changes[tail["path"]] = None
+        changes[tail["ids_path"]] = None
     if tail_ids:
-        manifest["tail"] = _entry(TAIL_PATH, TAIL_IDS_PATH, tail_blob, tail_ids)
-        changes[TAIL_PATH] = tail_blob
-        changes[TAIL_IDS_PATH] = _ids_bytes(tail_ids)
+        ids_raw = _ids_bytes(tail_ids)
+        digest = hashlib.sha256(tail_blob).hexdigest()
+        ids_digest = hashlib.sha256(ids_raw).hexdigest()
+        tail_path = f"shards/tail-{digest}.f16"
+        tail_ids_path = f"ids/tail-{ids_digest}.json"
+        manifest["tail"] = _entry(tail_path, tail_ids_path, tail_blob, tail_ids)
+        changes[tail_path] = tail_blob
+        changes[tail_ids_path] = ids_raw
     else:
         manifest["tail"] = None
     if len(manifest["shards"]) > MAX_SHARDS:
@@ -423,76 +445,17 @@ class GitHubShards:
         self.publish_many([(identifier, vector)])
 
 
+# Stable import surface for M22's callers; bounded query-shard storage
+# moved to its own module to keep clip-shard semantics unchanged.
 class QueryStore:
-    """Normalized SHA-256 address, no raw request term in a filename."""
+    def __new__(cls, *args, **kwargs):
+        from .query_shards import QueryStore as QueryShardStore
 
-    def __init__(self, root: Path):
-        self.root = Path(root)
-
-    def put(self, query: str, vector: np.ndarray) -> Path:
-        digest = query_digest(query)
-        path = self.root / "queries" / f"{digest}.json"
-        payload = {
-            "version": 1,
-            "query_sha256": digest,
-            "dimension": DIMENSION,
-            "dtype": "float16-le",
-            "vector": base64.b64encode(vector_bytes(vector)).decode(),
-        }
-        contents = (json.dumps(payload, sort_keys=True) + "\n").encode()
-        if path.exists() and path.read_bytes() != contents:
-            raise EmbeddingError("immutable_query_vector_collision")
-        if not path.exists():
-            _atomic(path, contents)
-        return path
-
-    def read(self, query: str) -> np.ndarray:
-        payload = json.loads((self.root / "queries" / f"{query_digest(query)}.json").read_text())
-        if payload.get("query_sha256") != query_digest(query) or payload.get("dimension") != 512:
-            raise EmbeddingError("query_vector_invalid")
-        return decode_vector(base64.b64decode(payload["vector"], validate=True))
+        return QueryShardStore(*args, **kwargs)
 
 
 class GitHubQueries:
-    def __init__(self, client: httpx.Client, repository: str, branch: str = "main"):
-        self.client, self.repository, self.branch = client, repository, branch
+    def __new__(cls, *args, **kwargs):
+        from .query_shards import GitHubQueries as QueryShardWriter
 
-    def publish(self, query: str, vector: np.ndarray) -> None:
-        digest = query_digest(query)
-        body = {
-            "version": 1,
-            "query_sha256": digest,
-            "dimension": 512,
-            "dtype": "float16-le",
-            "vector": base64.b64encode(vector_bytes(vector)).decode(),
-        }
-        raw = (json.dumps(body, sort_keys=True) + "\n").encode()
-        url = (
-            f"https://api.github.com/repos/{self.repository}"
-            f"/contents/data/embeddings/queries/{digest}.json"
-        )
-        old = self.client.get(url, params={"ref": self.branch})
-        if old.status_code == 200:
-            doc = old.json()
-            if base64.b64decode(doc.get("content", "")) == raw:
-                return
-            raise EmbeddingError("immutable_query_vector_collision")
-        if old.status_code != 404:
-            old.raise_for_status()
-        result = self.client.put(
-            url,
-            json={
-                "message": "chore(embeddings): cache semantic query",
-                "content": base64.b64encode(raw).decode(),
-                "branch": self.branch,
-            },
-        )
-        if result.status_code in (409, 422):
-            current = self.client.get(url, params={"ref": self.branch})
-            if (
-                current.status_code != 200
-                or base64.b64decode(current.json().get("content", "")) != raw
-            ):
-                raise EmbeddingError("query_vector_conflict")
-            return
-        result.raise_for_status()
+        return QueryShardWriter(*args, **kwargs)

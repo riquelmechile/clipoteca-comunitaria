@@ -8,6 +8,7 @@ Source is ALWAYS a local file already admitted by security/download.py or HLS.
 from __future__ import annotations
 
 import math
+import os
 import re
 import subprocess
 from dataclasses import dataclass
@@ -68,9 +69,15 @@ class CLIPEncoder:
             raise EmbeddingUnavailable("cuda_not_available")
         try:
             # Image CLIP provides the target space; multilingual text aligns to it.
-            self.image_model = SentenceTransformer("clip-ViT-B-32", device=device)
+            image_revision = os.environ.get("CLIPOTECA_IMAGE_MODEL_REVISION") or None
+            text_revision = os.environ.get("CLIPOTECA_TEXT_MODEL_REVISION") or None
+            self.image_model = SentenceTransformer(
+                "clip-ViT-B-32", device=device, revision=image_revision
+            )
             self.text_model = SentenceTransformer(
-                "sentence-transformers/clip-ViT-B-32-multilingual-v1", device=device
+                "sentence-transformers/clip-ViT-B-32-multilingual-v1",
+                device=device,
+                revision=text_revision,
             )
         except (OSError, RuntimeError, ValueError) as exc:
             raise EmbeddingUnavailable("model_weights_unavailable") from exc

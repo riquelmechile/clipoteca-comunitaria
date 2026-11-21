@@ -21,7 +21,7 @@ const catalog = [
   {
     id:"clip-000102",
     title:{es:"Sol",en:"Sunshine"},
-    description:{es:"Día soleado",en:"Sunny day"},
+    description:{es:"D\u00eda soleado",en:"Sunny day"},
     tags:{es:["sol"],en:["sun"]},
     source:{provider:"pexels",source_language:"en"},
     media:{aspect_ratio:"16:9",duration_seconds:16,width:1280,fps:30,has_audio:false},
@@ -62,16 +62,17 @@ function mockRemote(opts: {
     if (url === "https://vectors.example.com/encode" && opts.encoder) {
       return Response.json({vector:[1, ...new Array(511).fill(0)]});
     }
+    if (url.endsWith("/queries/manifest.json")) return new Response(null,{status:404});
     if (url.endsWith("/manifest.json")) {
       return opts.noManifest
         ? new Response(null,{status:404})
         : Response.json(fixture.manifest);
     }
-    if (url.endsWith("/shards/tail.f16")) {
+    if (/\/shards\/tail-[0-9a-f]{64}\.f16$/.test(url)) {
       const good = rawBytes(fixture.tail_base64);
       return sourceResponse(opts.malformedShard ? good.subarray(1) : good);
     }
-    if (url.endsWith("/ids/tail.json")) {
+    if (/\/ids\/tail-[0-9a-f]{64}\.json$/.test(url)) {
       return sourceResponse(rawBytes(fixture.tail_ids_base64));
     }
     if (url.includes("/shards/") || url.includes("/ids/")) {
@@ -139,7 +140,7 @@ describe("M22 binary Python fixture and rank fusion", () => {
 });
 
 describe("M22 Worker retrieval", () => {
-  it.each(["aguacero", "lluvia", "rain", "下雨", "дождь"])(
+  it.each(["aguacero", "lluvia", "rain", "\u4e0b\u96e8", "\u0434\u043e\u0436\u0434\u044c"])(
     "finds semantically related rain clip for %s using fake multilingual encoder",
     async term => {
       mockRemote();
@@ -225,8 +226,10 @@ describe("M22 Worker retrieval", () => {
     await queryVector(baseEnv,"aguacero");
     expect(calls.filter(x=>x.includes("/shards/"))).toHaveLength(1);
     expect(calls.filter(x=>x.includes("/ids/"))).toHaveLength(1);
-    expect(calls.filter(x=>x.endsWith("/manifest.json"))).toHaveLength(1);
-    expect(calls.filter(x=>x.includes("/queries/"))).toHaveLength(1);
+    expect(calls.filter(x=>x.endsWith("/data/embeddings/manifest.json"))).toHaveLength(1);
+    // One cached 404 for the r3 query manifest, plus one legacy JSON read.
+    expect(calls.filter(x=>x.endsWith("/queries/manifest.json"))).toHaveLength(1);
+    expect(calls.filter(x=>x.includes("/queries/"))).toHaveLength(2);
   });
 });
 

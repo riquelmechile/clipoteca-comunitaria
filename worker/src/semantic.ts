@@ -3,6 +3,7 @@
 import { loadCatalog, searchTokens, type CatalogEnv, type Clip } from "./catalog";
 import { type DispatchEnv } from "./dispatch";
 import { quota } from "./quota";
+import casefoldMap from "./casefold-map.json";
 
 const DIM = 512;
 const WIDTH = DIM * 2;
@@ -12,7 +13,9 @@ const MAX_SHARDS = 500; // equal to Python; corpus CPU budget is checked before 
 const MAX_MANIFEST_BYTES = 1_000_000;
 const DEFAULT_CLIPS_BUDGET = 256;
 const PAID_CLIPS_BUDGET = 4096;
-export const SEMANTIC_TAU = 0.30;
+export const SEMANTIC_TAU = 0.20;
+const MAX_SEMANTIC_RESULTS = 50;
+const RELATIVE_COSINE_MARGIN = 0.05;
 const GLOBAL_QUERIES_PER_HOUR = 20;
 const QUERY_COOLDOWN_SECONDS = 600;
 const ROOT = "https://raw.githubusercontent.com/";
@@ -27,6 +30,8 @@ export interface SemanticEnv extends CatalogEnv, DispatchEnv {
   CLIPOTECA_QUERY_DISPATCH_MODE?: string;
   SEMANTIC_SEARCH?: string;
   SEMANTIC_MAX_CLIPS?: string;
+  SEMANTIC_MIN_COSINE?: string;
+  QUERY_ENCODER_HOSTS?: string;
 }
 export type SemanticStatus = "ready" | "pending" | "unavailable";
 export interface SemanticSearchResult {
@@ -64,15 +69,20 @@ class SemanticFault extends Error {
   constructor(public readonly code: string) { super(code); }
 }
 const memoryCache = new Map<string, {until: number; value: Uint8Array}>();
+const missingAssets = new Map<string, number>();
 const corpusCache = new Map<string, {until: number; data: PackedCorpus}>();
 const encoderMemory = new Map<string, {until: number; vector: Float32Array}>();
 const queryDispatch = new Map<string, {until: number; pending: boolean}>();
 export function resetSemanticCache(): void {
   memoryCache.clear();
+  missingAssets.clear();
   corpusCache.clear();
   encoderMemory.clear();
 }
-export function resetQueryDispatch(): void { queryDispatch.clear(); }
+export function resetQueryDispatch(): void {
+  queryDispatch.clear();
+  resetDispatchReservations();
+}
 
 function boundedPut<K,V>(map: Map<K,V>, key: K, value: V, max = 16): void {
   if (map.size >= max) map.delete(map.keys().next().value!);
@@ -87,32 +97,42 @@ function asset(env: SemanticEnv, relative: string): string {
   return ROOT + repository(env) + "/main/data/embeddings/" + relative;
 }
 
-// Match Python unicodedata.normalize("NFKC", text).casefold() + whitespace.
-// JS has no casefold: explicitly handle the non-simple cases in our multilingual
-// acceptance vectors (Greek final sigma, Cherokee, sharp S and dotted I).
-export function normalizedQuery(query: string): string {
-  const normalized = query.normalize("NFKC").toLowerCase()
-    .replace(/ß/g, "ss").replace(/ς/g, "σ")
-    .replace(/[\uAB70-\uABBF]/gu, char =>
-      String.fromCodePoint(char.codePointAt(0)! - 0xAB70 + 0x13A0))
-    .replace(/[\u13F8-\u13FD]/gu, char =>
-      String.fromCodePoint(char.codePointAt(0)! - 8))
-    .replace(/[\s\u001c-\u001f]+/gu, " ").trim();
-  return normalized;
+// Generated from Python Unicode 17.0.0 casefold table (1530+ mappings).
+// Apply NFKC first, then the *complete* Python casefold mapping; JS
+// toLowerCase differs on Greek, Cherokee and other codepoints.
+const CASEFOLD = new Map<string,string>();
+for (const pair of casefoldMap.pairs.split(";")) {
+  const [source,target] = pair.split(":");
+  if(!source || !target)continue;
+  CASEFOLD.set(String.fromCodePoint(parseInt(source,16)),
+    target.split(",").map(code=>String.fromCodePoint(parseInt(code,16))).join(""));
 }
+export function normalizedQuery(query: string): string {
+  const fold = Array.from(query.normalize("NFKC"), char => CASEFOLD.get(char) ?? char).join("");
+  return fold.replace(/[\s\u0085\u001c-\u001f]+/gu, " ").trim();
+}
+
 export async function sha256(data: Uint8Array | string): Promise<string> {
   const input = typeof data === "string" ? new TextEncoder().encode(data) : data;
   const digest = await crypto.subtle.digest("SHA-256", Uint8Array.from(input));
   return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2, "0")).join("");
 }
+// Build the table once per isolate, never reconstruct 512 float16 values
+// from math-heavy exponent operations for each vector on each invocation.
+const HALF_TABLE = (() => {
+  const out = new Float32Array(65536);
+  for (let bits=0;bits<65536;bits++) {
+    const sign=bits&0x8000?-1:1, exponent=(bits>>>10)&0x1f, mantissa=bits&0x3ff;
+    out[bits] = exponent===31 ? (mantissa?NaN:sign*Infinity)
+      : exponent===0 ? sign*mantissa*2**-24
+      : sign*(1+mantissa/1024)*2**(exponent-15);
+  }
+  return out;
+})();
 export function halfFloat(bits: number): number {
-  const sign = bits & 0x8000 ? -1 : 1;
-  const exponent = (bits >>> 10) & 0x1f;
-  const mantissa = bits & 0x3ff;
-  if (exponent === 31) return mantissa ? Number.NaN : sign * Infinity;
-  if (exponent === 0) return sign * mantissa * 2 ** -24;
-  return sign * (1 + mantissa / 1024) * 2 ** (exponent - 15);
+  return HALF_TABLE[bits & 0xffff]!;
 }
+
 export function decodeFloat16(raw: Uint8Array, offset = 0): Float32Array {
   if (offset < 0 || offset + WIDTH > raw.length) throw new SemanticFault("shard_corrupt");
   const out = new Float32Array(DIM);
@@ -146,6 +166,22 @@ export function cosine(a: Float32Array, b: Float32Array): number {
   let total=0;
   for(let i=0;i<DIM;i++) total += a[i]! * b[i]!;
   return Math.max(-1,Math.min(1,total));
+}
+export function semanticThreshold(env: SemanticEnv): number {
+  const raw=env.SEMANTIC_MIN_COSINE;
+  if(raw===undefined)return SEMANTIC_TAU;
+  const value=Number(raw);
+  return raw.trim()!=="" && Number.isFinite(value) && value>=-1 && value<=1
+    ? value : SEMANTIC_TAU;
+}
+export function selectSemanticMatches(
+  values: {id:string;cosine:number}[], absolute=SEMANTIC_TAU, topK=MAX_SEMANTIC_RESULTS,
+): {id:string;cosine:number}[] {
+  const valid=values.filter(x=>Number.isFinite(x.cosine));
+  if(!valid.length)return [];
+  valid.sort((a,b)=>b.cosine-a.cosine||a.id.localeCompare(b.id));
+  const minimum=Math.max(absolute,valid[0]!.cosine-RELATIVE_COSINE_MARGIN);
+  return valid.filter(row=>row.cosine+1e-6>=minimum).slice(0,topK);
 }
 export function rrfFuse(
   lexical: string[], semantic: {id: string; cosine: number}[], k=60,
@@ -189,13 +225,17 @@ async function boundedBody(response: Response, cap: number): Promise<Uint8Array>
 async function bytes(url:string, cap:number, ttl:number):Promise<Uint8Array|null>{
   const now=Date.now(), old=memoryCache.get(url);
   if(old && old.until>now)return old.value;
+  if((missingAssets.get(url)??0)>now)return null;
   const cache=cacheDefault(), request=new Request(url);
   let response=cache&&ttl>0 ? await cache.match(request):undefined;
   if(!response){
     response=await fetch(url,{redirect:"error",headers:{
       accept:"application/octet-stream","user-agent":"clipoteca-worker",
     }});
-    if(response.status===404)return null;
+    if(response.status===404){
+      boundedPut(missingAssets,url,now+Math.max(1,ttl)*1000,16);
+      return null;
+    }
     if(!response.ok)throw new Error("semantic_asset_unavailable");
   }
   const raw=await boundedBody(response,cap);
@@ -218,7 +258,12 @@ function validEntry(entry:unknown,index:number,sealed:boolean):entry is Shard {
     ![s.sha256,s.ids_sha256].every(x=>typeof x==="string"&&DIGEST.test(x)) ||
     ![s.blob_sha,s.ids_blob_sha].every(x=>typeof x==="string"&&/^[0-9a-f]{40}$/.test(x)))
     return false;
-  if(!sealed)return s.path==="shards/tail.f16"&&s.ids_path==="ids/tail.json";
+  if(!sealed)return (
+    /^shards\/tail-[0-9a-f]{64}\.f16$/.test(s.path) &&
+    /^ids\/tail-[0-9a-f]{64}\.json$/.test(s.ids_path) &&
+    s.path.endsWith(s.sha256+".f16") &&
+    s.ids_path.endsWith(s.ids_sha256+".json")
+  );
   return SEALED_FILE.test(s.path)&&SEALED_IDS.test(s.ids_path)&&
     s.path.startsWith("shards/shard-"+String(index).padStart(6,"0")+"-")&&
     s.path.endsWith(s.sha256+".f16") &&
@@ -270,7 +315,8 @@ async function loadLegacy(env:SemanticEnv,maxClips:number):Promise<PackedCorpus>
   return {ids,vectors:data};
 }
 async function readShard(env:SemanticEnv,entry:Shard):Promise<{ids:string[];data:Uint8Array}>{
-  const ttl=entry.path==="shards/tail.f16"?10:3600;
+  // All shard paths, including tail, are now immutable SHA-addressed files.
+  const ttl=3600;
   const [rawIds,rawBlob]=await Promise.all([
     bytes(asset(env,entry.ids_path),SEAL_CAPACITY*18,ttl),
     bytes(asset(env,entry.path),SEAL_CAPACITY*WIDTH,ttl),
@@ -323,7 +369,7 @@ async function loadPackedCorpus(env:SemanticEnv):Promise<PackedCorpus>{
     corpus={ids,vectors:vectors.subarray(0,ids.length*DIM),
       ...(corrupt?{reason:"shard_corrupt"}:{})};
   }
-  boundedPut(corpusCache,key,{until:Date.now()+60_000,data:corpus},3);
+  boundedPut(corpusCache,key,{until:Date.now()+1_200_000,data:corpus},3);
   return corpus;
 }
 export async function loadCorpus(env:SemanticEnv):Promise<Map<string,Float32Array>>{
@@ -333,13 +379,16 @@ export async function loadCorpus(env:SemanticEnv):Promise<Map<string,Float32Arra
   ]));
 }
 
-function encoderUrl(value:string):URL|null{
+function encoderUrl(value:string, allowlist?:string):URL|null{
   try{
-    const url=new URL(value),host=url.hostname.toLowerCase();
+    const url=new URL(value),host=url.hostname.toLowerCase().replace(/\.+$/u,"");
+    const configured=(allowlist??"").split(",").map(x=>x.trim().toLowerCase().replace(/\.+$/u,"")).filter(Boolean);
+    if(configured.length&& !configured.includes(host))return null;
     if(url.protocol!=="https:"||url.username||url.password||url.hash||
       (url.port&&url.port!=="443")||host.includes(":")||host.includes("[")||
       !/^[a-z0-9.-]+$/.test(host)||!host.includes(".")||
-      host==="localhost"||[".localhost",".local",".internal",".test"].some(s=>host.endsWith(s))||
+      host==="localhost"||[".localhost",".local",".internal",".test",".lan",".corp",".home.arpa",".nip.io",".sslip.io"].some(s=>host.endsWith(s))||
+      ["nip.io","sslip.io"].includes(host)||
       /^(?:\d+\.){3}\d+$/.test(host)||/^\d+[.\d]*$/.test(host))
       return null;
     return url;
@@ -349,37 +398,65 @@ type Gate = {allowed:boolean;pending:boolean};
 function cacheRequest(suffix:string):Request{
   return new Request("https://clipoteca.invalid/_query-embed/"+suffix);
 }
+// Reservations are taken synchronously, before the FIRST await. Cache API
+// has no atomic compare-and-swap, so it cannot enforce a global cross-colo
+// quota. Within one isolate 50 simultaneous requests are serialized here.
+const gateDigests = new Set<string>();
+const gateIps = new Set<string>();
+let gateInFlight=0;
+let gateHour=-1;
+let gateHourlyCommitted=0;
+export function resetDispatchReservations():void{
+  gateDigests.clear();gateIps.clear();gateInFlight=0;gateHour=-1;gateHourlyCommitted=0;
+}
 async function gate(request:Request,digest:string):Promise<Gate>{
   const cache=cacheDefault();
   if(!cache)return {allowed:false,pending:false};
+  const now=Date.now(), ip=request.headers.get("cf-connecting-ip")??"unknown";
+  const hour=Math.floor(now/3_600_000);
+  if(gateHour!==hour){gateHour=hour;gateHourlyCommitted=0;}
   const recent=queryDispatch.get(digest);
-  if(recent&&recent.until>Date.now())return {allowed:false,pending:recent.pending};
-  const marker=cacheRequest("request/"+digest);
-  const old=await cache.match(marker);
-  if(old){
-    const pending=(await old.text())==="pending";
-    boundedPut(queryDispatch,digest,{until:Date.now()+QUERY_COOLDOWN_SECONDS*1000,pending},128);
-    return {allowed:false,pending};
-  }
-  // Same per-IP gate as REST import, but with a separate query-embed scope.
-  if(!await quota(request,"query-embed")){
-    await markGate(digest,false);
+  if(recent&&recent.until>now)return {allowed:false,pending:recent.pending};
+  if(gateDigests.has(digest)||gateIps.has(ip)||
+      gateHourlyCommitted+gateInFlight>=GLOBAL_QUERIES_PER_HOUR)
     return {allowed:false,pending:false};
-  }
-  const bucket=cacheRequest("hour/"+Math.floor(Date.now()/3_600_000));
-  const value=await cache.match(bucket);
-  const count=value?Number(await value.text()):0;
-  if(!Number.isFinite(count)||count>=GLOBAL_QUERIES_PER_HOUR){
+  gateDigests.add(digest);
+  gateIps.add(ip);
+  gateInFlight++;
+  try{
+    const marker=cacheRequest("request/"+digest);
+    const old=await cache.match(marker);
+    if(old){
+      const pending=(await old.text())==="pending";
+      boundedPut(queryDispatch,digest,{until:now+QUERY_COOLDOWN_SECONDS*1000,pending},128);
+      return {allowed:false,pending};
+    }
+    // Reject IP and global quota without poisoning this digest for another
+    // client. Only an actual HTTP attempt gets a ten-minute SHA marker.
+    if(!await quota(request,"query-embed"))
+      return {allowed:false,pending:false};
+    const bucket=cacheRequest("hour/"+hour);
+    const value=await cache.match(bucket);
+    const count=value?Number(await value.text()):0;
+    if(!Number.isFinite(count)||count>=GLOBAL_QUERIES_PER_HOUR||
+        gateHourlyCommitted>=GLOBAL_QUERIES_PER_HOUR)
+      return {allowed:false,pending:false};
+    // Increment isolate state synchronously before the first awaited write.
+    gateHourlyCommitted++;
+    await cache.put(bucket,new Response(String(Math.max(count,gateHourlyCommitted)),{
+      headers:{"cache-control":"public, max-age=3600"},
+    }));
+    // Mark once a real attempt has been reserved; 422/network failure also
+    // consumes one attempt for the full ten-minute cooldown.
     await markGate(digest,false);
+    return {allowed:true,pending:false};
+  }catch{
     return {allowed:false,pending:false};
+  }finally{
+    gateDigests.delete(digest);
+    gateIps.delete(ip);
+    gateInFlight--;
   }
-  // Cache API is per-colo, best-effort, not a transactional worldwide counter.
-  // Count BEFORE request: 422 and network failures still consume an attempt.
-  await cache.put(bucket,new Response(String(count+1),{
-    headers:{"cache-control":"public, max-age=3600"},
-  }));
-  await markGate(digest,false);
-  return {allowed:true,pending:false};
 }
 async function markGate(digest:string,pending:boolean):Promise<void>{
   boundedPut(queryDispatch,digest,{until:Date.now()+QUERY_COOLDOWN_SECONDS*1000,pending},128);
@@ -389,11 +466,52 @@ async function markGate(digest:string,pending:boolean):Promise<void>{
       headers:{"cache-control":"public, max-age="+QUERY_COOLDOWN_SECONDS},
     }));
 }
+
 const encoderCacheKey=(digest:string)=>cacheRequest("vector/"+digest);
+interface QueryShardEntry {
+  path:string; ids_path:string; count:number; sha256:string; ids_sha256:string;
+}
+async function queryFromShards(env:SemanticEnv,digest:string):Promise<Float32Array|null>{
+  const raw=await bytes(asset(env,"queries/manifest.json"),100000,10);
+  if(!raw)return null;
+  const manifest=JSON.parse(new TextDecoder().decode(raw)) as {
+    version:number;dimension:number;seal_capacity:number;max_queries:number;
+    shards:QueryShardEntry[];tail:QueryShardEntry|null;
+  };
+  if(manifest.version!==1||manifest.dimension!==DIM||
+      manifest.seal_capacity!==64||manifest.max_queries!==512||
+      !Array.isArray(manifest.shards)||manifest.shards.length>8)
+    throw new SemanticFault("query_vector_invalid");
+  for(const entry of [...manifest.shards,...(manifest.tail?[manifest.tail]:[])]){
+    if(!entry||!Number.isInteger(entry.count)||entry.count<1||entry.count>64||
+      !DIGEST.test(entry.sha256)||!DIGEST.test(entry.ids_sha256)||
+      !/^(shards\/(?:shard-[0-9]{6}|tail)-[0-9a-f]{64}\.f16)$/.test(entry.path)||
+      !/^(ids\/(?:shard-[0-9]{6}|tail)-[0-9a-f]{64}\.json)$/.test(entry.ids_path)||
+      !entry.path.endsWith(entry.sha256+".f16")||
+      !entry.ids_path.endsWith(entry.ids_sha256+".json"))
+      throw new SemanticFault("query_vector_invalid");
+    const idsRaw=await bytes(asset(env,"queries/"+entry.ids_path),64*70,3600);
+    if(!idsRaw||await sha256(idsRaw)!==entry.ids_sha256)
+      throw new SemanticFault("query_vector_invalid");
+    const ids=JSON.parse(new TextDecoder().decode(idsRaw)) as unknown;
+    if(!Array.isArray(ids)||ids.length!==entry.count||ids.some(x=>typeof x!=="string"||!DIGEST.test(x)))
+      throw new SemanticFault("query_vector_invalid");
+    const index=ids.indexOf(digest);
+    if(index<0)continue;
+    const bin=await bytes(asset(env,"queries/"+entry.path),64*WIDTH,3600);
+    if(!bin||bin.byteLength!==entry.count*WIDTH||await sha256(bin)!==entry.sha256)
+      throw new SemanticFault("query_vector_invalid");
+    return decodeFloat16(bin,index*WIDTH);
+  }
+  return null;
+}
 export async function queryVector(env:SemanticEnv,query:string,request?:Request):Promise<Float32Array|null>{
   const normalized=normalizedQuery(query);
   if(!normalized||normalized.length>200)return null;
   const digest=await sha256(normalized);
+  const sharded=await queryFromShards(env,digest);
+  if(sharded)return sharded;
+  // Transitional M22 r2 compatibility for existing per-query JSON vectors.
   const raw=await bytes(asset(env,"queries/"+digest+".json"),8192,10);
   if(raw){
     const value=JSON.parse(new TextDecoder().decode(raw)) as {
@@ -405,7 +523,7 @@ export async function queryVector(env:SemanticEnv,query:string,request?:Request)
     return decodeFloat16(Uint8Array.from(atob(value.vector),c=>c.charCodeAt(0)));
   }
   if(!env.QUERY_ENCODER_URL)return null;
-  const url=encoderUrl(env.QUERY_ENCODER_URL);
+  const url=encoderUrl(env.QUERY_ENCODER_URL,env.QUERY_ENCODER_HOSTS);
   if(!url)throw new SemanticFault("unsafe_query_encoder_url");
   const existing=encoderMemory.get(digest);
   if(existing&&existing.until>Date.now())return existing.vector;
@@ -497,9 +615,6 @@ export async function semanticSearch(
   if(env.SEMANTIC_SEARCH!=="1")
     return {...oldPage(),semantic:"unavailable",semantic_reason:"semantic_disabled"};
   try{
-    const corpus=await loadPackedCorpus(env);
-    if(!corpus.ids.length)return {...oldPage(),semantic:"unavailable",
-      semantic_reason:corpus.reason??"empty_corpus"};
     const queryEmbedding=await queryVector(env,query,request);
     if(!queryEmbedding){
       if(env.QUERY_ENCODER_URL)return {...oldPage(),semantic:"unavailable",
@@ -508,6 +623,9 @@ export async function semanticSearch(
       return {...oldPage(),semantic:queued?"pending":"unavailable",
         ...(!queued?{semantic_reason:"query_vector_unavailable"}:{})};
     }
+    const corpus=await loadPackedCorpus(env);
+    if(!corpus.ids.length)return {...oldPage(),semantic:"unavailable",
+      semantic_reason:corpus.reason??"empty_corpus"};
     const eligibleIds=new Set(eligible.map(c=>c.id));
     const scored:{id:string;cosine:number}[]=[];
     for(let index=0;index<corpus.ids.length;index++){
@@ -516,10 +634,13 @@ export async function semanticSearch(
       // Work with an already decoded, contiguous Float32Array; no per-request
       // checksum or f16 conversion and no need to store 512D per clip object.
       const similarity=cosine(queryEmbedding,corpus.vectors.subarray(index*DIM,(index+1)*DIM));
-      if(similarity>=SEMANTIC_TAU)scored.push({id,cosine:similarity});
+      scored.push({id,cosine:similarity});
     }
-    scored.sort((a,b)=>b.cosine-a.cosine||a.id.localeCompare(b.id));
-    const fused=rrfFuse(lexical.map(x=>x.id),scored);
+    const selectedSemantic=selectSemanticMatches(scored,semanticThreshold(env));
+    if(!selectedSemantic.length)return {
+      ...oldPage(),semantic:"unavailable",semantic_reason:"no_semantic_match",
+    };
+    const fused=rrfFuse(lexical.map(x=>x.id),selectedSemantic);
     const byId=new Map(eligible.map(c=>[c.id,c]));
     const selected=fused.slice(cursor,cursor+limit);
     return {

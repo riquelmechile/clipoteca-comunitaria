@@ -33,7 +33,13 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/m22/semantic_vectors.jso
 
 class FakeEncoder:
     def encode_text(self, query):
-        if normalized_query(query) not in {"aguacero", "lluvia", "rain", "下雨", "дождь"}:
+        if normalized_query(query) not in {
+            "aguacero",
+            "lluvia",
+            "rain",
+            "\u4e0b\u96e8",
+            "\u0434\u043e\u0436\u0434\u044c",
+        }:
             raise ValueError("unknown fake query")
         v = np.zeros(512, dtype=np.float32)
         v[0] = 1
@@ -54,8 +60,12 @@ def test_tail_binary_matches_python_fixture_and_reads_with_legacy_fallback(tmp_p
     assert manifest == FIXTURE["manifest"]
     assert manifest["version"] == 3 and manifest["shards"] == []
     assert manifest["tail"]["count"] == 2
-    assert (tmp_path / "shards/tail.f16").read_bytes() == base64.b64decode(FIXTURE["tail_base64"])
-    assert (tmp_path / "ids/tail.json").read_bytes() == base64.b64decode(FIXTURE["tail_ids_base64"])
+    assert (tmp_path / manifest["tail"]["path"]).read_bytes() == base64.b64decode(
+        FIXTURE["tail_base64"]
+    )
+    assert (tmp_path / manifest["tail"]["ids_path"]).read_bytes() == base64.b64decode(
+        FIXTURE["tail_ids_base64"]
+    )
     assert store.read("clip-000101")[0] == pytest.approx(1)
     assert store.read("clip-000102")[1] == pytest.approx(1)
     assert SHARD_CAPACITY == 4096
@@ -136,9 +146,17 @@ class GitDataSimulator:
             if ident not in self.commits:
                 return httpx.Response(404)
             return httpx.Response(200, json={"tree": {"sha": self.commits[ident]["tree"]}})
-        if req.method == "GET" and path.endswith("/contents/data/embeddings/manifest.json"):
+        if req.method == "GET" and (
+            path.endswith("/contents/data/embeddings/manifest.json")
+            or path.endswith("/contents/data/embeddings/queries/manifest.json")
+        ):
             tree = self.trees[self.commits[self.head]["tree"]]
-            payload = tree.get("data/embeddings/manifest.json")
+            key = (
+                "data/embeddings/queries/manifest.json"
+                if path.endswith("/queries/manifest.json")
+                else "data/embeddings/manifest.json"
+            )
+            payload = tree.get(key)
             if payload is None:
                 return httpx.Response(404)
             return httpx.Response(
@@ -215,40 +233,28 @@ def test_remote_one_git_commit_per_batch_cas_and_no_orphans():
 
 
 def test_remote_query_cache_idempotent():
-    files = {}
-    calls = 0
-
-    def handler(req):
-        nonlocal calls
-        calls += 1
-        path = str(req.url).split("/data/embeddings/")[-1].split("?")[0]
-        if req.method == "GET":
-            if path not in files:
-                return httpx.Response(404)
-            return httpx.Response(
-                200,
-                json={
-                    "encoding": "base64",
-                    "content": base64.b64encode(files[path]).decode(),
-                    "sha": git_blob_sha(files[path]),
-                },
-            )
-        files[path] = base64.b64decode(json.loads(req.content)["content"])
-        return httpx.Response(201)
-
-    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-        remote = GitHubQueries(client, "riquelmechile/clipoteca-comunitaria")
-        remote.publish("Aguacero", FakeEncoder().encode_text("aguacero"))
-        remote.publish("aguacero", FakeEncoder().encode_text("aguacero"))
-    assert len(files) == 1 and calls == 3
+    remote = GitDataSimulator()
+    remote.conflict_once = False
+    with httpx.Client(transport=httpx.MockTransport(remote)) as client:
+        publisher = GitHubQueries(client, "riquelmechile/clipoteca-comunitaria")
+        publisher.publish("Aguacero", FakeEncoder().encode_text("aguacero"))
+        publisher.publish("aguacero", FakeEncoder().encode_text("aguacero"))
+    tree = remote.trees[remote.commits[remote.head]["tree"]]
+    assert remote.count == 1  # one commit per job, repeated query is a no-op
+    assert "data/embeddings/queries/manifest.json" in tree
+    assert len([key for key in tree if key.startswith("data/embeddings/queries/")]) == 3
 
 
 def test_normalized_query_and_query_cache_with_fake_encoder(tmp_path):
     cache = QueryStore(tmp_path)
     path = cache.put("  AGUACERO  ", FakeEncoder().encode_text("aguacero"))
     assert path == cache.put("aguacero", FakeEncoder().encode_text("aguacero"))
-    assert path.name == query_digest("aguacero") + ".json"
+    assert path.name == "manifest.json"
     assert "aguacero" not in path.read_text()
+    assert (
+        query_digest("aguacero")
+        in (tmp_path / "queries" / QueryStore(tmp_path).manifest()["tail"]["ids_path"]).read_text()
+    )
     assert cache.read("aguacero")[0] == pytest.approx(0.9998, abs=0.001)
     for row in json.loads((Path(__file__).parent / "fixtures/m22/normalization.json").read_text()):
         assert normalized_query(row["input"]) == row["normalized"]

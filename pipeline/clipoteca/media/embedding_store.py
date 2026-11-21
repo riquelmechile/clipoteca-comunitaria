@@ -104,37 +104,47 @@ class EmbeddingStore:
     def put(self, identifier: str, vector: np.ndarray) -> dict:
         payload = vector_bytes(vector)
         metadata = _metadata(identifier, payload)
-        path = self.root / metadata["path"]
-        if path.exists() and path.read_bytes() != payload:
-            raise EmbeddingError("immutable_clip_embedding_collision")
-        # Local ingest worker is single-writer; remote index has GitHub CAS.
-        index = self.index()
-        prior = index["vectors"].get(identifier)
-        if prior is not None and prior != metadata:
-            raise EmbeddingError("embedding_index_collision")
-        if not path.exists():
-            _atomic_write(path, payload)
-        index["vectors"][identifier] = metadata
-        _atomic_write(
-            self.index_file,
-            (json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(),
-        )
-        # Transitional dual-write: M21 sidecar remains available for existing
-        # readers while M22 writes consolidated shards for the Worker.
+        self.write_warnings: dict[str, str] = {}
+        legacy = os.environ.get("CLIPOTECA_M21_SIDECARS", "1") != "0"
+        m21_ok = False
+        m22_ok = False
+        if legacy:
+            try:
+                path = self.root / metadata["path"]
+                if path.exists() and path.read_bytes() != payload:
+                    raise EmbeddingError("immutable_clip_embedding_collision")
+                index = self.index()
+                prior = index["vectors"].get(identifier)
+                if prior is not None and prior != metadata:
+                    raise EmbeddingError("embedding_index_collision")
+                if not path.exists():
+                    _atomic_write(path, payload)
+                index["vectors"][identifier] = metadata
+                _atomic_write(
+                    self.index_file,
+                    (
+                        json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+                    ).encode(),
+                )
+                m21_ok = True
+            except Exception:
+                self.write_warnings["m21"] = "m21_sidecar_persist_failed:clip_published"
+        # The M22 writer is independent of M21. A failed M21 index cannot
+        # prevent a valid shard from being published (or vice versa).
         from .shards import ShardStore
 
         try:
             ShardStore(self.root).put(identifier, vector)
+            m22_ok = True
         except Exception:
-            # The M21 sidecar and index above are already durable. A secondary
-            # M22 manifest failure cannot invalidate an existing M21 write.
+            self.write_warnings["m22"] = "m22_shard_dual_write_failed:m21_sidecar_persisted"
+        if self.write_warnings:
             import warnings
 
-            warnings.warn(
-                "m22_shard_dual_write_failed:m21_sidecar_persisted",
-                RuntimeWarning,
-                stacklevel=2,
-            )
+            for code in self.write_warnings.values():
+                warnings.warn(code, RuntimeWarning, stacklevel=2)
+        if not m21_ok and not m22_ok:
+            raise EmbeddingError("all_embedding_stores_failed")
         return metadata
 
     def read(self, identifier: str) -> np.ndarray:

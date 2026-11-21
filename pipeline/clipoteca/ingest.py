@@ -1,10 +1,11 @@
-"""Actions-only asynchronous ingestion: source → verified Releases → catalogue."""
+"""Actions-only asynchronous ingestion: source \u2192 verified Releases \u2192 catalogue."""
 
 from __future__ import annotations
 
 import asyncio
 import math
 import os
+import numpy as np
 import re
 import time
 import tempfile
@@ -311,6 +312,8 @@ async def ingest(
     ids: list[str] = []
     semantic_frames: dict[str, FrameEmbeddings] = {}
     embeddings_store = EmbeddingStore(job_root.parent / "embeddings")
+    pending_remote_vectors: list[tuple[str, np.ndarray]] = []
+    m21_sidecars = os.environ.get("CLIPOTECA_M21_SIDECARS", "1") != "0"
     remote_embeddings: GitHubEmbeddingWriter | None = None
     downloaded_count = 0
     failed_count = 0
@@ -684,15 +687,25 @@ async def ingest(
                                             samples, start=window.start, end=window.end
                                         )
                                         embeddings_store.put(identifier, vector)
+                                        for store_name, warning in getattr(
+                                            embeddings_store, "write_warnings", {}
+                                        ).items():
+                                            job.setdefault("source_warnings", {})[
+                                                f"{candidate.origin_id}:{store_name}"
+                                            ] = warning
                                         if os.environ.get("CLIPOTECA_PERSIST_JOBS") == "1":
                                             if remote_embeddings is None:
                                                 remote_embeddings = GitHubEmbeddingWriter(
                                                     repository, token
                                                 )
-                                            remote_embeddings.publish(identifier, vector)
-                                            GitHubShards(
-                                                remote_embeddings.client, repository
-                                            ).publish(identifier, vector)
+                                            if m21_sidecars:
+                                                try:
+                                                    remote_embeddings.publish(identifier, vector)
+                                                except Exception:
+                                                    job.setdefault("source_warnings", {})[
+                                                        f"{candidate.origin_id}:m21_remote"
+                                                    ] = "m21_remote_sidecar_failed:clip_published"
+                                            pending_remote_vectors.append((identifier, vector))
                                     except Exception:
                                         # The catalogue and verified MP4 are already durable.
                                         # An optional embedding must not reverse publication.
@@ -766,6 +779,18 @@ async def ingest(
                         )
                     job["source_errors"][candidate.origin_id] = error_code
                     errors.append(f"{candidate.origin_id}:{error_code}")
+        # One M22 Git Data API tree/commit for the entire ingest job,
+        # independent of legacy M21 per-clip writes. A shard failure cannot
+        # roll back already published catalogue entries or verified MP4 assets.
+        if pending_remote_vectors and remote_embeddings is not None:
+            try:
+                GitHubShards(remote_embeddings.client, repository).publish_many(
+                    pending_remote_vectors
+                )
+            except Exception:
+                job.setdefault("source_warnings", {})["embedding_m22_remote"] = (
+                    "shard_batch_persist_failed:clips_published"
+                )
         if ids:
             job["status"] = "published"
         elif errors and all(":duplicate" in entry for entry in errors):
