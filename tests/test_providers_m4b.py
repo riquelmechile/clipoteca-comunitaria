@@ -64,7 +64,7 @@ async def test_archive_must_resolve_actual_movie_and_skip_giant_files():
                 "docs": [
                     {"identifier": "city_rain", "title": "Rain in town", "mediatype": "movies"}
                 ]
-            }
+            },
         },
         "/metadata/city_rain": {
             "metadata": {"identifier": "city_rain"},
@@ -73,7 +73,7 @@ async def test_archive_must_resolve_actual_movie_and_skip_giant_files():
                 {"name": "rain-4k.mp4", "size": "19999999999"},
                 {"name": "rain-small.webm", "size": "3800000"},
                 {"name": "readme.html", "size": "1000"},
-            ]
+            ],
         },
     }
     adapter = InternetArchive(client=transport(payloads))
@@ -94,13 +94,15 @@ async def test_archive_must_resolve_actual_movie_and_skip_giant_files():
 )
 async def test_empty_and_429_and_500(adapter_cls, path):
     empty = adapter_cls(
-        client=transport({
-            path: {
-                "query": {"pages": {}},
-                "responseHeader": {"params": {"q": build_query(["rain"], all_terms=True)}},
-                "response": {"docs": []},
+        client=transport(
+            {
+                path: {
+                    "query": {"pages": {}},
+                    "responseHeader": {"params": {"q": build_query(["rain"], all_terms=True)}},
+                    "response": {"docs": []},
+                }
             }
-        })
+        )
     )
     assert await empty.search("rain", "en", SearchLimits()) == []
     for code, error in [(429, RateLimited), (500, ProviderError)]:
@@ -112,12 +114,14 @@ async def test_empty_and_429_and_500(adapter_cls, path):
 @pytest.mark.asyncio
 async def test_archive_no_files_means_search_only():
     adapter = InternetArchive(
-        client=transport({
-            "/metadata/a": {
-                "metadata": {"identifier": "a"},
-                "files": [{"name": "page.html", "size": "1000"}],
+        client=transport(
+            {
+                "/metadata/a": {
+                    "metadata": {"identifier": "a"},
+                    "files": [{"name": "page.html", "size": "1000"}],
+                }
             }
-        })
+        )
     )
     candidate = Candidate(
         "internet_archive", "a", "rain", "en", "https://archive.org/details/a", "Rain", "en"

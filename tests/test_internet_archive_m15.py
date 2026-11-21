@@ -40,10 +40,10 @@ def test_normalize_and_lucene_query_preserves_four_languages():
     query = build_query(terms, all_terms=True)
     assert BASE_QUERY in query
     assert "title:" in query and "subject:" in query and "shotlist:" in query
-    assert "title:\"rain\"" in query
-    assert "title:\"storm\"" in query
+    assert 'title:"rain"' in query
+    assert 'title:"storm"' in query
     # Search terms containing literal Lucene operators must be escaped.
-    assert '\\:' in build_query(["rain:storm"], all_terms=True)
+    assert "\\:" in build_query(["rain:storm"], all_terms=True)
     assert len(normalize_terms("one two three four five six seven eight")) <= 6
 
 
@@ -167,7 +167,7 @@ async def test_metadata_exposes_scanning_derivative_and_caches():
                         "size": "500000",
                         "format": "512Kb MPEG4",
                     },
-                ]
+                ],
             },
         )
 
@@ -199,10 +199,13 @@ async def test_429_retry_after_and_503_then_200(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
         code = statuses.pop(0)
         if code == 200:
-            return httpx.Response(200, json={
-                "responseHeader": {"params": {"q": request.url.params["q"]}},
-                "response": {"docs": []},
-            })
+            return httpx.Response(
+                200,
+                json={
+                    "responseHeader": {"params": {"q": request.url.params["q"]}},
+                    "response": {"docs": []},
+                },
+            )
         return httpx.Response(code, json={"detail": "rate limited"}, headers={"Retry-After": "2"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
@@ -230,13 +233,25 @@ async def test_search_rejects_missing_or_mismatched_query_echo(echo):
 def test_scan_stays_in_the_same_recording_original_chain():
     files = [
         {"name": "A-master.mov", "size": "1000000000"},
-        {"name": "A-playable.mp4", "original": "A-master.mov",
-         "size": "5000000", "format": "h.264"},
-        {"name": "A-512kb.mp4", "original": "A-master.mov",
-         "size": "800000", "format": "512Kb MPEG4"},
+        {
+            "name": "A-playable.mp4",
+            "original": "A-master.mov",
+            "size": "5000000",
+            "format": "h.264",
+        },
+        {
+            "name": "A-512kb.mp4",
+            "original": "A-master.mov",
+            "size": "800000",
+            "format": "512Kb MPEG4",
+        },
         {"name": "B-master.mov", "size": "1000000000"},
-        {"name": "B-512kb.mp4", "original": "B-master.mov",
-         "size": "10000", "format": "512Kb MPEG4"},
+        {
+            "name": "B-512kb.mp4",
+            "original": "B-master.mov",
+            "size": "10000",
+            "format": "512Kb MPEG4",
+        },
     ]
     playable, scan = select_derivatives(files, "multi_film")
     assert playable and playable["name"] == "A-playable.mp4"
@@ -257,10 +272,13 @@ async def test_item_without_video_is_search_only_and_not_caching_empty_files():
 
     def handler(request):
         requests[request.url.path] += 1
-        return httpx.Response(200, json={
-            "metadata": {"identifier": "no_video"},
-            "files": [{"name": "notes.txt", "size": "100"}],
-        })
+        return httpx.Response(
+            200,
+            json={
+                "metadata": {"identifier": "no_video"},
+                "files": [{"name": "notes.txt", "size": "100"}],
+            },
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         adapter = InternetArchive(client=client, min_interval_seconds=0)
@@ -310,10 +328,13 @@ async def test_cache_is_per_instance_limited_and_returns_deep_copies():
     def handler(request):
         requests[request.url.path] += 1
         identifier = request.url.path.rsplit("/", 1)[-1]
-        return httpx.Response(200, json={
-            "metadata": {"identifier": identifier, "subject": ["original"]},
-            "files": [{"name": "film.mp4", "size": "1500", "format": "h.264"}],
-        })
+        return httpx.Response(
+            200,
+            json={
+                "metadata": {"identifier": identifier, "subject": ["original"]},
+                "files": [{"name": "film.mp4", "size": "1500", "format": "h.264"}],
+            },
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         adapter = InternetArchive(client=client, min_interval_seconds=0)
@@ -337,10 +358,13 @@ async def test_host_rate_limit_shared_across_instances_and_direct_media():
     def handler(request):
         calls.append(time.monotonic())
         identifier = request.url.path.rsplit("/", 1)[-1]
-        return httpx.Response(200, json={
-            "metadata": {"identifier": identifier},
-            "files": [{"name": "film.mp4", "size": "2000", "format": "h.264"}],
-        })
+        return httpx.Response(
+            200,
+            json={
+                "metadata": {"identifier": identifier},
+                "files": [{"name": "film.mp4", "size": "2000", "format": "h.264"}],
+            },
+        )
 
     with InternetArchive._slot_lock:
         InternetArchive._next_by_host.clear()
@@ -362,24 +386,26 @@ async def test_other_providers_keep_default_only_429_retries_and_one_second_cap(
     from clipoteca.providers.http import fetch_json
 
     sleeps = []
+
     async def fake_sleep(seconds):
         sleeps.append(seconds)
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
     attempts = [429, 429, 200]
+
     def handler(_req):
         code = attempts.pop(0)
-        return httpx.Response(
-            code, json={"ok": True}, headers={"Retry-After": "99"}
-        )
+        return httpx.Response(code, json={"ok": True}, headers={"Retry-After": "99"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         assert (await fetch_json(client, "https://example.org/other"))["ok"] is True
     assert sleeps == [1.0, 1.0]
     requests = []
+
     def unavailable(_req):
         requests.append(1)
         return httpx.Response(503, json={"detail": "unavailable"})
+
     async with httpx.AsyncClient(transport=httpx.MockTransport(unavailable)) as client:
         with pytest.raises(ProviderError, match="HTTP 503"):
             await fetch_json(client, "https://example.org/other")
@@ -389,11 +415,13 @@ async def test_other_providers_keep_default_only_429_retries_and_one_second_cap(
 @pytest.mark.asyncio
 async def test_ia_503_retries_cap_retry_after_at_five_seconds(monkeypatch):
     sleeps = []
+
     async def fake_sleep(seconds):
         sleeps.append(seconds)
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
     attempts = [503, 503, 200]
+
     def handler(_req):
         status = attempts.pop(0)
         return httpx.Response(

@@ -231,9 +231,7 @@ def select_derivatives(files: list, identifier: str) -> tuple[dict | None, dict 
     chosen = min(candidates, key=lambda x: (not x["derived"], x["kind"], x["size"], x["name"]))
     # The 512Kb scan must belong to the very same original-chain root as
     # the chosen playable derivative. Archives often contain multiple films.
-    scanners = [
-        item for item in groups[chosen["root"]] if item["kind"] == 2
-    ]
+    scanners = [item for item in groups[chosen["root"]] if item["kind"] == 2]
     scan = min(scanners, key=lambda x: (x["size"], x["name"])) if scanners else None
 
     def public(item: dict | None) -> dict | None:
