@@ -472,11 +472,83 @@ async def test_rutube_invalid_port_and_scoped_cdn_domains():
                 assert ".rtbcdn.ru" in ref.allowed_hosts
 
 
-def test_ingest_declares_hls_mime_and_uses_download_hls():
-    import inspect
-    import clipoteca.ingest as ingest
+@pytest.mark.asyncio
+async def test_ingest_hls_mime_dispatches_to_bounded_hls_downloader(tmp_path, monkeypatch):
+    """Exercise the real ingest dispatch branch, without external services."""
+    import importlib
+    from types import SimpleNamespace
 
-    assert "application/vnd.apple.mpegurl" in HLS_MIME_TYPES
-    code = inspect.getsource(ingest.ingest)
-    assert "ref.mime in HLS_MIME_TYPES" in code
-    assert "raw = await download_hls(" in code
+    from clipoteca.providers.base import Adapter, MediaRef, SupportStatus
+
+    module = importlib.import_module("clipoteca.ingest")
+    candidate = Candidate(
+        "rutube", VIDEO, "rain", "en", "https://rutube.ru/video/" + VIDEO + "/",
+        "Rain", "en",
+    )
+
+    class AdapterFixture(Adapter):
+        name = "rutube"
+        support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+
+        async def search(self, term, lang, limits):
+            return [candidate]
+
+        async def metadata(self, row):
+            return {}
+
+        async def direct_media(self, row):
+            return MediaRef(
+                "https://cdn.rtbcdn.ru/video/master.m3u8",
+                "application/vnd.apple.mpegurl",
+                referer="https://rutube.ru/video/" + VIDEO + "/",
+                allowed_hosts=RUTUBE_HLS_ALLOWED_HOSTS,
+            )
+
+    class EngineFixture:
+        async def search(self, *args, **kwargs):
+            return SimpleNamespace(candidates=[candidate], executions=[], duplicates=False)
+
+    monkeypatch.setattr(module, "SearchEngine", lambda *_args, **_kw: EngineFixture())
+    monkeypatch.setattr(
+        module,
+        "expand_query",
+        lambda *_args, **_kw: SimpleNamespace(
+            complete=True, errors={}, terms={"en": "rain", "es": "lluvia"}
+        ),
+    )
+    monkeypatch.setattr(module, "discovery_metrics", lambda _search: {})
+    monkeypatch.setattr(module, "write_metrics", lambda *_args: None)
+    monkeypatch.setattr(
+        module,
+        "localize_candidate",
+        lambda *_args, **_kw: SimpleNamespace(
+            title={"en": "Rain", "es": "Lluvia"},
+            description={"en": "Rain", "es": "Lluvia"},
+            tags={"en": ["rain"], "es": ["lluvia"]},
+        ),
+    )
+    observed = []
+
+    async def hls_stub(url, target_dir, **kwargs):
+        observed.append((url, kwargs))
+        raise DownloadError("expected HLS path")
+
+    monkeypatch.setattr(module, "download_hls", hls_stub)
+    report = await module.ingest(
+        "rain",
+        [AdapterFixture()],
+        repository="riquelmechile/clipoteca-comunitaria",
+        token="test-only",
+        job_root=tmp_path / "jobs",
+        writer=SimpleNamespace(read_catalog=lambda: (None, None)),
+        storage=SimpleNamespace(),
+        translator=lambda *_args: "rain",
+        filters={"max_duration": 8},
+    )
+    assert report.status == "failed"
+    assert len(observed) == 1
+    url, options = observed[0]
+    assert url == "https://cdn.rtbcdn.ru/video/master.m3u8"
+    assert options["max_duration"] == 8
+    assert options["referer"].startswith("https://rutube.ru/video/")
+    assert options["allowed_hosts"] == RUTUBE_HLS_ALLOWED_HOSTS
