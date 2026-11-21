@@ -265,6 +265,8 @@ async def ingest(
     translator=None,
     expand_search: bool = True,
     embedding_encoder: Encoder | None = None,
+    deferred_sources: tuple[str, ...] = (),
+    deferred_reason: str = "deferred_to_self_hosted",
 ) -> IngestReport:
     if not expand_search and (len(adapters) != 1 or adapters[0].name != "community"):
         raise ValueError("partial expansion is allowed only for a direct community URL")
@@ -303,12 +305,14 @@ async def ingest(
         job["terminal_sources"] = list(existing.get("terminal_sources", ()))
     else:
         job = existing or new_job(rid)
-    if existing is None or job is not existing:
-        jobs.save(job)  # Durable queued state before each new attempt.
+    for source in deferred_sources:
+        job.setdefault("source_errors", {})[source] = deferred_reason
+    if existing is None or job is not existing or deferred_sources:
+        jobs.save(job)  # Durable queued state and deferred sources.
     writer = writer or GitHubCatalogWriter(repository, token)
     own_storage = storage is None
     storage = storage or GitHubReleaseStorage(repository, token=token)
-    errors: list[str] = []
+    errors: list[str] = [f"{source}:{deferred_reason}" for source in deferred_sources]
     ids: list[str] = []
     semantic_frames: dict[str, FrameEmbeddings] = {}
     embeddings_store = EmbeddingStore(job_root.parent / "embeddings")

@@ -1,97 +1,349 @@
-# Clipoteca M20: runner propio (CachyOS / Arch Linux)
+# M20/M24 - runner propio para Clipoteca en CachyOS/Arch
 
-Este PR agrega seleccion declarativa de proveedores entre GitHub-hosted Actions y un runner autoalojado. La configuracion por defecto es segura: `data/runner-routing.json` contiene `{"self_hosted_providers":[]}`, por lo que **todos los proveedores siguen en Actions** si aun no existe PC/runner dedicado. No se despliega nada con este PR ni se toca `.github/`.
+**Estado actual:** codigo de enrutamiento preparado; no hay runner configurado ni smoke confirmado por este PR. En `data/runner-routing.json`, `{"self_hosted_providers":[]}` deja todos los proveedores en Actions. Un runner propio solo se justifica tras evidencia de bloqueo en Actions y funcionamiento en PC aislado.
 
-## Preparar el PC
+## 1. Riesgo critico de un repo publico
 
-1. Crear un usuario Linux **sin privilegios** (por ejemplo `clipoteca-runner`) sin acceso a Docker, sudo, claves personales ni repositorios de trabajo. Preparar una carpeta de runner de permisos exclusivos y espacio suficiente para video temporal. La GPU es opcional, utilizada solo para embeddings cuando el modelo lo permita; ffmpeg funciona en CPU.
-2. Instalar ffmpeg, git, curl y Python **3.13** (CachyOS/Arch: `sudo pacman -Syu --needed ffmpeg git curl` y una instalacion administrada de Python 3.13), junto con `uv`. Comprobar `ffmpeg -version`, `uv --version`, `python3.13 --version` y Node 22 cuando se necesiten tests Worker.
-3. En GitHub, ir a **Settings > Actions > Runners > New self-hosted runner** para el repositorio. Seleccionar Linux x64 (o ARM64 segun host), y ejecutar solo en la cuenta restringida los comandos de instalacion indicados por GitHub, con el token temporal que entrega esa pantalla. **No guardar ni registrar el token** en este repo, en el chat ni en archivos del PR. Registrar la etiqueta personalizada `clipoteca-home`, ademas de `self-hosted`.
-4. Instalar el servicio systemd de runner usando el instalador oficial `sudo ./svc.sh install clipoteca-runner` y `sudo ./svc.sh start`; revisar `systemctl status 'actions.runner.*'`. El comando sudo es solo para registrar el servicio, nunca debe otorgar permisos root al proceso que ejecuta jobs.
-5. Para activar un proveedor despues de hacer smoke y comprobar que falla en Actions pero funciona localmente, poner su nombre exacto en `data/runner-routing.json` bajo `self_hosted_providers`. Por defecto la lista sigue vacia.
+**Nunca confiar solo en un `if` del workflow.** Un PR de fork podria anadir OTRO workflow con `runs-on: [self-hosted, clipoteca-home]` y trigger `pull_request` para ejecutar codigo arbitrario en el PC. GitHub > Settings > Actions > General: elegir **Require approval for all outside collaborators**, no solo first-time contributors. No enviar tokens ni secretos a PR de forks, no usar `pull_request_target` con checkout del fork, bloquear workflows no revisados en branch protection y revisar cambios de workflows de manera independiente.
 
-## Ejecutar manualmente el pipeline
+Los **runner groups restringidos por workflow existen para organizaciones/enterprise**; este es un repo personal, no asumir ese control. Lo mas seguro es un runner **efimero** (`./config.sh --ephemeral`) en una VM o contenedor dedicado, sin acceso a los archivos de la sesion personal, ni redes de confianza, montajes de Docker ni otras credenciales. **No basta una VLAN si puede alcanzar LAN u otros servicios locales.** Bloquear acceso a la LAN de la casa; agentes como Ollama en localhost o servicios privados del host podrian ser accesibles si no se aisla tambien el espacio de red. Usar firewall, red NAT aislada, ACL de salida, DNS restringido y sin acceso al host/LAN.
 
-Seleccion normal (todas las fuentes que NO estan asignadas al runner propio):
+**No conviene instalar runner propio** para un repo publico si se reutiliza el desktop de uso diario, el usuario del runner tiene sudo/Docker, hay secretos personales, llaves SSH o servicios LAN/localhost accesibles, no se puede mantener un entorno efimero supervisado o no hay aprobacion de contribuciones externas. En esos casos mantener Actions y declarar `ip_blocked`/`unavailable` en vez de exponer el PC.
 
+## 2. Provisionamiento restringido
+
+1. Preparar VM o contenedor de uso exclusivo, disco temporal independiente y usuario `clipoteca-runner` sin sudo, Docker, acceso SSH al host ni permisos sobre `HOME` personal. Para Linux Arch/CachyOS instalar `ffmpeg`, `git`, `curl`, Python 3.13, `uv` y Node 22 (si se ejecutan tests Worker). GPU es opcional.
+2. GitHub repo > Settings > Actions > Runners > New self-hosted runner. Registrar label adicional `clipoteca-home`. Ejecutar comandos oficiales bajo usuario restringido y no registrar el token temporal ni un personal access token en archivo, stdout de CI o PR. Preferir `./config.sh --ephemeral` y recrear la VM por cada job.
+3. Para servicio persistente solo dentro de VM aislada, instalar con `sudo ./svc.sh install clipoteca-runner` y `sudo ./svc.sh start`. Aplicar override a la unidad oficial, ajustando ruta a la carpeta dedicada:
+```ini
+[Service]
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/srv/clipoteca-runner /var/tmp
+```
+No alojar el runner bajo `/home` si `ProtectHome=true`. Probar el workspace, cache, ffmpeg y logs con los permisos efectivos. Restringir acceso de red por fuera de systemd.
+4. Controlar autoactualizaciones: si se deshabilitan con `./config.sh --disableupdate`, mantener un procedimiento manual documentado para actualizar la version del runner dentro del plazo de compatibilidad de GitHub. Si se permiten, controlar reinicios, revisiones y funcionamiento. Nunca olvidar actualizar.
+5. Probar `ffmpeg -version`, `uv --version`, `python3.13 --version`, `node --version` si corresponde. Validar espacio, DNS publico e imposibilidad de conectar a LAN. Poner el proveedor en `self_hosted_providers` solo tras smoke comparativo. El default debe continuar vacio.
+
+## 3. CLI y recibos
+
+Normal (Actions):
 ```sh
-CLIPOTECA_RUNNER=actions uv run python -m clipoteca ingest --query "lluvia" --providers bilibili
+CLIPOTECA_RUNNER=actions uv run --no-sync python -m clipoteca ingest --query "lluvia" --providers bilibili
 ```
 
-Seleccion runner local (solamente nombres asignados en el JSON):
-
+Runner aislado, solo con enrutamiento aprobado:
 ```sh
-CLIPOTECA_RUNNER=self-hosted uv run python -m clipoteca ingest --query "lluvia" --providers bilibili
+CLIPOTECA_RUNNER=self-hosted uv run --no-sync python -m clipoteca ingest --query "lluvia" --providers bilibili --runner self-hosted
 ```
 
-El selector tambien acepta `--runner actions|self-hosted` y `--runner-config data/runner-routing.json`. Si no hay fuentes para el runner seleccionado, devuelve `no_sources_for_runner` sin iniciar ingestion ni consumir red. No se altera el identificador de solicitud de los filtros; es responsabilidad del operador asignar cada trabajo/proveedor a **una sola** clase de runner, para evitar que dos jobs escriban el mismo estado a la vez.
+`--runner actions|self-hosted` y `--runner-config data/runner-routing.json` seleccionan una particion. Las fuentes omitidas se registran en el job remoto (cuando `CLIPOTECA_PERSIST_JOBS=1`) y en el reporte CLI como `deferred_to_self_hosted` / `deferred_to_actions`. Un conjunto de proveedores vacio persiste estado `unavailable`, con ID determinista, y retorna codigo de salida distinto de cero para evitar `404` repetidos del Worker. No iniciar el mismo request_id desde ambos runners en paralelo.
 
-## YAML propuesto para revision manual (NO aplicado)
+## 4. Plantilla completa para ingest.yml (aplicacion MANUAL)
 
-Estos cambios son para `.github/workflows/ingest.yml` (y, por analogia, `smoke.yml`). Mantener solo workflows que el operador dispare explicitamente (`workflow_dispatch`), sin disparadores `pull_request`, `pull_request_target` ni codigo de forks en el runner privado.
+Este documento NO modifica `.github/`. Esta plantilla incorpora los inputs actuales, guard de main, router, secretos opcionales y `--no-sync`. El operador debe coordinarla con **M22 query_embedding** de [OPERACION_V2.md](OPERACION_V2.md) antes de usar el modo liviano. Es un modelo de reemplazo para revision, no permiso de despliegue. La semantica del CLI es la misma que en el workflow actual.
 
 ```yaml
+name: Ingest verified video candidates
 on:
   workflow_dispatch:
     inputs:
-      runner:
-        description: Runtime class for provider partition
-        type: choice
+      query:
+        description: Scene query
+        required: true
+        type: string
+      aspect_ratio:
+        description: Optional orientation filter
         required: false
+        type: string
+      max_duration:
+        description: Max output seconds
+        required: false
+        default: "20"
+        type: string
+      max_results:
+        description: Max new clips
+        required: false
+        default: "3"
+        type: string
+      request_id:
+        description: Optional deterministic request ID
+        required: false
+        type: string
+      providers:
+        description: Comma-separated source allowlist
+        required: false
+        type: string
+      filters_json:
+        description: Canonical full filters from Worker
+        required: false
+        default: ""
+        type: string
+      concurrency:
+        description: Discovery concurrency
+        required: false
+        default: "4"
+        type: string
+      runner:
+        description: Runtime class
+        required: false
+        type: choice
         default: actions
         options:
           - actions
           - self-hosted
 
+permissions:
+  contents: read
+
+concurrency:
+  group: clipoteca-ingest-${{ inputs.request_id || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   ingest-actions:
-    if: github.event_name == 'workflow_dispatch' && inputs.runner != 'self-hosted'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner != 'self-hosted'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    timeout-minutes: 45
     steps:
-      # Mantener checkout, uv, ffmpeg, Argos y todos los pasos de ingest existentes.
-      - name: Run selected providers
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          python-version: "3.13"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Prepare verified translation resources
+        uses: ./.github/actions/prepare-translations
+      - name: Publish credential-presence source snapshot
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
+          DOUYIN_ACCESS_TOKEN: ${{ secrets.DOUYIN_ACCESS_TOKEN }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
+          TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          EUROPEANA_API_KEY: ${{ secrets.EUROPEANA_API_KEY }}
+          COVERR_API_KEY: ${{ secrets.COVERR_API_KEY }}
+          NARA_API_KEY: ${{ secrets.NARA_API_KEY }}
+          DPLA_API_KEY: ${{ secrets.DPLA_API_KEY }}
+          SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ vars.INSTAGRAM_USER_ID }}
+          SNAPCHAT_ACCESS_TOKEN: ${{ secrets.SNAPCHAT_ACCESS_TOKEN }}
+          SNAPCHAT_PROFILE_ID: ${{ vars.SNAPCHAT_PROFILE_ID }}
+          PEERTUBE_ALLOWED_INSTANCES: ${{ vars.PEERTUBE_ALLOWED_INSTANCES }}
+        run: uv run --no-sync python -m clipoteca.source_snapshot --publish
+      - name: Ingest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
+          TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          EUROPEANA_API_KEY: ${{ secrets.EUROPEANA_API_KEY }}
+          COVERR_API_KEY: ${{ secrets.COVERR_API_KEY }}
+          NARA_API_KEY: ${{ secrets.NARA_API_KEY }}
+          DPLA_API_KEY: ${{ secrets.DPLA_API_KEY }}
+          SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
           CLIPOTECA_RUNNER: actions
           CLIPOTECA_QUERY: ${{ inputs.query }}
-        run: uv run --frozen python -m clipoteca ingest --query="$CLIPOTECA_QUERY" --runner actions
+          CLIPOTECA_ASPECT: ${{ inputs.aspect_ratio }}
+          CLIPOTECA_MAX_SECONDS: ${{ inputs.max_duration }}
+          CLIPOTECA_MAX_RESULTS: ${{ inputs.max_results }}
+          CLIPOTECA_REQUEST_ID: ${{ inputs.request_id }}
+          CLIPOTECA_CONCURRENCY: ${{ inputs.concurrency }}
+          CLIPOTECA_PROVIDERS: ${{ inputs.providers }}
+          CLIPOTECA_FILTERS_JSON: ${{ inputs.filters_json }}
+          CLIPOTECA_PERSIST_JOBS: "1"
+        run: |
+          uv run --no-sync python -m clipoteca ingest \
+            --query "$CLIPOTECA_QUERY" --aspect-ratio "$CLIPOTECA_ASPECT" \
+            --max-duration "$CLIPOTECA_MAX_SECONDS" \
+            --max-results "$CLIPOTECA_MAX_RESULTS" --request-id "$CLIPOTECA_REQUEST_ID" \
+            --concurrency "$CLIPOTECA_CONCURRENCY" \
+            --providers "$CLIPOTECA_PROVIDERS" \
+            --filters-json "$CLIPOTECA_FILTERS_JSON" --runner actions
+      - name: Upload job records and metrics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clipoteca-jobs-${{ github.run_id }}
+          path: data/jobs/
+          if-no-files-found: ignore
+          retention-days: 30
 
   ingest-self-hosted:
-    if: github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted'
     runs-on: [self-hosted, clipoteca-home]
     permissions:
       contents: write
     timeout-minutes: 45
     steps:
-      # Mantener el mismo checkout y setup verificado del job Actions, instalar
-      # dependencias sin sudo desde el propio usuario de servicio, y aislar.
-      - name: Run selected providers
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          python-version: "3.13"
+      - name: Verify local FFmpeg
+        run: ffmpeg -version
+      - name: Prepare verified translation resources
+        uses: ./.github/actions/prepare-translations
+      - name: Ingest on isolated runner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
+          TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          EUROPEANA_API_KEY: ${{ secrets.EUROPEANA_API_KEY }}
+          COVERR_API_KEY: ${{ secrets.COVERR_API_KEY }}
+          NARA_API_KEY: ${{ secrets.NARA_API_KEY }}
+          DPLA_API_KEY: ${{ secrets.DPLA_API_KEY }}
+          SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
           CLIPOTECA_RUNNER: self-hosted
           CLIPOTECA_QUERY: ${{ inputs.query }}
-        run: uv run --frozen python -m clipoteca ingest --query="$CLIPOTECA_QUERY" --runner self-hosted
+          CLIPOTECA_ASPECT: ${{ inputs.aspect_ratio }}
+          CLIPOTECA_MAX_SECONDS: ${{ inputs.max_duration }}
+          CLIPOTECA_MAX_RESULTS: ${{ inputs.max_results }}
+          CLIPOTECA_REQUEST_ID: ${{ inputs.request_id }}
+          CLIPOTECA_CONCURRENCY: ${{ inputs.concurrency }}
+          CLIPOTECA_PROVIDERS: ${{ inputs.providers }}
+          CLIPOTECA_FILTERS_JSON: ${{ inputs.filters_json }}
+          CLIPOTECA_PERSIST_JOBS: "1"
+        run: |
+          uv run --no-sync python -m clipoteca ingest \
+            --query "$CLIPOTECA_QUERY" --aspect-ratio "$CLIPOTECA_ASPECT" \
+            --max-duration "$CLIPOTECA_MAX_SECONDS" \
+            --max-results "$CLIPOTECA_MAX_RESULTS" --request-id "$CLIPOTECA_REQUEST_ID" \
+            --concurrency "$CLIPOTECA_CONCURRENCY" --providers "$CLIPOTECA_PROVIDERS" \
+            --filters-json "$CLIPOTECA_FILTERS_JSON" --runner self-hosted
+      - name: Upload isolated job records and metrics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clipoteca-jobs-${{ github.run_id }}
+          path: data/jobs/
+          if-no-files-found: ignore
+          retention-days: 30
 ```
 
-El YAML es una **plantilla de incorporacion**, no reemplazo completo de los pasos reales: conservar los inputs y comandos actuales (`request_id`, `filters_json`, `max_results`, caches, Argos, metrics) y su identidad. No duplicar workflows ni crear rutas nuevas de dispatch en el Worker. Cuando se envien inputs de runner por API, ampliar la definicion de `workflow_dispatch.inputs.runner` en el mismo workflow y validar que el actor autorizado controle ese campo.
+**Nota integracion:** este ejemplo replica los inputs del workflow actual y ofrece rutas alternativas; aun se debe incorporar el bloque M22 de `mode: query_embedding` descrito en [OPERACION_V2.md](OPERACION_V2.md) y validar workflows con GitHub antes de habilitar flags. No despliega ni crea runner en este PR.
 
-Para `smoke.yml`, usar exclusivamente la misma condicion y label:
+## 5. Plantilla completa smoke.yml
+
+La prueba de cuatro idiomas no descarga media. No ejecutar smoke desde PR de fork. Conservar los secretos opcionales solo como `secrets` y subir artifacts, nunca imprimirlos.
 
 ```yaml
+name: Live provider smoke and usage evidence
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Smoke runner
+        type: choice
+        default: actions
+        required: false
+        options:
+          - actions
+          - self-hosted
+permissions:
+  contents: read
 jobs:
-  smoke-self-hosted:
-    if: github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted'
-    runs-on: [self-hosted, clipoteca-home]
+  smoke-actions:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner != 'self-hosted'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Probe sources four languages
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
+          TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          EUROPEANA_API_KEY: ${{ secrets.EUROPEANA_API_KEY }}
+          COVERR_API_KEY: ${{ secrets.COVERR_API_KEY }}
+          NARA_API_KEY: ${{ secrets.NARA_API_KEY }}
+          DPLA_API_KEY: ${{ secrets.DPLA_API_KEY }}
+          SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
+        run: uv run --no-sync python scripts/smoke_sources.py --mode all --output "data/reports/smoke-$GITHUB_RUN_ID.json"
+      - name: Preserve measured results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clipoteca-smoke-${{ github.run_id }}
+          path: data/reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+  smoke-self-hosted:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted'
+    runs-on: [self-hosted, clipoteca-home]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Probe sources four languages in isolated VM
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
+          TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          EUROPEANA_API_KEY: ${{ secrets.EUROPEANA_API_KEY }}
+          COVERR_API_KEY: ${{ secrets.COVERR_API_KEY }}
+          NARA_API_KEY: ${{ secrets.NARA_API_KEY }}
+          DPLA_API_KEY: ${{ secrets.DPLA_API_KEY }}
+          SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
+        run: uv run --no-sync python scripts/smoke_sources.py --mode all --output "data/reports/smoke-$GITHUB_RUN_ID.json"
+      - name: Preserve isolated smoke evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clipoteca-smoke-${{ github.run_id }}
+          path: data/reports/
+          if-no-files-found: warn
+          retention-days: 30
 ```
 
-## Seguridad de repo publico
-
-El codigo de un PR de un fork no debe ejecutarse jamas en este host: permite leer el sistema de archivos, secretos y red del usuario. Restringir el workflow del runner a `workflow_dispatch` del propio repositorio y a un actor con permisos de escritura. Configurar aprobaciones y reglas para evitar modificaciones no revisadas al workflow; fijar dependencias, evitar permisos amplios, mantener el usuario separado, firewall/sandbox y actualizaciones del runner. No almacenar credenciales permanentes en la carpeta de trabajo ni montar el directorio personal. El job recibe solo el token efimero que necesita.
-
-La separacion de proveedores NO prueba acceso de Bilibili: primero ejecutar smoke de busqueda y descarga controlada desde Actions; asignarlo al runner local solo si ese smoke confirma que Actions esta bloqueado. El codigo Bilibili es `best_effort` hasta ese smoke.
+**Sigue pendiente** medir Bilibili desde Actions y, solo ante bloqueo confirmado, comparar con el runner aislado. El contenido de este documento no es evidencia real ni resultado de una ejecucion.

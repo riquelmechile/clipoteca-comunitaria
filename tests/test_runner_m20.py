@@ -58,10 +58,18 @@ def test_cli_empty_self_hosted_runner_is_noop(tmp_path, monkeypatch, capsys):
             "self-hosted",
             "--runner-config",
             str(path),
+            "--job-root",
+            str(tmp_path / "jobs"),
         ]
     )
-    assert code == 0
-    assert json.loads(capsys.readouterr().out)["status"] == "no_sources_for_runner"
+    assert code == 1
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["status"] == "unavailable"
+    assert receipt["deferred_sources"] == ["bilibili"]
+    from clipoteca.jobs import JobStore
+
+    job = JobStore(tmp_path / "jobs").load(receipt["request_id"])
+    assert job["source_errors"]["bilibili"] == "deferred_to_actions"
 
 
 def test_cli_selects_only_runner_allowed_adapters(tmp_path, monkeypatch):
@@ -78,7 +86,13 @@ def test_cli_selects_only_runner_allowed_adapters(tmp_path, monkeypatch):
             self.client = None
 
     async def fake_ingest(query, adapters, **kwargs):
-        called.append([adapter.name for adapter in adapters])
+        called.append(
+            (
+                [adapter.name for adapter in adapters],
+                kwargs["deferred_sources"],
+                kwargs["deferred_reason"],
+            )
+        )
         return SimpleNamespace(
             request_id="a" * 64, status="no_results", published_ids=(), errors=()
         )
@@ -91,7 +105,7 @@ def test_cli_selects_only_runner_allowed_adapters(tmp_path, monkeypatch):
             "--query",
             "rain",
             "--providers",
-            "bilibili",
+            "bilibili,pexels",
             "--runner",
             "self-hosted",
             "--runner-config",
@@ -99,4 +113,4 @@ def test_cli_selects_only_runner_allowed_adapters(tmp_path, monkeypatch):
         ]
     )
     assert code == 0
-    assert called == [["bilibili"]]
+    assert called == [(["bilibili"], ("pexels",), "deferred_to_actions")]
