@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Clipoteca Comunitaria REST API
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Public catalogue/search and Issue contributions. Authenticated imports use
     a write bearer token. MCP uses a separate Streamable HTTP endpoint.
@@ -56,7 +56,7 @@ components:
         semantic_reason:
           type: string
           description: Causa del fallback o shard aislado (sin datos sensibles).
-          enum: [semantic_disabled, empty_corpus, query_vector_unavailable, query_encoder_unavailable, shard_corrupt, manifest_too_large, cpu_budget_exceeded, manifest_invalid, semantic_error, legacy_index_invalid, invalid_repository, query_vector_invalid, unsafe_query_encoder_url, no_semantic_match]
+          enum: [semantic_disabled, empty_corpus, query_vector_unavailable, query_encoder_unavailable, shard_corrupt, manifest_too_large, cpu_budget_exceeded, manifest_invalid, semantic_error, legacy_index_invalid, invalid_repository, query_vector_invalid, unsafe_query_encoder_url, no_semantic_match, query_vector_budget_exceeded]
         scores:
           type: object
           description: Puntuacion combinada RRF por ID de clip, opcional.

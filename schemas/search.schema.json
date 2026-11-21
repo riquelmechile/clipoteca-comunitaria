@@ -92,7 +92,8 @@
             "invalid_repository",
             "query_vector_invalid",
             "unsafe_query_encoder_url",
-            "no_semantic_match"
+            "no_semantic_match",
+            "query_vector_budget_exceeded"
           ]
         }
       }

@@ -95,10 +95,14 @@ Run `cd worker && npm ci && npm run typecheck && npm test`, and `uv run pytest -
 
 ## Correcciones M23 r2
 
-- Un guion con 50 escenas sin material no ejecuta 50 lecturas anonimas a GitHub. El resolver deduplica consultas por el mismo request_id, comprueba primero la cuota de import, limita a tres comprobaciones de job por guion y, tras el primer rate_limited, devuelve missing/rate_limited a las escenas restantes. La operacion comparte la cuota import (no crea otra ruta de dispatch).
+- Un guion con 50 escenas sin material no ejecuta 50 lecturas anonimas a GitHub. El resolver deduplica consultas por el mismo request_id, comprueba primero la cuota de import, limita a una comprobacion efectiva de job por guion (cuota de import por IP: 15 s); el tope defensivo de tres permanece, pero habitualmente no se alcanza y, tras el primer rate_limited, devuelve missing/rate_limited a las escenas restantes. La operacion comparte la cuota import (no crea otra ruta de dispatch).
 - Cada clip se tokeniza una vez por guion; la busqueda solo-video se aplica antes de paginar. Medicion original antes de optimizar: 1000 clips aproximadamente 340 ms por guion de 50 escenas; 5000 clips aproximadamente 1,5 s. Workers Free (10 ms CPU) no es un objetivo realista para catalogos de ese tamano: usar Workers Paid y medir CPU real, o reducir escenas. Estos tiempos son de la revision anterior.
 - Narration permite tab, nueva linea y retorno de carro (escapes JSON: \t, \n, \r); rechaza otros controles. Los maximos se aplican a Unicode code points, no unidades UTF-16.
 - Errores de validacion del request: HTTP 400 invalid_script. Fallos internos despues de validar: HTTP 500 internal_error.
 - La importacion actual no transporta min_duration a la pipeline Python: el clip importado puede tener duracion menor. Un nuevo guion filtrara ese clip hasta que exista uno suficientemente largo.
 - El resumen incluye matched, queued, missing y reused; reused cuenta matched con reason=reuse_unavoidable.
 - Los alias de orientacion se convierten a 9:16, 16:9 o 1:1 al validar, por lo que portrait y 9:16 producen el mismo script_id. Reordenar escenas cambia el hash: su orden es parte del guion.
+
+### M24: coste y estado por escena
+
+Con semantica activa, un guion consulta a lo sumo 3 vectores de consultas normalizadas distintos en GitHub; las otras escenas se resuelven lexicalmente y las queries repetidas reutilizan el resultado de la busqueda. 50 consultas distintas: <=8 fetches GitHub para semantica en el fixture offline. Los motivos non_video_material solo se devuelven cuando la busqueda completa realmente encuentra imagenes pero ningun video. Import por IP tiene ventana de 15 segundos: como maximo un lookup/dispatch efectivo por guion en la configuracion actual. Enviar el mismo guion otra vez pasados 15 segundos permite que otra escena pendiente utilice la cuota. Una medicion nueva en Node (no workerd) dio aproximadamente 33 ms con 1000 clips y 140 ms con 5000 clips; no equivale a latencia Cloudflare. Narration rechaza U+0085, U+2028 y U+2029 ademas de los otros controles prohibidos.

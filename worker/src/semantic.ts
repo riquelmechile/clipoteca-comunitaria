@@ -609,6 +609,7 @@ export async function semanticSearch(
   request:Request,env:SemanticEnv,query:string,filters:URLSearchParams,
   allowQueryDispatch=true, catalogue?:Clip[],
   precomputedIndex?:Map<string,Set<string>>,
+  skipQueryVectorFetch=false,
 ):Promise<SemanticSearchResult>{
   const clips=catalogue??await loadCatalog(env);
   const eligible=clips.filter(c=>matchesFilters(c,filters));
@@ -623,6 +624,8 @@ export async function semanticSearch(
   });
   if(env.SEMANTIC_SEARCH!=="1")
     return {...oldPage(),semantic:"unavailable",semantic_reason:"semantic_disabled"};
+  if(skipQueryVectorFetch)
+    return {...oldPage(),semantic:"unavailable",semantic_reason:"query_vector_budget_exceeded"};
   try{
     // The manifest lookup is cheap/cached. Never spend an Actions run
     // encoding a query when there are no indexed clip embeddings at all.
