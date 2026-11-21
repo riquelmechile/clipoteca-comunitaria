@@ -191,10 +191,11 @@ def select_derivatives(files: list, identifier: str) -> tuple[dict | None, dict 
     )
     scanners = [item for item in valid if item["kind"] == 2]
     scan = min(scanners, key=lambda x: (x["size"], x["name"])) if scanners else None
-    public = lambda item: (
-        {key: item[key] for key in ("name", "size", "format", "url", "mime")}
-        if item else None
-    )
+    def public(item: dict | None) -> dict | None:
+        if item is None:
+            return None
+        return {key: item[key] for key in ("name", "size", "format", "url", "mime")}
+
     return public(chosen), public(scan)
 
 
