@@ -7,6 +7,7 @@ published bytes before an asset may be added to the catalogue.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from datetime import date
 from hashlib import sha256
@@ -177,6 +178,22 @@ class GitHubReleaseStorage:
             "DELETE",
             f"{self.api_url}/repos/{self.repository}/releases/assets/{asset_id}",
         )
+
+    def reserved_ids(self, release: ReleaseBatch) -> set[str]:
+        """All asset names reserve their clip ID, even before catalog publication.
+
+        Never reuse a video ID after an interrupted upload; the next attempt
+        picks a fresh identifier rather than deleting possibly shared assets.
+        """
+        reserved: set[str] = set()
+        for raw in self._list_assets(release.id):
+            match = re.fullmatch(
+                r"(?:clip|thumb)_(clip-\d{6,})\.(?:mp4|webp)",
+                str(raw.get("name") or ""),
+            )
+            if match:
+                reserved.add(match.group(1))
+        return reserved
 
     def _list_assets(self, release_id: int) -> list[dict[str, Any]]:
         assets: list[dict[str, Any]] = []

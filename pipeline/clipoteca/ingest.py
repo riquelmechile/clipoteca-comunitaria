@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -10,7 +11,7 @@ from typing import Awaitable, Callable, Sequence
 
 from .catalog import DuplicateClip, GitHubCatalogWriter, IdentityCollision
 from .engine import SearchEngine
-from .jobs import STATUSES, JobStore, new_job, request_id
+from .jobs import STATUSES, GitHubJobWriter, JobStore, new_job, request_id
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import normalize_media
 from .media.thumbnail import create_thumbnail
@@ -53,11 +54,18 @@ async def ingest(
     if float((filters or {}).get("max_duration") or 20) > 20:
         raise ValueError("max_duration must be at most 20 seconds")
     rid = request_id(query, filters or {}, horizon)
-    jobs = JobStore(job_root)
+    remote_jobs = (
+        GitHubJobWriter(repository, token)
+        if os.environ.get("CLIPOTECA_PERSIST_JOBS") == "1"
+        else None
+    )
+    jobs = JobStore(job_root, remote=remote_jobs)
     existing = jobs.load(rid)
     if existing and existing["status"] == "published":
         return IngestReport(rid, "duplicate", (), ())
     job = existing or new_job(rid)
+    if existing is None:
+        jobs.save(job)  # Durable queued record before expensive discovery.
     if job["status"] in {"failed", "duplicate", "no_results", "unavailable", "rate_limited"}:
         return IngestReport(rid, job["status"], (), ())
     writer = writer or GitHubCatalogWriter(repository, token)
@@ -65,6 +73,8 @@ async def ingest(
     storage = storage or GitHubReleaseStorage(repository, token=token)
     errors: list[str] = []
     ids: list[str] = []
+    downloaded_count = 0
+    failed_count = 0
 
     def advance(stage: str) -> None:
         if STATUSES.index(stage) > STATUSES.index(job["status"]):
@@ -106,6 +116,7 @@ async def ingest(
             statuses = [execution.status for execution in search.executions]
             if search.duplicates:
                 final = "duplicate"
+                job["duplicate_ids"] = sorted({clip["id"] for clip in search.local})
             elif statuses and all(item == SupportStatus.RATE_LIMITED for item in statuses):
                 final = "rate_limited"
             elif statuses and all(
@@ -123,7 +134,12 @@ async def ingest(
                 final = "no_results"
             job["status"] = final
             jobs.save(job)
-            return IngestReport(rid, final, (), ())
+            return IngestReport(
+                rid,
+                final,
+                tuple(job.get("duplicate_ids", ())) if final == "duplicate" else (),
+                (),
+            )
         by_name = {adapter.name: adapter for adapter in adapters}
         for candidate in search.candidates:
             if len(ids) >= max_results:
@@ -136,12 +152,14 @@ async def ingest(
                     ref = await adapter.direct_media(candidate)
                     if ref is None:
                         errors.append(f"{candidate.origin_id}:search_only")
+                        job["source_errors"][candidate.origin_id] = "search_only"
                         continue
                     # Fail multilingual metadata before spending bandwidth on a large video.
                     localized = localize_candidate(candidate, translator=translator)
                     raw = await (
                         downloader(ref.url, temp) if downloader else download_media(ref.url, temp)
                     )
+                    downloaded_count += 1
                     advance("processing")
                     duration_limit = float((filters or {}).get("max_duration") or 20)
                     normalized = normalize_media(
@@ -166,9 +184,14 @@ async def ingest(
                     duplicate = remote.find_duplicate(draft, phash_similar=perceptually_similar)
                     if duplicate:
                         errors.append(f"{candidate.origin_id}:duplicate:{duplicate['id']}")
+                        job.setdefault("duplicate_ids", []).append(duplicate["id"])
                         continue
+                    release = storage.get_or_create_batch_release(date.today())
+                    reserved = (
+                        storage.reserved_ids(release) if hasattr(storage, "reserved_ids") else set()
+                    )
                     for _attempt in range(4):
-                        identifier = remote.next_id()
+                        identifier = remote.next_id(reserved_ids=reserved)
                         clip = {
                             "id": identifier,
                             "title": localized.title,
@@ -204,7 +227,6 @@ async def ingest(
                             "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                         }
                         advance("publishing")
-                        release = storage.get_or_create_batch_release(date.today())
                         name_video, name_thumb = (
                             f"clip_{identifier}.mp4",
                             f"thumb_{identifier}.webp",
@@ -220,12 +242,14 @@ async def ingest(
                                 name_thumb, thumb_path.stat().st_size, thumbnail_digest, release.id
                             )
                         except StorageError:
-                            # No deletion or overwrite; another job may own this asset name.
+                            # A partial upload reserves this ID. Never overwrite or delete
+                            # another attempt's asset; a retry gets a distinct clip ID.
+                            reserved.add(identifier)
                             remote, _ = writer.read_catalog()
                             if remote.find_duplicate(draft, phash_similar=perceptually_similar):
                                 errors.append(f"{candidate.origin_id}:duplicate")
                                 break
-                            raise
+                            continue
                         clip["storage"]["asset_url"] = video.browser_download_url
                         clip["storage"]["thumbnail_url"] = thumbnail.browser_download_url
                         try:
@@ -238,14 +262,17 @@ async def ingest(
                             catalogue.merge([clip])
                             break
                         except IdentityCollision:
+                            reserved.add(identifier)
                             remote, _ = writer.read_catalog()
                             continue
                         except DuplicateClip as duplicate:
                             errors.append(f"{candidate.origin_id}:duplicate:{duplicate.clip_id}")
+                            job.setdefault("duplicate_ids", []).append(duplicate.clip_id)
                             break
                     else:
                         errors.append(f"{candidate.origin_id}:identity_collision")
                 except (Exception,) as exc:
+                    failed_count += 1
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
                     errors.append(f"{candidate.origin_id}:{type(exc).__name__}")
         if ids:
@@ -259,7 +286,18 @@ async def ingest(
         else:
             job["status"] = "failed" if errors else "no_results"
         jobs.save(job)
-        return IngestReport(rid, job["status"], tuple(ids), tuple(errors))
+        summary = discovery_metrics(search)
+        summary.update(
+            {
+                "downloaded_clips": downloaded_count,
+                "published_clips": len(ids),
+                "failed_imports": failed_count,
+            }
+        )
+        write_metrics(summary, job_root / (rid + ".metrics.json"))
+        return IngestReport(
+            rid, job["status"], tuple(ids or job.get("duplicate_ids", ())), tuple(errors)
+        )
     finally:
         if own_storage:
             storage.close()

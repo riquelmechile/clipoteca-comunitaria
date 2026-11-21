@@ -15,6 +15,7 @@ import httpx
 from jsonschema import Draft202012Validator, FormatChecker
 
 from .storage.github import ReleaseAsset
+from .translate.dictionary import SYNONYMS, find_concept, normalize
 
 SCHEMA_PATH = Path(__file__).resolve().parents[2] / "schemas" / "clip.schema.json"
 
@@ -64,9 +65,14 @@ class Catalog:
             json.dumps(self.clips, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
 
-    def next_id(self) -> str:
+    def next_id(self, *, reserved_ids: set[str] | None = None) -> str:
         largest = max((int(item["id"].removeprefix("clip-")) for item in self.clips), default=0)
-        return f"clip-{largest + 1:06d}"
+        excluded = reserved_ids or set()
+        while True:
+            largest += 1
+            candidate = f"clip-{largest:06d}"
+            if candidate not in excluded:
+                return candidate
 
     def merge(self, incoming: Iterable[dict[str, Any]]) -> None:
         merged = {item["id"]: item for item in self.clips}
@@ -124,6 +130,17 @@ class Catalog:
                 strings.extend(clip["tags"][language])
                 strings.extend(original_tags)
                 strings.append(original)
+                # Index all known equivalents and synonyms, including original
+                # Russian/Chinese text, in both ES and EN token maps.
+                for phrase in list(strings):
+                    concept = find_concept(str(phrase))
+                    if concept:
+                        strings.extend(concept.terms.values())
+                        strings.extend(
+                            term
+                            for group in SYNONYMS.get(normalize(concept.terms["es"]), {}).values()
+                            for term in group
+                        )
                 for token in set().union(*(canonical_tokens(v) for v in strings)):
                     indexes[language].setdefault(token, []).append(clip["id"])
         return indexes

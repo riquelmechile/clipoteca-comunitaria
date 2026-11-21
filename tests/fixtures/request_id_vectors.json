@@ -1,0 +1,52 @@
+[
+  {
+    "query": " LLÚVIA ",
+    "filters": {
+      "max_duration": "20",
+      "aspect_ratio": ""
+    },
+    "horizon": "v1",
+    "request_id": "87a0bfce534c4ec3b19ca4af396a7440418f9ec1f949bfd69d3dabf4fc6ae648"
+  },
+  {
+    "query": "lluvia",
+    "filters": {
+      "max_duration": 20.0,
+      "aspect_ratio": null
+    },
+    "horizon": "v1",
+    "request_id": "87a0bfce534c4ec3b19ca4af396a7440418f9ec1f949bfd69d3dabf4fc6ae648"
+  },
+  {
+    "query": "ＲＡＩＮ",
+    "filters": {
+      "max_duration": 15,
+      "aspect_ratio": "9:16"
+    },
+    "horizon": "v1",
+    "request_id": "bad7001d67ddf6b9acbfdf296c0ff21fbe788382671cd3b44db4e6f31119dd5b"
+  },
+  {
+    "query": "дождь",
+    "filters": {
+      "max_duration": 20
+    },
+    "horizon": "v1",
+    "request_id": "8fc26822d0d81681be6cb2c5e23c1a9da4863ef7d6eabd3dc7dd786bb2aa041b"
+  },
+  {
+    "query": "下雨",
+    "filters": {},
+    "horizon": "v1",
+    "request_id": "252be24146ec7a635e75a29a62a31af9c3b13d15f9d337595d008682baedb3d8"
+  },
+  {
+    "query": "  chuva   forte  ",
+    "filters": {
+      "max_duration": "19.5",
+      "aspect_ratio": "16:9"
+    },
+    "horizon": "v1",
+    "request_id": "e7120b5441b2e720b57ffad3c1179857d11ab59fa6585e73551428c3883b0320"
+  }
+]
