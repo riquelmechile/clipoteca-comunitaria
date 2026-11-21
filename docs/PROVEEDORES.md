@@ -88,3 +88,17 @@ Los tests incluyen cuatro lenguas, vacío, 429/500, timeout, licencia/metadatos,
 | VK Video | `GET https://api.vk.com/method/video.search?q=…&access_token=…&v=5.199`; `video.get` | texto | texto | texto | texto | `VK_ACCESS_TOKEN` obligatorio; falta/invalidación → **AUTH_REQUIRED**; la presencia de `files.mp4_360` en API no prueba derechos de redistribución y no se importa automáticamente. **SUPPORTED_SEARCH_ONLY** por defecto. |
 
 **Prueba real desde Oracle:** Bilibili `/x/web-interface/search/type?search_type=video&keyword=rain&page=1` devolvió **HTTP 200 JSON** `code=0`, `message=OK`, `data.result[]` con `bvid`, `arcurl`, `title`, `duration`. No hubo login, descarga ni reproducción. VK: no había token OAuth autorizado y se limitaron las pruebas a fixtures exactos conforme al [esquema oficial de VK API v5.199](https://github.com/VKCOM/vk-api-schema/blob/master/video/methods.json). Riesgo Bilibili: búsqueda anónima no garantizada en otras redes ni regiones. Referencias: https://github.com/moushicheng/bilibili-API-collect/blob/master/docs/search/search_request.md, https://dev.vk.com/reference/methods, https://github.com/VKCOM/vk-api-schema.
+
+## M6b: Douyin y TikTok (contratos oficiales revisados 20-11-2026)
+
+| Fuente | API oficial | ES | EN | ZH | RU | Autorización y alcance real |
+|---|---|---|---|---|---|---|
+| Douyin | `GET https://open.douyin.com/video/list/` con header `access-token` | filtro local | filtro local | filtro local | filtro local | OAuth `video.list` **solo videos de cuenta autorizada**, NO búsqueda pública general. `DOUYIN_ACCESS_TOKEN` obligatorio; sin él **AUTH_REQUIRED**. **SUPPORTED_SEARCH_ONLY** para títulos propios y sin MP4 directo autorizado. |
+| TikTok | `POST https://open.tiktokapis.com/v2/video/list/?fields=id,title,video_description,share_url,duration,create_time` | filtro local | filtro local | filtro local | filtro local | OAuth `video.list` **solo videos de cuenta autorizada**. `TIKTOK_ACCESS_TOKEN` obligatorio; falta → **AUTH_REQUIRED**. Display API no ofrece búsqueda arbitraria ni descarga MP4. La Research API es un permiso distinto, no asumido. |
+
+No hay OAuth/tokens facilitados para probar llamadas reales. Validación mediante fixtures del contrato publicado por Douyin/TikTok, con respuestas válidas, vacías, 429, 500, timeout, ausencia/token inválido y `direct_media=None`. La API de búsqueda global se declara explícitamente no soportada, no se simula con scraping.
+
+- https://open.douyin.com/platform/resource/docs/openapi/video-management/douyin/search-video/account-video-list
+- https://developers.tiktok.com/docs/en/tiktok-api-v2-video-list/
+- https://developers.tiktok.com/docs/en/display-api-overview
+- https://developers.tiktok.com/docs/en/tiktok-api-v2-video-query
