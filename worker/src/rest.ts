@@ -143,6 +143,9 @@ export async function submitImport(
   };
   const rid = await requestId(input.query, dispatchFilters);
   const old = await loadJob(env, rid);
+  if (old?.status === "dead_letter") {
+    return error("dead_letter", "Retry budget exhausted; human review required", 409);
+  }
   if (old?.status === "published" || old?.status === "duplicate") {
     return json({ request_id: rid, status: old.status, job: old });
   }

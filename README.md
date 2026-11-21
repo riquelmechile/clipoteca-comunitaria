@@ -14,7 +14,7 @@
 
 ---
 
-> **Estado: M0 en implementación.** La estructura Python/TypeScript, los contratos y la ruta `/v1/health` ya existen; la búsqueda externa, la ingesta y el MCP remoto todavía no están implementados ni desplegados.
+> **Estado: implementación técnica en PRs de M6–M10, sin despliegue.** El repositorio integra código y pruebas para búsqueda externa, REST, MCP, ingesta por Actions y aportes mediante Issues. La publicación real de videos, el despliegue de Worker, la validación online de 15 proveedores y la ingesta de un aporte aprobado y su validación E2E real siguen pendientes de aceptación. Ver [runbook M10](docs/OPERACION_M10.md) y [matriz de fuentes](docs/MATRIZ_FUENTES_M10.md).
 
 ## La idea
 

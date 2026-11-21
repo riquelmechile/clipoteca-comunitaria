@@ -1,7 +1,7 @@
 import { normalizeSearch } from "./catalog";
 
 export type JobStatus = "queued" | "searching" | "fetching" | "processing" | "publishing"
-  | "published" | "no_results" | "duplicate" | "failed" | "rate_limited" | "unavailable";
+  | "published" | "no_results" | "duplicate" | "failed" | "rate_limited" | "unavailable" | "dead_letter";
 export type JobRecord = { request_id: string; status: JobStatus; attempt?: number; [key: string]: unknown };
 export interface JobEnv { CATALOG_JOBS_URL?: string; }
 
@@ -45,7 +45,7 @@ export async function loadJob(env: JobEnv, id: string): Promise<JobRecord | null
   const record = data as JobRecord;
   if (record.request_id !== id || typeof record.status !== "string" ||
       !new Set(["queued","searching","fetching","processing","publishing","published",
-        "no_results","duplicate","failed","rate_limited","unavailable"]).has(record.status)) {
+        "no_results","duplicate","failed","rate_limited","unavailable","dead_letter"]).has(record.status)) {
     throw new Error("invalid job");
   }
   return record;

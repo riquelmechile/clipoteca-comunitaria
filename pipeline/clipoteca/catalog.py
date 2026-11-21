@@ -5,6 +5,8 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
+import tempfile
 import re
 import unicodedata
 from collections.abc import Callable, Iterable, Mapping
@@ -60,10 +62,17 @@ class Catalog:
         return cls(json.loads(path.read_text(encoding="utf-8")))
 
     def save(self, path: Path) -> None:
+        """Replace the catalogue atomically; never leave truncated JSON on disk."""
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(self.clips, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        fd, tmp_name = tempfile.mkstemp(prefix=".clips-", suffix=".tmp", dir=path.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as temp:
+                temp.write(json.dumps(self.clips, ensure_ascii=False, indent=2) + "\n")
+                temp.flush()
+                os.fsync(temp.fileno())
+            os.replace(tmp_name, path)
+        finally:
+            Path(tmp_name).unlink(missing_ok=True)
 
     def next_id(self, *, reserved_ids: set[str] | None = None) -> str:
         largest = max((int(item["id"].removeprefix("clip-")) for item in self.clips), default=0)

@@ -19,7 +19,9 @@ from .catalog import normalize_text
 
 SCHEMA = Path(__file__).resolve().parents[2] / "schemas" / "job.schema.json"
 STATUSES = ("queued", "searching", "fetching", "processing", "publishing", "published")
-TERMINAL = ("no_results", "duplicate", "failed", "rate_limited", "unavailable")
+TERMINAL = ("no_results", "duplicate", "failed", "rate_limited", "unavailable", "dead_letter")
+RETRYABLE = ("no_results", "failed", "rate_limited", "unavailable")
+MAX_ATTEMPTS = 3
 
 
 def request_id(query: str, filters: dict[str, Any], horizon: str) -> str:
@@ -88,8 +90,15 @@ class GitHubJobWriter:
                         in {"failed", "rate_limited", "unavailable", "no_results"}
                         and job["status"] == "queued"
                         and job.get("attempt", 1) == existing.get("attempt", 1) + 1
+                        and job.get("attempt", 1) <= MAX_ATTEMPTS
                     )
-                    if not retry:
+                    dead_letter = (
+                        existing["status"] in RETRYABLE
+                        and job["status"] == "dead_letter"
+                        and existing.get("attempt", 1) >= MAX_ATTEMPTS
+                        and job.get("attempt", 1) == existing.get("attempt", 1)
+                    )
+                    if not (retry or dead_letter):
                         raise ValueError("remote terminal job cannot transition")
             payload = {
                 "message": f"chore(jobs): record {job['status']} ({identifier[:12]})",
@@ -153,8 +162,15 @@ class JobStore:
                         prev in {"failed", "rate_limited", "unavailable", "no_results"}
                         and next_state == "queued"
                         and job.get("attempt", 1) == old.get("attempt", 1) + 1
+                        and job.get("attempt", 1) <= MAX_ATTEMPTS
                     )
-                    if not retry:
+                    dead_letter = (
+                        prev in RETRYABLE
+                        and next_state == "dead_letter"
+                        and old.get("attempt", 1) >= MAX_ATTEMPTS
+                        and job.get("attempt", 1) == old.get("attempt", 1)
+                    )
+                    if not (retry or dead_letter):
                         raise ValueError("terminal job cannot transition")
                 if (
                     prev in STATUSES
