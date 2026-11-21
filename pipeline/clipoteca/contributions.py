@@ -19,6 +19,7 @@ from urllib.parse import unquote, urlsplit
 
 import httpx
 
+from .config import USER_AGENT
 from .ingest import ingest
 from .metadata import humanize_source_title
 from .translate.argos import public_translation_error
@@ -45,6 +46,7 @@ class CommunityIssue:
     author: str
     issue_url: str
     notes: str = ""
+    revision: str = ""
 
 
 def parse_community_issue(
@@ -120,6 +122,7 @@ def parse_community_issue(
         author,
         f"https://github.com/{repository}/issues/{issue_number}",
         notes,
+        hashlib.sha256((raw_title + "\n" + body).encode("utf-8")).hexdigest()[:16],
     )
 
 
@@ -136,7 +139,7 @@ def load_community_issue(
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github+json",
-                "User-Agent": "clipoteca-community",
+                "User-Agent": USER_AGENT,
             },
         )
         response.raise_for_status()
@@ -204,7 +207,8 @@ async def run_community_issue(issue: CommunityIssue, repository: str, token: str
         job_root=Path("data/jobs"),
         max_results=1,
         filters={"max_duration": 20},
-        horizon=f"community-issue-{issue.number}",
+        # Revisions create independent retry budgets without clearing the old dead letter.
+        horizon=f"community-issue-{issue.number}" + (f"-{issue.revision}" if issue.revision else ""),
         expand_search=False,
     )
 
@@ -227,7 +231,7 @@ def send_feedback(
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
-        "User-Agent": "clipoteca-community",
+        "User-Agent": USER_AGENT,
     }
     success = status in {"published", "duplicate"}
     # Only documented, bounded error codes may be sent to public Issues.
@@ -235,7 +239,7 @@ def send_feedback(
         reason
         if public_translation_error(reason) == reason
         or re.fullmatch(
-            r"(?:translation_failed:(?:es|en|zh|ru)|download_error|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
+            r"(?:translation_failed:(?:es|en|zh|ru)|download_error(?::HTTP [1-5]\\d{2})?|ffmpeg_failed|processing_failed|retry_budget_exhausted)",
             reason,
         )
         else "processing_failed"
@@ -278,6 +282,9 @@ def _feedback_reason(errors: tuple[str, ...]) -> str:
         match = re.search(r"translation_failed:(es|en|zh|ru)(?![a-z])", error)
         if match:
             return f"translation_failed:{match.group(1)}"
+        http_status = re.search(r"download_error:HTTP ([1-5]\\d{2})(?!\\d)", error)
+        if http_status:
+            return "download_error:HTTP " + http_status.group(1)
         if "download" in error.casefold():
             return "download_error"
         if "ffmpeg" in error.casefold() or "MediaProcessingError" in error:
