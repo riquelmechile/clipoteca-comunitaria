@@ -5,7 +5,21 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
+import re
 from typing import Any
+
+
+def detect_source_language(text: str) -> str:
+    """Detect language of the source title rather than the query."""
+    if re.search(r"[\u3400-\u9fff]", text):
+        return "zh"
+    if re.search(r"[\u0400-\u04ff]", text):
+        return "ru"
+    if re.search(r"[áéíóúñü¿¡]", text.casefold()):
+        return "es"
+    if re.search(r"\b(el|la|los|las|una|unas|lluvia|calle|cielo|noche|paisaje)\b", text.casefold()):
+        return "es"
+    return "en"
 
 
 class SupportStatus(StrEnum):

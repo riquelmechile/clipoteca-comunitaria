@@ -7,12 +7,14 @@ from urllib.parse import quote
 
 import httpx
 
-from .base import Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
+from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
 from .http import fetch_json
 
 SEARCH = "https://archive.org/advancedsearch.php"
 VIDEO_SUFFIXES = (".mp4", ".webm", ".ogv", ".m4v")
-MAX_MEDIA_BYTES = 1024 * 1024 * 1024
+from ..security.download import MAX_DOWNLOAD_BYTES
+
+MAX_MEDIA_BYTES = MAX_DOWNLOAD_BYTES
 
 
 class InternetArchive(Adapter):
@@ -54,7 +56,7 @@ class InternetArchive(Adapter):
                     language=lang,
                     source_url=f"https://archive.org/details/{quote(identifier, safe='')}",
                     source_title=str(title),
-                    source_language=lang,
+                    source_language=detect_source_language(str(title)),
                     metadata=None,
                 )
             )
@@ -82,11 +84,11 @@ class InternetArchive(Adapter):
             files.append((name, size))
         if not files:
             return None
-        files.sort(key=lambda x: (not x[0].lower().endswith(".mp4"), x[1]))
+        files.sort(key=lambda x: (not x[0].lower().endswith((".mp4", ".m4v")), -x[1]))
         name, size = files[0]
         url = f"https://archive.org/download/{quote(candidate.provider_id, safe='')}/{quote(name, safe='/')}"
         suffix = name.lower().rsplit(".", 1)[-1]
-        mime = {"mp4": "video/mp4", "m4v": "video/mp4", "webm": "video/webm", "ogv": "video/ogg"}[
+        mime = {"mp4": "video/mp4", "m4v": "video/x-m4v", "webm": "video/webm", "ogv": "video/ogg"}[
             suffix
         ]
         return MediaRef(url, mime, size)

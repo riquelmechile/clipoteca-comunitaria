@@ -8,7 +8,7 @@ from urllib.parse import quote, urlsplit, urlunsplit
 
 import httpx
 
-from .base import Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
+from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
 from .http import fetch_json
 
 API = "https://images-api.nasa.gov"
@@ -46,7 +46,7 @@ class NASA(Adapter):
                     language=lang,
                     source_url=f"https://images.nasa.gov/details/{quote(nasa_id, safe='')}",
                     source_title=str(data.get("title") or nasa_id),
-                    source_language=lang,
+                    source_language=detect_source_language(str(data.get('title') or nasa_id)),
                     metadata={"data": data, "item": item},
                 )
             )

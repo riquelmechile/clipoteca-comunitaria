@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from .base import Adapter, AuthRequired, Candidate, MediaRef, SearchLimits, SupportStatus
+from .base import detect_source_language, Adapter, AuthRequired, Candidate, MediaRef, SearchLimits, SupportStatus
 from .http import fetch_json
 
 SEARCH_ENDPOINT = "https://pixabay.com/api/videos/"
@@ -31,7 +31,7 @@ class Pixabay(Adapter):
             "q": term,
             "per_page": min(200, max(3, limits.max_candidates)),
         }
-        if lang in {"es", "en", "ru"}:
+        if lang in {"es", "en", "ru", "zh"}:
             params["lang"] = lang
         payload = await fetch_json(self.client, SEARCH_ENDPOINT, params=params)
         found = []
@@ -46,7 +46,7 @@ class Pixabay(Adapter):
                     language=lang,
                     source_url=str(row.get("pageURL", "")),
                     source_title=str(row.get("tags", "")) or term,
-                    source_language=lang,
+                    source_language=detect_source_language(str(row.get("tags", ""))),
                     duration_seconds=row.get("duration"),
                     metadata=row,
                 )

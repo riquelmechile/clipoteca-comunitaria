@@ -14,6 +14,7 @@ from .ssrf import UnsafeMediaURL, validate_public_url
 MAX_DOWNLOAD_BYTES = 350 * 1024 * 1024
 VIDEO_TYPES = {
     "video/mp4",
+    "video/x-m4v",
     "video/webm",
     "video/ogg",
     "application/ogg",
