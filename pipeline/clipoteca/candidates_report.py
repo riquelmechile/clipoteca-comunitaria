@@ -21,8 +21,8 @@ def render(report: dict) -> str:
         "",
         f"**Fecha UTC de generación:** {datetime.now(UTC).strftime('%Y-%m-%d')}.",
         "",
-        "| Proveedor | Idioma | Operación | HTTP | Código plataforma | ms | Resultados | Stream/archivo |",
-        "|---|---|---|---:|---:|---:|---:|---|",
+        "| Proveedor | Idioma | Operación | HTTP | Código plataforma | search_nil_info | Error tipo | ms | Resultados | Stream/archivo |",
+        "|---|---|---|---:|---:|---|---|---:|---:|---|",
     ]
     for row in rows:
         if not isinstance(row, dict):
@@ -35,10 +35,23 @@ def render(report: dict) -> str:
         code = row.get("platform_code")
         elapsed = row.get("elapsed_ms")
         count = row.get("count", 0)
+        nil_info = row.get("search_nil_info")
+        error_type = row.get("error_type")
+        # Never render upstream messages, cookies, URLs or arbitrary headers.
+        if isinstance(error_type, str) and error_type.isidentifier():
+            safe_error = error_type[:60]
+        elif isinstance(status, int) and status >= 400:
+            safe_error = "HTTP_ERROR"
+        elif status is None:
+            safe_error = "NO_HTTP_RESPONSE"
+        else:
+            safe_error = "—"
         output.append(
             f"| {provider} | {language} | {operation} | "
             f"{status if isinstance(status, int) else '—'} | "
             f"{code if isinstance(code, int) else '—'} | "
+            f"{'sí' if nil_info is True else 'no' if nil_info is False else '—'} | "
+            f"{safe_error} | "
             f"{elapsed if isinstance(elapsed, (int, float)) else '—'} | "
             f"{count if isinstance(count, int) else 0} | "
             f"{'sí' if row.get('has_stream') is True else 'no'} |"
