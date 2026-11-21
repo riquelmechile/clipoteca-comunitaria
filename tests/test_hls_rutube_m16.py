@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from clipoteca.providers.base import Candidate, ProviderError, RateLimited, SearchLimits
-from clipoteca.providers.rutube import Rutube
+from clipoteca.providers.rutube import Rutube, RUTUBE_HLS_ALLOWED_HOSTS
 from clipoteca.security.download import DownloadError
 from clipoteca.security.hls import (
     HLS_MIME_TYPES,
@@ -130,11 +130,12 @@ async def test_hls_rejects_private_ip_segment_before_fetch(tmp_path):
         )
 
     async with async_client(handler) as client:
-        with pytest.raises(UnsafeMediaURL, match="host"):
+        with pytest.raises(UnsafeMediaURL, match="private or special-use"):
             await download_hls(
                 PUBLIC + "/list.m3u8",
                 tmp_path,
                 client=client,
+                allowed_hosts=("127.0.0.1",),
                 resolver=public_resolver,
             )
 
@@ -243,3 +244,214 @@ async def test_rutube_refuses_cross_origin_next():
     async with async_client(handler) as client:
         with pytest.raises(ProviderError, match="pagination origin"):
             await Rutube(client=client).search("rain", "en", SearchLimits(max_pages=2))
+
+
+@pytest.mark.asyncio
+async def test_hls_500_segments_downloads_only_cut_window(monkeypatch, tmp_path):
+    """500 segments of a VOD must not exhaust limits for a 20-second cut."""
+    seen = []
+    commands = []
+    lines = ["#EXTM3U", "#EXT-X-TARGETDURATION:4"]
+    for index in range(500):
+        lines.extend(("#EXTINF:4.0,", f"piece-{index:04d}.ts"))
+    playlist = "\\n".join(lines) + "\\n"
+
+    def handler(request):
+        seen.append((request.url.path, request.url.host, request.headers.get("host")))
+        if request.url.path.endswith(".m3u8"):
+            return httpx.Response(200, text=playlist)
+        assert request.url.path.startswith("/piece-")
+        return httpx.Response(200, content=b"TS_BYTES")
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        from pathlib import Path
+        Path(command[-1]).write_bytes(b"synthetic_mp4_for_bounded_test")
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr("clipoteca.security.hls.subprocess.run", fake_run)
+    async with async_client(handler) as client:
+        result = await download_hls(
+            PUBLIC + "/vod.m3u8", tmp_path, max_duration=20, max_bytes=500000,
+            client=client, resolver=public_resolver,
+        )
+    assert result.exists()
+    assert len(parse_media(playlist)) == 500
+    assert [p for p, _ip, _host in seen] == [
+        "/vod.m3u8", *[f"/piece-{index:04d}.ts" for index in range(5)]
+    ]
+    assert all(ip == "8.8.8.8" and host == "video.example.com" for _, ip, host in seen)
+    assert commands and commands[0][commands[0].index("-t") + 1] == "20"
+
+
+@pytest.mark.asyncio
+async def test_hls_30_second_single_segment_is_fetched_then_trimmed(monkeypatch, tmp_path):
+    commands = []
+    responses = []
+
+    def handler(request):
+        responses.append(request.url.path)
+        if request.url.path.endswith(".m3u8"):
+            return httpx.Response(200, text="#EXTM3U\\n#EXTINF:30.0,\\nlong.ts\\n")
+        return httpx.Response(200, content=b"TS_BYTES")
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        from pathlib import Path
+        Path(command[-1]).write_bytes(b"bounded test output")
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr("clipoteca.security.hls.subprocess.run", fake_run)
+    async with async_client(handler) as client:
+        await download_hls(
+            PUBLIC + "/one.m3u8", tmp_path, client=client,
+            resolver=public_resolver, max_duration=20,
+        )
+    assert responses == ["/one.m3u8", "/long.ts"]
+    cmd = commands[0]
+    assert cmd[cmd.index("-t") + 1] == "20"
+    assert cmd[cmd.index("-allowed_segment_extensions") + 1] == "ts"
+    assert "-allowed_extensions" not in cmd
+    assert "ALL" not in cmd
+
+
+@pytest.mark.asyncio
+async def test_hls_start_offset_selects_intersecting_segments(monkeypatch, tmp_path):
+    paths = []
+    commands = []
+
+    def handler(request):
+        paths.append(request.url.path)
+        if request.url.path.endswith(".m3u8"):
+            return httpx.Response(200, text=(
+                "#EXTM3U\\n#EXTINF:10,\\na.ts\\n#EXTINF:10,\\nb.ts\\n"
+                "#EXTINF:10,\\nc.ts\\n"
+            ))
+        return httpx.Response(200, content=b"TS")
+
+    def fake_run(command, **_kwargs):
+        commands.append(command)
+        from pathlib import Path
+        Path(command[-1]).write_bytes(b"trimmed MP4")
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr("clipoteca.security.hls.subprocess.run", fake_run)
+    async with async_client(handler) as client:
+        await download_hls(PUBLIC + "/offset.m3u8", tmp_path, start=18,
+                           max_duration=4, client=client, resolver=public_resolver)
+    assert paths == ["/offset.m3u8", "/b.ts", "/c.ts"]
+    cmd = commands[0]
+    assert cmd[cmd.index("-ss") + 1] == "8.0"
+    assert cmd[cmd.index("-t") + 1] == "4"
+
+
+@pytest.mark.asyncio
+async def test_hls_peer_mismatch_rejected_even_with_injected_client(tmp_path):
+    class Peer:
+        def get_extra_info(self, name):
+            assert name == "server_addr"
+            return ("127.0.0.1", 443)
+
+    def handler(request):
+        assert request.url.host == "8.8.8.8"
+        assert request.headers["host"] == "video.example.com"
+        assert request.extensions["sni_hostname"] == "video.example.com"
+        return httpx.Response(200, text="#EXTM3U\\n#EXTINF:1,\\nx.ts\\n",
+                              extensions={"network_stream": Peer()})
+
+    async with async_client(handler) as client:
+        with pytest.raises(DownloadError, match="peer mismatch"):
+            await download_hls(PUBLIC + "/list.m3u8", tmp_path,
+                               client=client, resolver=public_resolver)
+
+
+@pytest.mark.asyncio
+async def test_hls_dns_rebinding_denied_before_get(tmp_path):
+    calls = []
+    count = 0
+
+    def resolver(_host):
+        nonlocal count
+        count += 1
+        return ["8.8.8.8"] if count == 1 else ["10.0.0.1"]
+
+    def handler(request):
+        calls.append(request.url.path)
+        pytest.fail("HLS request must not reach HTTP transport after DNS rebinding")
+
+    async with async_client(handler) as client:
+        with pytest.raises(UnsafeMediaURL, match="private"):
+            await download_hls(PUBLIC + "/list.m3u8", tmp_path,
+                               client=client, resolver=resolver)
+    assert calls == []
+
+
+@pytest.mark.parametrize("tag", [
+    '#EXT-X-KEY:METHOD=AES-128,URI="key.key"',
+    '#EXT-X-MAP:URI="init.mp4"',
+    '#EXT-X-BYTERANGE:1024@0',
+])
+@pytest.mark.asyncio
+async def test_hls_rejects_key_map_and_byterange_before_media_get(tmp_path, tag):
+    seen = []
+
+    def handler(request):
+        seen.append(request.url.path)
+        return httpx.Response(200, text=f"#EXTM3U\\n{tag}\\n#EXTINF:2.0,\\ns.ts\\n")
+
+    async with async_client(handler) as client:
+        with pytest.raises(DownloadError, match="key or init-map|byte-range"):
+            await download_hls(PUBLIC + "/list.m3u8", tmp_path,
+                               client=client, resolver=public_resolver)
+    assert seen == ["/list.m3u8"]
+
+
+@pytest.mark.asyncio
+async def test_rutube_http_error_json_detail_classified_as_limited():
+    for status, detail in [(403, "Access forbidden"), (429, "Too many requests"),
+                           (451, "Geo restricted in this country")]:
+        async with async_client(
+            lambda _req: httpx.Response(status, json={"detail": detail})
+        ) as client:
+            with pytest.raises(RateLimited):
+                await Rutube(client=client).search("rain", "en", SearchLimits())
+    # Unrelated providers retain their generic HTTP errors.
+    from clipoteca.providers.http import fetch_json
+    async with async_client(
+        lambda _req: httpx.Response(403, json={"detail": "forbidden"})
+    ) as client:
+        with pytest.raises(ProviderError, match="HTTP 403"):
+            await fetch_json(client, "https://rutube.ru/api/other")
+
+
+@pytest.mark.asyncio
+async def test_rutube_invalid_port_and_scoped_cdn_domains():
+    candidate = Candidate("rutube", VIDEO, "rain", "en",
+                          "https://rutube.ru/video/" + VIDEO + "/",
+                          "Rain", "en")
+    links = [
+        ("https://cdn.rtbcdn.ru:invalid/master.m3u8", None),
+        ("https://cdn.rtbcdn.ru/master.m3u8", "application/vnd.apple.mpegurl"),
+        ("https://assets.rutube.ru/master.m3u8", "application/vnd.apple.mpegurl"),
+        ("https://rutube.ru.evil.example.com/master.m3u8", None),
+        ("https://evil.com/master.m3u8", None),
+    ]
+    for link, mime in links:
+        async with async_client(
+            lambda _req: httpx.Response(200, json={"video_balancer": {"hls": link}})
+        ) as client:
+            ref = await Rutube(client=client).direct_media(candidate)
+            assert (ref.mime if ref else None) == mime
+            if ref:
+                assert "rtbcdn.ru" in RUTUBE_HLS_ALLOWED_HOSTS
+                assert ".rtbcdn.ru" in ref.allowed_hosts
+
+
+def test_ingest_declares_hls_mime_and_uses_download_hls():
+    import inspect
+    import clipoteca.ingest as ingest
+
+    assert "application/vnd.apple.mpegurl" in HLS_MIME_TYPES
+    code = inspect.getsource(ingest.ingest_query)
+    assert "ref.mime in HLS_MIME_TYPES" in code
+    assert "raw = await download_hls(" in code
