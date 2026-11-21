@@ -205,5 +205,62 @@
     },
     "status": "published",
     "created_at": "2026-11-21T02:58:15.912591Z"
+  },
+  {
+    "id": "clip-000005",
+    "title": {
+      "es": "Collie de frontera en la ruta forestal cubierta por nieve",
+      "en": "Border collie on snow covered forest path"
+    },
+    "description": {
+      "es": "Collie de frontera en la ruta forestal cubierta por nieve",
+      "en": "Border collie on snow covered forest path"
+    },
+    "tags": {
+      "es": [
+        "Collie",
+        "frontera",
+        "ruta",
+        "forestal",
+        "cubierta",
+        "nieve"
+      ],
+      "en": [
+        "Border",
+        "collie",
+        "snow",
+        "covered",
+        "forest",
+        "path"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "38230301",
+      "source_language": "en",
+      "source_title": "border-collie-on-snow-covered-forest-path-38230301",
+      "source_url": "https://www.pexels.com/video/border-collie-on-snow-covered-forest-path-38230301/"
+    },
+    "media": {
+      "duration_seconds": 18.3,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 20201500,
+      "sha256": "00b5f81bdff64c25b122c8a55abbbc6d506ce4caa391724ba42f134311419cac",
+      "perceptual_hash": "807cafd42f35da24~2606.60:8174af954a2dd16b~2730.63:807aeb2db45ed960~3866.03:e13e8639f3876458~5032.53:b24f8cb84f8c5ec4~2197.24"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/clip_clip-000005.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-21-001/thumb_clip-000005.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-21T02:58:56.766051Z"
   }
 ]
