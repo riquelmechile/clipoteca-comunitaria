@@ -482,8 +482,13 @@ async def test_ingest_hls_mime_dispatches_to_bounded_hls_downloader(tmp_path, mo
 
     module = importlib.import_module("clipoteca.ingest")
     candidate = Candidate(
-        "rutube", VIDEO, "rain", "en", "https://rutube.ru/video/" + VIDEO + "/",
-        "Rain", "en",
+        "rutube",
+        VIDEO,
+        "rain",
+        "en",
+        "https://rutube.ru/video/" + VIDEO + "/",
+        "Rain",
+        "en",
     )
 
     class AdapterFixture(Adapter):
