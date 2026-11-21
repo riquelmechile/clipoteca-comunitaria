@@ -1,10 +1,23 @@
 {
   "request_id": "6ebe0b18328824df41fed9058f9455dbb9f64332dfb42d51e2593b7e9205fa91",
-  "status": "searching",
+  "status": "fetching",
   "attempt": 1,
-  "updated_at": "2026-11-21T02:57:00.519495Z",
-  "language_counts": {},
-  "provider_counts": {},
+  "updated_at": "2026-11-21T02:57:05.435336Z",
+  "language_counts": {
+    "es": 2,
+    "en": 2,
+    "zh": 2,
+    "ru": 2
+  },
+  "provider_counts": {
+    "peertube": 6,
+    "odysee": 196
+  },
   "source_errors": {},
-  "terms": {}
+  "terms": {
+    "es": "lluvia",
+    "en": "rain",
+    "zh": "下雨",
+    "ru": "дождь"
+  }
 }
