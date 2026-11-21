@@ -2,8 +2,10 @@ import { loadCatalog, type Clip } from "./catalog";
 import { loadJob, requestId, expiredDeadLetter, isStaleJob } from "./jobs";
 import { dispatchIngest } from "./dispatch";
 import { submitContribution } from "./contributions";
+import { semanticSearch, type SemanticEnv } from "./semantic";
+import { quota } from "./quota";
 
-export interface RestEnv {
+export interface RestEnv extends SemanticEnv {
   CATALOG_URL?: string;
   CATALOG_TTL_SECONDS?: string;
   CATALOG_JOBS_URL?: string;
@@ -124,20 +126,6 @@ function bearer(request: Request, token?: string): boolean {
     auth.slice(7).split("").every((c, i) => c.charCodeAt(0) === token.charCodeAt(i)));
 }
 
-async function quota(request: Request, scope: string): Promise<boolean> {
-  const cache = (caches as CacheStorage & { default: Cache }).default;
-  if (!cache) return false;
-  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-  // Key is a bounded hash so no raw IP leaks into cache URLs.
-  const bytes = new TextEncoder().encode(scope + ":" + ip);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-  const id = [...new Uint8Array(hash)].slice(0, 12).map((n) => n.toString(16).padStart(2, "0")).join("");
-  const key = new Request("https://clipoteca.invalid/_quota/" + scope + "/" + id);
-  const existing = await cache.match(key);
-  if (existing) return false;
-  await cache.put(key, new Response("1", { headers: { "cache-control": "public, max-age=15" } }));
-  return true;
-}
 
 // The Worker has no durable queued record until the workflow starts. Keep
 // a short-lived marker *only after* a successful dispatch, so an identical
@@ -224,14 +212,21 @@ export async function handleRest(request: Request, env: RestEnv): Promise<Respon
   catch (err) { return error("invalid_input", err instanceof Error ? err.message : "Invalid input", 400); }
   try {
     if (path === "/v1/import") return submitImport(request, env, parsed);
-    const page = await searchExisting(env, parsed);
+    const page = await semanticSearch(
+      request, env, parsed.query, new URL(queryUrl(parsed.filters, parsed.query)).searchParams,
+      !parsed.filters.import_if_missing,
+    );
     if (!parsed.filters.import_if_missing || page.clips.length > 0) {
       return json({ ...page, status: "published" });
     }
     // A cursor past the last page is not an empty catalogue.
-    const first = await searchExisting(env, {
-      ...parsed, filters: { ...parsed.filters, cursor: "0", limit: 1 },
-    });
+    const first = await semanticSearch(
+      request, env, parsed.query,
+      new URL(queryUrl(
+        { ...parsed.filters, cursor: "0", limit: 1 }, parsed.query,
+      )).searchParams,
+      false,
+    );
     if (first.clips.length) return json({ ...page, status: "published" });
     const queued = await submitImport(request, env, parsed);
     if (!queued.ok) return queued;

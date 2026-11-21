@@ -119,6 +119,22 @@ class EmbeddingStore:
             self.index_file,
             (json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(),
         )
+        # Transitional dual-write: M21 sidecar remains available for existing
+        # readers while M22 writes consolidated shards for the Worker.
+        from .shards import ShardStore
+
+        try:
+            ShardStore(self.root).put(identifier, vector)
+        except Exception:
+            # The M21 sidecar and index above are already durable. A secondary
+            # M22 manifest failure cannot invalidate an existing M21 write.
+            import warnings
+
+            warnings.warn(
+                "m22_shard_dual_write_failed:m21_sidecar_persisted",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         return metadata
 
     def read(self, identifier: str) -> np.ndarray:

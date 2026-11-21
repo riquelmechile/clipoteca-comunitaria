@@ -1,0 +1,67 @@
+[
+  {
+    "input": "ΟΔΟΣ",
+    "normalized": "οδοσ",
+    "sha256": "15846f275ca06b00e00de9cf843b733c9b17c3fd392b29281296245762cff8c2"
+  },
+  {
+    "input": "﻿Aguacero",
+    "normalized": "aguacero",
+    "sha256": "2115d607e475ad20813aaffec6afefd2ad38d4b6ad2b96a6d4c5a9f06f6a36c8"
+  },
+  {
+    "input": "A\u001cB",
+    "normalized": "a b",
+    "sha256": "c8687a08aa5d6ed2044328fa6a697ab8e96dc34291e8c2034ae8c38e6fcc6d65"
+  },
+  {
+    "input": "Ꭰᏸ",
+    "normalized": "ᎠᏰ",
+    "sha256": "79ad0f2607f075216e8d7073beb97b614ab6207d31884a407e2b4eb07bb49680"
+  },
+  {
+    "input": "ß",
+    "normalized": "ss",
+    "sha256": "a31fe9656fc8d3a459e623dc8204e6d0268f8df56d734dac3ca3262edb5db883"
+  },
+  {
+    "input": "İ",
+    "normalized": "i̇",
+    "sha256": "fbbdb347060082cf4e72cdc5f02679dd809ebf4e6c601933e858d954a65f5e73"
+  },
+  {
+    "input": "ＦＵＬＬＷＩＤＴＨ",
+    "normalized": "fullwidth",
+    "sha256": "39ecd459f143d7522ebfbb82080d3cc071c2fb5cf88763738cbc74f9f541142b"
+  },
+  {
+    "input": "rain\tstreet",
+    "normalized": "rain street",
+    "sha256": "a3ef5b579297d4da77044180ec4f5093ae877376db1ad6c19ed867378e2532cc"
+  },
+  {
+    "input": "Aguacero ",
+    "normalized": "aguacero",
+    "sha256": "2115d607e475ad20813aaffec6afefd2ad38d4b6ad2b96a6d4c5a9f06f6a36c8"
+  },
+  {
+    "input": "下雨",
+    "normalized": "下雨",
+    "sha256": "024b2708ed8e3ffc2b64f9ed416c06ecada0c8accb9b77f388e33e32d7301189"
+  },
+  {
+    "input": "Дождь",
+    "normalized": "дождь",
+    "sha256": "34959f44e9ece701f3b41adbafa944e1bfbf3cdf975525d920a1eab1389a7506"
+  },
+  {
+    "input": "ΣΟΣ",
+    "normalized": "σοσ",
+    "sha256": "3a30fe95407682f1025b38d53496dfd892f381ed1dd9d84866be8b8623661625"
+  },
+  {
+    "input": "𐍈",
+    "normalized": "𐍈",
+    "sha256": "8cc5088af438e5fea78e9bd4e29d72ac2e7c9f481ba6f07e35b2f932fef6722e"
+  }
+]

@@ -145,7 +145,11 @@ invitado y se consulta sin cookie privada. La cookie opcional se utiliza
 una sola vez cuando el invitado no basta: status_code 2483, HTTP 401/403,
 respuesta 200 vacía, HTML/no JSON, captcha o verify_check (incluido
 search_nil_info.search_nil_type). Si no hay cookie o también falla, se informa
-AUTH_REQUIRED: session_required. Una lista vacía válida de resultados
+AUTH_REQUIRED: session_required. M19 r3 detecta verify_check solo en
+search_nil_info.search_nil_type; captcha solo en claves superiores
+verify_data, verify_center_decision_conf o captcha, nunca en títulos.
+Un JSON con solo status_code: 0 carece de lista y requiere sesión.
+Una lista vacía válida de resultados
 (data/item_list explícitos) NO es bloqueo y permite probar la búsqueda general
 Douyin. Sin cookie se declara el límite, no se inventan resultados.
 
