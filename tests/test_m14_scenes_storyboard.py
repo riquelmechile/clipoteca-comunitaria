@@ -385,7 +385,34 @@ def test_published_source_ranges_skip_before_download():
             clips[:1],
             "https://example.test/video?id=7",
             2,
-            candidate_duration=45,
+            candidate_duration=0,
+        )
+        is clips[0]
+    )
+    assert (
+        _published_source_complete(
+            clips[:1],
+            "https://example.test/video?id=7",
+            2,
+            candidate_duration=None,
+        )
+        is clips[0]
+    )
+    assert (
+        _published_source_complete(
+            clips[:1],
+            "https://example.test/video?id=7",
+            2,
+            candidate_duration=25,
+        )
+        is clips[0]
+    )
+    assert (
+        _published_source_complete(
+            clips[:1],
+            "https://example.test/video?id=7",
+            2,
+            candidate_duration=120,
         )
         is None
     )

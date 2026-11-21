@@ -98,6 +98,8 @@ def _published_source_complete(
     ]
     if len(ranged) >= max_clips:
         return ranged[0]
+    if ranged and not candidate_duration:
+        return ranged[0]
     if candidate_duration and candidate_duration > 0:
         if any(
             float(clip["source"]["source_start"]) <= 0.001
@@ -105,7 +107,12 @@ def _published_source_complete(
             for clip in ranged
         ):
             return ranged[0]
-        possible = min(max_clips, max(1, math.ceil(candidate_duration / max_duration)))
+        minimum_duration = min(8.0, max_duration, candidate_duration)
+        possible = (
+            1
+            if candidate_duration <= max_duration + minimum_duration
+            else min(max_clips, math.ceil(candidate_duration / max_duration))
+        )
         if len(ranged) >= possible:
             return ranged[0]
     return None
