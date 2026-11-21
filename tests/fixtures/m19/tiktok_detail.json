@@ -1,0 +1,12 @@
+{
+  "status_code": 0,
+  "itemInfo": {
+    "itemStruct": {
+      "id": "7400000000000000003",
+      "desc": "Rain",
+      "video": {
+        "playAddr": "https://v16.tiktokcdn.com/detail.mp4"
+      }
+    }
+  }
+}

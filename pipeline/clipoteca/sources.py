@@ -169,16 +169,16 @@ SOURCES: tuple[SourceSpec, ...] = (
     SourceSpec(
         "douyin",
         Douyin,
-        ("DOUYIN_ACCESS_TOKEN",),
-        "authorized_account_only",
-        "no general global video search",
+        (),
+        "public_search",
+        "native-signed web search; optional DOUYIN_COOKIE fallback; downloads best-effort",
     ),
     SourceSpec(
         "tiktok",
         TikTok,
-        ("TIKTOK_ACCESS_TOKEN",),
-        "authorized_account_only",
-        "Display API, no global search",
+        (),
+        "public_search",
+        "native-signed web search; optional TIKTOK_COOKIE fallback; downloads best-effort",
     ),
     SourceSpec(
         "instagram",
@@ -224,8 +224,8 @@ SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
     "ok_ru": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "vk_video": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "dzen": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
-    "douyin": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
-    "tiktok": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "douyin": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "tiktok": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "instagram": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
     "snapchat": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
 }

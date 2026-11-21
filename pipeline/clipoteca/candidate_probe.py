@@ -216,7 +216,7 @@ async def _request(client: httpx.AsyncClient, method: str, url: str, *, resolver
     if urlparse(url).scheme != "https" or host not in PERMITTED_HOSTS:
         raise ValueError("candidate endpoint outside allowlist")
     await validate_public_url(url, resolver=resolver)
-    headers = {**kwargs.pop("headers", {}), "User-Agent": USER_AGENT}
+    headers = {"User-Agent": USER_AGENT, **kwargs.pop("headers", {})}
     async with client.stream(
         method, url, follow_redirects=False, headers=headers, **kwargs
     ) as response:
@@ -266,7 +266,7 @@ async def probe_candidate(
             status, payload, html, ttwid = await _request(
                 client, method, url, resolver=resolver, **kwargs
             )
-            if provider == "douyin" and stage == "init":
+            if provider in {"douyin", "tiktok"} and stage == "init":
                 guest_ttwid = ttwid
             row["status_code"] = status
             row.update(parse_metrics(provider if stage != "init" else "", payload, html=html))
@@ -337,32 +337,48 @@ async def probe_candidate(
             params={"fo": "json", "at": "results,pagination", "c": 20, "q": term},
         )
     elif provider == "douyin":
-        # Registration obtains guest ttwid only in client memory; no cookie is persisted.
+        from .providers.douyin import Douyin, VIDEO_SEARCH
+        from .providers.signing import BROWSER_UA
+
+        adapter = Douyin(cookie="", client=client)
+        # Preserve the M12 stage evidence while using M19's signed search params.
         await sample(
             "init",
             "POST",
             "https://ttwid.bytedance.com/ttwid/union/register/",
             json={"region": "cn", "aid": 6383, "service": "www.douyin.com", "needFid": False},
         )
+        adapter.guest.ttwid = guest_ttwid or ""
+        adapter.guest._initialized = True
         await sample(
             "search",
             "GET",
-            "https://www.douyin.com/aweme/v1/web/search/item/",
-            headers={"Cookie": f"ttwid={guest_ttwid}"} if guest_ttwid else {},
-            params={
-                "keyword": term,
-                "aid": 6383,
-                "device_platform": "webapp",
-                "count": 20,
-                "offset": 0,
-            },
+            VIDEO_SEARCH,
+            headers={**adapter.guest.headers(), "User-Agent": BROWSER_UA},
+            params=adapter._params(term),
         )
     elif provider == "tiktok":
+        from .providers.tiktok import TikTok, SEARCH
+        from .providers.signing import BROWSER_UA
+        from .providers.signing.tiktok_params import search_posts_params
+
+        adapter = TikTok(cookie="", client=client)
+        await sample(
+            "init",
+            "POST",
+            "https://ttwid.bytedance.com/ttwid/union/register/",
+            json={"region": "cn", "aid": 1988, "service": "www.tiktok.com", "needFid": False},
+        )
+        adapter.guest.ttwid = guest_ttwid or ""
+        adapter.guest._initialized = True
+        signed = await adapter._signed_url(
+            SEARCH, search_posts_params(keyword=term, device_id=adapter.device_id)
+        )
         await sample(
             "search",
             "GET",
-            "https://www.tiktok.com/api/search/item/full/",
-            params={"keyword": term},
+            signed,
+            headers={**adapter.guest.headers(), "User-Agent": BROWSER_UA},
         )
     elif provider == "bilibili":
         nav = await sample("init", "GET", "https://api.bilibili.com/x/web-interface/nav")

@@ -376,8 +376,8 @@
   {
     "name": "douyin",
     "category": "social_video",
-    "status": "AUTH_REQUIRED",
-    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
     "accepts_text_languages": [
       "es",
       "en",
@@ -385,21 +385,21 @@
       "ru"
     ],
     "languages_semantically_verified": false,
-    "scope": "authorized_account_only",
+    "scope": "public_search",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
-      "download": "unavailable"
+      "download": "best_effort"
     },
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "no general global video search"
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "native-signed web search; optional DOUYIN_COOKIE fallback; downloads best-effort"
   },
   {
     "name": "tiktok",
     "category": "social_video",
-    "status": "AUTH_REQUIRED",
-    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
     "accepts_text_languages": [
       "es",
       "en",
@@ -407,15 +407,15 @@
       "ru"
     ],
     "languages_semantically_verified": false,
-    "scope": "authorized_account_only",
+    "scope": "public_search",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
-      "download": "unavailable"
+      "download": "best_effort"
     },
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "Display API, no global search"
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "native-signed web search; optional TIKTOK_COOKIE fallback; downloads best-effort"
   },
   {
     "name": "instagram",
