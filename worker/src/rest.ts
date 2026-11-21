@@ -1,5 +1,5 @@
 import { loadCatalog, type Clip } from "./catalog";
-import { loadJob, requestId } from "./jobs";
+import { loadJob, requestId, expiredDeadLetter, isStaleJob } from "./jobs";
 import { dispatchIngest } from "./dispatch";
 import { submitContribution } from "./contributions";
 
@@ -90,13 +90,13 @@ function queryUrl(filters: Filters, query: string): string {
   return url.href;
 }
 
-async function searchExisting(env: RestEnv, input: SearchInput): Promise<Clip[]> {
-  // Reuse catalogue query semantics, including Unicode normalization and both languages.
+async function searchExisting(env: RestEnv, input: SearchInput):
+  Promise<{ clips: Clip[]; next_cursor: string | null }> {
   const { handleCatalog } = await import("./catalog");
-  const response = await handleCatalog(new Request(queryUrl({ ...input.filters, limit: 100 }, input.query)), env);
+  const response = await handleCatalog(new Request(queryUrl(input.filters, input.query)), env);
   if (!response?.ok) throw new Error("catalogue search unavailable");
-  const payload = (await response.json()) as { items: Clip[] };
-  return payload.items;
+  const payload = (await response.json()) as { items: Clip[]; next_cursor: string | null };
+  return { clips: payload.items, next_cursor: payload.next_cursor };
 }
 
 async function validateJson(request: Request): Promise<unknown> {
@@ -137,19 +137,27 @@ async function quota(request: Request, scope: string): Promise<boolean> {
 export async function submitImport(
   request: Request, env: RestEnv, input: SearchInput,
 ): Promise<Response> {
+  // All content and pagination filters must participate in the deterministic key.
+  // import_if_missing controls queuing, not the content identity.
+  const { import_if_missing: _enqueue, ...requestedFilters } = input.filters;
   const dispatchFilters = {
+    ...requestedFilters,
     aspect_ratio: input.filters.aspect_ratio ?? null,
     max_duration: input.filters.max_duration ?? 20,
   };
   const rid = await requestId(input.query, dispatchFilters);
   const old = await loadJob(env, rid);
-  if (old?.status === "dead_letter") {
-    return error("dead_letter", "Retry budget exhausted; human review required", 409);
+  if (old?.status === "dead_letter" && !expiredDeadLetter(old)) {
+    return error("dead_letter", "Retry budget exhausted; try after 24 hours", 409);
+  }
+  if (old?.status === "no_results") {
+    return json({ request_id: rid, status: "no_results", job: old });
   }
   if (old?.status === "published" || old?.status === "duplicate") {
     return json({ request_id: rid, status: old.status, job: old });
   }
-  if (old && ["searching","fetching","processing","publishing","queued"].includes(old.status)) {
+  if (old && ["searching","fetching","processing","publishing","queued"].includes(old.status)
+      && !isStaleJob(old)) {
     return json({ request_id: rid, status: old.status, job: old }, 202);
   }
   if (!await quota(request, "import")) return error("rate_limited", "Too many imports", 429);
@@ -168,7 +176,7 @@ export async function handleRest(request: Request, env: RestEnv): Promise<Respon
     if (!/^[a-f0-9]{64}$/.test(rid)) return error("invalid_request_id", "Invalid request id", 400);
     try {
       const job = await loadJob(env, rid);
-      return json(job ?? { request_id: rid, status: "queued", detail: "unknown" });
+      return job ? json(job) : error("job_not_found", "Job does not exist", 404);
     } catch { return error("job_unavailable", "Job storage unavailable", 503); }
   }
   if (request.method !== "POST") return null;
@@ -182,14 +190,19 @@ export async function handleRest(request: Request, env: RestEnv): Promise<Respon
   catch (err) { return error("invalid_input", err instanceof Error ? err.message : "Invalid input", 400); }
   try {
     if (path === "/v1/import") return submitImport(request, env, parsed);
-    const items = await searchExisting(env, parsed);
-    if (!parsed.filters.import_if_missing || items.length > 0) {
-      return json({ clips: items, next_cursor: null, status: "published" });
+    const page = await searchExisting(env, parsed);
+    if (!parsed.filters.import_if_missing || page.clips.length > 0) {
+      return json({ ...page, status: "published" });
     }
+    // A cursor past the last page is not an empty catalogue.
+    const first = await searchExisting(env, {
+      ...parsed, filters: { ...parsed.filters, cursor: "0", limit: 1 },
+    });
+    if (first.clips.length) return json({ ...page, status: "published" });
     const queued = await submitImport(request, env, parsed);
     if (!queued.ok) return queued;
     const result = (await queued.json()) as Record<string, unknown>;
-    return json({ clips: items, next_cursor: null, ...result }, queued.status);
+    return json({ ...page, ...result }, queued.status);
   } catch {
     return error("upstream_unavailable", "Catalog or job storage unavailable", 503);
   }

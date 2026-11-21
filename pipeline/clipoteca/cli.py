@@ -61,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     ingest_parser.add_argument("--concurrency", type=int, default=4)
     ingest_parser.add_argument("--providers", default="", help="Comma-separated source names")
     ingest_parser.add_argument("--job-root", default="data/jobs")
+    ingest_parser.add_argument("--filters-json", default="")
 
     args = parser.parse_args(argv)
     if args.command in ("list_sources", "list-sources"):
@@ -130,9 +131,38 @@ def main(argv: list[str] | None = None) -> int:
         if selected - source_names:
             print("unknown source in --providers", file=sys.stderr)
             return 2
-        filters = {"aspect_ratio": args.aspect_ratio, "max_duration": args.max_duration}
-        if selected:
-            filters["providers"] = sorted(selected)
+        if args.filters_json:
+            try:
+                filters = json.loads(args.filters_json)
+                if not isinstance(filters, dict) or any(
+                    key
+                    not in {
+                        "aspect_ratio",
+                        "max_duration",
+                        "min_width",
+                        "fps",
+                        "source",
+                        "language",
+                        "has_audio",
+                        "limit",
+                        "cursor",
+                    }
+                    for key in filters
+                ):
+                    raise ValueError("invalid filters")
+            except (ValueError, TypeError):
+                print("invalid canonical filters", file=sys.stderr)
+                return 2
+            source = filters.get("source")
+            if source and source not in source_names:
+                print("unknown source in filters", file=sys.stderr)
+                return 2
+            if source:
+                selected = {source}
+        else:
+            filters = {"aspect_ratio": args.aspect_ratio, "max_duration": args.max_duration}
+            if selected:
+                filters["providers"] = sorted(selected)
         expected = calculate_request_id(args.query, filters, args.horizon)
         if args.request_id and args.request_id != expected:
             print("request_id mismatch", file=sys.stderr)
@@ -165,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
                     allowed,
                     repository=repository,
                     token=token,
-                    max_results=args.max_results,
+                    max_results=min(int(filters.get("limit") or args.max_results), 50),
                     concurrency=args.concurrency,
                     job_root=Path(args.job_root),
                     filters=filters,

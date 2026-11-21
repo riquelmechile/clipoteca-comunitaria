@@ -2,7 +2,10 @@ name = "clipoteca-worker"
 main = "src/index.ts"
 compatibility_date = "2026-11-20"
 
-# Configure account_id and routes only in the deployment environment.
+# Set account_id and routes in deployment environment.
 [vars]
-CATALOG_TTL_SECONDS = "60"
-
+CATALOG_TTL_SECONDS = "10"
+CLIPOTECA_GITHUB_REPO = "riquelmechile/clipoteca-comunitaria"
+# MCP_ALLOWED_HOSTS optional: defaults to the actual Worker request hostname.
+# MCP_ALLOWED_HOSTS = "clipoteca.example.org"
+# MCP_ALLOWED_ORIGINS = "https://your-client.example.org"

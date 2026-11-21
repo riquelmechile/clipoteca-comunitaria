@@ -21,19 +21,19 @@ describe("M8 dispatch via official GitHub workflow API", () => {
     } });
   });
 
-  it("sends exact bounded workflow dispatch and caches accepted request ID", async () => {
+  it("sends bounded workflow dispatch, retrying without a lossy cache", async () => {
     const fetcher = vi.fn(async (_url: string, options?: RequestInit) => {
       const body = JSON.parse(String(options?.body)) as { inputs: Record<string, string>; ref: string };
       expect(body.ref).toBe("main");
       expect(body.inputs).toMatchObject({ query: "lluvia", request_id: requestId,
-        aspect_ratio: "9:16", max_duration: "20", max_results: "2" });
+        aspect_ratio: "9:16", max_duration: "20", max_results: "2", filters_json: JSON.stringify(input.filters) });
       expect(options?.headers).toMatchObject({ authorization: "Bearer secret-not-for-logs" });
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal("fetch", fetcher);
     expect(await dispatchIngest(req, env, input, requestId)).toEqual({ ok: true });
     expect(await dispatchIngest(req, env, input, requestId)).toEqual({ ok: true });
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   it.each([403, 404, 422, 500])("never reports queued when GitHub returns %i", async (status) => {

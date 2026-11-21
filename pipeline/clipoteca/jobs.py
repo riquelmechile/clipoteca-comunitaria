@@ -9,6 +9,7 @@ import json
 import os
 import tempfile
 import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,20 @@ from .catalog import normalize_text
 SCHEMA = Path(__file__).resolve().parents[2] / "schemas" / "job.schema.json"
 STATUSES = ("queued", "searching", "fetching", "processing", "publishing", "published")
 TERMINAL = ("no_results", "duplicate", "failed", "rate_limited", "unavailable", "dead_letter")
-RETRYABLE = ("no_results", "failed", "rate_limited", "unavailable")
+RETRYABLE = ("failed", "rate_limited", "unavailable")
+DEAD_LETTER_TTL = timedelta(hours=24)
+
+
+def expired_dead_letter(job: dict[str, Any], *, now: datetime | None = None) -> bool:
+    if job.get("status") != "dead_letter" or not isinstance(job.get("updated_at"), str):
+        return False
+    try:
+        timestamp = datetime.fromisoformat(job["updated_at"].replace("Z", "+00:00"))
+        return (now or datetime.now(UTC)) - timestamp >= DEAD_LETTER_TTL
+    except (TypeError, ValueError):
+        return False
+
+
 MAX_ATTEMPTS = 3
 
 
@@ -86,8 +100,7 @@ class GitHubJobWriter:
             if existing and existing != job:
                 if existing["status"] in (*TERMINAL, "published"):
                     retry = (
-                        existing["status"]
-                        in {"failed", "rate_limited", "unavailable", "no_results"}
+                        existing["status"] in RETRYABLE
                         and job["status"] == "queued"
                         and job.get("attempt", 1) == existing.get("attempt", 1) + 1
                         and job.get("attempt", 1) <= MAX_ATTEMPTS
@@ -98,7 +111,13 @@ class GitHubJobWriter:
                         and existing.get("attempt", 1) >= MAX_ATTEMPTS
                         and job.get("attempt", 1) == existing.get("attempt", 1)
                     )
-                    if not (retry or dead_letter):
+                    reset_expired = (
+                        existing["status"] == "dead_letter"
+                        and job["status"] == "queued"
+                        and job.get("attempt") == 1
+                        and expired_dead_letter(existing)
+                    )
+                    if not (retry or dead_letter or reset_expired):
                         raise ValueError("remote terminal job cannot transition")
             payload = {
                 "message": f"chore(jobs): record {job['status']} ({identifier[:12]})",
@@ -147,6 +166,7 @@ class JobStore:
         return obj
 
     def save(self, job: dict[str, Any]) -> Path:
+        job["updated_at"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         self.validator.validate(job)
         identifier = job["request_id"]
         if not (len(identifier) == 64 and all(x in "0123456789abcdef" for x in identifier)):
@@ -159,7 +179,7 @@ class JobStore:
             if prev != next_state:
                 if prev in (*TERMINAL, "published"):
                     retry = (
-                        prev in {"failed", "rate_limited", "unavailable", "no_results"}
+                        prev in RETRYABLE
                         and next_state == "queued"
                         and job.get("attempt", 1) == old.get("attempt", 1) + 1
                         and job.get("attempt", 1) <= MAX_ATTEMPTS
@@ -170,7 +190,13 @@ class JobStore:
                         and old.get("attempt", 1) >= MAX_ATTEMPTS
                         and job.get("attempt", 1) == old.get("attempt", 1)
                     )
-                    if not (retry or dead_letter):
+                    reset_expired = (
+                        prev == "dead_letter"
+                        and next_state == "queued"
+                        and job.get("attempt") == 1
+                        and expired_dead_letter(old)
+                    )
+                    if not (retry or dead_letter or reset_expired):
                         raise ValueError("terminal job cannot transition")
                 if (
                     prev in STATUSES
@@ -198,6 +224,7 @@ def new_job(identifier: str) -> dict[str, Any]:
         "request_id": identifier,
         "status": "queued",
         "attempt": 1,
+        "updated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "language_counts": {},
         "provider_counts": {},
         "source_errors": {},

@@ -299,5 +299,6 @@ def test_workflow_only_writes_on_main():
     workflow = Path(__file__).parents[1] / ".github/workflows/ingest.yml"
     source = workflow.read_text()
     assert "github.ref == 'refs/heads/main'" in source
-    assert "group: clipoteca-catalog" in source
+    assert "group: clipoteca-ingest-" in source
+    assert "group: clipoteca-catalog" not in source
     assert "contents: write" in source

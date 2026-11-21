@@ -1,4 +1,4 @@
-/** MCP 2026-07-28 + legacy 2025 Streamable HTTP, one server per request. */
+/** MCP 2026-07-28 and legacy 2025 Streamable HTTP, one server per request. */
 import {
   createMcpHandler, McpServer, hostHeaderValidationResponse, originValidationResponse,
 } from "@modelcontextprotocol/server";
@@ -11,10 +11,47 @@ export interface McpEnv extends RestEnv {
   MCP_ALLOWED_ORIGINS?: string;
 }
 
-const resultSchema = z.object({ result: z.unknown() });
-const answer = (result: unknown) => ({
+const clipSchema = z.object({
+  id: z.string().regex(/^clip-\d{6}$/),
+  title: z.object({ es: z.string(), en: z.string() }),
+  description: z.object({ es: z.string(), en: z.string() }),
+  tags: z.object({ es: z.array(z.string()), en: z.array(z.string()) }),
+  source: z.object({
+    provider: z.string(), source_language: z.string(),
+    provider_id: z.string().optional(), source_title: z.string().optional(),
+    source_url: z.string().optional(), issue_number: z.number().int().optional(),
+    issue_author: z.string().optional(), issue_url: z.string().optional(),
+  }),
+  media: z.object({
+    aspect_ratio: z.string(), duration_seconds: z.number(), width: z.number(),
+    fps: z.number(), has_audio: z.boolean(),
+  }),
+  storage: z.object({ asset_url: z.string() }),
+  status: z.string().optional(), created_at: z.string().optional(),
+});
+const searchOutputSchema = z.object({
+  clips: z.array(clipSchema), next_cursor: z.string().nullable(),
+  status: z.string().optional(), request_id: z.string().optional(),
+});
+const getClipOutputSchema = z.object({ clip: clipSchema });
+const downloadOutputSchema = z.object({ url: z.string().url(), clip_id: z.string().optional() });
+const importOutputSchema = z.object({ request_id: z.string(), status: z.string() });
+const jobOutputSchema = z.object({
+  request_id: z.string(), status: z.string(), attempt: z.number().int().optional(),
+  updated_at: z.string().optional(),
+  language_counts: z.record(z.string(), z.number()).optional(),
+  provider_counts: z.record(z.string(), z.number()).optional(),
+  source_errors: z.record(z.string(), z.string()).optional(),
+  terms: z.record(z.string(), z.string()).optional(),
+  duplicate_ids: z.array(z.string()).optional(),
+});
+const sourcesOutputSchema = z.object({
+  sources: z.array(z.object({ provider: z.string(), status: z.string() })),
+  kind: z.string().optional(),
+});
+const answer = (result: object) => ({
   content: [{ type: "text" as const, text: JSON.stringify(result) }],
-  structuredContent: { result },
+  structuredContent: result,
 });
 const fail = (message: string) => ({
   isError: true as const,
@@ -25,9 +62,40 @@ type ActionResult = ReturnType<typeof answer> | ReturnType<typeof fail>;
 async function restResult(request: Request, env: McpEnv): Promise<ActionResult> {
   const response = await handleRest(request, env) ?? await handleCatalog(request, env);
   if (!response) return fail("Unknown route");
-  if (!response.ok) return fail("Clipoteca API error " + response.status + ": " + await response.text());
-  const payload: unknown = await response.json();
-  return answer(payload);
+  if (!response.ok) return fail("Clipoteca API error " + response.status);
+  const result = (await response.json()) as object;
+  return answer(result);
+}
+const base64Json = (data: string): object => {
+  const binary = atob(data.replace(/\s+/g, ""));
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes)) as object;
+};
+
+async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider: string; status: string}[];kind: string }> {
+  const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error("invalid repository");
+  const response = await fetch(
+    "https://api.github.com/repos/" + repo + "/contents/data/sources.json?ref=main",
+    { headers: { accept: "application/vnd.github+json",
+      "cache-control": "no-cache", "user-agent": "clipoteca-worker" } },
+  );
+  if (!response.ok) throw new Error("source snapshot unavailable");
+  const raw: unknown = await response.json();
+  let sources: unknown = raw;
+  if (raw && typeof raw === "object" && "encoding" in raw &&
+      (raw as {encoding?: unknown}).encoding === "base64") {
+    const data = (raw as {content?: unknown}).content;
+    if (typeof data !== "string") throw new Error("missing source content");
+    sources = base64Json(data);
+  }
+  if (!Array.isArray(sources)) throw new Error("malformed provider data");
+  const rows = sources.map((row: Record<string, unknown>) => ({
+    provider: String(row.name ?? row.provider ?? ""),
+    status: String(row.status ?? ""),
+  }));
+  if (rows.some(r => !r.provider || !r.status)) throw new Error("invalid provider row");
+  return { sources: rows, kind: "actions_credential_presence_snapshot" };
 }
 
 export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer {
@@ -49,107 +117,108 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   };
   const clipId = z.string().regex(/^clip-\d{6}$/);
   const searchInput = {
-    query: z.string().min(1).max(200).describe("Clip topic, searchable in Spanish or English"),
+    query: z.string().min(1).max(200),
     aspect_ratio: z.enum(["9:16", "16:9", "1:1", "other"]).optional(),
     max_duration: z.number().positive().max(20).optional(),
     min_width: z.number().int().positive().optional(),
+    fps: z.number().positive().optional(),
     source: z.string().regex(/^[a-z0-9_]+$/).optional(),
+    language: z.enum(["es", "en", "zh", "ru"]).optional(),
+    has_audio: z.boolean().optional(),
     limit: z.number().int().min(1).max(100).optional(),
+    cursor: z.string().regex(/^(0|[1-9][0-9]*)$/).optional(),
   };
 
   server.registerTool("search_clips", {
-    title: "Search clips", description: "Search existing verified clips; optionally enqueue new footage.",
+    title: "Search clips", description: "Search verified clips; optionally queue an import.",
     inputSchema: z.strictObject({
       ...searchInput, import_if_missing: z.boolean().optional(),
     }),
-    outputSchema: resultSchema,
+    outputSchema: searchOutputSchema,
     annotations: { readOnlyHint: false, openWorldHint: true },
-  }, async ({ query, import_if_missing, ...filters }) => {
-    return restResult(toolRequest("/v1/search", "POST", {
+  }, async ({ query, import_if_missing, ...filters }) => restResult(
+    toolRequest("/v1/search", "POST", {
       query, filters: { ...filters, ...(import_if_missing ? { import_if_missing } : {}) },
-    }), env);
-  });
+    }), env));
 
   server.registerTool("get_clip", {
-    title: "Get clip", description: "Return verified catalogue metadata for one clip ID.",
+    title: "Get clip", description: "Return catalogue metadata for one verified clip.",
     inputSchema: z.strictObject({ clip_id: clipId }),
-    outputSchema: resultSchema,
+    outputSchema: getClipOutputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ clip_id }) => {
     const response = await handleCatalog(toolRequest("/v1/clips/" + clip_id, "GET"), env);
-    if (!response?.ok) return fail("Clip not found: " + clip_id);
-    return answer(await response.json());
+    if (!response?.ok) return fail("Clip unavailable: " + clip_id);
+    return answer({ clip: await response.json() });
   });
 
   server.registerTool("download_clip", {
-    title: "Download clip URL",
-    description: "Get a direct, real GitHub Releases MP4 link (never video bytes).",
+    title: "Download clip URL", description: "Return verified GitHub Releases MP4 URL, not bytes.",
     inputSchema: z.strictObject({ clip_id: clipId }),
-    outputSchema: resultSchema,
+    outputSchema: downloadOutputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ clip_id }) => {
     const response = await handleCatalog(toolRequest("/v1/clips/" + clip_id + "/download", "GET"), env);
-    if (response?.status !== 302) return fail("Clip not found: " + clip_id);
+    if (response?.status !== 302) return fail("Clip unavailable: " + clip_id);
     const url = response.headers.get("location");
     if (!url || !url.startsWith("https://")) return fail("No verified asset URL");
     return answer({ clip_id, url });
   });
 
   server.registerTool("search_and_import", {
-    title: "Search and import", description: "Queue asynchronous footage search with write token.",
+    title: "Search and import", description: "Queue asynchronous import; requires write token.",
     inputSchema: z.strictObject({
       query: z.string().min(1).max(200),
       aspect_ratio: z.enum(["9:16", "16:9", "1:1", "other"]).optional(),
       max_results: z.number().int().min(1).max(50).optional(),
     }),
-    outputSchema: resultSchema,
+    outputSchema: importOutputSchema,
     annotations: { readOnlyHint: false, openWorldHint: true },
   }, async ({ query, aspect_ratio, max_results }) => restResult(
     toolRequest("/v1/import", "POST", {
       query, filters: {
         ...(aspect_ratio ? { aspect_ratio } : {}),
-        ...(max_results ? { limit: Math.min(max_results, 50) } : {}),
+        ...(max_results ? { limit: max_results } : {}),
       },
-    }), env,
-  ));
+    }), env));
 
   server.registerTool("get_job_status", {
-    title: "Get job status", description: "Get queued/running/terminal state for a deterministic request ID.",
+    title: "Get job status", description: "Fetch durable job record or a typed not_found.",
     inputSchema: z.strictObject({ request_id: z.string().regex(/^[a-f0-9]{64}$/) }),
-    outputSchema: resultSchema,
+    outputSchema: jobOutputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
-  }, async ({ request_id }) =>
-    restResult(toolRequest("/v1/jobs/" + request_id, "GET"), env));
+  }, async ({ request_id }) => restResult(
+    toolRequest("/v1/jobs/" + request_id, "GET"), env));
 
   server.registerTool("list_sources", {
     title: "List public source statuses",
-    description: "Show the 15 provider capability snapshot, not credentials or account-specific access.",
+    description: "Read credential-presence status snapshot without exposing any values.",
     inputSchema: z.strictObject({}),
-    outputSchema: resultSchema,
+    outputSchema: sourcesOutputSchema,
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async () => {
-    const response = await fetch(
-      "https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/data/sources.json",
-    );
-    if (!response.ok) return fail("Source snapshot unavailable");
-    const sources: unknown = await response.json();
-    if (!Array.isArray(sources)) return fail("Malformed provider data");
-    return answer({ sources, kind: "public_uncredentialed_snapshot" });
+    try { return answer(await sourceSnapshot(env)); }
+    catch { return fail("Source snapshot unavailable"); }
   });
   return server;
 }
 
 export async function handleMcp(request: Request, env: McpEnv): Promise<Response> {
-  const hosts = (env.MCP_ALLOWED_HOSTS ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-  const origins = (env.MCP_ALLOWED_ORIGINS ?? "").split(",").map((x) => {
+  const ownHost = new URL(request.url).hostname.toLowerCase();
+  const explicitlyAllowed = (env.MCP_ALLOWED_HOSTS ?? "").split(",")
+    .map(x => x.trim().toLowerCase()).filter(Boolean);
+  const hosts = explicitlyAllowed.length ? explicitlyAllowed : [ownHost];
+  const origins = (env.MCP_ALLOWED_ORIGINS ?? "").split(",").map(x => {
     const entry = x.trim();
     if (!entry) return "";
     try { return new URL(entry).hostname.toLowerCase(); }
     catch { return entry.toLowerCase(); }
   }).filter(Boolean);
-  if (!hosts.length) return Response.json({
-    error: { code: "mcp_host_config_required", message: "MCP_ALLOWED_HOSTS must be configured" },
-  }, { status: 503 });
+  // Reject a forged Host even when the allowlist falls back to the Worker URL.
+  const suppliedHost = request.headers.get("host")?.toLowerCase().split(":")[0];
+  if (!explicitlyAllowed.length && suppliedHost && suppliedHost !== ownHost) {
+    return Response.json({ error: {code:"invalid_host"} }, {status:403});
+  }
   const rejection = hostHeaderValidationResponse(request, hosts) ??
     originValidationResponse(request, origins);
   if (rejection) return rejection;

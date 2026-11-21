@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import time
 import tempfile
@@ -12,7 +13,16 @@ from typing import Awaitable, Callable, Sequence
 
 from .catalog import DuplicateClip, GitHubCatalogWriter, IdentityCollision
 from .engine import SearchEngine
-from .jobs import MAX_ATTEMPTS, RETRYABLE, STATUSES, GitHubJobWriter, JobStore, new_job, request_id
+from .jobs import (
+    MAX_ATTEMPTS,
+    RETRYABLE,
+    STATUSES,
+    GitHubJobWriter,
+    JobStore,
+    expired_dead_letter,
+    new_job,
+    request_id,
+)
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import normalize_media
 from .media.thumbnail import create_thumbnail
@@ -65,7 +75,11 @@ async def ingest(
     if existing and existing["status"] in {"published", "duplicate"}:
         return IngestReport(rid, "duplicate", tuple(existing.get("duplicate_ids", ())), ())
     if existing and existing["status"] == "dead_letter":
-        return IngestReport(rid, "dead_letter", (), ("retry_budget_exhausted",))
+        if not expired_dead_letter(existing):
+            return IngestReport(rid, "dead_letter", (), ("retry_budget_exhausted",))
+        existing = None  # after 24 h, a new bounded retry window is permitted
+    if existing and existing["status"] == "no_results":
+        return IngestReport(rid, "no_results", (), ())
     if existing and existing["status"] in RETRYABLE:
         if existing.get("attempt", 1) >= MAX_ATTEMPTS:
             blocked = dict(existing)
@@ -171,6 +185,10 @@ async def ingest(
             if len(ids) >= max_results:
                 break
             adapter = by_name[candidate.provider]
+            requested_language = (filters or {}).get("language")
+            if requested_language and candidate.source_language != requested_language:
+                errors.append(f"{candidate.origin_id}:language_filter")
+                continue
             if adapter.support_status != SupportStatus.SUPPORTED_SEARCH_DOWNLOAD:
                 errors.append(f"{candidate.origin_id}:search_only")
                 job["source_errors"][candidate.origin_id] = "search_only"
@@ -200,6 +218,19 @@ async def ingest(
                     desired_aspect = (filters or {}).get("aspect_ratio")
                     if desired_aspect and normalized.media.aspect_ratio != desired_aspect:
                         errors.append(f"{candidate.origin_id}:aspect_filter")
+                        continue
+                    desired_width = (filters or {}).get("min_width")
+                    desired_fps = (filters or {}).get("fps")
+                    desired_audio = (filters or {}).get("has_audio")
+                    if (
+                        (desired_width and normalized.media.width < int(desired_width))
+                        or (desired_fps and normalized.media.fps < float(desired_fps))
+                        or (
+                            desired_audio is not None
+                            and normalized.media.has_audio != desired_audio
+                        )
+                    ):
+                        errors.append(f"{candidate.origin_id}:media_filter")
                         continue
                     thumb_path = create_thumbnail(normalized.path, temp / "thumbnail.webp")
                     digest = sha256_file(normalized.path)
@@ -359,6 +390,19 @@ async def ingest(
         return IngestReport(
             rid, job["status"], tuple(ids or job.get("duplicate_ids", ())), tuple(errors)
         )
+    except asyncio.CancelledError:
+        job["status"] = "failed"
+        job["source_errors"]["pipeline"] = "cancelled"
+        jobs.save(job)
+        raise
+    except Exception as exc:
+        # The pipeline must not leave searching/queued records indefinitely.
+        # Only error class names are persisted, never upstream payloads or URLs.
+        if job.get("status") not in {"published", "duplicate"}:
+            job["status"] = "failed"
+            job["source_errors"]["pipeline"] = type(exc).__name__
+            jobs.save(job)
+        return IngestReport(rid, "failed", tuple(ids), (type(exc).__name__,))
     finally:
         if own_storage:
             storage.close()
