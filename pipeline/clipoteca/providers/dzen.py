@@ -70,17 +70,21 @@ class Dzen(Adapter):
             if not ID.fullmatch(identifier) or identifier in seen or not isinstance(title, str):
                 continue
             seen.add(identifier)
-            found.append(Candidate(
-                provider=self.name,
-                provider_id=identifier,
-                term=term,
-                language=lang,
-                source_url=WATCH + quote(identifier),
-                source_title=title,
-                source_language=detect_source_language(title),
-                duration_seconds=duration(item.get("duration") or item.get("durationSeconds")),
-                metadata={"provider": self.name},
-            ))
+            found.append(
+                Candidate(
+                    provider=self.name,
+                    provider_id=identifier,
+                    term=term,
+                    language=lang,
+                    source_url=WATCH + quote(identifier),
+                    source_title=title,
+                    source_language=detect_source_language(title),
+                    duration_seconds=duration(
+                        item.get("duration") or item.get("durationSeconds")
+                    ),
+                    metadata={"provider": self.name},
+                )
+            )
             if len(found) >= limits.max_candidates:
                 break
         return found

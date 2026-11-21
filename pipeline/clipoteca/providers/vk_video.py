@@ -151,17 +151,19 @@ class VKVideo(Adapter):
                 continue
             seen.add(identifier)
             title = str(item["title"])
-            found.append(Candidate(
-                provider=self.name,
-                provider_id=identifier,
-                term=term,
-                language=lang,
-                source_url="https://vkvideo.ru/video" + identifier,
-                source_title=title,
-                source_language=detect_source_language(title),
-                duration_seconds=duration(item.get("duration")),
-                metadata={"provider": self.name},
-            ))
+            found.append(
+                Candidate(
+                    provider=self.name,
+                    provider_id=identifier,
+                    term=term,
+                    language=lang,
+                    source_url="https://vkvideo.ru/video" + identifier,
+                    source_title=title,
+                    source_language=detect_source_language(title),
+                    duration_seconds=duration(item.get("duration")),
+                    metadata={"provider": self.name},
+                )
+            )
             if len(found) >= limits.max_candidates:
                 break
         return found

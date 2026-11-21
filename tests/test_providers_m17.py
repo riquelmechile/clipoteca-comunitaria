@@ -29,10 +29,14 @@ def client(routes: dict[tuple[str, str], tuple[int, str, str]]) -> httpx.AsyncCl
 
 @pytest.mark.asyncio
 async def test_ok_ru_search_and_mp4_resolution_from_html_fixtures():
-    adapter = OkRu(client=client({
-        ("GET", "/video/search"): (200, fixture("ok_search.html"), "text/html"),
-        ("GET", "/videoembed/1234567890"): (200, fixture("ok_embed.html"), "text/html"),
-    }))
+    adapter = OkRu(
+        client=client(
+            {
+                ("GET", "/video/search"): (200, fixture("ok_search.html"), "text/html"),
+                ("GET", "/videoembed/1234567890"): (200, fixture("ok_embed.html"), "text/html"),
+            }
+        )
+    )
     rows = await adapter.search("дождь", "ru", SearchLimits(max_candidates=3))
     assert [row.provider_id for row in rows] == ["1234567890"]
     media = await adapter.direct_media(rows[0])
@@ -65,24 +69,45 @@ async def test_vk_anonymous_token_cache_search_and_hls(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_dzen_search_and_hls_resolution_with_cookie_jar():
-    adapter = Dzen(client=client({
-        ("GET", "/api/web/v1/zen-search"): (200, fixture("dzen_search.json"), "application/json"),
-        ("GET", "/video/watch/dzen-video-42"): (200, fixture("dzen_watch.html"), "text/html"),
-    }))
+    adapter = Dzen(
+        client=client(
+            {
+                ("GET", "/api/web/v1/zen-search"): (
+                    200,
+                    fixture("dzen_search.json"),
+                    "application/json",
+                ),
+                ("GET", "/video/watch/dzen-video-42"): (
+                    200,
+                    fixture("dzen_watch.html"),
+                    "text/html",
+                ),
+            }
+        )
+    )
     rows = await adapter.search("дождь", "ru", SearchLimits())
     media = await adapter.direct_media(rows[0])
     assert media and media.url.endswith("master.m3u8")
     assert media.allowed_hosts == (
-        "dzen.ru", ".dzen.ru", "yandex.net", ".yandex.net", "yandex.ru", ".yandex.ru",
-        "strm.yandex.ru", ".strm.yandex.ru",
+        "dzen.ru",
+        ".dzen.ru",
+        "yandex.net",
+        ".yandex.net",
+        "yandex.ru",
+        ".yandex.ru",
+        "strm.yandex.ru",
+        ".strm.yandex.ru",
     )
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("adapter,path", [
-    (OkRu, "/video/search"),
-    (Dzen, "/api/web/v1/zen-search"),
-])
+@pytest.mark.parametrize(
+    "adapter,path",
+    [
+        (OkRu, "/video/search"),
+        (Dzen, "/api/web/v1/zen-search"),
+    ],
+)
 async def test_redirects_are_not_followed(adapter, path):
     instance = adapter(client=client({("GET", path): (302, "", "text/plain")}))
     with pytest.raises(ProviderError):

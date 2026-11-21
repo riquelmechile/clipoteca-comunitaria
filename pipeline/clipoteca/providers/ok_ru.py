@@ -86,21 +86,23 @@ class OkRu(Adapter):
                 continue
             seen.add(identifier)
             title = str(item.get("title") or item.get("name"))
-            result.append(Candidate(
-                provider=self.name,
-                provider_id=identifier,
-                term=term,
-                language=lang,
-                source_url="https://ok.ru/video/" + quote(identifier),
-                source_title=title,
-                source_language=detect_source_language(title),
-                duration_seconds=duration(
-                    item.get("duration")
-                    or item.get("durationMs")
-                    and float(item["durationMs"]) / 1000
-                ),
-                metadata={"provider": self.name},
-            ))
+            result.append(
+                Candidate(
+                    provider=self.name,
+                    provider_id=identifier,
+                    term=term,
+                    language=lang,
+                    source_url="https://ok.ru/video/" + quote(identifier),
+                    source_title=title,
+                    source_language=detect_source_language(title),
+                    duration_seconds=duration(
+                        item.get("duration")
+                        or item.get("durationMs")
+                        and float(item["durationMs"]) / 1000
+                    ),
+                    metadata={"provider": self.name},
+                )
+            )
             if len(result) >= limits.max_candidates:
                 break
         return result
