@@ -150,6 +150,20 @@ def canonical_tokens(value: str) -> set[str]:
     return tokens
 
 
+def _nonoverlapping_source_windows(source: dict, published: dict) -> bool:
+    """Same source can represent distinct clips only with explicit disjoint ranges."""
+    try:
+        first = float(source["source_start"])
+        first_end = float(source["source_end"])
+        second = float(published["source_start"])
+        second_end = float(published["source_end"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    return all(math.isfinite(t) for t in (first, first_end, second, second_end)) and (
+        first_end <= second or second_end <= first
+    )
+
+
 class Catalog:
     def __init__(self, clips: Iterable[dict[str, Any]] = ()) -> None:
         self.clips = sorted((dict(clip) for clip in clips), key=lambda c: c["id"])
@@ -211,14 +225,21 @@ class Catalog:
         for clip in self.clips:
             published_source = clip["source"]
             published_media = clip["media"]
-            if published_source["provider"] == source.get("provider") and published_source[
-                "provider_id"
-            ] == source.get("provider_id"):
+            if (
+                published_source["provider"] == source.get("provider")
+                and published_source["provider_id"] == source.get("provider_id")
+                and not _nonoverlapping_source_windows(source, published_source)
+            ):
                 return clip, "provider_id"
             if media.get("sha256") and published_media.get("sha256") == media["sha256"]:
                 return clip, "sha256"
             published_url = canonical_source_url(str(published_source.get("source_url", "")))
-            if candidate_url and published_url and candidate_url == published_url:
+            if (
+                candidate_url
+                and published_url
+                and candidate_url == published_url
+                and not _nonoverlapping_source_windows(source, published_source)
+            ):
                 return clip, "canonical_url"
             if (
                 phash_similar
@@ -382,7 +403,7 @@ class GitHubCatalogWriter:
         self,
         incoming: Iterable[dict[str, Any]],
         *,
-        verified_assets: Mapping[str, tuple[ReleaseAsset, ReleaseAsset]] | None = None,
+        verified_assets: Mapping[str, tuple[ReleaseAsset, ...]] | None = None,
         phash_similar: Callable[[str, str], bool] | None = None,
         retries: int = 3,
     ) -> str:
@@ -392,10 +413,21 @@ class GitHubCatalogWriter:
         for clip in clips:
             self.validator.validate(clip)
             pair = verified_assets.get(clip["id"])
-            if pair is None or len(pair) != 2:
+            if pair is None or len(pair) < 2:
                 raise ValueError(f"missing verified assets for {clip['id']}")
-            video, thumb = pair
+            video, thumb, *storyboard = pair
             expected = clip["storage"]
+            story_urls = expected.get("storyboard_urls", [])
+            if len(storyboard) != len(story_urls):
+                raise ValueError("storyboard assets must be verified before publication")
+            for index, (preview, url) in enumerate(zip(storyboard, story_urls, strict=True)):
+                if (
+                    preview.state != "uploaded"
+                    or preview.size <= 0
+                    or preview.browser_download_url != url
+                    or preview.name != f"story_{clip['id']}_{index:02d}.webp"
+                ):
+                    raise ValueError("storyboard asset verification mismatch")
             if (
                 video.state != "uploaded"
                 or thumb.state != "uploaded"
