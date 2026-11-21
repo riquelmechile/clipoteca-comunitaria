@@ -75,8 +75,9 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
         def __init__(self, client, *_args, **_kwargs):
             self.client = client
 
-        def publish(self, clip_id, vector):
-            operations.append(("shard", id(self.client), clip_id))
+        def publish_many(self, rows):
+            for clip_id, vector in rows:
+                operations.append(("shard", id(self.client), clip_id))
 
     class QueriesRemote:
         def __init__(self, client, *_args, **_kwargs):
@@ -133,8 +134,8 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
         translator=lambda _text, _src, dst: {
             "es": "Lluvia",
             "en": "Rain",
-            "zh": "雨",
-            "ru": "Дождь",
+            "zh": "\u96e8",
+            "ru": "\u0414\u043e\u0436\u0434\u044c",
         }[dst],
     )
     assert report.status == "published", report.errors
@@ -148,5 +149,5 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
     manifest = json.loads((tmp_path / "embeddings" / "manifest.json").read_text())
     assert manifest["shards"] == []
     assert manifest["tail"]["count"] == 1
-    ids = json.loads((tmp_path / "embeddings" / "ids/tail.json").read_text())
+    ids = json.loads((tmp_path / "embeddings" / manifest["tail"]["ids_path"]).read_text())
     assert ids == [report.published_ids[0]]
