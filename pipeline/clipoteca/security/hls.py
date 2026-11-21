@@ -233,7 +233,22 @@ async def download_hls(
                 ]
                 used = 0
                 elapsed = 0.0
-                local_playlist = ["#EXTM3U", "#EXT-X-VERSION:3"]
+                selected_duration = 0.0
+                selected: list[float] = []
+                for duration, _uri in segments:
+                    if selected_duration >= max_duration:
+                        break
+                    if duration > MAX_HLS_DURATION:
+                        raise DownloadError("HLS segment exceeds duration limit")
+                    selected.append(duration)
+                    selected_duration += duration
+                target_duration = max(1, math.ceil(max(selected)))
+                local_playlist = [
+                    "#EXTM3U",
+                    "#EXT-X-VERSION:3",
+                    f"#EXT-X-TARGETDURATION:{target_duration}",
+                    "#EXT-X-MEDIA-SEQUENCE:0",
+                ]
                 for index, ((duration, _uri), segment_url) in enumerate(
                     zip(segments, validated, strict=True)
                 ):
