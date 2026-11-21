@@ -64,9 +64,7 @@ def parse_approved_issue(payload: object, issue_number: int) -> ApprovedIssue:
         or re.search(r"- \[[xX]\] Confirmo que cuento con autorización", body)
     ):
         raise ValueError("contributor did not attest license rights")
-    match = re.search(
-        r"(?m)^### URL pública del vídeo\s*\n\s*(https://[^\s]+)\s*$", body
-    )
+    match = re.search(r"(?m)^### URL pública del vídeo\s*\n\s*(https://[^\s]+)\s*$", body)
     if not match:
         raise ValueError("public video URL missing")
     url = match.group(1)
