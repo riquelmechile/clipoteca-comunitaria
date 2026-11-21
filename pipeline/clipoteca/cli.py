@@ -28,6 +28,8 @@ from .providers.wikimedia_commons import WikimediaCommons
 from .providers.youtube import YouTube
 from .translate.expand import expand_query
 from .sources import list_sources
+from .relocalize import relocalize_catalog
+from .metadata import MetadataTranslationError
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -35,6 +37,13 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("version")
     commands.add_parser("list_sources", aliases=["list-sources"])
+    export = commands.add_parser("export_sources", aliases=["export-sources"])
+    export.add_argument("--output", default="data/sources.json")
+    relocalize = commands.add_parser("relocalize")
+    relocalize.add_argument("--ids", nargs="+", required=True)
+    relocalize.add_argument("--language-overrides", nargs="*", default=[])
+    relocalize.add_argument("--catalog", default="data/clips.json")
+    relocalize.add_argument("--index-root", default="data/index")
     search = commands.add_parser("search")
     search.add_argument("query")
     search.add_argument("--aspect-ratio")
@@ -50,12 +59,41 @@ def main(argv: list[str] | None = None) -> int:
     ingest_parser.add_argument("--max-duration", type=float, default=20)
     ingest_parser.add_argument("--horizon", default="v1")
     ingest_parser.add_argument("--concurrency", type=int, default=4)
+    ingest_parser.add_argument("--providers", default="", help="Comma-separated source names")
     ingest_parser.add_argument("--job-root", default="data/jobs")
 
     args = parser.parse_args(argv)
     if args.command in ("list_sources", "list-sources"):
         sources = list_sources()
         print(json.dumps({"count": len(sources), "sources": sources}, ensure_ascii=False, indent=2))
+        return 0
+    if args.command in ("export_sources", "export-sources"):
+        target = Path(args.output)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(list_sources(env={}), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(target)
+        return 0
+    if args.command == "relocalize":
+        try:
+            identifiers = [part for value in args.ids for part in value.replace(",", " ").split()]
+            overrides = {}
+            for value in args.language_overrides:
+                for pair in value.replace(",", " ").split():
+                    identifier, language = pair.split(":", 1)
+                    overrides[identifier] = language
+            updated = relocalize_catalog(
+                Path(args.catalog),
+                identifiers,
+                index_root=Path(args.index_root),
+                language_overrides=overrides,
+            )
+        except (ValueError, MetadataTranslationError) as exc:
+            print(f"relocalize_failed:{exc}", file=sys.stderr)
+            return 2
+        print(json.dumps({"relocalized_ids": updated}, ensure_ascii=False))
         return 0
     if args.command == "version":
         print("clipoteca 0.1.0")
@@ -87,11 +125,15 @@ def main(argv: list[str] | None = None) -> int:
         if not token or not repository:
             print("GITHUB_TOKEN and GITHUB_REPOSITORY required", file=sys.stderr)
             return 2
-        expected = calculate_request_id(
-            args.query,
-            {"aspect_ratio": args.aspect_ratio, "max_duration": args.max_duration},
-            args.horizon,
-        )
+        selected = {name.strip() for name in args.providers.split(",") if name.strip()}
+        source_names = {source["name"] for source in list_sources(env={})}
+        if selected - source_names:
+            print("unknown source in --providers", file=sys.stderr)
+            return 2
+        filters = {"aspect_ratio": args.aspect_ratio, "max_duration": args.max_duration}
+        if selected:
+            filters["providers"] = sorted(selected)
+        expected = calculate_request_id(args.query, filters, args.horizon)
         if args.request_id and args.request_id != expected:
             print("request_id mismatch", file=sys.stderr)
             return 2
@@ -115,15 +157,18 @@ def main(argv: list[str] | None = None) -> int:
                 Snapchat(),
             ]
             try:
+                allowed = [
+                    adapter for adapter in adapters if not selected or adapter.name in selected
+                ]
                 return await ingest(
                     args.query,
-                    adapters,
+                    allowed,
                     repository=repository,
                     token=token,
                     max_results=args.max_results,
                     concurrency=args.concurrency,
                     job_root=Path(args.job_root),
-                    filters={"aspect_ratio": args.aspect_ratio, "max_duration": args.max_duration},
+                    filters=filters,
                     horizon=args.horizon,
                 )
             finally:

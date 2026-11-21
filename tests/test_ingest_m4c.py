@@ -279,13 +279,14 @@ async def test_two_provider_real_ffmpeg_to_mock_github_publication(tmp_path):
         "storage": storage,
         "downloader": fake_downloader,
         "max_results": 2,
+        "translator": lambda text, src, dst: "Lluvia" if dst == "es" else "Rain",
     }
     report = await ingest("lluvia", [FixtureAdapter("pexels"), FixtureAdapter("pixabay")], **params)
     assert report.status == "published", report.errors
     assert len(report.published_ids) == 2, report
     assert len(catalog) == 2 and put_count == 2
     assert {clip["source"]["provider"] for clip in catalog} == {"pexels", "pixabay"}
-    assert all(clip["title"] == {"es": "lluvia", "en": "rain"} for clip in catalog)
+    assert all(clip["title"] == {"es": "Lluvia", "en": "Rain"} for clip in catalog)
     assert all(clip["media"]["duration_seconds"] <= 20 for clip in catalog)
     job = JobStore(tmp_path / "jobs").load(report.request_id)
     assert job["status"] == "published"

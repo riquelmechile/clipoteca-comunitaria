@@ -25,6 +25,17 @@ NAMES = {
 }
 
 
+def test_exported_source_snapshot_matches_code(tmp_path):
+    from pathlib import Path
+
+    expected = list_sources(env={})
+    committed = Path(__file__).resolve().parents[1] / "data/sources.json"
+    assert json.loads(committed.read_text(encoding="utf-8")) == expected
+    destination = tmp_path / "sources.json"
+    assert main(["export-sources", "--output", str(destination)]) == 0
+    assert json.loads(destination.read_text(encoding="utf-8")) == expected
+
+
 def test_list_sources_15_unique_and_all_have_language_matrix():
     rows = list_sources(env={})
     assert len(rows) == len(SOURCES) == 15

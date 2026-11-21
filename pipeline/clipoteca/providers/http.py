@@ -30,9 +30,16 @@ async def fetch_json(client: httpx.AsyncClient, url: str, *, params=None, header
             delay = 0.25 * (2**attempt)
         await asyncio.sleep(min(delay, 1.0))
     assert response is not None
-    credentialed = bool(headers and (headers.get("Authorization") or headers.get("authorization")))
+    credentialed = bool(
+        headers
+        and any(
+            value
+            for key, value in headers.items()
+            if key.casefold() in {"authorization", "access-token"}
+        )
+    )
     if isinstance(params, dict):
-        credentialed = credentialed or bool(params.get("key"))
+        credentialed = credentialed or bool(params.get("key") or params.get("access_token"))
     if response.status_code == 401 or (response.status_code == 403 and credentialed):
         raise AuthRequired("provider API authorization required")
     if response.status_code == 400 and "pixabay.com" in url:

@@ -80,8 +80,16 @@ class GitHubJobWriter:
         identifier = job["request_id"]
         for attempt in range(retries + 1):
             existing, sha = self.read(identifier)
-            if existing and existing["status"] in (*TERMINAL, "published") and existing != job:
-                raise ValueError("remote terminal job cannot transition")
+            if existing and existing != job:
+                if existing["status"] in (*TERMINAL, "published"):
+                    retry = (
+                        existing["status"]
+                        in {"failed", "rate_limited", "unavailable", "no_results"}
+                        and job["status"] == "queued"
+                        and job.get("attempt", 1) == existing.get("attempt", 1) + 1
+                    )
+                    if not retry:
+                        raise ValueError("remote terminal job cannot transition")
             payload = {
                 "message": f"chore(jobs): record {job['status']} ({identifier[:12]})",
                 "content": base64.b64encode(
@@ -139,8 +147,18 @@ class JobStore:
             prev, next_state = old["status"], job["status"]
             if prev != next_state:
                 if prev in (*TERMINAL, "published"):
-                    raise ValueError("terminal job cannot transition")
-                if next_state not in TERMINAL and STATUSES.index(next_state) < STATUSES.index(prev):
+                    retry = (
+                        prev in {"failed", "rate_limited", "unavailable", "no_results"}
+                        and next_state == "queued"
+                        and job.get("attempt", 1) == old.get("attempt", 1) + 1
+                    )
+                    if not retry:
+                        raise ValueError("terminal job cannot transition")
+                if (
+                    prev in STATUSES
+                    and next_state not in TERMINAL
+                    and STATUSES.index(next_state) < STATUSES.index(prev)
+                ):
                     raise ValueError("job state cannot regress")
         fd, temporary = tempfile.mkstemp(dir=self.root, prefix=".job-", suffix=".tmp")
         try:
@@ -161,6 +179,7 @@ def new_job(identifier: str) -> dict[str, Any]:
     return {
         "request_id": identifier,
         "status": "queued",
+        "attempt": 1,
         "language_counts": {},
         "provider_counts": {},
         "source_errors": {},

@@ -61,13 +61,15 @@ async def ingest(
     )
     jobs = JobStore(job_root, remote=remote_jobs)
     existing = jobs.load(rid)
-    if existing and existing["status"] == "published":
-        return IngestReport(rid, "duplicate", (), ())
-    job = existing or new_job(rid)
-    if existing is None:
-        jobs.save(job)  # Durable queued record before expensive discovery.
-    if job["status"] in {"failed", "duplicate", "no_results", "unavailable", "rate_limited"}:
-        return IngestReport(rid, job["status"], (), ())
+    if existing and existing["status"] in {"published", "duplicate"}:
+        return IngestReport(rid, "duplicate", tuple(existing.get("duplicate_ids", ())), ())
+    if existing and existing["status"] in {"failed", "no_results", "unavailable", "rate_limited"}:
+        job = new_job(rid)
+        job["attempt"] = existing.get("attempt", 1) + 1
+    else:
+        job = existing or new_job(rid)
+    if existing is None or job is not existing:
+        jobs.save(job)  # Durable queued state before each new attempt.
     writer = writer or GitHubCatalogWriter(repository, token)
     own_storage = storage is None
     storage = storage or GitHubReleaseStorage(repository, token=token)
@@ -116,7 +118,7 @@ async def ingest(
             statuses = [execution.status for execution in search.executions]
             if search.duplicates:
                 final = "duplicate"
-                job["duplicate_ids"] = sorted({clip["id"] for clip in search.local})
+                job["duplicate_ids"] = search.duplicate_ids
             elif statuses and all(item == SupportStatus.RATE_LIMITED for item in statuses):
                 final = "rate_limited"
             elif statuses and all(
@@ -125,7 +127,7 @@ async def ingest(
                     SupportStatus.UNAVAILABLE,
                     SupportStatus.AUTH_REQUIRED,
                     SupportStatus.TIMEOUT,
-                    SupportStatus.SUPPORTED_SEARCH_ONLY,
+                    SupportStatus.RATE_LIMITED,
                 }
                 for item in statuses
             ):
@@ -141,10 +143,21 @@ async def ingest(
                 (),
             )
         by_name = {adapter.name: adapter for adapter in adapters}
-        for candidate in search.candidates:
+        prioritized = sorted(
+            search.candidates,
+            key=lambda candidate: (
+                by_name[candidate.provider].support_status
+                != SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+            ),
+        )
+        for candidate in prioritized:
             if len(ids) >= max_results:
                 break
             adapter = by_name[candidate.provider]
+            if adapter.support_status != SupportStatus.SUPPORTED_SEARCH_DOWNLOAD:
+                errors.append(f"{candidate.origin_id}:search_only")
+                job["source_errors"][candidate.origin_id] = "search_only"
+                continue
             with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
                 temp = Path(work)
                 try:
@@ -157,7 +170,9 @@ async def ingest(
                     # Fail multilingual metadata before spending bandwidth on a large video.
                     localized = localize_candidate(candidate, translator=translator)
                     raw = await (
-                        downloader(ref.url, temp) if downloader else download_media(ref.url, temp)
+                        downloader(ref.url, temp)
+                        if downloader
+                        else download_media(ref.url, temp, expected_bytes=ref.size_bytes)
                     )
                     downloaded_count += 1
                     advance("processing")
