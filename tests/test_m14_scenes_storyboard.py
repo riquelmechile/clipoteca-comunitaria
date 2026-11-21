@@ -149,6 +149,37 @@ def test_frame_accurate_normalize_midpoint_and_storyboard(scene_source, tmp_path
         assert info.codec == "webp"
 
 
+def test_half_second_clip_has_six_nonempty_preview_frames(tmp_path):
+    source = tmp_path / "short-half.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=320x180:r=12:d=0.5",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "1",
+            "-preset",
+            "ultrafast",
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=45,
+    )
+    previews = create_storyboard(source, tmp_path / "frames")
+    assert len(previews) == 6
+    assert all(file.stat().st_size > 0 for file in previews)
+
+
 def test_schema_keeps_old_clips_valid_and_distinguishes_source_windows():
     schema = json.loads(Path("schemas/clip.schema.json").read_text())
     validator = Draft202012Validator(schema)
