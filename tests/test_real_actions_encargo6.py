@@ -114,23 +114,43 @@ def test_argos_rejects_real_degenerate_and_unchanged_outputs(value, reason):
         translate_pair("Autopistas", "es", "en", translator=lambda *_: value)
 
 
-
 @pytest.mark.parametrize(
     ("source", "translated", "src", "dst"),
     [
         ("Olas en la playa", "Waves on the beach", "es", "en"),
-        ("Waves at Hikkaduwa beach, Sri Lanka",
-         "Olas en la playa de Hikkaduwa, Sri Lanka", "en", "es"),
-        ("Prueba E2E de M9. (reintento tras corrección)",
-         "M9 end-to-end test (retry after correction).", "es", "en"),
-        ("A person walking down a sidewalk in the rain",
-         "Una persona camina por la acera bajo la lluvia.", "en", "es"),
-        ("Video corto de las olas del mar en la playa de Sri Lanka.",
-         "A short video of ocean waves on the beach in Sri Lanka.", "es", "en"),
-        ("Snow falling on a quiet street at night.",
-         "Nieve cayendo sobre una calle tranquila de noche.", "en", "es"),
+        (
+            "Waves at Hikkaduwa beach, Sri Lanka",
+            "Olas en la playa de Hikkaduwa, Sri Lanka",
+            "en",
+            "es",
+        ),
+        (
+            "Prueba E2E de M9. (reintento tras corrección)",
+            "M9 end-to-end test (retry after correction).",
+            "es",
+            "en",
+        ),
+        (
+            "A person walking down a sidewalk in the rain",
+            "Una persona camina por la acera bajo la lluvia.",
+            "en",
+            "es",
+        ),
+        (
+            "Video corto de las olas del mar en la playa de Sri Lanka.",
+            "A short video of ocean waves on the beach in Sri Lanka.",
+            "es",
+            "en",
+        ),
+        (
+            "Snow falling on a quiet street at night.",
+            "Nieve cayendo sobre una calle tranquila de noche.",
+            "en",
+            "es",
+        ),
     ],
 )
+
 def test_argos_size_guard_accepts_realistic_es_en_texts(source, translated, src, dst):
     assert translate_pair(source, src, dst, translator=lambda *_: translated) == translated
 
