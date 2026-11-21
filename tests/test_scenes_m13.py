@@ -48,7 +48,7 @@ def make_video(tmp_path: Path, name: str, duration: float, color: str = "red") -
 
 def test_parse_ffmpeg_pts_showinfo():
     data = "frame:0 pts_time:0.28\nframe:50 pts_time:6.25\nframe:65 pts_time:6.25"
-    assert parse_cuts(data, start=3) == [3.28, 9.25]
+    assert parse_cuts(data, start=3) == pytest.approx([3.28, 9.25])
 
 
 def test_normalize_short_merge_and_long_split():
