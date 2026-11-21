@@ -217,15 +217,14 @@ def test_schema_keeps_old_clips_valid_and_distinguishes_source_windows():
     overlap["source"]["source_start"] = 30
     assert catalog.duplicate_match(overlap) is not None
 
-
-
-
 def test_slow_textured_motion_scores_above_static_title():
     # High-edge static bars model a flat title card. The second textured frame
     # changes only one luma level: absolute motion is gentle but real.
     static = bytes((40 if (i // 8) % 2 else 210) for i in range(FRAME_SIZE))
     textured_a = bytes(70 + (i * 37) % 120 for i in range(FRAME_SIZE))
-    textured_b = bytes(min(255, value + (1 if i % 5 == 0 else 0)) for i, value in enumerate(textured_a))
+    textured_b = bytes(
+        min(255, value + (1 if i % 5 == 0 else 0)) for i, value in enumerate(textured_a)
+    )
     static_score = _scores(static + static)
     slow_score = _scores(textured_a + textured_b)
     assert max(static_score) <= 0.03
@@ -236,9 +235,23 @@ def test_all_black_45s_is_rejected(tmp_path):
     source = tmp_path / "black.mp4"
     subprocess.run(
         [
-            "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-            "-f", "lavfi", "-i", "color=c=black:s=320x180:r=12:d=45",
-            "-c:v", "libx264", "-threads", "1", "-preset", "ultrafast", str(source),
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=320x180:r=12:d=45",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "1",
+            "-preset",
+            "ultrafast",
+            str(source),
         ],
         check=True,
         capture_output=True,
@@ -269,21 +282,29 @@ def test_sampling_timeout_uses_v1_leading_window_and_records_warning(monkeypatch
         origin_id="pexels:slow",
     )
     assert windows == [SourceWindow(0, 20)]
-    assert job["source_warnings"]["pexels:slow"] == (
-        "scene_selection_timeout:v1_leading_window"
-    )
+    assert job["source_warnings"]["pexels:slow"] == ("scene_selection_timeout:v1_leading_window")
 
 
 def test_published_source_ranges_skip_before_download():
     from clipoteca.ingest import _published_source_complete
 
     clips = [
-        {"source": {"source_url": "https://example.test/video?id=7", "source_start": 0, "source_end": 20}},
-        {"source": {"source_url": "https://example.test/video?id=7", "source_start": 20, "source_end": 40}},
+        {
+            "source": {
+                "source_url": "https://example.test/video?id=7",
+                "source_start": 0,
+                "source_end": 20,
+            }
+        },
+        {
+            "source": {
+                "source_url": "https://example.test/video?id=7",
+                "source_start": 20,
+                "source_end": 40,
+            }
+        },
     ]
-    matched = _published_source_complete(
-        clips, "https://example.test/video?id=7", max_clips=2
-    )
+    matched = _published_source_complete(clips, "https://example.test/video?id=7", max_clips=2)
     assert matched is clips[0]
     assert _published_source_complete(clips[:1], "https://example.test/video?id=7", 2) is None
 

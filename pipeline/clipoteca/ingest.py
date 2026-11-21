@@ -51,8 +51,6 @@ from .security.hls import HLS_MIME_TYPES, download_hls
 from .storage.github import GitHubReleaseStorage, StorageError
 
 
-
-
 def _candidate_windows(
     raw: Path,
     *,

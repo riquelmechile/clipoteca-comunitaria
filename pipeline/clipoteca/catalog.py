@@ -241,12 +241,9 @@ class Catalog:
                 and not _nonoverlapping_source_windows(source, published_source)
             ):
                 return clip, "canonical_url"
-            same_origin = (
-                published_source["provider"] == source.get("provider")
-                and (
-                    published_source["provider_id"] == source.get("provider_id")
-                    or (candidate_url and published_url and candidate_url == published_url)
-                )
+            same_origin = published_source["provider"] == source.get("provider") and (
+                published_source["provider_id"] == source.get("provider_id")
+                or (candidate_url and published_url and candidate_url == published_url)
             )
             same_origin_disjoint = same_origin and _nonoverlapping_source_windows(
                 source, published_source

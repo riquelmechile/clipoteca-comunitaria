@@ -13,9 +13,7 @@ class StoryboardError(RuntimeError):
     pass
 
 
-def storyboard_timestamp(
-    duration: float, fps: float, index: int, count: int
-) -> float:
+def storyboard_timestamp(duration: float, fps: float, index: int, count: int) -> float:
     """Timestamp used by both generated frames and the public contract."""
     last_decodable = max(0.0, duration - 1.5 / max(fps, 1))
     return min(duration * (index + 0.5) / count, last_decodable)
