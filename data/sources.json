@@ -14,7 +14,12 @@
     "scope": "catalog_search",
     "download_supported": true,
     "credentials_present": true,
-    "notes": "key required; direct MP4 when present"
+    "notes": "key required; direct MP4 when present",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
   },
   {
     "name": "pixabay",
@@ -31,7 +36,12 @@
     "scope": "catalog_search",
     "download_supported": true,
     "credentials_present": true,
-    "notes": "key required; video variants when present"
+    "notes": "key required; video variants when present",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
   },
   {
     "name": "wikimedia_commons",
@@ -48,7 +58,12 @@
     "scope": "public_commons",
     "download_supported": true,
     "credentials_present": true,
-    "notes": "file namespace, inspect rights"
+    "notes": "file namespace, inspect rights",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
   },
   {
     "name": "internet_archive",
@@ -65,7 +80,12 @@
     "scope": "public_archive",
     "download_supported": true,
     "credentials_present": true,
-    "notes": "movie catalog; rights vary"
+    "notes": "movie catalog; rights vary",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
   },
   {
     "name": "nasa",
@@ -82,7 +102,12 @@
     "scope": "public_archive",
     "download_supported": true,
     "credentials_present": true,
-    "notes": "asset manifest; source title from NASA metadata"
+    "notes": "asset manifest; source title from NASA metadata",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
   },
   {
     "name": "youtube",
@@ -99,7 +124,12 @@
     "scope": "global_data_api",
     "download_supported": false,
     "credentials_present": false,
-    "notes": "Data API has no direct MP4 endpoint"
+    "notes": "Data API has no direct MP4 endpoint",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   },
   {
     "name": "rutube",
@@ -116,7 +146,12 @@
     "scope": "public_search",
     "download_supported": false,
     "credentials_present": true,
-    "notes": "often HLS rather than a direct MP4"
+    "notes": "often HLS rather than a direct MP4",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   },
   {
     "name": "peertube",
@@ -133,7 +168,12 @@
     "scope": "trusted_federation",
     "download_supported": true,
     "credentials_present": true,
-    "notes": "allowed instances only; bounded direct MP4/WebM"
+    "notes": "allowed instances only; bounded direct MP4/WebM",
+    "capabilities": {
+      "search": "supported",
+      "preview": "supported",
+      "download": "supported"
+    }
   },
   {
     "name": "odysee",
@@ -150,7 +190,12 @@
     "scope": "public_search",
     "download_supported": true,
     "credentials_present": true,
-    "notes": "SDK claim resolution, size and rights gates"
+    "notes": "SDK claim resolution, size and rights gates",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
   },
   {
     "name": "bilibili",
@@ -167,7 +212,12 @@
     "scope": "public_search",
     "download_supported": false,
     "credentials_present": true,
-    "notes": "risk control/WBI may block search; media not reusable"
+    "notes": "risk control/WBI may block search; media not reusable",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   },
   {
     "name": "vk_video",
@@ -184,7 +234,12 @@
     "scope": "oauth_search",
     "download_supported": false,
     "credentials_present": false,
-    "notes": "third-party copying requires separate rights"
+    "notes": "third-party copying requires separate rights",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   },
   {
     "name": "douyin",
@@ -201,7 +256,12 @@
     "scope": "authorized_account_only",
     "download_supported": false,
     "credentials_present": false,
-    "notes": "no general global video search"
+    "notes": "no general global video search",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   },
   {
     "name": "tiktok",
@@ -218,7 +278,12 @@
     "scope": "authorized_account_only",
     "download_supported": false,
     "credentials_present": false,
-    "notes": "Display API, no global search"
+    "notes": "Display API, no global search",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   },
   {
     "name": "instagram",
@@ -235,7 +300,12 @@
     "scope": "authorized_professional_account_only",
     "download_supported": false,
     "credentials_present": false,
-    "notes": "no general global video search"
+    "notes": "no general global video search",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   },
   {
     "name": "snapchat",
@@ -252,6 +322,11 @@
     "scope": "authorized_profile_only",
     "download_supported": false,
     "credentials_present": false,
-    "notes": "profile Spotlight list, no global video search"
+    "notes": "profile Spotlight list, no global video search",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
   }
 ]
