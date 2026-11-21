@@ -132,6 +132,13 @@ class SearchEngine:
             async with provider_locks[adapter.name]:
                 async with sem:
                     started = self.clock()
+                    if adapter.support_status == SupportStatus.UNAVAILABLE:
+                        return (
+                            [],
+                            SupportStatus.UNAVAILABLE,
+                            getattr(adapter, "unavailable_reason", "provider_unavailable"),
+                            0.0,
+                        )
                     if self.breaker.open(adapter.name):
                         return [], SupportStatus.UNAVAILABLE, "circuit_open", 0.0
                     try:

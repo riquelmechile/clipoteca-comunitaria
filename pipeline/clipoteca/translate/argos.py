@@ -9,8 +9,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 from typing import Callable
+
+from .dictionary import find_concept, normalize
 
 PAIRS = {
     ("es", "en"): ("translate-es_en", "1.9"),
@@ -26,6 +29,30 @@ class TranslationFailed(RuntimeError):
     def __init__(self, src: str, dst: str, reason: str) -> None:
         self.src, self.dst, self.reason = src, dst, reason
         super().__init__(f"translation_failed:{src}->{dst}:{reason}")
+
+
+def _validate_translation(term: str, value: str, src: str, dst: str) -> str:
+    """Reject model corruption instead of indexing invented or repeated text."""
+    result = value.strip()
+    if not result:
+        raise TranslationFailed(src, dst, "empty_translation")
+    if len(result) > max(80, 5 * len(term)):
+        raise TranslationFailed(src, dst, "disproportionate_translation")
+    if re.search(r"(.{3,24}?)\1{3,}", result, flags=re.IGNORECASE):
+        raise TranslationFailed(src, dst, "repeated_translation")
+    # Exact matches are valid for numbers, acronyms and curated loanwords
+    # (e.g. taxi), but not for normal words which should be translated.
+    if normalize(result) == normalize(term) and re.search(r"[^\W\d_]{3,}", term):
+        concept = find_concept(term)
+        loanword = (
+            concept is not None
+            and src in concept.terms
+            and dst in concept.terms
+            and normalize(concept.terms[src]) == normalize(concept.terms[dst])
+        )
+        if not loanword and (term != term.upper() or len(term) < 3):
+            raise TranslationFailed(src, dst, "unchanged_translation")
+    return result
 
 
 def _package_spec(src: str, dst: str) -> tuple[Path, str]:
@@ -69,9 +96,7 @@ def translate_pair(
             value = translator(term, src, dst)
         except Exception as exc:
             raise TranslationFailed(src, dst, "translator_error") from exc
-        if not value or not value.strip():
-            raise TranslationFailed(src, dst, "empty_translation")
-        return value.strip()
+        return _validate_translation(term, value, src, dst)
 
     path, checksum = _package_spec(src, dst)
     _verify_package(path, checksum, src, dst)
@@ -86,9 +111,7 @@ def translate_pair(
         result: str = translate.translate(term, src, dst)
     except Exception as exc:
         raise TranslationFailed(src, dst, "argos_runtime_error") from exc
-    if not result or not result.strip():
-        raise TranslationFailed(src, dst, "empty_translation")
-    return result.strip()
+    return _validate_translation(term, result, src, dst)
 
 
 def translate_text(
@@ -96,5 +119,27 @@ def translate_text(
 ) -> str:
     if src == dst:
         return term
-    english = term if src == "en" else translate_pair(term, src, "en", translator=translator)
-    return english if dst == "en" else translate_pair(english, "en", dst, translator=translator)
+    # Never bypass an unavailable verified model just because a term exists
+    # in the dictionary. A corrupt model response may use curated fallback.
+    try:
+        english = term if src == "en" else translate_pair(term, src, "en", translator=translator)
+        return english if dst == "en" else translate_pair(english, "en", dst, translator=translator)
+    except TranslationFailed as exc:
+        if exc.reason not in {
+            "unchanged_translation",
+            "repeated_translation",
+            "disproportionate_translation",
+        }:
+            raise
+        concept = find_concept(term)
+        if (
+            concept is not None
+            and src in concept.terms
+            and dst in concept.terms
+            and normalize(concept.terms[src]) == normalize(term)
+        ):
+            translated = concept.terms[dst]
+            return (
+                translated.capitalize() if term[:1].isupper() and not term.isupper() else translated
+            )
+        raise

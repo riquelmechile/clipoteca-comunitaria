@@ -8,6 +8,7 @@ from typing import Callable
 
 from .providers.base import Candidate
 from .translate.argos import TranslationFailed, translate_text
+from .translate.dictionary import find_concept, normalize
 
 
 class MetadataTranslationError(RuntimeError):
@@ -63,6 +64,18 @@ def humanize_source_title(value: str) -> str:
 STOPWORDS = {
     "the",
     "and",
+    "a",
+    "an",
+    "in",
+    "of",
+    "to",
+    "on",
+    "at",
+    "y",
+    "en",
+    "un",
+    "al",
+    "and",
     "for",
     "with",
     "from",
@@ -92,11 +105,42 @@ STOPWORDS = {
 
 
 def _title_tags(title: str) -> list[str]:
-    return [
-        word
-        for word in re.findall(r"[^\W_]+", title, flags=re.UNICODE)
-        if len(word) > 2 and word.casefold() not in STOPWORDS
-    ][:12]
+    result = []
+    seen = set()
+    for word in re.findall(r"[^\W_]+", title, flags=re.UNICODE):
+        key = word.casefold()
+        if len(word) > 2 and key not in STOPWORDS and key not in seen:
+            seen.add(key)
+            result.append(word)
+    return result[:12]
+
+
+def _keyword_tags(
+    text: str,
+    source: str,
+    target: str,
+    translator: Callable[[str, str, str], str] | None,
+) -> list[str]:
+    """Translate query tags per word, curated dictionary before vetted Argos."""
+    result = []
+    for word in _title_tags(text):
+        try:
+            concept = find_concept(word)
+            if source == target:
+                translated = word
+            elif (
+                concept is not None
+                and source in concept.terms
+                and target in concept.terms
+                and normalize(concept.terms[source]) == normalize(word)
+            ):
+                translated = concept.terms[target]
+            else:
+                translated = translate_text(word, source, target, translator=translator)
+        except TranslationFailed as exc:
+            raise MetadataTranslationError(str(exc)) from exc
+        result.extend(_title_tags(translated))
+    return result
 
 
 def localize_candidate(
@@ -116,15 +160,24 @@ def localize_candidate(
     )
     title = _bilingual(readable, candidate.source_language, translator)
     desc = _bilingual(raw_description, candidate.source_language, translator)
-    # Search term is factual; when not in curated dictionary, translate or fail.
-    keyword = _bilingual(candidate.term, candidate.language, translator)
+    # Translate query tags separately, not as sentences. Never retain
+    # hallucinated repeated fragments or language stopwords in the index.
+    tags = {}
+    for language in ("es", "en"):
+        words = [
+            *_title_tags(title[language]),
+            *_keyword_tags(candidate.term, candidate.language, language, translator),
+        ]
+        seen = set()
+        tags[language] = []
+        for word in words:
+            if word.casefold() not in seen:
+                seen.add(word.casefold())
+                tags[language].append(word)
     return LocalizedMetadata(
         title=title,
         description=desc,
-        tags={
-            language: list(dict.fromkeys([keyword[language], *_title_tags(title[language])]))
-            for language in ("es", "en")
-        },
+        tags=tags,
         original_title=original,
         original_language=candidate.source_language,
     )

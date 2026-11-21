@@ -62,5 +62,5 @@ jobs:
           git add data/clips.json data/index/
           if ! git diff --cached --quiet; then
             git commit -m 'fix(metadata): relocalize existing verified clips'
-            git push origin HEAD:main
+            uv run python scripts/push_catalog_rebase.py
           fi
