@@ -57,6 +57,12 @@ _SECRET_QUERY_KEYS = frozenset(
     }
 )
 
+# These providers authenticate with ?key=. On other hosts it may identify an
+# asset (e.g. a public media variant), so canonical identity must retain it.
+_CREDENTIAL_KEY_HOSTS = frozenset(
+    {"api.data.gov", "pixabay.com", "googleapis.com", "youtube.googleapis.com"}
+)
+
 _TRACKING_QUERY_KEYS = {
     "_hsenc",
     "_hsmi",
@@ -70,7 +76,7 @@ _TRACKING_QUERY_KEYS = {
 }
 
 
-def canonical_source_url(value: str) -> str:
+def canonical_source_url(value: str, *, redact_secrets: bool = False) -> str:
     """Keep identity-bearing query params; remove only known tracking keys.
 
     In particular, 'si' and 'feature' are retained unless a provider-specific
@@ -86,6 +92,7 @@ def canonical_source_url(value: str) -> str:
         return ""
     if host.startswith("www."):
         host = host[4:]
+    credential_key_host = host in _CREDENTIAL_KEY_HOSTS
     try:
         port = parsed.port
     except ValueError:
@@ -103,7 +110,10 @@ def canonical_source_url(value: str) -> str:
         if (
             not key.casefold().startswith("utm_")
             and key.casefold() not in _TRACKING_QUERY_KEYS
-            and key.casefold() not in _SECRET_QUERY_KEYS
+            and (
+                key.casefold() not in _SECRET_QUERY_KEYS
+                or (key.casefold() == "key" and not credential_key_host and not redact_secrets)
+            )
         )
     ]
     return urlunsplit(("https", host, path, urlencode(sorted(query)), ""))
@@ -117,7 +127,7 @@ def safe_source_url(value: str) -> str:
     try:
         parsed = urlsplit(value)
         if parsed.username is not None or parsed.password is not None:
-            return canonical_source_url(value)
+            return canonical_source_url(value, redact_secrets=True)
         query = parse_qsl(parsed.query, keep_blank_values=True)
         safe = [(k, v) for k, v in query if k.casefold() not in _SECRET_QUERY_KEYS]
         if len(safe) == len(query):

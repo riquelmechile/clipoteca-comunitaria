@@ -36,3 +36,12 @@ npm test
 ```
 
 Las pruebas Python no usan sockets externos: `respx` y fixtures sustituyen servicios remotos.
+
+**HLS seguro y FFmpeg:** requiere el demuxer HLS con `-allowed_segment_extensions`
+(backports en **4.4.6+**, **6.1.3+**, **7.0.3+** o **7.1.2+**; **8.0+**; las
+compilaciones pueden variar). FFmpeg 6.1 de Ubuntu 24.04 no ofrece esta
+opción. Comprueba con `ffmpeg -hide_banner -h demuxer=hls` que figure
+`allowed_segment_extensions`: la aplicación también comprueba la capacidad
+una vez por proceso y **rechaza HLS sin la opción**, nunca deshabilita el
+control para admitir instalaciones antiguas.
+Referencia: https://ffmpeg.org/pipermail/ffmpeg-cvslog/2025-August/149555.html

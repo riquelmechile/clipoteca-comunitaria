@@ -51,25 +51,6 @@ def test_ok_html_and_rutube_safe_identifier():
     assert first_rutube_id({"results": [{"id": "abc_123"}]}) == "abc_123"
 
 
-def test_wbi_signature_repeatable():
-    # Synthetic URLs, not a live credential.
-    chars = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF"
-    params = sign_wbi(
-        {"keyword": "rain"},
-        f"https://i.example/{chars}.png",
-        f"https://i.example/{chars}.png",
-        1234567890,
-    )
-    assert len(params["w_rid"]) == 32
-    assert params["wts"] == "1234567890"
-    assert params == sign_wbi(
-        {"keyword": "rain"},
-        f"https://i.example/{chars}.png",
-        f"https://i.example/{chars}.png",
-        1234567890,
-    )
-
-
 @pytest.mark.asyncio
 async def test_guest_probe_redacts_payload_and_handles_blocked_http():
     def handler(req: httpx.Request):

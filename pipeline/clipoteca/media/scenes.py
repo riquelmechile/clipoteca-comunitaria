@@ -92,7 +92,10 @@ def normalize_scenes(
             boundaries.append(float(item))
         else:
             raise TypeError("scene boundaries must be numeric or Scene")
-    boundaries = sorted({round(t, 4) for t in boundaries if start <= t <= end})
+    # Keep the requested endpoints exact: rounding an end like 3.14159 can
+    # silently truncate the final scene by up to 0.00005 seconds.
+    rounded = (round(t, 4) for t in boundaries if start < t < end)
+    boundaries = sorted({start, end, *(t for t in rounded if start < t < end)})
     segments = [Scene(a, b) for a, b in zip(boundaries, boundaries[1:]) if b > a]
     if not segments:
         return [Scene(start, end)]
@@ -115,6 +118,10 @@ def normalize_scenes(
         if segment.duration > MAX_SCENE_SECONDS:
             while cursor < segment.end:
                 next_cut = min(cursor + SPLIT_STEP_SECONDS, segment.end)
+                if 0 < segment.end - next_cut < MIN_SCENE_SECONDS:
+                    # Fold a tiny tail into this piece, not a new <1.5s scene.
+                    # The merged piece stays below the 20-second cap.
+                    next_cut = segment.end
                 output.append(Scene(cursor, next_cut))
                 cursor = next_cut
         elif segment.end > cursor:
@@ -168,51 +175,27 @@ def _detect_with_scenedetect(
         return None
 
 
-def _ffmpeg_command(
-    source: str | Path,
-    *,
-    start: float,
-    window: float,
-    remote: bool,
-    headers: dict[str, str] | None,
-) -> list[str]:
-    command = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "info"]
-    if remote:
-        command.extend(
-            [
-                "-reconnect",
-                "1",
-                "-reconnect_on_network_error",
-                "1",
-                "-reconnect_delay_max",
-                "10",
-                "-rw_timeout",
-                "20000000",
-            ]
-        )
-        if headers:
-            allowed = {"referer", "user-agent"}
-            for key, value in headers.items():
-                if key.lower() not in allowed or "\r" in value or "\n" in value:
-                    raise ValueError("only single-line Referer/User-Agent headers are allowed")
-            command.extend(["-headers", "".join(f"{k}: {v}\r\n" for k, v in headers.items())])
-    command.extend(
-        [
-            "-ss",
-            str(start),
-            "-t",
-            str(window),
-            "-i",
-            str(source),
-            "-vf",
-            SCENE_FILTER,
-            "-an",
-            "-f",
-            "null",
-            "-",
-        ]
-    )
-    return command
+def _ffmpeg_command(source: str | Path, *, start: float, window: float) -> list[str]:
+    """Only process the already-validated local source; never pass remote headers."""
+    return [
+        "ffmpeg",
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "info",
+        "-ss",
+        str(start),
+        "-t",
+        str(window),
+        "-i",
+        str(source),
+        "-vf",
+        SCENE_FILTER,
+        "-an",
+        "-f",
+        "null",
+        "-",
+    ]
 
 
 def _ffmpeg_scenes(
@@ -220,17 +203,15 @@ def _ffmpeg_scenes(
     *,
     start: float,
     max_window: float,
-    remote: bool = False,
-    headers: dict[str, str] | None = None,
     prefer_scenedetect: bool = False,
     runner: Callable | None = None,
 ) -> list[Scene]:
     _validate_window(start, max_window)
-    if prefer_scenedetect and not remote:
+    if prefer_scenedetect:
         detected = _detect_with_scenedetect(source, start=start, max_window=max_window)
         if detected is not None:
             return detected
-    cmd = _ffmpeg_command(source, start=start, window=max_window, remote=remote, headers=headers)
+    cmd = _ffmpeg_command(source, start=start, window=max_window)
     run = runner or subprocess.run
     try:
         proc = run(
