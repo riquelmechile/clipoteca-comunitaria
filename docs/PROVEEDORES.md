@@ -40,3 +40,15 @@ Fecha de verificación documental: 20-11-2026. El estado es de **implementación
 - Las funciones de búsqueda detectan idiomas por escritura del título fuente con fallback inglés, una heurística que no sustituye detección estadística.
 
 **Pendientes de validación online:** pruebas con token autorizado de las APIs privadas; condiciones/contratos de licencia de cada fuente; comprobación de IP del peer en runner real/proxy; verificación de una publicación en Releases con credenciales reales.
+
+## M5a: YouTube Data API v3 (verificación documental 20-11-2026)
+
+| Fuente | Consulta real | Idiomas | Descarga/estado | Credencial |
+|---|---|---|---|---|
+| YouTube | `GET https://www.googleapis.com/youtube/v3/search?part=id,snippet&type=video&videoDuration=short&q=…&relevanceLanguage=…&key=…`; `/videos?part=snippet,contentDetails&id=…&key=…` | es/en/zh/ru en `relevanceLanguage` | **SUPPORTED_SEARCH_ONLY**: no hay MP4 accesible mediante Data API con API key. `resolve_media` declara `data_api_no_direct_media` y `direct_media=None`. | `YOUTUBE_API_KEY`; falta → `AUTH_REQUIRED` |
+
+El filtro `videoDuration=short` significa menos de 4 minutos, **no** 20 segundos. `videos.list` devuelve `contentDetails.duration` en ISO-8601, pero dimensiones exactas requieren `fileDetails` con permisos de propietario; se dejan como `None`. No se usa scraping ni extracción no autorizada. Evidencia: esquema y parámetros oficiales; búsqueda real no ejecutada sin credencial de usuario, respuesta verificada con fixtures offline para válido, vacío, 429, 500, timeout y no-media.
+
+- https://developers.google.com/youtube/data/reference/rest/v3/search/list
+- https://developers.google.com/youtube/data/reference/rest/v3/videos/list
+- https://developers.google.com/youtube/v3/docs/videos
