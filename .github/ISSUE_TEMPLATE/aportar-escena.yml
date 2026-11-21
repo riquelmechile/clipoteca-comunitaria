@@ -1,23 +1,39 @@
-name: Aportar escena
-description: Proponer una URL de video para el pipeline comunitario futuro
-title: "[Escena]: "
-labels: ["contribution"]
+name: "Aportar escena"
+description: "Sugiere un vídeo público; un humano verifica su licencia y seguridad antes de importarlo."
+title: "[Aporte pendiente] "
+labels: []
 body:
   - type: markdown
     attributes:
-      value: La ingesta automática se implementará en un hito posterior. No incluyas secretos.
+      value: |
+        Esta solicitud NO autoriza descargar ni republicar automáticamente un vídeo.
+        Usa una URL HTTPS pública. No pegues credenciales ni URLs privadas.
   - type: input
-    id: url
+    id: source_url
     attributes:
-      label: URL de descarga accesible
-      placeholder: https://example.org/video.mp4
+      label: "URL pública del vídeo"
+      description: "Enlace al origen, no dirección de una red interna."
+      placeholder: "https://example.org/video"
     validations:
       required: true
   - type: input
-    id: title
+    id: scene_title
     attributes:
-      label: Título o descripción breve
-  - type: input
-    id: tags
+      label: "Título descriptivo de la escena"
+      placeholder: "Lluvia sobre una calle"
+    validations:
+      required: true
+  - type: checkboxes
+    id: permissions
     attributes:
-      label: Etiquetas opcionales
+      label: "Derechos de uso"
+      options:
+        - label: "Confirmo que cuento con autorización para proponer este material; acepto revisión humana."
+          required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: "Notas de procedencia y licencia"
+      description: "Detalles opcionales para que un revisor verifique derechos."
+    validations:
+      required: false
