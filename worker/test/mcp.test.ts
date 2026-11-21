@@ -32,7 +32,7 @@ describe("M10 MCP Streamable HTTP", () => {
     const response = await worker.fetch(request);
     expect(response.status).toBe(200);
     const payload = (await rpcPayload(response)) as {result:{tools:Array<{name:string}>}};
-    expect(payload.result.tools).toHaveLength(6);
+    expect(payload.result.tools).toHaveLength(7);
     const invalid = rpc("tools/list", {}, "clipoteca.sub.workers.dev", "");
     invalid.headers.set("host", "malicious.test");
     expect((await worker.fetch(invalid)).status).toBe(403);
@@ -47,7 +47,7 @@ describe("M10 MCP Streamable HTTP", () => {
     expect((await worker.fetch(foreign, environment)).status).toBe(403);
   });
 
-  it("registers six official tools with real per-tool output schemas", async () => {
+  it("registers seven official tools with real per-tool output schemas", async () => {
     const response = await worker.fetch(rpc("tools/list", {}), environment);
     expect(response.status).toBe(200);
     const payload = (await rpcPayload(response)) as {result:{tools:Array<{
@@ -55,11 +55,11 @@ describe("M10 MCP Streamable HTTP", () => {
     }>}};
     const tools = payload.result.tools;
     expect(tools.map(t=>t.name).sort()).toEqual([
-      "download_clip", "get_clip", "get_job_status", "list_sources",
+      "download_clip", "get_clip", "get_job_status", "get_storyboard", "list_sources",
       "search_and_import", "search_clips",
     ]);
     const properties:Record<string,string> = {
-      search_clips:"clips",get_clip:"clip",download_clip:"url",
+      search_clips:"clips",get_clip:"clip",get_storyboard:"frames",download_clip:"url",
       search_and_import:"request_id",get_job_status:"request_id",list_sources:"sources",
     };
     for(const tool of tools) {
