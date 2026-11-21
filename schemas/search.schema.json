@@ -58,6 +58,23 @@
             "unavailable",
             "dead_letter"
           ]
+        },
+        "semantic": {
+          "enum": [
+            "ready",
+            "pending",
+            "unavailable"
+          ]
+        },
+        "scores": {
+          "type": "object",
+          "patternProperties": {
+            "^clip-[0-9]{6}$": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
         }
       }
     }

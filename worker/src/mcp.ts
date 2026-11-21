@@ -36,6 +36,8 @@ const clipSchema = z.object({
 const searchOutputSchema = z.object({
   clips: z.array(clipSchema), next_cursor: z.string().nullable(),
   status: z.string().optional(), request_id: z.string().optional(),
+  semantic: z.enum(["ready", "pending", "unavailable"]).optional(),
+  scores: z.record(z.string().regex(/^clip-\d{6}$/), z.number().finite()).optional(),
 });
 const getClipOutputSchema = z.object({ clip: clipSchema });
 const downloadOutputSchema = z.object({ url: z.string().url(), clip_id: z.string().optional() });

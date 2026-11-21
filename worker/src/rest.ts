@@ -2,8 +2,9 @@ import { loadCatalog, type Clip } from "./catalog";
 import { loadJob, requestId, expiredDeadLetter, isStaleJob } from "./jobs";
 import { dispatchIngest } from "./dispatch";
 import { submitContribution } from "./contributions";
+import { semanticSearch, type SemanticEnv } from "./semantic";
 
-export interface RestEnv {
+export interface RestEnv extends SemanticEnv {
   CATALOG_URL?: string;
   CATALOG_TTL_SECONDS?: string;
   CATALOG_JOBS_URL?: string;
@@ -224,7 +225,9 @@ export async function handleRest(request: Request, env: RestEnv): Promise<Respon
   catch (err) { return error("invalid_input", err instanceof Error ? err.message : "Invalid input", 400); }
   try {
     if (path === "/v1/import") return submitImport(request, env, parsed);
-    const page = await searchExisting(env, parsed);
+    const page = await semanticSearch(
+      request, env, parsed.query, new URL(queryUrl(parsed.filters, parsed.query)).searchParams,
+    );
     if (!parsed.filters.import_if_missing || page.clips.length > 0) {
       return json({ ...page, status: "published" });
     }

@@ -77,6 +77,12 @@ def main(argv: list[str] | None = None) -> int:
     relocalize.add_argument("--language-overrides", nargs="*", default=[])
     relocalize.add_argument("--catalog", default="data/clips.json")
     relocalize.add_argument("--index-root", default="data/index")
+    query_embedding = commands.add_parser("query-embedding")
+    query_embedding.add_argument("--query", required=True)
+    query_embedding.add_argument("--root", default="data/embeddings")
+    migrate = commands.add_parser("migrate-embeddings")
+    migrate.add_argument("--root", default="data/embeddings")
+    migrate.add_argument("--publish", action="store_true")
     search = commands.add_parser("search")
     search.add_argument("query")
     search.add_argument("--aspect-ratio")
@@ -137,6 +143,65 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "version":
         print("clipoteca 1.0.0")
+        return 0
+    if args.command == "migrate-embeddings":
+        from .media.embedding_store import EmbeddingStore
+        from .media.shards import GitHubShards, migrate_legacy
+
+        manifest = migrate_legacy(Path(args.root))
+        if args.publish:
+            repository = os.getenv("GITHUB_REPOSITORY", "")
+            token = os.getenv("GITHUB_TOKEN", "")
+            if not repository or not token:
+                print("GITHUB_TOKEN and GITHUB_REPOSITORY required", file=sys.stderr)
+                return 2
+            import httpx
+
+            with httpx.Client(
+                timeout=30,
+                headers={
+                    "Authorization": "Bearer " + token,
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            ) as client:
+                shards = GitHubShards(client, repository)
+                legacy = EmbeddingStore(Path(args.root))
+                for identifier in sorted(legacy.index()["vectors"]):
+                    shards.publish(identifier, legacy.read(identifier))
+        print(
+            json.dumps(
+                {
+                    "version": manifest["version"],
+                    "shards": len(manifest["shards"]),
+                    "vectors": sum(row["count"] for row in manifest["shards"]),
+                }
+            )
+        )
+        return 0
+    if args.command == "query-embedding":
+        from .media.embeddings import load_encoder
+        from .media.shards import GitHubQueries, QueryStore
+
+        try:
+            embedding = load_encoder().encode_text(args.query)
+            path = QueryStore(Path(args.root)).put(args.query, embedding)
+            repo = os.getenv("GITHUB_REPOSITORY", "")
+            token = os.getenv("GITHUB_TOKEN", "")
+            if repo and token:
+                import httpx
+
+                with httpx.Client(
+                    timeout=30,
+                    headers={
+                        "Authorization": "Bearer " + token,
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    },
+                ) as client:
+                    GitHubQueries(client, repo).publish(args.query, embedding)
+        except Exception:
+            print("query embedding unavailable", file=sys.stderr)
+            return 2
+        print(json.dumps({"status": "ready", "path": str(path)}))
         return 0
     if args.command == "search":
         expansion = expand_query(args.query)

@@ -11,6 +11,8 @@ export interface Env extends CatalogEnv {
   CLIPOTECA_ISSUE_TOKEN?: string;
   MCP_ALLOWED_HOSTS?: string;
   MCP_ALLOWED_ORIGINS?: string;
+  QUERY_ENCODER_URL?: string;
+  CLIPOTECA_QUERY_DISPATCH_MODE?: string;
 }
 
 const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), {

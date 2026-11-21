@@ -50,6 +50,14 @@ components:
         next_cursor: {type: [string, "null"]}
         request_id: {type: string, pattern: "^[0-9a-f]{64}$"}
         status: {type: string}
+        semantic:
+          type: string
+          enum: [ready, pending, unavailable]
+          description: Estado de búsqueda por embeddings, opcional para clientes antiguos.
+        scores:
+          type: object
+          description: Puntuación combinada RRF por ID de clip, opcional.
+          additionalProperties: {type: number, minimum: 0}
     Job:
       type: object
       required: [request_id, status]
@@ -199,14 +207,21 @@ paths:
       description: |
         Public catalogue search. filters.import_if_missing=true may queue a
         bounded import after quota and GitHub dispatch confirmation; no bearer
-        required for the public search route.
+        required for the public search route. M22 combina ranking semántico
+        con ranking de términos vía RRF (k=60). Devuelve semantic
+        ready/pending/unavailable y scores por clip si hay vector disponible.
+        Sin vectores conserva búsqueda léxica y puede despachar codificación.
       requestBody:
         required: true
         content:
           application/json:
             schema: {$ref: "#/components/schemas/SearchBody"}
       responses:
-        "200": {description: Existing paginated results}
+        "200":
+          description: Existing paginated results with semantic status
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SearchResponse"}
         "202": {description: Import accepted; includes deterministic request_id}
         "400": {description: Invalid input}
         "409": {description: Unexpired terminal retry budget}

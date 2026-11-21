@@ -119,6 +119,11 @@ class EmbeddingStore:
             self.index_file,
             (json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(),
         )
+        # Transitional dual-write: M21 sidecar remains available for existing
+        # readers while M22 writes consolidated shards for the Worker.
+        from .shards import ShardStore
+
+        ShardStore(self.root).put(identifier, vector)
         return metadata
 
     def read(self, identifier: str) -> np.ndarray:
