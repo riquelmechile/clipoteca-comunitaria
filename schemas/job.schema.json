@@ -14,6 +14,8 @@
     "provider_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
     "source_errors": {"type": "object", "additionalProperties": {"type": "string"}},
     "terms": {"type": "object", "additionalProperties": {"type": "string"}},
-    "duplicate_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+    "duplicate_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "terminal_sources": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "source_warnings": {"type": "object", "additionalProperties": {"type": "string"}}
   }
 }
