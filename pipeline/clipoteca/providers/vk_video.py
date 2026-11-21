@@ -182,7 +182,9 @@ class VKVideo(Adapter):
                     provider_id=identifier,
                     term=term,
                     language=lang,
-                    source_url=("https://vk.com/video" if self.token else "https://vkvideo.ru/video")
+                    source_url=(
+                        "https://vk.com/video" if self.token else "https://vkvideo.ru/video"
+                    )
                     + identifier,
                     source_title=title,
                     source_language=detect_source_language(title),
