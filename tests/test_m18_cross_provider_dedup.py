@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from clipoteca.catalog import Catalog, canonical_source_url, normalized_source_title
+from clipoteca.catalog import (
+    Catalog,
+    canonical_source_url,
+    normalized_source_title,
+    safe_source_url,
+)
 from clipoteca.ingest import ingest
 from clipoteca.jobs import JobStore
 from clipoteca.providers.base import Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
@@ -254,3 +259,13 @@ def test_public_source_url_redacts_secrets_but_retains_identity():
     assert "VERY_SECRET" not in clean and "api_key" not in clean
     assert "si=keep" in clean and "feature=variant" in clean
     assert "VERY_SECRET" not in canonical_source_url(source)
+
+
+def test_key_is_identity_only_for_noncredential_hosts():
+    first = "https://media.example/video?id=42&key=part-A"
+    second = "https://media.example/video?id=42&key=part-B"
+    assert canonical_source_url(first) != canonical_source_url(second)
+    assert "key=" not in safe_source_url(first)
+    assert "key=" not in safe_source_url("https://u:p@media.example/video?key=secret")
+    for host in ("api.data.gov", "pixabay.com", "www.googleapis.com"):
+        assert "key=" not in canonical_source_url(f"https://{host}/video?id=42&key=secret")
