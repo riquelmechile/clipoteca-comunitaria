@@ -105,6 +105,12 @@ def main(argv: list[str] | None = None) -> int:
     ingest_parser.add_argument("--horizon", default="v1")
     ingest_parser.add_argument("--concurrency", type=int, default=4)
     ingest_parser.add_argument("--providers", default="", help="Comma-separated source names")
+    ingest_parser.add_argument(
+        "--runner",
+        choices=("actions", "self-hosted"),
+        default=os.getenv("CLIPOTECA_RUNNER", "actions"),
+    )
+    ingest_parser.add_argument("--runner-config", default="data/runner-routing.json")
     ingest_parser.add_argument("--job-root", default="data/jobs")
     ingest_parser.add_argument("--filters-json", default="")
 
@@ -270,6 +276,17 @@ def main(argv: list[str] | None = None) -> int:
             filters = {"aspect_ratio": args.aspect_ratio, "max_duration": args.max_duration}
             if selected:
                 filters["providers"] = sorted(selected)
+        from .runner import selected_providers
+
+        try:
+            routed = selected_providers(args.runner, selected, config_path=Path(args.runner_config))
+        except (ValueError, OSError, json.JSONDecodeError):
+            print("invalid runner routing configuration", file=sys.stderr)
+            return 2
+        if not routed:
+            print(json.dumps({"status": "no_sources_for_runner", "runner": args.runner}))
+            return 0
+        selected = routed
         expected = calculate_request_id(args.query, filters, args.horizon)
         if args.request_id and args.request_id != expected:
             try:
