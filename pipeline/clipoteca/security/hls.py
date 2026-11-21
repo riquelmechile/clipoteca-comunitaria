@@ -274,8 +274,7 @@ async def download_hls(
                     raise DownloadError("HLS requested window is outside playlist")
                 # Validate all selected URIs before downloading any media.
                 validated = [
-                    await _validated(uri, media_url, hosts, resolver)
-                    for duration, uri in selected
+                    await _validated(uri, media_url, hosts, resolver) for duration, uri in selected
                 ]
                 target_duration = max(1, math.ceil(max(duration for duration, _uri in selected)))
                 local_playlist = [
@@ -355,7 +354,9 @@ async def download_hls(
                     )
                 except (subprocess.CalledProcessError, OSError) as exc:
                     if "allowed_segment_extensions" in str(getattr(exc, "stderr", "")):
-                        raise DownloadError("FFmpeg lacks secure HLS segment extension option") from exc
+                        raise DownloadError(
+                            "FFmpeg lacks secure HLS segment extension option"
+                        ) from exc
                     raise DownloadError("HLS FFmpeg remux failed") from exc
                 except subprocess.SubprocessError as exc:
                     raise DownloadError("HLS FFmpeg remux failed") from exc

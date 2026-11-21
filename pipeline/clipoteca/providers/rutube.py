@@ -38,7 +38,6 @@ def _allowed_rutube_host(host: str) -> bool:
     return any(host == root or host.endswith("." + root) for root in RUTUBE_CDN_SUFFIXES)
 
 
-
 def _detail(payload: dict) -> None:
     detail = payload.get("detail")
     if not detail:
@@ -46,8 +45,17 @@ def _detail(payload: dict) -> None:
     message = str(detail).casefold()
     if any(
         term in message
-        for term in ("block", "limit", "denied", "429", "forbidden",
-                     "too many", "restricted", "geo", "country")
+        for term in (
+            "block",
+            "limit",
+            "denied",
+            "429",
+            "forbidden",
+            "too many",
+            "restricted",
+            "geo",
+            "country",
+        )
     ):
         raise RateLimited("RuTube blocked this network or request")
     raise ProviderError("RuTube returned a provider error")
@@ -157,7 +165,8 @@ class Rutube(Adapter):
         if not ID.fullmatch(candidate.provider_id):
             return {}
         payload = await fetch_json(
-            self.client, API + "/video/" + candidate.provider_id + "/",
+            self.client,
+            API + "/video/" + candidate.provider_id + "/",
             detail_statuses=DETAIL_HTTP_CODES,
         )
         _detail(payload)
