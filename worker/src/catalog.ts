@@ -8,6 +8,8 @@ export type Clip = {
     source_language: string;
     source_title?: string;
     keywords?: string[];
+    source_start?: number;
+    source_end?: number;
   };
   media: {
     aspect_ratio: string;
@@ -16,7 +18,7 @@ export type Clip = {
     fps: number;
     has_audio: boolean;
   };
-  storage: { asset_url: string };
+  storage: { asset_url: string; thumbnail_url?: string; storyboard_urls?: string[] };
 };
 
 export interface CatalogEnv {
@@ -101,6 +103,14 @@ export function searchTokens(value: string): string[] {
   return [...tokens];
 }
 
+
+export function storyboardTimestamp(
+  duration: number, fps: number, index: number, count: number,
+): number {
+  const lastDecodable = Math.max(0, duration - 1.5 / Math.max(fps, 1));
+  return Math.min(duration * (index + 0.5) / count, lastDecodable);
+}
+
 function matches(clip: Clip, params: URLSearchParams): boolean {
   const query = searchTokens(params.get("q") ?? "");
   const texts = [
@@ -173,13 +183,25 @@ export async function handleCatalog(request: Request, env: CatalogEnv): Promise<
     const nextCursor = cursor + limit < filtered.length ? String(cursor + limit) : null;
     return json({ items, next_cursor: nextCursor });
   }
-  const match = url.pathname.match(/^\/v1\/clips\/(clip-\d{6})(\/download)?$/);
+  const match = url.pathname.match(/^\/v1\/clips\/(clip-\d{6})(\/(?:download|storyboard))?$/);
   if (!match) return null;
   let clips: Clip[];
   try { clips = await loadCatalog(env); }
   catch { return json({error:{code:"catalog_unavailable",message:"Catalogue unavailable"}}, 503); }
   const clip = clips.find((item) => item.id === match[1]);
   if (!clip) return json({ error: { code: "not_found", message: "clip not found" } }, 404);
-  if (match[2]) return Response.redirect(clip.storage.asset_url, 302);
+  if (match[2] === "/download") return Response.redirect(clip.storage.asset_url, 302);
+  if (match[2] === "/storyboard") {
+    const links = clip.storage.storyboard_urls ?? [];
+    return json({
+      clip_id: clip.id,
+      frames: links.map((link, index) => ({
+        url: link, index,
+        timestamp_seconds: storyboardTimestamp(
+          clip.media.duration_seconds, clip.media.fps, index, links.length,
+        ),
+      })),
+    });
+  }
   return json(clip);
 }

@@ -19,14 +19,18 @@ const clipSchema = z.object({
   source: z.object({
     provider: z.string(), source_language: z.string(),
     provider_id: z.string().optional(), source_title: z.string().optional(),
-    source_url: z.string().optional(), issue_number: z.number().int().optional(),
+    source_url: z.string().optional(), source_start: z.number().nonnegative().optional(),
+    source_end: z.number().positive().optional(), issue_number: z.number().int().optional(),
     issue_author: z.string().optional(), issue_url: z.string().optional(),
   }),
   media: z.object({
     aspect_ratio: z.string(), duration_seconds: z.number(), width: z.number(),
     fps: z.number(), has_audio: z.boolean(),
   }),
-  storage: z.object({ asset_url: z.string() }),
+  storage: z.object({
+    asset_url: z.string(), thumbnail_url: z.string().optional(),
+    storyboard_urls: z.array(z.string().url()).max(8).optional(),
+  }),
   status: z.string().optional(), created_at: z.string().optional(),
 });
 const searchOutputSchema = z.object({
@@ -35,6 +39,13 @@ const searchOutputSchema = z.object({
 });
 const getClipOutputSchema = z.object({ clip: clipSchema });
 const downloadOutputSchema = z.object({ url: z.string().url(), clip_id: z.string().optional() });
+const storyboardOutputSchema = z.object({
+  clip_id: z.string(),
+  frames: z.array(z.object({
+    url: z.string().url(), index: z.number().int().nonnegative(),
+    timestamp_seconds: z.number().nonnegative(),
+  })).max(8),
+});
 const importOutputSchema = z.object({ request_id: z.string(), status: z.string() });
 const jobOutputSchema = z.object({
   request_id: z.string(), status: z.string(), attempt: z.number().int().optional(),
@@ -162,6 +173,20 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     const response = await handleCatalog(toolRequest("/v1/clips/" + clip_id, "GET"), env);
     if (!response?.ok) return fail("Clip unavailable: " + clip_id);
     return answer({ clip: await response.json() });
+  });
+
+  server.registerTool("get_storyboard", {
+    title: "Inspect video storyboard",
+    description: "Return immutable WebP preview frame URLs and timestamps before downloading video.",
+    inputSchema: z.strictObject({ clip_id: clipId }),
+    outputSchema: storyboardOutputSchema,
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  }, async ({ clip_id }) => {
+    const response = await handleCatalog(
+      toolRequest("/v1/clips/" + clip_id + "/storyboard", "GET"), env,
+    );
+    if (!response?.ok) return fail("Clip unavailable: " + clip_id);
+    return answer(await response.json() as object);
   });
 
   server.registerTool("download_clip", {
