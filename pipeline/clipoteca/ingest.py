@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Awaitable, Callable, Sequence
 
-from .catalog import DuplicateClip, GitHubCatalogWriter, IdentityCollision
+from .catalog import DuplicateClip, GitHubCatalogWriter, IdentityCollision, canonical_source_url
 from .engine import SearchEngine
 from .jobs import (
     MAX_ATTEMPTS,
@@ -117,6 +117,21 @@ async def ingest(
             job["status"] = stage
         jobs.save(job)
 
+    def record_duplicate(candidate, duplicate: dict, reason: str) -> None:
+        clip_id = duplicate["id"]
+        errors.append(f"{candidate.origin_id}:duplicate:{clip_id}:{reason}")
+        duplicate_ids = job.setdefault("duplicate_ids", [])
+        if clip_id not in duplicate_ids:
+            duplicate_ids.append(clip_id)
+        provenance = (
+            "duplicate_cross_provider"
+            if duplicate["source"]["provider"] != candidate.provider
+            else "duplicate"
+        )
+        # The clip schema has a single source object. Preserve the discarded
+        # provenance in the durable job instead of widening published records.
+        job["source_errors"][candidate.origin_id] = f"{provenance}:{reason}:{clip_id}"
+
     try:
         advance("searching")
         expansion = (
@@ -209,6 +224,24 @@ async def ingest(
                 errors.append(f"{candidate.origin_id}:search_only")
                 job["source_errors"][candidate.origin_id] = "search_only"
                 continue
+            # Before downloading, only an identical canonical URL is sufficient
+            # for an early duplicate. Never reject on title or provider ID here;
+            # content evidence is only available after the verified download.
+            candidate_url = canonical_source_url(candidate.source_url)
+            if candidate_url:
+                early_match = next(
+                    (
+                        published
+                        for published in catalogue.clips
+                        if canonical_source_url(
+                            str(published["source"].get("source_url", ""))
+                        ) == candidate_url
+                    ),
+                    None,
+                )
+                if early_match is not None:
+                    record_duplicate(candidate, early_match, "canonical_url")
+                    continue
             with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
                 temp = Path(work)
                 try:
@@ -268,13 +301,20 @@ async def ingest(
                         "source": {
                             "provider": candidate.provider,
                             "provider_id": candidate.provider_id,
+                            "source_title": localized.original_title,
+                            "source_url": candidate.source_url,
                         },
-                        "media": {"sha256": digest, "perceptual_hash": frame_hash},
+                        "media": {
+                            "sha256": digest,
+                            "perceptual_hash": frame_hash,
+                            "duration_seconds": normalized.media.duration_seconds,
+                        },
                     }
-                    duplicate = remote.find_duplicate(draft, phash_similar=perceptually_similar)
-                    if duplicate:
-                        errors.append(f"{candidate.origin_id}:duplicate:{duplicate['id']}")
-                        job.setdefault("duplicate_ids", []).append(duplicate["id"])
+                    match = remote.duplicate_match(
+                        draft, phash_similar=perceptually_similar
+                    )
+                    if match:
+                        record_duplicate(candidate, *match)
                         continue
                     release = storage.get_or_create_batch_release(date.today())
                     reserved = (
@@ -368,8 +408,25 @@ async def ingest(
                             remote, _ = writer.read_catalog()
                             continue
                         except DuplicateClip as duplicate:
-                            errors.append(f"{candidate.origin_id}:duplicate:{duplicate.clip_id}")
-                            job.setdefault("duplicate_ids", []).append(duplicate.clip_id)
+                            # Writer's optimistic CAS detected a concurrent
+                            # publication. Re-read before attributing provenance.
+                            remote, _ = writer.read_catalog()
+                            match = remote.duplicate_match(
+                                draft, phash_similar=perceptually_similar
+                            )
+                            if match and match[0]["id"] == duplicate.clip_id:
+                                record_duplicate(candidate, *match)
+                            else:
+                                errors.append(
+                                    f"{candidate.origin_id}:duplicate:"
+                                    f"{duplicate.clip_id}:concurrent_catalog"
+                                )
+                                duplicate_ids = job.setdefault("duplicate_ids", [])
+                                if duplicate.clip_id not in duplicate_ids:
+                                    duplicate_ids.append(duplicate.clip_id)
+                                job["source_errors"][candidate.origin_id] = (
+                                    f"duplicate:concurrent_catalog:{duplicate.clip_id}"
+                                )
                             break
                     else:
                         errors.append(f"{candidate.origin_id}:identity_collision")
