@@ -354,8 +354,8 @@
   {
     "name": "vk_video",
     "category": "social_video",
-    "status": "AUTH_REQUIRED",
-    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
     "accepts_text_languages": [
       "es",
       "en",
@@ -363,15 +363,15 @@
       "ru"
     ],
     "languages_semantically_verified": false,
-    "scope": "oauth_search",
+    "scope": "public_search",
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "anonymous Web2 token; VK_ACCESS_TOKEN remains optional",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
-      "download": "unavailable"
-    },
-    "download_supported": false,
-    "credentials_present": false,
-    "notes": "third-party copying requires separate rights"
+      "download": "best_effort"
+    }
   },
   {
     "name": "douyin",
@@ -460,5 +460,49 @@
     "download_supported": false,
     "credentials_present": false,
     "notes": "profile Spotlight list, no global video search"
+  },
+  {
+    "name": "ok_ru",
+    "category": "social_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_search",
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "anonymous HTML discovery; CDN download remains best-effort pending live smoke",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "dzen",
+    "category": "social_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_search",
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "cookie-aware public search; stream availability is best-effort",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
   }
 ]
