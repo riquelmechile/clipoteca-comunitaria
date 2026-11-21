@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 import tempfile
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -17,7 +18,7 @@ from .media.normalize import normalize_media
 from .media.thumbnail import create_thumbnail
 from .metadata import localize_candidate
 from .metrics import discovery_metrics, write_metrics
-from .providers.base import Adapter, SupportStatus
+from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
 from .translate.expand import expand_query
 from .security.download import download_media
 from .storage.github import GitHubReleaseStorage, StorageError
@@ -77,6 +78,11 @@ async def ingest(
     ids: list[str] = []
     downloaded_count = 0
     failed_count = 0
+    rate_limited_count = 0
+    unavailable_count = 0
+    storage_bytes = 0
+    published_seconds = 0.0
+    ingest_started = time.monotonic()
 
     def advance(stage: str) -> None:
         if STATUSES.index(stage) > STATUSES.index(job["status"]):
@@ -246,6 +252,7 @@ async def ingest(
                             f"clip_{identifier}.mp4",
                             f"thumb_{identifier}.webp",
                         )
+                        publish_started = time.monotonic()
                         try:
                             video = storage.upload_asset(release, normalized.path, name_video)
                             video = storage.verify_asset(
@@ -274,6 +281,8 @@ async def ingest(
                                 phash_similar=perceptually_similar,
                             )
                             ids.append(identifier)
+                            storage_bytes += video.size + thumbnail.size
+                            published_seconds += time.monotonic() - publish_started
                             catalogue.merge([clip])
                             break
                         except IdentityCollision:
@@ -286,7 +295,15 @@ async def ingest(
                             break
                     else:
                         errors.append(f"{candidate.origin_id}:identity_collision")
-                except (Exception,) as exc:
+                except RateLimited:
+                    failed_count += 1
+                    rate_limited_count += 1
+                    errors.append(f"{candidate.origin_id}:rate_limited")
+                except AuthRequired:
+                    failed_count += 1
+                    unavailable_count += 1
+                    errors.append(f"{candidate.origin_id}:auth_required")
+                except Exception as exc:
                     failed_count += 1
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
                     errors.append(f"{candidate.origin_id}:{type(exc).__name__}")
@@ -298,6 +315,10 @@ async def ingest(
             ":search_only" in entry or ":aspect_filter" in entry for entry in errors
         ):
             job["status"] = "unavailable"
+        elif errors and rate_limited_count and rate_limited_count == len(errors):
+            job["status"] = "rate_limited"
+        elif errors and unavailable_count and unavailable_count == len(errors):
+            job["status"] = "unavailable"
         else:
             job["status"] = "failed" if errors else "no_results"
         jobs.save(job)
@@ -307,6 +328,9 @@ async def ingest(
                 "downloaded_clips": downloaded_count,
                 "published_clips": len(ids),
                 "failed_imports": failed_count,
+                "assets_storage_bytes": storage_bytes,
+                "mean_publish_duration_seconds": published_seconds / max(1, len(ids)),
+                "runner_elapsed_minutes_estimate": (time.monotonic() - ingest_started) / 60,
             }
         )
         write_metrics(summary, job_root / (rid + ".metrics.json"))
