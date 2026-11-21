@@ -42,7 +42,14 @@ IDS_RE = re.compile(r"ids/shard-[0-9]{6}-[0-9a-f]{64}\.json\Z")
 def normalized_query(text: str) -> str:
     # Unicode casefold also handles Greek final sigma, Cherokee and sharp S.
     # U+FEFF is made a space deliberately to match the Worker regex.
-    canonical = unicodedata.normalize("NFKC", text).casefold().replace("\ufeff", " ")
+    # Python 3.13 ships Unicode 15.1; U+1C89 entered lowercase mappings
+    # later. Keep the Worker Unicode 17.0 casefold digest identical.
+    canonical = (
+        unicodedata.normalize("NFKC", text)
+        .casefold()
+        .replace("\u1c89", "\u1c8a")
+        .replace("\ufeff", " ")
+    )
     normalized = " ".join(canonical.split())
     if not normalized or len(normalized) > 200:
         raise ValueError("query must be 1..200 normalized characters")

@@ -390,3 +390,8 @@ traductor determinista inyectado. El test real conserva modelos
 verificados por checksum, reintentos acotados (incluida la primera
 traduccion de titulo), invariantes bilingues y rechazo fail-closed de
 salidas repetidas o desproporcionadas. Limita hilos CPU cuando procede.
+
+
+Python 3.13 (Unicode 15.1) and Worker Unicode 17.0 are compared against
+the same 671-case digest fixture. A U+1C89 mapping is explicitly bridged
+in Python to match the later casefold table; no raw Unicode literals.

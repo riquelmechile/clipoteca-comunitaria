@@ -50,3 +50,13 @@ def test_semantic_reason_enum_covers_emitted_typescript_codes():
     emitted = code_literals | reason_literals
     assert emitted <= declared, f"undocumented semantic_reason values: {emitted - declared}"
     assert {"no_semantic_match", "query_vector_invalid", "unsafe_query_encoder_url"} <= declared
+
+
+def test_python_313_and_worker_unicode17_digest_fixture_parity():
+    from clipoteca.media.shards import normalized_query, query_digest
+
+    fixture = json.loads((ROOT / "tests/fixtures/m22/normalization_r3.json").read_text())
+    assert fixture["unicode"] == "17.0.0"
+    for case in fixture["cases"]:
+        assert normalized_query(case["input"]) == case["normalized"]
+        assert query_digest(case["input"]) == case["sha256"]
