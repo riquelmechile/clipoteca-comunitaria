@@ -1,6 +1,14 @@
 """M9 Issue triage is strictly read-only with respect to untrusted media URLs."""
 
-from scripts.review_contribution import classify, issue_source_url, safe_url
+import runpy
+from pathlib import Path
+
+triage = runpy.run_path(
+    str(Path(__file__).resolve().parents[1] / "scripts" / "review_contribution.py")
+)
+classify = triage["classify"]
+issue_source_url = triage["issue_source_url"]
+safe_url = triage["safe_url"]
 
 
 def test_safe_public_url_only():
