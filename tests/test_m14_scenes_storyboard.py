@@ -530,7 +530,11 @@ async def test_quality_rejected_source_is_quarantined_for_24_hours(monkeypatch, 
     assert first.status == second.status == "dead_letter"
     assert downloads == 1
 
-    job_path = next((tmp_path / "jobs").glob("*.json"))
+    job_path = next(
+        path
+        for path in (tmp_path / "jobs").glob("*.json")
+        if not path.name.endswith(".metrics.json")
+    )
     stored = json.loads(job_path.read_text())
     stored["updated_at"] = "2000-01-01T00:00:00Z"
     job_path.write_text(json.dumps(stored))
