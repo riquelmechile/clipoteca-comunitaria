@@ -2,7 +2,7 @@
   "request_id": "6ebe0b18328824df41fed9058f9455dbb9f64332dfb42d51e2593b7e9205fa91",
   "status": "fetching",
   "attempt": 1,
-  "updated_at": "2026-11-21T02:57:48.142486Z",
+  "updated_at": "2026-11-21T02:57:49.394740Z",
   "language_counts": {
     "es": 2,
     "en": 2,
@@ -15,7 +15,8 @@
   },
   "source_errors": {
     "odysee:23830fa678ac9744fc30efd62e13f2077c066c1d": "search_only",
-    "odysee:c388f2ff659b9aef0483a6fe3790e0778fe09a32": "search_only"
+    "odysee:c388f2ff659b9aef0483a6fe3790e0778fe09a32": "search_only",
+    "odysee:feca1ecafad801b92b1516fafce8c8c7a8e043d7": "search_only"
   },
   "terms": {
     "es": "lluvia",
