@@ -118,3 +118,18 @@ Las cuatro fuentes fallan con `AUTH_REQUIRED` antes de hacer red cuando falta su
 clave. Las pruebas reproducibles usan respuestas guardadas para resultado válido,
 vacío, filtrado de tipo y media directa/search-only; no prueban disponibilidad,
 cuota, licencia ni descarga online.
+
+
+## Deduplicación entre proveedores y procedencia
+
+El catálogo público (`schemas/clip.schema.json`) admite **un solo** objeto
+`source` por clip. Cuando una segunda fuente presenta el mismo archivo,
+la URL canónica idéntica, SHA-256 igual o pHash cercano permiten reconocer la
+duplicación. Un título similar **nunca basta por sí solo**; requiere otra señal
+independiente, como duración en ±1 segundo o creador/colección coincidentes.
+
+La procedencia descartada de la segunda fuente **solo queda en el trabajo**
+(`data/jobs/<request_id>.json`): `source_errors[provider:provider_id]` y
+`duplicate_ids`. No se añade una segunda fuente al catálogo ni se crea otro
+asset. Las URL publicadas eliminan parámetros de credenciales como
+`api_key` y `access_token`, pero conservan parámetros de identidad.

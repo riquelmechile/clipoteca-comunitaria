@@ -12,7 +12,13 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Awaitable, Callable, Sequence
 
-from .catalog import DuplicateClip, GitHubCatalogWriter, IdentityCollision, canonical_source_url
+from .catalog import (
+    DuplicateClip,
+    GitHubCatalogWriter,
+    IdentityCollision,
+    canonical_source_url,
+    safe_source_url,
+)
 from .engine import SearchEngine
 from .jobs import (
     MAX_ATTEMPTS,
@@ -302,7 +308,7 @@ async def ingest(
                             "provider": candidate.provider,
                             "provider_id": candidate.provider_id,
                             "source_title": localized.original_title,
-                            "source_url": candidate.source_url,
+                            "source_url": safe_source_url(candidate.source_url),
                         },
                         "media": {
                             "sha256": digest,
@@ -332,7 +338,7 @@ async def ingest(
                                 "provider_id": candidate.provider_id,
                                 "source_language": localized.original_language,
                                 "source_title": localized.original_title,
-                                "source_url": candidate.source_url,
+                                "source_url": safe_source_url(candidate.source_url),
                                 **(
                                     {
                                         key: candidate.metadata[key]

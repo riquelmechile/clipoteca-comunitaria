@@ -43,6 +43,11 @@ def normalize_text(value: str) -> str:
     )
 
 
+_SECRET_QUERY_KEYS = frozenset({
+    "api_key", "apikey", "access_token", "auth_token", "client_secret",
+    "password", "secret", "token", "key",
+})
+
 _TRACKING_QUERY_KEYS = {
     "_hsenc",
     "_hsmi",
@@ -86,9 +91,34 @@ def canonical_source_url(value: str) -> str:
     query = [
         (key, item)
         for key, item in parse_qsl(parsed.query, keep_blank_values=True)
-        if not key.casefold().startswith("utm_") and key.casefold() not in _TRACKING_QUERY_KEYS
+        if (
+            not key.casefold().startswith("utm_")
+            and key.casefold() not in _TRACKING_QUERY_KEYS
+            and key.casefold() not in _SECRET_QUERY_KEYS
+        )
     ]
     return urlunsplit(("https", host, path, urlencode(sorted(query)), ""))
+
+
+
+def safe_source_url(value: str) -> str:
+    """Preserve public source URLs while removing embedded API credentials.
+
+    Identity parameters (including si and feature) remain untouched.
+    """
+    try:
+        parsed = urlsplit(value)
+        if parsed.username is not None or parsed.password is not None:
+            return canonical_source_url(value)
+        query = parse_qsl(parsed.query, keep_blank_values=True)
+        safe = [(k, v) for k, v in query if k.casefold() not in _SECRET_QUERY_KEYS]
+        if len(safe) == len(query):
+            return value
+        return urlunsplit(
+            (parsed.scheme, parsed.netloc, parsed.path, urlencode(safe), parsed.fragment)
+        )
+    except ValueError:
+        return ""
 
 
 def normalized_source_title(value: str) -> str:
