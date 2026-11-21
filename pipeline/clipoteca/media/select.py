@@ -6,6 +6,7 @@ import math
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from .probe import probe_media
 from .process_env import safe_media_env
@@ -148,6 +149,7 @@ def rank_scene_windows(
     max_duration: float = 20,
     max_clips: int = 2,
     timeout: float = 90,
+    semantic_scorer: Callable[[SourceWindow], float | None] | None = None,
 ) -> list[SourceWindow]:
     """Return publishable non-overlapping windows, best quality then earliest."""
     if not 0 < max_duration <= 20:
@@ -169,7 +171,7 @@ def rank_scene_windows(
         # returns one long take, while preserving a finite CPU scoring budget.
         starts.update(float(t) for t in range(0, min(math.ceil(horizon), 900), 2))
 
-    ranked: list[tuple[float, SourceWindow]] = []
+    ranked: list[tuple[float, float, SourceWindow]] = []
     minimum_duration = min(8.0, max_duration, horizon)
     for start in sorted(starts):
         end = min(start + max_duration, horizon)
@@ -190,11 +192,23 @@ def rank_scene_windows(
         adjusted = quality if short_source else quality - bad_fraction * 0.35
         quality_floor = 0.02 if short_source else MIN_WINDOW_QUALITY
         if adjusted >= quality_floor:
-            ranked.append((adjusted, SourceWindow(start, end)))
+            window = SourceWindow(start, end)
+            semantic = semantic_scorer(window) if semantic_scorer is not None else None
+            # A window without sampled semantic frames cannot displace one
+            # with evidence. Quality remains a strict admission gate from M14.
+            ranked.append((float("-inf") if semantic is None else semantic, adjusted, window))
 
-    ranked.sort(key=lambda pair: (-pair[0], pair[1].start))
+    # M21 ranking: mean smoothed cosine decides among M14-admissible windows,
+    # M14 quality breaks ties. Without embeddings preserve M14 quality order.
+    ranked.sort(
+        key=lambda triple: (
+            -triple[0] if semantic_scorer is not None else -triple[1],
+            -triple[1],
+            triple[2].start,
+        )
+    )
     chosen: list[SourceWindow] = []
-    for _quality, window in ranked:
+    for _semantic, _quality, window in ranked:
         if all(window.end <= picked.start or window.start >= picked.end for picked in chosen):
             chosen.append(window)
             if len(chosen) == max_clips:

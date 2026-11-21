@@ -1,0 +1,21 @@
+{
+  "window_seconds": 20,
+  "smoothing_seconds": 3,
+  "times": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "cosine": [
+    0,
+    0,
+    1,
+    1,
+    1,
+    0
+  ],
+  "expected_smooth_center_at_2": 0.6666666666666666
+}
