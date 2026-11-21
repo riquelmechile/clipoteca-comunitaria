@@ -7,6 +7,7 @@ Untrusted URLs must pass the existing SSRF validator and downloader.
 from __future__ import annotations
 
 import asyncio
+import math
 import re
 import subprocess
 import tempfile
@@ -119,16 +120,27 @@ def normalize_scenes(
         elif segment.end > cursor:
             output.append(Scene(cursor, segment.end))
     if len(output) > max_scenes:
-        # Hard cap without violating total scene coverage: merge the remaining
-        # tail into one final interval, used by callers as a diagnostic boundary.
-        head = output[: max_scenes - 1]
-        tail_start = output[max_scenes - 1].start
-        output = head + [Scene(tail_start, end)]
+        # Preserve coverage AND the 20-second limit. Under excessive cut density,
+        # reduce cut fidelity rather than merging the tail into an overlong scene.
+        duration = end - start
+        if math.ceil((duration - 1e-9) / MAX_SCENE_SECONDS) > max_scenes:
+            raise ValueError("max_scenes cannot cover the window within 20-second scenes")
+        count = min(max_scenes, max(1, math.ceil(duration / SPLIT_STEP_SECONDS)))
+        step = duration / count
+        output = [
+            Scene(start + index * step, end if index == count - 1 else start + (index + 1) * step)
+            for index in range(count)
+        ]
     return output
 
 
-def _detect_with_scenedetect(source: str | Path, *, start: float, end: float) -> list[float] | None:
-    """Optional local AdaptiveDetector; no hard dependency or network calls."""
+def _detect_with_scenedetect(
+    source: str | Path, *, start: float, max_window: float
+) -> list[Scene] | None:
+    """Use the optional detector only within the requested local video window.
+
+    This is an alternative to FFmpeg, not an extra full-file analysis pass.
+    """
     try:
         from scenedetect import SceneManager, open_video
         from scenedetect.detectors import AdaptiveDetector
@@ -137,15 +149,22 @@ def _detect_with_scenedetect(source: str | Path, *, start: float, end: float) ->
     try:
         video = open_video(str(source))
         video.downscale_factor = 2
+        end = min(start + max_window, video.duration.get_seconds())
+        if end <= start:
+            raise SceneDetectionError("source has no video in requested window")
+        if start:
+            video.seek(start)
         manager = SceneManager()
         manager.add_detector(AdaptiveDetector(adaptive_threshold=3.0, min_scene_len=15))
-        manager.detect_scenes(video=video)
-        return [
-            a.get_seconds()
-            for a, _b in manager.get_scene_list(start_in_scene=True)
-            if start < a.get_seconds() < end
+        manager.detect_scenes(video=video, end_time=end)
+        cuts = [
+            scene_start.get_seconds()
+            for scene_start, _scene_end in manager.get_scene_list(start_in_scene=True)
+            if start < scene_start.get_seconds() < end
         ]
+        return normalize_scenes(cuts, start=start, end=end)
     except (ValueError, RuntimeError, OSError, AttributeError):
+        # Missing/unsupported optional backend falls back to bounded FFmpeg.
         return None
 
 
@@ -207,6 +226,10 @@ def _ffmpeg_scenes(
     runner: Callable | None = None,
 ) -> list[Scene]:
     _validate_window(start, max_window)
+    if prefer_scenedetect and not remote:
+        detected = _detect_with_scenedetect(source, start=start, max_window=max_window)
+        if detected is not None:
+            return detected
     cmd = _ffmpeg_command(source, start=start, window=max_window, remote=remote, headers=headers)
     run = runner or subprocess.run
     try:
@@ -229,12 +252,7 @@ def _ffmpeg_scenes(
     )
     if end <= start:
         raise SceneDetectionError("source has no video in requested window")
-    cuts = None
-    if prefer_scenedetect and not remote:
-        cuts = _detect_with_scenedetect(source, start=start, end=end)
-    if cuts is None:
-        cuts = parse_cuts(proc.stderr, start=start)
-    return normalize_scenes(cuts, start=start, end=end)
+    return normalize_scenes(parse_cuts(proc.stderr, start=start), start=start, end=end)
 
 
 def detect_scenes(
@@ -249,6 +267,14 @@ def detect_scenes(
     """Sync entrypoint. Remote calls have an async counterpart for event loops."""
     _validate_window(start, max_window)
     if str(source).startswith(("https://", "http://")):
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError(
+                "detect_scenes() cannot run inside an event loop; await detect_scenes_async()"
+            ) from None
         return asyncio.run(
             detect_scenes_async(
                 source,
@@ -282,17 +308,23 @@ async def detect_scenes_async(
     resolver=None,
     runner: Callable | None = None,
 ) -> list[Scene]:
-    """Check remote range support; use bounded downloader on range miss.
+    """Detect scenes without blocking an event loop.
 
-    Range probe is read-only, no redirects and only a single requested byte.
-    For direct FFmpeg access the target URL has already passed the SSRF
-    validator. A production deployment should pin DNS at the FFmpeg boundary.
+    Remote URLs always use the bounded, peer-validated media downloader.
+    Unpinned FFmpeg HTTP access and speculative Range probes are disabled.
+    Custom remote headers are rejected explicitly, not silently ignored.
     """
     _validate_window(start, max_window)
+    if headers:
+        raise ValueError("custom headers are unsupported by the secure scene downloader")
     string = str(source)
     if not string.startswith(("http://", "https://")):
-        return detect_scenes(
-            Path(source),
+        path = Path(source)
+        if not path.is_file():
+            raise SceneDetectionError("local source does not exist")
+        return await asyncio.to_thread(
+            _ffmpeg_scenes,
+            path,
             start=start,
             max_window=max_window,
             prefer_scenedetect=prefer_scenedetect,
@@ -303,36 +335,12 @@ async def detect_scenes_async(
     await validate_public_url(string, resolver=resolver)
     owned = client is None
     connection = client or httpx.AsyncClient(
-        timeout=httpx.Timeout(12, connect=5),
+        timeout=httpx.Timeout(40, connect=10, read=25),
         follow_redirects=False,
         trust_env=False,
         headers={"User-Agent": USER_AGENT},
     )
     try:
-        try:
-            # Do not buffer the whole body when a server ignores Range and sends 200.
-            async with connection.stream(
-                "GET",
-                string,
-                headers={"Range": "bytes=0-0", "User-Agent": USER_AGENT},
-                follow_redirects=False,
-            ) as probe:
-                supports_range = probe.status_code == 206 and probe.headers.get(
-                    "content-range", ""
-                ).startswith("bytes 0-0/")
-        except httpx.HTTPError:
-            supports_range = False
-        if supports_range and runner is not None:
-            # Injection is only for bounded offline tests. Production must use the
-            # existing downloader until FFmpeg can pin the validated DNS peer.
-            return _ffmpeg_scenes(
-                string,
-                start=start,
-                max_window=max_window,
-                remote=True,
-                headers=headers,
-                runner=runner,
-            )
         with tempfile.TemporaryDirectory(prefix="clipoteca-scene-") as tmp:
             try:
                 local = await download_media(
@@ -343,7 +351,8 @@ async def detect_scenes_async(
                 )
             except (DownloadError, UnsafeMediaURL) as exc:
                 raise SceneDetectionError("remote media unavailable") from exc
-            return _ffmpeg_scenes(
+            return await asyncio.to_thread(
+                _ffmpeg_scenes,
                 local,
                 start=start,
                 max_window=max_window,
