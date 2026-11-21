@@ -249,21 +249,33 @@ def detect_scenes(
     """Sync entrypoint. Remote calls have an async counterpart for event loops."""
     _validate_window(start, max_window)
     if str(source).startswith(("https://", "http://")):
-        return asyncio.run(detect_scenes_async(
-            source, start=start, max_window=max_window, headers=headers,
-            prefer_scenedetect=prefer_scenedetect, runner=runner,
-        ))
+        return asyncio.run(
+            detect_scenes_async(
+                source,
+                start=start,
+                max_window=max_window,
+                headers=headers,
+                prefer_scenedetect=prefer_scenedetect,
+                runner=runner,
+            )
+        )
     path = Path(source)
     if not path.is_file():
         raise SceneDetectionError("local source does not exist")
     return _ffmpeg_scenes(
-        path, start=start, max_window=max_window,
-        prefer_scenedetect=prefer_scenedetect, runner=runner,
+        path,
+        start=start,
+        max_window=max_window,
+        prefer_scenedetect=prefer_scenedetect,
+        runner=runner,
     )
 
 
 async def detect_scenes_async(
-    source: str | Path, *, start: float = 0, max_window: float = 900,
+    source: str | Path,
+    *,
+    start: float = 0,
+    max_window: float = 900,
     headers: dict[str, str] | None = None,
     prefer_scenedetect: bool = False,
     client: httpx.AsyncClient | None = None,
@@ -280,44 +292,59 @@ async def detect_scenes_async(
     string = str(source)
     if not string.startswith(("http://", "https://")):
         return detect_scenes(
-            Path(source), start=start, max_window=max_window,
-            prefer_scenedetect=prefer_scenedetect, runner=runner,
+            Path(source),
+            start=start,
+            max_window=max_window,
+            prefer_scenedetect=prefer_scenedetect,
+            runner=runner,
         )
     if urlsplit(string).scheme != "https":
         raise UnsafeMediaURL("remote scene source must be HTTPS")
     await validate_public_url(string, resolver=resolver)
     owned = client is None
     connection = client or httpx.AsyncClient(
-        timeout=httpx.Timeout(12, connect=5), follow_redirects=False,
-        trust_env=False, headers={"User-Agent": USER_AGENT},
+        timeout=httpx.Timeout(12, connect=5),
+        follow_redirects=False,
+        trust_env=False,
+        headers={"User-Agent": USER_AGENT},
     )
     try:
         try:
             probe = await connection.get(
-                string, headers={"Range": "bytes=0-0", "User-Agent": USER_AGENT},
+                string,
+                headers={"Range": "bytes=0-0", "User-Agent": USER_AGENT},
                 follow_redirects=False,
             )
-            supports_range = (
-                probe.status_code == 206
-                and probe.headers.get("content-range", "").startswith("bytes 0-0/")
-            )
+            supports_range = probe.status_code == 206 and probe.headers.get(
+                "content-range", ""
+            ).startswith("bytes 0-0/")
         except httpx.HTTPError:
             supports_range = False
         if supports_range:
             return _ffmpeg_scenes(
-                string, start=start, max_window=max_window,
-                remote=True, headers=headers, runner=runner,
+                string,
+                start=start,
+                max_window=max_window,
+                remote=True,
+                headers=headers,
+                runner=runner,
             )
         with tempfile.TemporaryDirectory(prefix="clipoteca-scene-") as tmp:
             try:
                 local = await download_media(
-                    string, Path(tmp), client=connection, resolver=resolver,
+                    string,
+                    Path(tmp),
+                    client=connection,
+                    resolver=resolver,
                 )
             except (DownloadError, UnsafeMediaURL) as exc:
                 raise SceneDetectionError("remote media unavailable") from exc
             return _ffmpeg_scenes(
-                local, start=start, max_window=max_window,
-                prefer_scenedetect=prefer_scenedetect, runner=runner,
+                local,
+                start=start,
+                max_window=max_window,
+                prefer_scenedetect=prefer_scenedetect,
+                runner=runner,
             )
     finally:
         if owned:
