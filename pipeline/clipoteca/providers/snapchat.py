@@ -22,7 +22,7 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://businessapi.snapchat.com/v1/public_profiles"
 PROFILE = re.compile(r"[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}")
@@ -46,7 +46,7 @@ class Snapchat(Adapter):
         self.profile_id = (
             profile_id if profile_id is not None else os.getenv("SNAPCHAT_PROFILE_ID", "")
         )
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def _spotlights(self, limit: int) -> list[dict]:
         if not self.token or not PROFILE.fullmatch(self.profile_id):
