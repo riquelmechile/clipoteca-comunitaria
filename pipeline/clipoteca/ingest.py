@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 import tempfile
 from dataclasses import dataclass
@@ -26,7 +27,7 @@ from .jobs import (
 from .media.hashing import perceptual_hash, perceptually_similar, sha256_file
 from .media.normalize import normalize_media
 from .media.thumbnail import create_thumbnail
-from .metadata import localize_candidate
+from .metadata import MetadataTranslationError, localize_candidate
 from .metrics import discovery_metrics, write_metrics
 from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
 from .translate.expand import QueryExpansion, expand_query
@@ -368,7 +369,16 @@ async def ingest(
                 except Exception as exc:
                     failed_count += 1
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
-                    errors.append(f"{candidate.origin_id}:{type(exc).__name__}")
+                    error_code = type(exc).__name__
+                    if isinstance(exc, MetadataTranslationError):
+                        direction = re.search(
+                            r"translation_failed:(?:es|en|zh|ru)->(es|en|zh|ru)",
+                            str(exc),
+                        )
+                        if direction:
+                            error_code = f"translation_failed:{direction.group(1)}"
+                    job["source_errors"][candidate.origin_id] = error_code
+                    errors.append(f"{candidate.origin_id}:{error_code}")
         if ids:
             job["status"] = "published"
         elif errors and all(":duplicate" in entry for entry in errors):
