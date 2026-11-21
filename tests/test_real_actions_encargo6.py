@@ -150,7 +150,6 @@ def test_argos_rejects_real_degenerate_and_unchanged_outputs(value, reason):
         ),
     ],
 )
-
 def test_argos_size_guard_accepts_realistic_es_en_texts(source, translated, src, dst):
     assert translate_pair(source, src, dst, translator=lambda *_: translated) == translated
 
