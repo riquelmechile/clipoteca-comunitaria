@@ -1,11 +1,12 @@
 # Contrato MCP v1 (Streamable HTTP)
 
-Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente seis tools** con outputSchema tipado por herramienta; no usa envoltorio genérico {result} ni esquemas z.unknown(). Las respuestas estructuradas contienen metadatos y enlaces, nunca bytes de video.
+Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente siete tools** con outputSchema tipado por herramienta; no usa envoltorio genérico {result} ni esquemas z.unknown(). Las respuestas estructuradas contienen metadatos y enlaces, nunca bytes de video.
 
 | Tool | Entrada | Salida estructurada |
 |---|---|---|
 | search_clips | {query, aspect_ratio?, max_duration?, min_width?, fps?, source?, language?, has_audio?, limit?, cursor?, import_if_missing?} | {clips, next_cursor, request_id?, status?} con paginación real |
-| get_clip | {clip_id} | {clip} conforme a clip.schema.json |
+| get_clip | {clip_id} | {clip} conforme a clip.schema.json, con source_start/source_end y storage.storyboard_urls opcionales |
+| get_storyboard | {clip_id} | {clip_id, frames:[{url,index,timestamp_seconds}]} con previews WebP para inspección previa a la descarga; clips antiguos entregan lista vacía |
 | download_clip | {clip_id} | {clip_id?, url} de GitHub Releases |
 | search_and_import | {query, aspect_ratio?, max_results?} | {request_id, status}, credencial necesaria |
 | get_job_status | {request_id} | Registro Job conforme a job.schema.json, o error MCP si 404 |
