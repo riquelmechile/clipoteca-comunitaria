@@ -71,11 +71,13 @@ async def fetch_json(
         and any(
             value
             for key, value in headers.items()
-            if key.casefold() in {"authorization", "access-token"}
+            if key.casefold() in {"authorization", "access-token", "x-api-key", "api-key"}
         )
     )
     if isinstance(params, dict):
-        credentialed = credentialed or bool(params.get("key") or params.get("access_token"))
+        credentialed = credentialed or bool(
+            params.get("key") or params.get("api_key") or params.get("access_token")
+        )
     if response.status_code == 401 or (response.status_code == 403 and credentialed):
         raise AuthRequired("provider API authorization required")
     if response.status_code == 400 and "pixabay.com" in url:

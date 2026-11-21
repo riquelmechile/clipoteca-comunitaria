@@ -16,7 +16,7 @@ from clipoteca.config import USER_AGENT
 
 def test_capabilities_single_declaration_no_secret_leak():
     rows = list_sources(env={})
-    assert len(SOURCE_CAPABILITIES) == len(SOURCES) == len(rows) == 15
+    assert len(SOURCE_CAPABILITIES) == len(SOURCES) == len(rows) == 21
     assert {r["name"] for r in rows} == set(SOURCE_CAPABILITIES)
     for row in rows:
         assert row["capabilities"] == SOURCE_CAPABILITIES[row["name"]]

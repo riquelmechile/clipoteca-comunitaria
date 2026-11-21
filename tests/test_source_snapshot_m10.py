@@ -11,7 +11,7 @@ from clipoteca.source_snapshot import publish_snapshot, snapshot
 def test_snapshot_is_booleans_only_and_sensitive_values_never_leak(monkeypatch):
     monkeypatch.setenv("PEXELS_API_KEY", "super-sensitive-test-secret")
     rows = snapshot()
-    assert len(rows) == 15
+    assert len(rows) == 21
     pexels = next(row for row in rows if row["name"] == "pexels")
     assert pexels["credentials_present"] is True
     assert "missing_credential_names" not in pexels

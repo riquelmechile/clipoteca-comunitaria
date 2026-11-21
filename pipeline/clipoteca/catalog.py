@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import math
 import os
 import tempfile
 import re
@@ -12,6 +13,7 @@ import unicodedata
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit, urlunsplit
 
 import httpx
 from jsonschema import Draft202012Validator, FormatChecker
@@ -39,6 +41,103 @@ def normalize_text(value: str) -> str:
     return "".join(
         c for c in unicodedata.normalize("NFKD", compatibility) if unicodedata.category(c) != "Mn"
     )
+
+
+_SECRET_QUERY_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "access_token",
+        "auth_token",
+        "client_secret",
+        "password",
+        "secret",
+        "token",
+        "key",
+    }
+)
+
+_TRACKING_QUERY_KEYS = {
+    "_hsenc",
+    "_hsmi",
+    "dclid",
+    "fbclid",
+    "gclid",
+    "igshid",
+    "mc_cid",
+    "mc_eid",
+    "msclkid",
+}
+
+
+def canonical_source_url(value: str) -> str:
+    """Keep identity-bearing query params; remove only known tracking keys.
+
+    In particular, 'si' and 'feature' are retained unless a provider-specific
+    contract proves them to be tracking-only. Conservative false negatives
+    are safer than collapsing distinct assets.
+    """
+    try:
+        parsed = urlsplit(value.strip())
+        host = (parsed.hostname or "").encode("idna").decode("ascii").casefold()
+    except (UnicodeError, ValueError):
+        return ""
+    if parsed.scheme.casefold() not in {"http", "https"} or not host:
+        return ""
+    if host.startswith("www."):
+        host = host[4:]
+    try:
+        port = parsed.port
+    except ValueError:
+        return ""
+    if ":" in host:
+        host = f"[{host}]"
+    if port and port not in {80, 443}:
+        host = f"{host}:{port}"
+    path = quote(unquote(parsed.path or "/"), safe="/%:@!$&'()*+,;=-._~")
+    if path != "/":
+        path = path.rstrip("/")
+    query = [
+        (key, item)
+        for key, item in parse_qsl(parsed.query, keep_blank_values=True)
+        if (
+            not key.casefold().startswith("utm_")
+            and key.casefold() not in _TRACKING_QUERY_KEYS
+            and key.casefold() not in _SECRET_QUERY_KEYS
+        )
+    ]
+    return urlunsplit(("https", host, path, urlencode(sorted(query)), ""))
+
+
+def safe_source_url(value: str) -> str:
+    """Preserve public source URLs while removing embedded API credentials.
+
+    Identity parameters (including si and feature) remain untouched.
+    """
+    try:
+        parsed = urlsplit(value)
+        if parsed.username is not None or parsed.password is not None:
+            return canonical_source_url(value)
+        query = parse_qsl(parsed.query, keep_blank_values=True)
+        safe = [(k, v) for k, v in query if k.casefold() not in _SECRET_QUERY_KEYS]
+        if len(safe) == len(query):
+            return value
+        return urlunsplit(
+            (parsed.scheme, parsed.netloc, parsed.path, urlencode(safe), parsed.fragment)
+        )
+    except ValueError:
+        return ""
+
+
+def normalized_source_title(value: str) -> str:
+    """Normalize case, accents and punctuation for cross-provider comparison."""
+    return " ".join(re.findall(r"\w+", normalize_text(value), flags=re.UNICODE))
+
+
+def _distinctive_title(value: str) -> bool:
+    """Avoid collapsing generic stock labels such as ``rain`` across providers."""
+    words = value.split()
+    return len(words) >= 2 and len(value) >= 12
 
 
 def canonical_tokens(value: str) -> set[str]:
@@ -92,30 +191,82 @@ class Catalog:
             merged[item["id"]] = item
         self.clips = sorted(merged.values(), key=lambda item: item["id"])
 
+    def duplicate_match(
+        self,
+        candidate: dict[str, Any],
+        *,
+        phash_similar: Callable[[str, str], bool] | None = None,
+    ) -> tuple[dict[str, Any], str] | None:
+        """Require a strong content/URL signal, not title similarity alone.
+
+        Independent duplicates: same provider identity, same canonical URL
+        (even if provider_id changed), SHA-256 match, or close pHash.
+        A cross-provider title match needs secondary evidence: duration
+        within one second, or identical explicit creator/collection.
+        """
+        source = candidate.get("source", {})
+        media = candidate.get("media", {})
+        candidate_url = canonical_source_url(str(source.get("source_url", "")))
+        candidate_title = normalized_source_title(str(source.get("source_title", "")))
+        for clip in self.clips:
+            published_source = clip["source"]
+            published_media = clip["media"]
+            if published_source["provider"] == source.get("provider") and published_source[
+                "provider_id"
+            ] == source.get("provider_id"):
+                return clip, "provider_id"
+            if media.get("sha256") and published_media.get("sha256") == media["sha256"]:
+                return clip, "sha256"
+            published_url = canonical_source_url(str(published_source.get("source_url", "")))
+            if candidate_url and published_url and candidate_url == published_url:
+                return clip, "canonical_url"
+            if (
+                phash_similar
+                and media.get("perceptual_hash")
+                and published_media.get("perceptual_hash")
+                and phash_similar(published_media["perceptual_hash"], media["perceptual_hash"])
+            ):
+                return clip, "perceptual_hash"
+            if (
+                published_source["provider"] != source.get("provider")
+                and _distinctive_title(candidate_title)
+                and normalized_source_title(str(published_source.get("source_title", "")))
+                == candidate_title
+            ):
+                # Missing duration or metadata never counts as corroboration.
+                current_duration = media.get("duration_seconds")
+                previous_duration = published_media.get("duration_seconds")
+                duration_match = (
+                    isinstance(current_duration, (int, float))
+                    and not isinstance(current_duration, bool)
+                    and isinstance(previous_duration, (int, float))
+                    and not isinstance(previous_duration, bool)
+                    and math.isfinite(current_duration)
+                    and math.isfinite(previous_duration)
+                    and abs(current_duration - previous_duration) <= 1
+                )
+
+                def same_field(key: str) -> bool:
+                    value = source.get(key)
+                    return bool(
+                        isinstance(value, str)
+                        and value.strip()
+                        and isinstance(published_source.get(key), str)
+                        and normalize_text(value) == normalize_text(published_source[key])
+                    )
+
+                if duration_match or same_field("creator") or same_field("collection"):
+                    return clip, "normalized_title"
+        return None
+
     def find_duplicate(
         self,
         candidate: dict[str, Any],
         *,
         phash_similar: Callable[[str, str], bool] | None = None,
     ) -> dict[str, Any] | None:
-        source = candidate["source"]
-        media = candidate["media"]
-        for clip in self.clips:
-            if (clip["source"]["provider"], clip["source"]["provider_id"]) == (
-                source["provider"],
-                source["provider_id"],
-            ):
-                return clip
-            if media.get("sha256") and clip["media"].get("sha256") == media["sha256"]:
-                return clip
-            if (
-                phash_similar
-                and media.get("perceptual_hash")
-                and clip["media"].get("perceptual_hash")
-                and phash_similar(clip["media"]["perceptual_hash"], media["perceptual_hash"])
-            ):
-                return clip
-        return None
+        match = self.duplicate_match(candidate, phash_similar=phash_similar)
+        return match[0] if match else None
 
     def add_verified(
         self, clip: dict[str, Any], schema: dict[str, Any], *, asset_verified: bool

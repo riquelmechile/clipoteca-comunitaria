@@ -1,0 +1,26 @@
+{
+  "body": {
+    "hits": {
+      "hits": [
+        {
+          "_id": "12345",
+          "_source": {
+            "record": {
+              "naId": "12345",
+              "title": "Rain over Washington",
+              "url": "https://catalog.archives.gov/id/12345",
+              "digitalObjects": [
+                {
+                  "objectType": "Video",
+                  "fileUrl": "https://catalog-media.example.gov/12345.webm",
+                  "mimeType": "video/webm",
+                  "size": 2048
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

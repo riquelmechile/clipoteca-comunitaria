@@ -1,0 +1,18 @@
+{
+  "docs": [
+    {
+      "id": "dpla-1",
+      "sourceResource": {
+        "title": ["City rainfall, 1962"],
+        "type": ["Moving Image"],
+        "language": ["en"]
+      },
+      "isShownAt": "https://contributor.example.org/items/dpla-1",
+      "object": "https://contributor.example.org/thumb.jpg"
+    },
+    {
+      "id": "not-video",
+      "sourceResource": {"title": "Poster", "type": "Image"}
+    }
+  ]
+}

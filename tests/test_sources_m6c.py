@@ -1,4 +1,4 @@
-"""Exactly fifteen discoverable sources, explicit auth gates and truthful scopes."""
+"""Discoverable sources, explicit auth gates and truthful scopes."""
 
 import json
 
@@ -7,6 +7,12 @@ from clipoteca.sources import SOURCES, list_sources
 
 
 NAMES = {
+    "library_of_congress",
+    "coverr",
+    "europeana",
+    "nara",
+    "dpla",
+    "smithsonian",
     "pexels",
     "pixabay",
     "wikimedia_commons",
@@ -62,9 +68,9 @@ def test_exported_source_snapshot_matches_code(tmp_path):
     assert json.loads(destination.read_text(encoding="utf-8")) == expected
 
 
-def test_list_sources_15_unique_and_all_have_language_matrix():
+def test_list_sources_21_unique_and_all_have_language_matrix():
     rows = list_sources(env={})
-    assert len(rows) == len(SOURCES) == 15
+    assert len(rows) == len(SOURCES) == 21
     assert {row["name"] for row in rows} == NAMES
     assert all(
         set(row["accepts_text_languages"]).issubset({"es", "en", "zh", "ru"}) for row in rows
@@ -79,6 +85,11 @@ def test_auth_required_when_missing_and_no_false_global_search_claims():
     for key in (
         "pexels",
         "pixabay",
+        "coverr",
+        "europeana",
+        "nara",
+        "dpla",
+        "smithsonian",
         "youtube",
         "vk_video",
         "douyin",
@@ -97,6 +108,11 @@ def test_env_values_never_revealed_even_with_fake_keys():
     env = {
         "PEXELS_API_KEY": "VERY-SECRET",
         "PIXABAY_API_KEY": "VERY-SECRET",
+        "COVERR_API_KEY": "VERY-SECRET",
+        "EUROPEANA_API_KEY": "VERY-SECRET",
+        "NARA_API_KEY": "VERY-SECRET",
+        "DPLA_API_KEY": "VERY-SECRET",
+        "SMITHSONIAN_API_KEY": "VERY-SECRET",
         "YOUTUBE_API_KEY": "VERY-SECRET",
         "VK_ACCESS_TOKEN": "VERY-SECRET",
         "DOUYIN_ACCESS_TOKEN": "VERY-SECRET",
@@ -114,7 +130,7 @@ def test_env_values_never_revealed_even_with_fake_keys():
 def test_cli_list_sources_json_and_alias(capsys):
     assert main(["list_sources"]) == 0
     first = json.loads(capsys.readouterr().out)
-    assert first["count"] == 15
+    assert first["count"] == 21
     assert set(x["name"] for x in first["sources"]) == NAMES
     assert main(["list-sources"]) == 0
     second = json.loads(capsys.readouterr().out)
