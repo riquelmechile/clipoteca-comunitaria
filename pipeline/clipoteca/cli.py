@@ -6,30 +6,63 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
 from .ingest import ingest
-from .jobs import request_id as calculate_request_id
-from .providers.internet_archive import InternetArchive
-from .providers.bilibili import Bilibili
-from .providers.douyin import Douyin
-from .providers.tiktok import TikTok
-from .providers.vk_video import VKVideo
-from .providers.nasa import NASA
-from .providers.pexels import Pexels
-from .providers.instagram import Instagram
-from .providers.snapchat import Snapchat
-from .providers.peertube import PeerTube
-from .providers.odysee import Odysee
-from .providers.rutube import Rutube
-from .providers.pixabay import Pixabay
-from .providers.wikimedia_commons import WikimediaCommons
-from .providers.youtube import YouTube
+from .jobs import (
+    GitHubJobWriter,
+    JobStore,
+    new_job,
+    request_id as calculate_request_id,
+)
 from .translate.expand import expand_query
-from .sources import list_sources
+from .sources import SOURCES, list_sources
+from .providers.base import Adapter, SupportStatus
 from .relocalize import relocalize_catalog
 from .metadata import MetadataTranslationError
+
+
+class _UnavailableAdapter(Adapter):
+    """Safe substitute when a single provider cannot be initialized."""
+
+    support_status = SupportStatus.UNAVAILABLE
+
+    def __init__(self, name: str, languages: tuple[str, ...], error_type: str) -> None:
+        self.name = name
+        self.accepts_text_languages = languages
+        # Class name only: never persist raw exception values/credentials.
+        self.unavailable_reason = "adapter_init_" + error_type
+
+    async def search(self, term, lang, limits):
+        return []
+
+    async def metadata(self, candidate):
+        return {}
+
+    async def direct_media(self, candidate):
+        return None
+
+
+def _persist_request_id_mismatch(identifier: str, repository: str, token: str, root: Path) -> None:
+    """Preserve a failed job receipt for an accepted but mismatched dispatch.
+
+    Never overwrite a terminal successful job on a wrong identifier.
+    """
+    if not re.fullmatch(r"[0-9a-f]{64}", identifier):
+        return
+    remote = (
+        GitHubJobWriter(repository, token) if os.getenv("CLIPOTECA_PERSIST_JOBS") == "1" else None
+    )
+    jobs = JobStore(root, remote=remote)
+    old = jobs.load(identifier)
+    if old is not None and old["status"] in {"published", "duplicate", "no_results", "dead_letter"}:
+        return
+    record = dict(old) if old is not None else new_job(identifier)
+    record["status"] = "failed"
+    record["source_errors"] = {**record.get("source_errors", {}), "pipeline": "request_id_mismatch"}
+    jobs.save(record)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -165,34 +198,34 @@ def main(argv: list[str] | None = None) -> int:
                 filters["providers"] = sorted(selected)
         expected = calculate_request_id(args.query, filters, args.horizon)
         if args.request_id and args.request_id != expected:
+            try:
+                _persist_request_id_mismatch(
+                    args.request_id, repository, token, Path(args.job_root)
+                )
+            except Exception:
+                # Never echo an upstream exception that may contain credentials.
+                print("request_id mismatch; job persistence unavailable", file=sys.stderr)
+                return 2
             print("request_id mismatch", file=sys.stderr)
             return 2
 
         async def run():
-            adapters = [
-                Pexels(),
-                Pixabay(),
-                WikimediaCommons(),
-                InternetArchive(),
-                NASA(),
-                YouTube(),
-                Rutube(),
-                PeerTube(),
-                Odysee(),
-                Bilibili(),
-                VKVideo(),
-                Douyin(),
-                TikTok(),
-                Instagram(),
-                Snapchat(),
-            ]
+            adapters = []
+            for spec in SOURCES:
+                if selected and spec.name not in selected:
+                    continue
+                try:
+                    adapters.append(spec.adapter())
+                except Exception as exc:
+                    adapters.append(
+                        _UnavailableAdapter(
+                            spec.name, spec.adapter.accepts_text_languages, type(exc).__name__
+                        )
+                    )
             try:
-                allowed = [
-                    adapter for adapter in adapters if not selected or adapter.name in selected
-                ]
                 return await ingest(
                     args.query,
-                    allowed,
+                    adapters,
                     repository=repository,
                     token=token,
                     max_results=min(int(filters.get("limit") or args.max_results), 50),
@@ -203,7 +236,9 @@ def main(argv: list[str] | None = None) -> int:
                 )
             finally:
                 for adapter in adapters:
-                    await adapter.client.aclose()
+                    client = getattr(adapter, "client", None)
+                    if client is not None:
+                        await client.aclose()
 
         report = asyncio.run(run())
         print(

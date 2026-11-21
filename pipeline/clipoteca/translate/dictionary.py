@@ -119,6 +119,8 @@ abeja|bee|蜜蜂|пчела
 automóvil|car|汽车|автомобиль
 camión|truck|卡车|грузовик
 autobús|bus|公共汽车|автобус
+autopista|highway|高速公路|автомагистраль
+autopistas|highways|高速公路|автомагистрали
 tren|train|火车|поезд
 avión|airplane|飞机|самолёт
 barco|ship|船|корабль

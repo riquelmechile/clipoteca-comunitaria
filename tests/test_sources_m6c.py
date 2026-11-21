@@ -30,7 +30,33 @@ def test_exported_source_snapshot_matches_code(tmp_path):
 
     expected = list_sources(env={})
     committed = Path(__file__).resolve().parents[1] / "data/sources.json"
-    assert json.loads(committed.read_text(encoding="utf-8")) == expected
+    # Actions rewrites the public credential-presence snapshot with real
+    # boolean availability. Stable capabilities must still match the code,
+    # but that runtime presence must not be mistaken for an offline fixture.
+    live = json.loads(committed.read_text(encoding="utf-8"))
+    assert len(live) == len(expected)
+    by_name = {row["name"]: row for row in live}
+    assert set(by_name) == {row["name"] for row in expected}
+    for row in expected:
+        observed = by_name[row["name"]]
+        assert isinstance(observed["credentials_present"], bool)
+        assert {
+            key: value
+            for key, value in observed.items()
+            if key not in {"status", "credentials_present", "download_supported"}
+        } == {
+            key: value
+            for key, value in row.items()
+            if key
+            not in {
+                "status",
+                "credentials_present",
+                "download_supported",
+                "requires",
+                "missing_credential_names",
+            }
+        }
+    assert "VERY-SECRET" not in json.dumps(live)
     destination = tmp_path / "sources.json"
     assert main(["export-sources", "--output", str(destination)]) == 0
     assert json.loads(destination.read_text(encoding="utf-8")) == expected

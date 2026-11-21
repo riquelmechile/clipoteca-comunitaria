@@ -26,8 +26,11 @@ async def probe(spec, lang: str, *, timeout: float = 6.0) -> dict:
         row["status"] = "AUTH_REQUIRED"
         row["elapsed_ms"] = 0
         return row
-    adapter = spec.adapter()
+    adapter = None
     try:
+        # Constructors are untrusted provider boundaries too: an invalid
+        # allowlist must not abort all the other provider/language probes.
+        adapter = spec.adapter()
         result = await asyncio.wait_for(
             adapter.search(TERMS[lang], lang, SearchLimits(1, 3, timeout)),
             timeout=timeout,
@@ -45,7 +48,7 @@ async def probe(spec, lang: str, *, timeout: float = 6.0) -> dict:
         row["status"] = "UNAVAILABLE"
         row["error_type"] = type(exc).__name__
     finally:
-        client = getattr(adapter, "client", None)
+        client = getattr(adapter, "client", None) if adapter is not None else None
         if client is not None and hasattr(client, "aclose"):
             await client.aclose()
     row["elapsed_ms"] = round((time.monotonic() - started) * 1000, 1)

@@ -59,12 +59,9 @@ def relocalize_catalog(
         localized = localize_candidate(candidate, translator=translator)
         clip["title"] = localized.title
         clip["description"] = localized.description
-        clip["tags"] = {
-            language: list(
-                dict.fromkeys([*(clip["tags"].get(language) or []), *localized.tags[language]])
-            )
-            for language in ("es", "en")
-        }
+        # Replace stale machine-generated tags, including corrupted Argos
+        # output, rather than merging those values back into the new index.
+        clip["tags"] = localized.tags
         clip["source"]["source_language"] = source_language
 
     # Store atomically only after all Argos translations returned valid text.

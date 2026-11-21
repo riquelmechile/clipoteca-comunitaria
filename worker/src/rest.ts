@@ -73,8 +73,13 @@ function parseFilters(raw: unknown): Filters {
 function parseSearch(body: unknown): SearchInput {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new TypeError("body must be object");
   const obj = body as Record<string, unknown>;
-  if (Object.keys(obj).some((key) => !["query", "filters"].includes(key)) ||
-      typeof obj.query !== "string" || !obj.query.trim() || obj.query.length > 200) {
+  const unknown = Object.keys(obj).find((key) => !["query", "filters"].includes(key));
+  if (unknown) {
+    // Identify the invalid field without reflecting an unbounded user-controlled key.
+    throw new TypeError("unknown body field: " + unknown.slice(0, 64) +
+      "; filter options belong under filters");
+  }
+  if (typeof obj.query !== "string" || !obj.query.trim() || obj.query.length > 200) {
     throw new TypeError("query must be nonempty text of at most 200 characters");
   }
   return { query: obj.query.trim(), filters: parseFilters(obj.filters) };
@@ -134,6 +139,28 @@ async function quota(request: Request, scope: string): Promise<boolean> {
   return true;
 }
 
+// The Worker has no durable queued record until the workflow starts. Keep
+// a short-lived marker *only after* a successful dispatch, so an identical
+// import is idempotent even when repeated before Python writes its first job.
+function recentImportKey(id: string): Request {
+  return new Request("https://clipoteca.invalid/_import/" + id);
+}
+async function recentlyDispatched(id: string): Promise<boolean> {
+  try {
+    const cache = (caches as CacheStorage & { default: Cache }).default;
+    return Boolean(cache && await cache.match(recentImportKey(id)));
+  } catch { return false; }
+}
+async function rememberDispatch(id: string): Promise<void> {
+  try {
+    const cache = (caches as CacheStorage & { default: Cache }).default;
+    if (cache) {
+      await cache.put(recentImportKey(id),
+        new Response("queued", { headers: { "cache-control": "public, max-age=30" } }));
+    }
+  } catch { /* A cache failure must not turn an accepted dispatch into a 503. */ }
+}
+
 export async function submitImport(
   request: Request, env: RestEnv, input: SearchInput,
 ): Promise<Response> {
@@ -160,11 +187,18 @@ export async function submitImport(
       && !isStaleJob(old)) {
     return json({ request_id: rid, status: old.status, job: old }, 202);
   }
+  if (await recentlyDispatched(rid)) {
+    return json({ request_id: rid, status: "queued" }, 202);
+  }
   if (!await quota(request, "import")) return error("rate_limited", "Too many imports", 429);
-  const dispatched = await dispatchIngest(request, env, input, rid);
+  // The Python workflow must receive the identical filter set hashed above;
+  // omitting a default (max_duration=20) caused the live request_id mismatch.
+  const dispatched = await dispatchIngest(request, env,
+    { ...input, filters: dispatchFilters }, rid);
   if (!dispatched.ok) {
     return error(dispatched.code, dispatched.message, dispatched.status);
   }
+  await rememberDispatch(rid);
   return json({ request_id: rid, status: "queued" }, 202);
 }
 
