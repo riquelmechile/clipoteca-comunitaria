@@ -1,15 +1,26 @@
-# Contrato MCP v1
+# Contrato MCP v1 (Streamable HTTP)
 
-El endpoint `/mcp` usa Streamable HTTP sin estado con el SDK oficial TypeScript v2. Las respuestas contienen objetos estructurados y URLs; nunca bytes de video.
+Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente seis tools** con outputSchema tipado por herramienta; no usa envoltorio genérico {result} ni esquemas z.unknown(). Las respuestas estructuradas contienen metadatos y enlaces, nunca bytes de video.
 
-| Tool | Input | Output |
+| Tool | Entrada | Salida estructurada |
 |---|---|---|
-| `search_clips` | `{query, aspect_ratio?, max_duration?, min_width?, source?, limit?, import_if_missing?}` | `{clips, next_cursor, request_id?, status?}` |
-| `get_clip` | `{clip_id}` | `{clip}` conforme a `clip.schema.json` |
-| `download_clip` | `{clip_id}` | `{url}` directa al MP4 publicado |
-| `search_and_import` | `{query, aspect_ratio?, max_results?}` | `{request_id, status}` |
-| `get_job_status` | `{request_id}` | objeto conforme a `job.schema.json` |
-| `list_sources` | `{}` | `{sources:[{provider,status}]}` |
+| search_clips | {query, aspect_ratio?, max_duration?, min_width?, fps?, source?, language?, has_audio?, limit?, cursor?, import_if_missing?} | {clips, next_cursor, request_id?, status?} con paginación real |
+| get_clip | {clip_id} | {clip} conforme a clip.schema.json |
+| download_clip | {clip_id} | {clip_id?, url} de GitHub Releases |
+| search_and_import | {query, aspect_ratio?, max_results?} | {request_id, status}, credencial necesaria |
+| get_job_status | {request_id} | Registro Job conforme a job.schema.json, o error MCP si 404 |
+| list_sources | {} | {sources:[{provider,status}], kind?}, snapshot de GitHub Actions |
 
-Las operaciones de escritura exigen credencial. Los estados de soporte válidos son `SUPPORTED_SEARCH_DOWNLOAD`, `SUPPORTED_SEARCH_ONLY`, `AUTH_REQUIRED`, `RATE_LIMITED`, `UNAVAILABLE` y `TIMEOUT`.
+Las solicitudes de importación reales exigen el token configurado; las búsquedas de catálogo son públicas, con cuota acotada para import_if_missing. Los valores de credenciales nunca se devuelven.
 
+## Seguridad y host de despliegue
+
+Cuando MCP_ALLOWED_HOSTS no está configurado, el Worker acepta el Host que coincide exactamente con el hostname de la URL propia de la request (dominio workers.dev o dominio personalizado). No acepta un Host falsificado. MCP_ALLOWED_ORIGINS puede especificarse para clientes de navegador; las solicitudes sin Origin se aceptan si superan la validación de Host.
+
+El endpoint /v1/health comprueba acceso real al catálogo e inicialización del servidor MCP; responde degraded/503 ante fallas. No implica que las 15 APIs externas estén disponibles.
+
+## Estados e información de fuentes
+
+list_sources usa data/sources.json generado en Actions en cada ingesta y por cron diario. Se publica únicamente el booleano credentials_present junto con estados y capacidades, sin valores secretos. Los estados posibles incluyen SUPPORTED_SEARCH_DOWNLOAD, SUPPORTED_SEARCH_ONLY, AUTH_REQUIRED, RATE_LIMITED, UNAVAILABLE y TIMEOUT.
+
+La publicación real, descarga y E2E de terceros deben validarse por separado. Para desplegar ver [DESPLIEGUE.md](DESPLIEGUE.md).

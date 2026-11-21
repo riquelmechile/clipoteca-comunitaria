@@ -1,51 +1,183 @@
 openapi: 3.1.0
 info:
-  title: Clipoteca Comunitaria API
+  title: Clipoteca Comunitaria REST API
   version: 0.1.0
+  description: |
+    Public catalogue/search and Issue contributions. Authenticated imports use
+    a write bearer token. MCP uses a separate Streamable HTTP endpoint.
+components:
+  securitySchemes:
+    writeToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}
+    Filters:
+      type: object
+      additionalProperties: false
+      properties:
+        aspect_ratio: {type: [string, "null"], enum: ["9:16", "16:9", "1:1", other, null]}
+        max_duration: {type: number, exclusiveMinimum: 0, maximum: 20}
+        min_width: {type: integer, minimum: 1}
+        fps: {type: number, exclusiveMinimum: 0}
+        source: {type: string, pattern: "^[a-z0-9_]{1,64}$"}
+        language: {type: string, enum: [es, en, zh, ru]}
+        has_audio: {type: boolean}
+        limit: {type: integer, minimum: 1, maximum: 100}
+        cursor: {type: string, pattern: "^(0|[1-9][0-9]*)$"}
+        import_if_missing: {type: boolean}
+    SearchBody:
+      type: object
+      required: [query]
+      additionalProperties: false
+      properties:
+        query: {type: string, minLength: 1, maxLength: 200}
+        filters: {$ref: "#/components/schemas/Filters"}
+    SearchResponse:
+      type: object
+      required: [clips, next_cursor]
+      properties:
+        clips: {type: array, items: {type: object}}
+        next_cursor: {type: [string, "null"]}
+        request_id: {type: string, pattern: "^[0-9a-f]{64}$"}
+        status: {type: string}
+    Job:
+      type: object
+      required: [request_id, status]
+      properties:
+        request_id: {type: string, pattern: "^[0-9a-f]{64}$"}
+        status:
+          type: string
+          enum: [queued, searching, fetching, processing, publishing, published,
+            duplicate, no_results, failed, rate_limited, unavailable, dead_letter]
+        attempt: {type: integer, minimum: 1}
+        updated_at: {type: string, format: date-time}
+    ContributionBody:
+      type: object
+      additionalProperties: false
+      required: [title, url]
+      properties:
+        title: {type: string, minLength: 3, maxLength: 120}
+        url: {type: string, format: uri, description: "Public direct HTTPS MP4/WebM/OGV"}
+        notes: {type: string, maxLength: 1000}
 paths:
   /v1/health:
     get:
       operationId: health
-      responses: {"200": {description: Healthy}}
+      description: Checks actual catalogue access and the MCP server's startup.
+      responses:
+        "200": {description: All checks ready}
+        "503": {description: A check unavailable}
+        "405": {description: Method not allowed}
   /v1/clips:
     get:
       operationId: listClips
       parameters:
-        - {name: q, in: query, schema: {type: string}}
+        - {name: q, in: query, schema: {type: string, maxLength: 200}}
         - {name: aspect_ratio, in: query, schema: {type: string, enum: ["9:16", "16:9", "1:1", other]}}
-      responses: {"200": {description: Catalog results}}
+        - {name: max_duration, in: query, schema: {type: number, exclusiveMinimum: 0, maximum: 20}}
+        - {name: min_width, in: query, schema: {type: integer, minimum: 1}}
+        - {name: fps, in: query, schema: {type: number, exclusiveMinimum: 0}}
+        - {name: source, in: query, schema: {type: string}}
+        - {name: language, in: query, schema: {type: string, enum: [es,en,zh,ru]}}
+        - {name: has_audio, in: query, schema: {type: boolean}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100}}
+        - {name: cursor, in: query, schema: {type: string, pattern: "^(0|[1-9][0-9]*)$"}}
+      responses:
+        "200": {description: Paginated catalogue with items and next_cursor}
+        "400": {description: Invalid filters or pagination}
+        "503": {description: Catalogue unavailable}
   /v1/clips/{id}:
     get:
       operationId: getClip
-      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
-      responses: {"200": {description: Clip}, "404": {description: Not found}}
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, pattern: "^clip-[0-9]{6}$"}}
+      responses:
+        "200": {description: Clip metadata}
+        "404": {description: Clip not found}
+        "503": {description: Catalogue unavailable}
   /v1/clips/{id}/download:
     get:
       operationId: downloadClip
-      parameters: [{name: id, in: path, required: true, schema: {type: string}}]
-      responses: {"302": {description: Redirect to GitHub Release asset}, "404": {description: Not found}}
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, pattern: "^clip-[0-9]{6}$"}}
+      responses:
+        "302": {description: Redirect to verified GitHub Releases media}
+        "404": {description: Clip not found}
+        "503": {description: Catalogue unavailable}
   /v1/search:
     post:
       operationId: search
-      security: [{writeToken: []}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: ../schemas/search.schema.json}}}}
-      responses: {"200": {description: Existing results}, "202": {description: External search queued}}
+      description: |
+        Public catalogue search. filters.import_if_missing=true may queue a
+        bounded import after quota and GitHub dispatch confirmation; no bearer
+        required for the public search route.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SearchBody"}
+      responses:
+        "200": {description: Existing paginated results}
+        "202": {description: Import accepted; includes deterministic request_id}
+        "400": {description: Invalid input}
+        "409": {description: Unexpired terminal retry budget}
+        "429": {description: Import quota or dispatch rate limited}
+        "503": {description: Catalogue, GitHub or jobs unavailable}
   /v1/jobs/{request_id}:
     get:
       operationId: getJob
-      parameters: [{name: request_id, in: path, required: true, schema: {type: string}}]
-      responses: {"200": {description: Job status}, "404": {description: Not found}}
+      parameters:
+        - {name: request_id, in: path, required: true, schema: {type: string, pattern: "^[0-9a-f]{64}$"}}
+      responses:
+        "200":
+          description: Existing durable job
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Job"}
+        "400": {description: Invalid request_id}
+        "404": {description: Job does not exist}
+        "503": {description: Job storage unavailable}
   /v1/import:
     post:
       operationId: importClip
       security: [{writeToken: []}]
-      responses: {"202": {description: Import queued}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SearchBody"}
+      responses:
+        "200": {description: Existing terminal result}
+        "202": {description: Import accepted}
+        "400": {description: Invalid input}
+        "401": {description: Write token required}
+        "409": {description: Retry budget exhausted temporarily}
+        "429": {description: Quota or GitHub rate limit}
+        "503": {description: Dispatch or job storage unavailable}
   /v1/contributions:
     post:
       operationId: contribute
-      security: [{writeToken: []}]
-      responses: {"202": {description: Contribution queued}}
-components:
-  securitySchemes:
-    writeToken: {type: http, scheme: bearer}
-
+      description: |
+        Public endpoint creates a GitHub Issue, then the Issue workflow triggers
+        automatic guarded ingestion. Successful Issue creation does not mean
+        the media has yet been published.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ContributionBody"}
+      responses:
+        "201": {description: Issue created; status queued}
+        "400": {description: Invalid input}
+        "429": {description: Public contribution rate limit}
+        "503": {description: Issue service unavailable}

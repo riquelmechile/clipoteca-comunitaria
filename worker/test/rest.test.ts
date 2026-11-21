@@ -52,7 +52,7 @@ describe("M7 REST contract", () => {
     expect(denied.status).toBe(401);
   });
 
-  it("returns 202 only after accepting GitHub dispatch, job unknown is queued", async () => {
+  it("returns 202 only after accepting GitHub dispatch, job unknown returns 404", async () => {
     const req = new Request("https://api.test/v1/search", {
       method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.7" },
       body: JSON.stringify({ query: "unseen footage", filters: { import_if_missing: true } }),
@@ -63,7 +63,8 @@ describe("M7 REST contract", () => {
     const result = (await response.json()) as { request_id: string };
     expect(result.request_id).toMatch(/^[a-f0-9]{64}$/);
     const job = await worker.fetch(new Request("https://api.test/v1/jobs/" + result.request_id));
-    expect(await job.json()).toMatchObject({ status: "queued", detail: "unknown" });
+    expect(job.status).toBe(404);
+    expect(await job.json()).toMatchObject({ error: { code: "job_not_found" } });
   });
 
   it("never returns 202 when dispatch fails", async () => {

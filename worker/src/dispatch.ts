@@ -8,7 +8,13 @@ export interface DispatchInput {
   filters: {
     aspect_ratio?: string | null;
     max_duration?: number;
+    min_width?: number;
+    fps?: number;
+    source?: string;
+    language?: string;
+    has_audio?: boolean;
     limit?: number;
+    cursor?: string;
   };
 }
 export type DispatchResult = { ok: true } |
@@ -27,6 +33,7 @@ function dispatchInputs(input: DispatchInput, requestId: string): Record<string,
     aspect_ratio: input.filters.aspect_ratio ?? "",
     max_duration: String(input.filters.max_duration ?? 20),
     max_results: String(Math.min(input.filters.limit ?? 3, 50)),
+    filters_json: JSON.stringify(input.filters),
   };
 }
 
@@ -37,12 +44,6 @@ export async function dispatchIngest(
   const token = env.CLIPOTECA_DISPATCH_TOKEN;
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   if (!token || !/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(repo)) return UNAVAILABLE;
-
-  // Cache only accepted dispatches. Failed GitHub calls are never treated as queued.
-  // Cache API is per-Cloudflare colo, so this is a best-effort deduplication hint.
-  const cache = (caches as CacheStorage & { default: Cache }).default;
-  const key = new Request("https://clipoteca.invalid/_dispatch/" + requestId);
-  if (cache && await cache.match(key)) return { ok: true };
 
   let response: Response;
   try {
@@ -65,9 +66,6 @@ export async function dispatchIngest(
   }
 
   if (response.status === 204) {
-    if (cache) await cache.put(key, new Response("accepted", {
-      headers: { "cache-control": "public, max-age=60" },
-    }));
     return { ok: true };
   }
   if (response.status === 429 || response.status === 403 &&

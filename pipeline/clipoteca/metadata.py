@@ -47,7 +47,11 @@ def _bilingual(
 
 def humanize_source_title(value: str) -> str:
     """Remove stock-video URL slugs/IDs without manufacturing scene details."""
-    value = value.strip().rsplit("/", 1)[-1]
+    value = value.strip()
+    if re.match(r"^(?:https?://|/|[A-Za-z]:[/\\\\])", value, re.IGNORECASE) or re.search(
+        r"/[^/]+\.(?:mp4|webm|ogv|mov|mkv)$", value, re.IGNORECASE
+    ):
+        value = value.rsplit("/", 1)[-1]
     value = re.sub(r"[-_ ]+\d{5,}$", "", value)
     value = re.sub(r"[-_]+", " ", value)
     value = re.sub(r"\s+", " ", value).strip()
@@ -56,8 +60,43 @@ def humanize_source_title(value: str) -> str:
     return value[0].upper() + value[1:]
 
 
+STOPWORDS = {
+    "the",
+    "and",
+    "for",
+    "with",
+    "from",
+    "that",
+    "this",
+    "over",
+    "del",
+    "los",
+    "las",
+    "una",
+    "unos",
+    "unas",
+    "para",
+    "por",
+    "con",
+    "que",
+    "the",
+    "are",
+    "dans",
+    "sobre",
+    "entre",
+    "como",
+    "de",
+    "el",
+    "la",
+}
+
+
 def _title_tags(title: str) -> list[str]:
-    return [word for word in re.findall(r"[^\W_]+", title, flags=re.UNICODE) if len(word) > 2][:12]
+    return [
+        word
+        for word in re.findall(r"[^\W_]+", title, flags=re.UNICODE)
+        if len(word) > 2 and word.casefold() not in STOPWORDS
+    ][:12]
 
 
 def localize_candidate(
