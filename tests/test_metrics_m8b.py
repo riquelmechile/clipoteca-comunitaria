@@ -6,8 +6,8 @@ import pytest
 
 from clipoteca.ingest import ingest
 from clipoteca.jobs import JobStore
-from clipoteca.metrics import discovery_metrics, write_metrics
-from clipoteca.providers.base import Adapter, Candidate, MediaRef, RateLimited, SearchLimits, SupportStatus
+from clipoteca.metrics import write_metrics
+from clipoteca.providers.base import Adapter, Candidate, RateLimited, SupportStatus
 
 
 class CatalogWriter:
