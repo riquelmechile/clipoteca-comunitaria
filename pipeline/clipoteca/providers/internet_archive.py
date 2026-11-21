@@ -24,16 +24,52 @@ SEARCH = "https://archive.org/advancedsearch.php"
 BASE_QUERY = 'mediatype:movies AND format:(h.264 OR "h.264 IA" OR "512Kb MPEG4" OR MPEG4)'
 SEARCH_FIELDS = ("title", "subject", "description", "shotlist")
 RESULT_FIELDS = (
-    "identifier", "title", "subject", "description", "downloads",
-    "collection", "shotlist", "format", "mediatype",
+    "identifier",
+    "title",
+    "subject",
+    "description",
+    "downloads",
+    "collection",
+    "shotlist",
+    "format",
+    "mediatype",
 )
 VIDEO_SUFFIXES = (".mp4", ".webm", ".ogv", ".m4v")
 MAX_MEDIA_BYTES = MAX_DOWNLOAD_BYTES
-STOPWORDS = frozenset({
-    "a", "an", "and", "at", "by", "de", "del", "el", "en", "for", "in",
-    "la", "las", "los", "of", "on", "or", "the", "to", "un", "una",
-    "y", "with", "con", "por", "para", "и", "в", "на", "с",
-})
+STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "at",
+        "by",
+        "de",
+        "del",
+        "el",
+        "en",
+        "for",
+        "in",
+        "la",
+        "las",
+        "los",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "un",
+        "una",
+        "y",
+        "with",
+        "con",
+        "por",
+        "para",
+        "и",
+        "в",
+        "на",
+        "с",
+    }
+)
 LUCENE_SPECIAL = re.compile(r'([+&|!(){}\[\]^"~*?:\\/\-])')
 
 
@@ -73,9 +109,7 @@ def _score(doc: dict, terms: list[str]) -> float:
     subject = _text(doc.get("subject")).casefold()
     shotlist = _text(doc.get("shotlist")).casefold()
     score = sum(
-        (3 if term in title else 0)
-        + (2 if term in subject else 0)
-        + (1 if term in shotlist else 0)
+        (3 if term in title else 0) + (2 if term in subject else 0) + (1 if term in shotlist else 0)
         for term in terms
     )
     try:
@@ -122,10 +156,7 @@ def _file_size(entry: dict) -> int:
 
 def _media_url(identifier: str, name: str) -> str:
     return (
-        "https://archive.org/download/"
-        + quote(identifier, safe="")
-        + "/"
-        + quote(name, safe="/")
+        "https://archive.org/download/" + quote(identifier, safe="") + "/" + quote(name, safe="/")
     )
 
 
@@ -166,17 +197,19 @@ def select_derivatives(files: list, identifier: str) -> tuple[dict | None, dict 
         if not _safe_video_name(name) or not 0 < size <= MAX_MEDIA_BYTES:
             continue
         # Archives may hold multiple recordings; preserve the original chain.
-        valid.append({
-            "name": name,
-            "size": size,
-            "format": _text(item.get("format")),
-            "root": root(name),
-            "derived": bool(item.get("original"))
-            or str(item.get("source", "")).casefold() == "derivative",
-            "url": _media_url(identifier, name),
-            "mime": _mime(name),
-            "kind": _kind(item),
-        })
+        valid.append(
+            {
+                "name": name,
+                "size": size,
+                "format": _text(item.get("format")),
+                "root": root(name),
+                "derived": bool(item.get("original"))
+                or str(item.get("source", "")).casefold() == "derivative",
+                "url": _media_url(identifier, name),
+                "mime": _mime(name),
+                "kind": _kind(item),
+            }
+        )
     if not valid:
         return None, None
     groups: dict[str, list[dict]] = {}
@@ -186,11 +219,10 @@ def select_derivatives(files: list, identifier: str) -> tuple[dict | None, dict 
         min(group, key=lambda x: (not x["derived"], x["kind"], x["size"], x["name"]))
         for group in groups.values()
     ]
-    chosen = min(
-        candidates, key=lambda x: (not x["derived"], x["kind"], x["size"], x["name"])
-    )
+    chosen = min(candidates, key=lambda x: (not x["derived"], x["kind"], x["size"], x["name"]))
     scanners = [item for item in valid if item["kind"] == 2]
     scan = min(scanners, key=lambda x: (x["size"], x["name"])) if scanners else None
+
     def public(item: dict | None) -> dict | None:
         if item is None:
             return None
@@ -236,9 +268,7 @@ class InternetArchive(Adapter):
             max_retry_after_seconds=5.0,
         )
 
-    async def _search_stage(
-        self, terms: list[str], *, all_terms: bool
-    ) -> list[dict]:
+    async def _search_stage(self, terms: list[str], *, all_terms: bool) -> list[dict]:
         query = build_query(terms, all_terms=all_terms)
         params = [
             ("q", query),
@@ -307,9 +337,7 @@ class InternetArchive(Adapter):
         item = await self._json(f"https://archive.org/metadata/{quote(identifier, safe='')}")
         enriched = dict(item)
         files = item.get("files", [])
-        media, scan = select_derivatives(
-            files if isinstance(files, list) else [], identifier
-        )
+        media, scan = select_derivatives(files if isinstance(files, list) else [], identifier)
         enriched["clipoteca_media"] = media
         enriched["clipoteca_scan_media"] = scan
         if len(self._metadata_cache) >= 100:
@@ -322,6 +350,4 @@ class InternetArchive(Adapter):
         selected = item.get("clipoteca_media")
         if not isinstance(selected, dict):
             return None
-        return MediaRef(
-            selected["url"], selected["mime"], selected["size"]
-        )
+        return MediaRef(selected["url"], selected["mime"], selected["size"])

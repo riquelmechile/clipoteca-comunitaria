@@ -49,28 +49,30 @@ async def test_advancedsearch_two_stages_and_relevance_order():
         assert request.url.path == "/advancedsearch.php"
         query = request.url.params["q"]
         calls.append(query)
-        assert request.url.params.get_list("sort[]") == [
-            "downloads desc", "identifier asc"
-        ]
+        assert request.url.params.get_list("sort[]") == ["downloads desc", "identifier asc"]
         assert request.url.params["rows"] == "100"
         assert "h.264" in query
         assert request.url.params.get_list("fl[]")
         if " AND (title:" in query and " OR (title:" not in query:
-            docs = [{
-                "identifier": "less_relevant",
-                "title": "Dry footage",
-                "description": "Rain and city",
-                "downloads": "100",
-            }]
+            docs = [
+                {
+                    "identifier": "less_relevant",
+                    "title": "Dry footage",
+                    "description": "Rain and city",
+                    "downloads": "100",
+                }
+            ]
         else:
-            docs = [{
-                "identifier": "best",
-                "title": "Rain in city",
-                "subject": ["rain"],
-                "shotlist": "city street",
-                "downloads": 25,
-                "format": ["h.264"],
-            }]
+            docs = [
+                {
+                    "identifier": "best",
+                    "title": "Rain in city",
+                    "subject": ["rain"],
+                    "shotlist": "city street",
+                    "downloads": 25,
+                    "format": ["h.264"],
+                }
+            ]
         return httpx.Response(
             200,
             json={
@@ -185,9 +187,7 @@ async def test_429_retry_after_and_503_then_200(monkeypatch):
         code = statuses.pop(0)
         if code == 200:
             return httpx.Response(200, json={"response": {"docs": []}})
-        return httpx.Response(
-            code, json={"detail": "rate limited"}, headers={"Retry-After": "2"}
-        )
+        return httpx.Response(code, json={"detail": "rate limited"}, headers={"Retry-After": "2"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         adapter = InternetArchive(client=client, min_interval_seconds=0)
