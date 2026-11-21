@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import os
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit, urlunsplit
 
 import httpx
 
-from .base import Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
+from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
 from .http import fetch_json
 
 API = "https://images-api.nasa.gov"
@@ -44,12 +44,9 @@ class NASA(Adapter):
                     provider_id=nasa_id,
                     term=term,
                     language=lang,
-                    source_url=str(
-                        item.get("href")
-                        or f"https://images.nasa.gov/details/{quote(nasa_id, safe='')}"
-                    ),
+                    source_url=f"https://images.nasa.gov/details/{quote(nasa_id, safe='')}",
                     source_title=str(data.get("title") or nasa_id),
-                    source_language=lang,
+                    source_language=detect_source_language(str(data.get("title") or nasa_id)),
                     metadata={"data": data, "item": item},
                 )
             )
@@ -73,10 +70,23 @@ class NASA(Adapter):
         urls = []
         for item in manifest.get("collection", {}).get("items", []):
             url = str(item.get("href") or "")
+            parsed = urlsplit(url)
+            if parsed.scheme == "http" and parsed.hostname == "images-assets.nasa.gov":
+                url = urlunsplit(
+                    ("https", parsed.netloc, parsed.path, parsed.query, parsed.fragment)
+                )
             if url.startswith("https://") and url.lower().split("?", 1)[0].endswith(".mp4"):
                 urls.append(url)
         if not urls:
             return None
-        # Prefer a smaller publicly documented rendition when present.
-        urls.sort(key=lambda value: ("~orig" in value.lower(), len(value)))
+        priorities = ("~medium", "~large", "~small", "~mobile", "~orig")
+
+        def preference(value: str) -> int:
+            lower = value.lower().split("?", 1)[0]
+            return next(
+                (index for index, name in enumerate(priorities) if name in lower),
+                len(priorities),
+            )
+
+        urls.sort(key=lambda value: (preference(value), value))
         return MediaRef(urls[0], "video/mp4")

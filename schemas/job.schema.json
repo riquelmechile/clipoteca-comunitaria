@@ -10,6 +10,8 @@
     "status": {"enum": ["queued", "searching", "fetching", "processing", "publishing", "published", "no_results", "duplicate", "failed", "rate_limited", "unavailable"]},
     "language_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
     "provider_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
-    "source_errors": {"type": "object", "additionalProperties": {"type": "string"}}
+    "source_errors": {"type": "object", "additionalProperties": {"type": "string"}},
+    "terms": {"type": "object", "additionalProperties": {"type": "string"}},
+    "duplicate_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
   }
 }

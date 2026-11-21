@@ -9,6 +9,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
+from .process_env import safe_media_env
 from .orientation import classify_orientation
 
 
@@ -123,6 +124,7 @@ def probe_media(path: str | Path, *, timeout: float = 30) -> MediaProbe:
             text=True,
             timeout=timeout,
             check=True,
+            env=safe_media_env(),
         )
         return parse_probe(json.loads(completed.stdout), source)
     except (subprocess.SubprocessError, json.JSONDecodeError, OSError, KeyError, ValueError) as exc:

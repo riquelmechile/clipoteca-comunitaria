@@ -225,7 +225,10 @@ fachada|facade|立面|фасад"""
 
 
 def normalize(value: str) -> str:
-    return unicodedata.normalize("NFKC", value).casefold().strip()
+    compatible = unicodedata.normalize("NFKC", value).casefold()
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", compatible) if unicodedata.category(c) != "Mn"
+    ).strip()
 
 
 @dataclass(frozen=True)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from .process_env import safe_media_env
 from .probe import probe_media
 
 
@@ -38,7 +39,14 @@ def create_thumbnail(source: str | Path, destination: str | Path, *, timeout: fl
         str(output_path),
     ]
     try:
-        subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True)
+        subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=True,
+            env=safe_media_env(),
+        )
     except (subprocess.SubprocessError, OSError) as exc:
         output_path.unlink(missing_ok=True)
         raise ThumbnailError("failed to generate thumbnail") from exc

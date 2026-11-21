@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 
+from .process_env import safe_media_env
 from .probe import MediaProbe, probe_media
 
 
@@ -81,7 +82,14 @@ def normalize_media(
         str(output_path),
     ]
     try:
-        subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=True)
+        subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=True,
+            env=safe_media_env(),
+        )
         result = probe_media(output_path, timeout=min(timeout, 30))
     except (subprocess.SubprocessError, OSError) as exc:
         output_path.unlink(missing_ok=True)

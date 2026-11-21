@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
-from .base import Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
+from .base import detect_source_language, Adapter, Candidate, MediaRef, SearchLimits, SupportStatus
 from .http import fetch_json
 
 API = "https://commons.wikimedia.org/w/api.php"
@@ -34,8 +35,9 @@ class WikimediaCommons(Adapter):
                 "gsrsearch": f"filetype:video {term}",
                 "gsrnamespace": 6,
                 "gsrlimit": min(50, limits.max_candidates),
-                "prop": "imageinfo",
-                "iiprop": "url|size|mime",
+                "prop": "imageinfo|info",
+                "inprop": "url",
+                "iiprop": "url|size|mime|extmetadata",
             },
         )
         pages = payload.get("query", {}).get("pages", {})
@@ -56,9 +58,14 @@ class WikimediaCommons(Adapter):
                     provider_id=str(page.get("pageid", title)),
                     term=term,
                     language=lang,
-                    source_url=str(page.get("canonicalurl") or direct),
+                    source_url=str(
+                        page.get("fullurl")
+                        or page.get("canonicalurl")
+                        or "https://commons.wikimedia.org/wiki/"
+                        + quote(title.replace(" ", "_"), safe=":()")
+                    ),
                     source_title=title.removeprefix("File:").replace("_", " "),
-                    source_language=lang,
+                    source_language=detect_source_language(title),
                     width=info.get("width"),
                     height=info.get("height"),
                     metadata={"page": page, "info": info},

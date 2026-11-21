@@ -40,6 +40,7 @@ async def validate_public_url(
     url: str,
     *,
     resolver: Callable[[str], Iterable[str]] | Callable | None = None,
+    validated_addresses: list[str] | None = None,
 ) -> str:
     try:
         parsed = urlsplit(url)
@@ -66,6 +67,8 @@ async def validate_public_url(
     if literal:
         if not _is_public(host):
             raise UnsafeMediaURL("private or special-use IP address")
+        if validated_addresses is not None:
+            validated_addresses.append(str(literal))
     else:
         fn = resolver or _default_resolver
         addresses = fn(host)
@@ -74,4 +77,6 @@ async def validate_public_url(
         addresses = list(addresses)
         if not addresses or not all(_is_public(str(addr)) for addr in addresses):
             raise UnsafeMediaURL("DNS returned private, special-use or empty address")
+        if validated_addresses is not None:
+            validated_addresses.extend(str(address) for address in addresses)
     return url
