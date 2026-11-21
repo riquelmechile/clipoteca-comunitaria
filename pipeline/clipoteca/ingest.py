@@ -116,6 +116,21 @@ async def ingest(
             job["status"] = stage
         jobs.save(job)
 
+    def record_duplicate(candidate, duplicate: dict, reason: str) -> None:
+        clip_id = duplicate["id"]
+        errors.append(f"{candidate.origin_id}:duplicate:{clip_id}:{reason}")
+        duplicate_ids = job.setdefault("duplicate_ids", [])
+        if clip_id not in duplicate_ids:
+            duplicate_ids.append(clip_id)
+        provenance = (
+            "duplicate_cross_provider"
+            if duplicate["source"]["provider"] != candidate.provider
+            else "duplicate"
+        )
+        # The clip schema has a single source object. Preserve the discarded
+        # provenance in the durable job instead of widening published records.
+        job["source_errors"][candidate.origin_id] = f"{provenance}:{reason}:{clip_id}"
+
     try:
         advance("searching")
         expansion = (
@@ -208,6 +223,19 @@ async def ingest(
                 errors.append(f"{candidate.origin_id}:search_only")
                 job["source_errors"][candidate.origin_id] = "search_only"
                 continue
+            candidate_draft = {
+                "source": {
+                    "provider": candidate.provider,
+                    "provider_id": candidate.provider_id,
+                    "source_title": candidate.source_title,
+                    "source_url": candidate.source_url,
+                },
+                "media": {},
+            }
+            early_duplicate = catalogue.duplicate_match(candidate_draft)
+            if early_duplicate:
+                record_duplicate(candidate, *early_duplicate)
+                continue
             with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
                 temp = Path(work)
                 try:
@@ -260,13 +288,14 @@ async def ingest(
                         "source": {
                             "provider": candidate.provider,
                             "provider_id": candidate.provider_id,
+                            "source_title": localized.original_title,
+                            "source_url": candidate.source_url,
                         },
                         "media": {"sha256": digest, "perceptual_hash": frame_hash},
                     }
-                    duplicate = remote.find_duplicate(draft, phash_similar=perceptually_similar)
+                    duplicate = remote.duplicate_match(draft, phash_similar=perceptually_similar)
                     if duplicate:
-                        errors.append(f"{candidate.origin_id}:duplicate:{duplicate['id']}")
-                        job.setdefault("duplicate_ids", []).append(duplicate["id"])
+                        record_duplicate(candidate, *duplicate)
                         continue
                     release = storage.get_or_create_batch_release(date.today())
                     reserved = (
@@ -338,8 +367,11 @@ async def ingest(
                             # another attempt's asset; a retry gets a distinct clip ID.
                             reserved.add(identifier)
                             remote, _ = writer.read_catalog()
-                            if remote.find_duplicate(draft, phash_similar=perceptually_similar):
-                                errors.append(f"{candidate.origin_id}:duplicate")
+                            duplicate = remote.duplicate_match(
+                                draft, phash_similar=perceptually_similar
+                            )
+                            if duplicate:
+                                record_duplicate(candidate, *duplicate)
                                 break
                             continue
                         clip["storage"]["asset_url"] = video.browser_download_url
@@ -360,8 +392,23 @@ async def ingest(
                             remote, _ = writer.read_catalog()
                             continue
                         except DuplicateClip as duplicate:
-                            errors.append(f"{candidate.origin_id}:duplicate:{duplicate.clip_id}")
-                            job.setdefault("duplicate_ids", []).append(duplicate.clip_id)
+                            remote, _ = writer.read_catalog()
+                            match = remote.duplicate_match(
+                                draft, phash_similar=perceptually_similar
+                            )
+                            if match and match[0]["id"] == duplicate.clip_id:
+                                record_duplicate(candidate, *match)
+                            else:
+                                errors.append(
+                                    f"{candidate.origin_id}:duplicate:"
+                                    f"{duplicate.clip_id}:concurrent_catalog"
+                                )
+                                duplicate_ids = job.setdefault("duplicate_ids", [])
+                                if duplicate.clip_id not in duplicate_ids:
+                                    duplicate_ids.append(duplicate.clip_id)
+                                job["source_errors"][candidate.origin_id] = (
+                                    f"duplicate:concurrent_catalog:{duplicate.clip_id}"
+                                )
                             break
                     else:
                         errors.append(f"{candidate.origin_id}:identity_collision")

@@ -1,0 +1,27 @@
+{
+  "response": {
+    "rowCount": 1,
+    "rows": [
+      {
+        "id": "edanmdm-nmah_123",
+        "title": "A film about rain",
+        "url": "https://www.si.edu/object/edanmdm-nmah_123",
+        "content": {
+          "descriptiveNonRepeating": {
+            "online_media": {
+              "media": [
+                {
+                  "type": "Video",
+                  "thumbnail": "https://ids.si.edu/ids/deliveryService?id=thumb",
+                  "resources": [
+                    {"label": "Streaming player", "url": "https://video.si.edu/watch/123"}
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 [
   {
-    "name": "pexels",
-    "category": "stock_video",
+    "name": "library_of_congress",
+    "category": "public_archive",
     "status": "SUPPORTED_SEARCH_DOWNLOAD",
     "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
     "accepts_text_languages": [
@@ -11,15 +11,117 @@
       "ru"
     ],
     "languages_semantically_verified": false,
-    "scope": "catalog_search",
+    "scope": "public_archive",
     "download_supported": true,
     "credentials_present": true,
+    "notes": "public catalog; restricted downloads are excluded"
+  },
+  {
+    "name": "coverr",
+    "category": "stock_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "catalog_search",
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; download MP4 preferred over preview"
+  },
+  {
+    "name": "europeana",
+    "category": "cultural_archive_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "cultural_archive",
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; direct video media only"
+  },
+  {
+    "name": "nara",
+    "category": "government_archive_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "government_archive",
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; explicit direct video resources only"
+  },
+  {
+    "name": "dpla",
+    "category": "cultural_archive_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "cultural_archive",
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; moving-image search, usually metadata only"
+  },
+  {
+    "name": "smithsonian",
+    "category": "museum_archive_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "cultural_archive",
+    "download_supported": false,
+    "credentials_present": false,
+    "notes": "key required; video search, usually metadata only"
+  },
+  {
+    "name": "pexels",
+    "category": "stock_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "catalog_search",
+    "download_supported": false,
+    "credentials_present": false,
     "notes": "key required; direct MP4 when present"
   },
   {
     "name": "pixabay",
     "category": "stock_video",
-    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "status": "AUTH_REQUIRED",
     "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
     "accepts_text_languages": [
       "es",
@@ -29,8 +131,8 @@
     ],
     "languages_semantically_verified": false,
     "scope": "catalog_search",
-    "download_supported": true,
-    "credentials_present": true,
+    "download_supported": false,
+    "credentials_present": false,
     "notes": "key required; video variants when present"
   },
   {

@@ -18,6 +18,11 @@ npx wrangler deploy
 
 El archivo `worker/wrangler.toml` tiene `[vars]` para `CATALOG_TTL_SECONDS = "10"` y `CLIPOTECA_GITHUB_REPO`. No colocar credenciales allí.
 
+Los adaptadores de ingesta reconocen estas variables (configurar solo en el almacén de secretos del entorno, nunca con valores en el repositorio):
+
+- `COVERR_API_KEY`: acceso a la API oficial de Coverr.
+- Library of Congress no requiere credencial.
+
 `MCP_ALLOWED_HOSTS` es opcional. Si no está definido, `/mcp` acepta el hostname **propio** de la request (por ejemplo, `clipoteca.mi-cuenta.workers.dev`) y rechaza Host falsificado. Para proxy legítimo configurar allowlist explícito. Configurar `MCP_ALLOWED_ORIGINS` con los clientes de navegador autorizados. Clientes MCP sin Origin pueden usar el mismo hostname sin variable adicional.
 
 ## Verificación posterior al despliegue
@@ -32,6 +37,11 @@ curl -i -sS "$CLIPOTECA_API/mcp"
 Un GET de MCP puede responder con estado de protocolo distinto a 200; se requiere un handshake Streamable HTTP. Health devuelve 503 si el catálogo o el servidor MCP están degradados.
 
 ## GitHub Actions
+
+Configurar las claves de catálogo `EUROPEANA_API_KEY`, `NARA_API_KEY`,
+`DPLA_API_KEY` y `SMITHSONIAN_API_KEY` como **Actions Secrets**. No son variables
+del Worker ni deben guardarse en el repositorio; sin la clave correspondiente la
+fuente informa `AUTH_REQUIRED`.
 
 - `ingest.yml`: cada solicitud tiene concurrencia propia; conflictos al persistir catálogo se resuelven con CAS/409 y reintentos acotados.
 - `contribution.yml`: Issue público abierto o editado dispara ingesta automática sin revisión manual.

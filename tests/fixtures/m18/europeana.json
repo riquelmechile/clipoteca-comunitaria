@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "id": "/2059209/data_sounds_http___example_org_video_1",
+      "type": "VIDEO",
+      "title": ["Lluvia en la plaza"],
+      "language": ["es"],
+      "edmIsShownAt": ["https://example.org/archive/item/1"],
+      "edmIsShownBy": ["https://media.example.org/rain.mp4"]
+    },
+    {
+      "id": "/ignored/image",
+      "type": "IMAGE",
+      "title": ["Not video"]
+    }
+  ],
+  "nextCursor": "cursor-2"
+}

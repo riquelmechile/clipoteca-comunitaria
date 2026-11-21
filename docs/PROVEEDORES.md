@@ -9,6 +9,8 @@ Fecha de verificación documental: 20-11-2026. El estado es de **implementación
 | Wikimedia Commons | MediaWiki `generator=search`, namespace File | `imageinfo` | `imageinfo.url`, MIME video | Pública; User-Agent identificable | Filtra imágenes y MIME no video; no fuerza falsas descargas |
 | Internet Archive | `/advancedsearch.php` (`mediatype:movies`) | `/metadata/{identifier}` | `/download/{identifier}/{file}` | Pública | Rechaza HTML/imagen, tamaño > 350 MiB o sin derivado; prioriza MP4 de mayor tamaño admisible |
 | NASA | `https://images-api.nasa.gov/search?media_type=video` | `collection.items[].data` | `/asset/{nasa_id}` entrega MP4 real | `NASA_API_KEY` opcional; por defecto `DEMO_KEY` | `SUPPORTED_SEARCH_ONLY` si manifiesto no tiene MP4 |
+| Library of Congress | `GET https://www.loc.gov/film-and-videos/?fo=json&at=results,pagination` | `results[].resources[0]` | `video`, con fallback `video_stream` | Pública | Excluye `download_restricted`; timeout 45 s y al menos 500 ms entre solicitudes |
+| Coverr | `GET https://api.coverr.co/videos?query=…&page=…&page_size=…&urls=true` | `hits[].urls` | `mp4_download`, con fallback `mp4_preview` | `COVERR_API_KEY` obligatoria (Bearer) | `AUTH_REQUIRED` sin clave; solo conserva URL MP4 HTTPS directa |
 
 **Idiomas:** cada ronda de búsqueda de concepto reconocido envía términos `es/en/zh/ru` al adaptador habilitado. Algunos servicios no interpretan correctamente los cuatro idiomas, pero se registra el idioma/término utilizado, sin afirmar soporte semántico inexistente. Pixabay usa `lang` cuando es aceptado; chino se consulta con `lang=zh`, siempre con el término original.
 
@@ -102,3 +104,17 @@ No hay OAuth/tokens facilitados para probar llamadas reales. Validación mediant
 - https://developers.tiktok.com/docs/en/tiktok-api-v2-video-list/
 - https://developers.tiktok.com/docs/en/display-api-overview
 - https://developers.tiktok.com/docs/en/tiktok-api-v2-video-query
+
+## M18: archivos institucionales (fixtures offline, 21-11-2026)
+
+| Fuente | Búsqueda oficial | Credencial | Resolución de media |
+|---|---|---|---|
+| Europeana | Record API v2, `TYPE:VIDEO`, cursor | `EUROPEANA_API_KEY` | `SUPPORTED_SEARCH_DOWNLOAD`; acepta solo un `edmIsShownBy` HTTPS que sea video directo |
+| NARA | Catalog API v2, `records/search`, `searchAfter` | `NARA_API_KEY` | `SUPPORTED_SEARCH_DOWNLOAD`; exige recurso digital explícito con MIME/extensión de video |
+| DPLA | Items API v2, `sourceResource.type=Moving Image` | `DPLA_API_KEY` | `SUPPORTED_SEARCH_ONLY` por defecto; las páginas del contribuidor y miniaturas no se promueven a video |
+| Smithsonian | Open Access v1.0, `online_media_type:Videos` | `SMITHSONIAN_API_KEY` | `SUPPORTED_SEARCH_ONLY` por defecto; un player web no se trata como archivo directo |
+
+Las cuatro fuentes fallan con `AUTH_REQUIRED` antes de hacer red cuando falta su
+clave. Las pruebas reproducibles usan respuestas guardadas para resultado válido,
+vacío, filtrado de tipo y media directa/search-only; no prueban disponibilidad,
+cuota, licencia ni descarga online.
