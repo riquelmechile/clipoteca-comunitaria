@@ -16,7 +16,7 @@ import httpx
 
 from ..security.download import MAX_DOWNLOAD_BYTES
 from .base import Adapter, Candidate, MediaRef, SearchLimits, SupportStatus, detect_source_language
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 SEPIA_API = "https://sepiasearch.org/api/v1/search/videos"
 UUID = re.compile(r"[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}")
@@ -36,7 +36,7 @@ class PeerTube(Adapter):
         instances: tuple[str, ...] | None = None,
         search_endpoint: str = SEPIA_API,
     ) -> None:
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
         self.instances = frozenset(
             host.strip().lower()
             for host in (
