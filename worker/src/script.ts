@@ -1,8 +1,8 @@
 /** M23 scene script resolver. Uses the existing search and import controls. */
 import { loadCatalog, type Clip } from "./catalog";
-import { canonicalJson } from "./jobs";
+import { canonicalJson, requestId } from "./jobs";
 import { submitImport, type RestEnv } from "./rest";
-import { semanticSearch, sha256 } from "./semantic";
+import { semanticSearch, sha256, prepareSearchIndex } from "./semantic";
 
 export const MAX_SCRIPT_SCENES = 50;
 const MAX_SCRIPT_BYTES = 65_536;
@@ -44,7 +44,7 @@ export type ResolvedScene = ScriptScene & {
 export type ScriptResolution = {
   script_id: string;
   scenes: ResolvedScene[];
-  summary: {matched: number; queued: number; missing: number};
+  summary: {matched: number; queued: number; missing: number; reused:number};
 };
 
 function plain(value: unknown): value is Record<string,unknown> {
@@ -52,8 +52,10 @@ function plain(value: unknown): value is Record<string,unknown> {
     !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 }
 function limitedString(value: unknown, max: number, label: string): string {
-  if (typeof value !== "string" || value.length > max || !value.trim() ||
-      /[\u0000-\u001f\u007f]/u.test(value)) {
+  if (typeof value !== "string" || !value.trim() ||
+      [...value].length>max || (label==="narration"
+        ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value)
+        : /[\u0000-\u001f\u007f]/u.test(value))) {
     throw new TypeError("invalid " + label);
   }
   return value.trim();
@@ -87,7 +89,7 @@ export function parseScript(value: unknown): ScriptScene[] {
         duration <= 0 || duration > 20) {
       throw new TypeError("min_duration must be in (0,20]");
     }
-    return {id,narration,query,orientation:entry.orientation,min_duration:duration};
+    return {id,narration,query,orientation:ASPECT[entry.orientation]!,min_duration:duration};
   });
 }
 function isVideo(clip: Clip): boolean {
@@ -131,9 +133,13 @@ export async function resolveScript(
       script_id,
       scenes:scenes.map(scene=>({...scene,status:"missing",media:null,
         reason:"catalogue_unavailable"})),
-      summary:{matched:0,queued:0,missing:scenes.length},
+      summary:{matched:0,queued:0,missing:scenes.length,reused:0},
     };
   }
+  // Prepare immutable video-only catalogue and lexemes once per script.
+  // Filtering after pagination hid valid MP4 clips behind up to 100 images.
+  const videos=catalogue.filter(isVideo);
+  const index=prepareSearchIndex(videos);
   const candidates: Clip[][] = [];
   const reasons: string[] = [];
   for (const scene of scenes) {
@@ -142,9 +148,9 @@ export async function resolveScript(
         aspect_ratio: ASPECT[scene.orientation]!, min_duration:String(scene.min_duration),
         limit:"100", cursor:"0",
       });
-      const page = await semanticSearch(request,env,scene.query,params,false,catalogue);
-      candidates.push(page.clips.filter(isVideo));
-      reasons.push(page.clips.length && !page.clips.some(isVideo)
+      const page = await semanticSearch(request,env,scene.query,params,false,videos,index);
+      candidates.push(page.clips);
+      reasons.push(catalogue.length>videos.length && !page.clips.length
         ? "non_video_material" : "no_material");
     } catch {
       candidates.push([]);
@@ -170,6 +176,9 @@ export async function resolveScript(
   }
   for (let i=0;i<scenes.length;i++) assign(i,new Set());
   const output:ResolvedScene[]=[];
+  const completedImports=new Map<string,ResolvedScene>();
+  let importLookups=0;
+  let rateLimited=false;
   for(let i=0;i<scenes.length;i++){
     const scene=scenes[i]!;
     const chosen=assigned.get(i) ?? candidates[i]?.[0];
@@ -182,35 +191,52 @@ export async function resolveScript(
       output.push({...scene,status:"missing",media:null,reason:"search_unavailable"});
       continue;
     }
+    const filters={aspect_ratio:ASPECT[scene.orientation]!,limit:3};
+    const rid=await requestId(scene.query,{...filters,max_duration:20});
+    const prior=completedImports.get(rid);
+    if(prior){
+      output.push({...scene,status:prior.status,media:null,
+        ...(prior.request_id?{request_id:prior.request_id}:{}),
+        ...(prior.job?{job:prior.job}:{}),
+        ...(prior.reason?{reason:prior.reason}:{})});
+      continue;
+    }
+    if(rateLimited || importLookups>=3){
+      output.push({...scene,status:"missing",media:null,reason:"rate_limited"});
+      continue;
+    }
     try {
-      // The ONLY path to an import is the existing submitImport, sharing its
-      // deterministic request_id, jobs, quotas, anti-abuse and throttling.
+      // Script-only preflight quota runs before any GitHub loadJob read.
+      // A 50-scene script may spend at most 3 job lookups.
+      importLookups++;
       const result=await submitImport(request,env,{
-        query:scene.query,filters:{
-          aspect_ratio:ASPECT[scene.orientation]!,limit:3,
-        },
-      });
+        query:scene.query,filters,
+      },{quotaFirst:true});
       if(!result.ok){
         const problem=await result.json() as {error?:{code?:string}};
         const cause=problem.error?.code ?? "import_unavailable";
-        output.push({...scene,status:"missing",media:null,
-          reason:reasons[i]==="non_video_material"?"non_video_material:"+cause:cause});
+        if(cause==="rate_limited")rateLimited=true;
+        const entry:ResolvedScene={...scene,status:"missing",media:null,
+          reason:reasons[i]==="non_video_material"?"non_video_material:"+cause:cause};
+        output.push(entry);completedImports.set(rid,entry);
         continue;
       }
       const payload=await result.json() as {
         request_id?:string; status?:string; job?:{request_id?:string;status?:string};
       };
-      const rid=payload.request_id;
+      const payloadRid=payload.request_id;
       const state=payload.status??"unavailable";
-      if(rid && /^[a-f0-9]{64}$/.test(rid) && statuses.has(state)){
-        output.push({...scene,status:"queued",media:null,request_id:rid,
-          job:{request_id:rid,status:state},
-          ...(reasons[i]==="non_video_material"?{reason:"non_video_material"}:{})});
+      if(payloadRid && /^[a-f0-9]{64}$/.test(payloadRid) && statuses.has(state)){
+        const entry:ResolvedScene={...scene,status:"queued",media:null,request_id:payloadRid,
+          job:{request_id:payloadRid,status:state},
+          ...(reasons[i]==="non_video_material"?{reason:"non_video_material"}:{})};
+        output.push(entry);completedImports.set(rid,entry);
       }else{
-        output.push({...scene,status:"missing",media:null,
+        const entry:ResolvedScene={...scene,status:"missing",media:null,
           reason:state==="no_results"?"no_results":state==="dead_letter"?"dead_letter":
             state==="published"?"published_no_material":(reasons[i]??"no_material"),
-          ...(rid ? {request_id:rid}:{})});
+          ...(payloadRid ? {request_id:payloadRid}:{})};
+        output.push(entry);completedImports.set(rid,entry);
       }
     } catch {
       output.push({...scene,status:"missing",media:null,reason:"import_unavailable"});
@@ -218,11 +244,13 @@ export async function resolveScript(
   }
   const summary={matched:output.filter(s=>s.status==="matched").length,
     queued:output.filter(s=>s.status==="queued").length,
-    missing:output.filter(s=>s.status==="missing").length};
+    missing:output.filter(s=>s.status==="missing").length,
+    reused:output.filter(s=>s.reason==="reuse_unavoidable").length};
   return {script_id,scenes:output,summary};
 }
 
 export async function handleScript(request:Request,env:RestEnv):Promise<Response>{
+  let inputValidated=false;
   try{
     if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
       throw new TypeError("content-type must be application/json");
@@ -253,9 +281,13 @@ export async function handleScript(request:Request,env:RestEnv):Promise<Response
     let parsed:unknown;
     try{parsed=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(bytes));}
     catch{throw new TypeError("invalid JSON");}
-    return responseJson(await resolveScript(request,env,parseScript(parsed)));
+    const scenes=parseScript(parsed);
+    inputValidated=true;
+    return responseJson(await resolveScript(request,env,scenes));
   }catch(error){
-    return responseJson({error:{code:"invalid_script",
-      message:error instanceof TypeError?error.message:"Invalid script"}},400);
+    if(!inputValidated && error instanceof TypeError)
+      return responseJson({error:{code:"invalid_script",
+      message:error.message}},400);
+    return responseJson({error:{code:"internal_error",message:"Script resolver unavailable"}},500);
   }
 }

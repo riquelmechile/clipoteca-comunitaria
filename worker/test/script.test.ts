@@ -85,7 +85,7 @@ describe("M23 guion to clips REST",()=>{
       summary:{matched:number;queued:number;missing:number};
     };
     expect(body.script_id).toMatch(/^[a-f0-9]{64}$/);
-    expect(body.summary).toEqual({matched:5,queued:0,missing:0});
+    expect(body.summary).toEqual({matched:5,queued:0,missing:0,reused:0});
     expect(body.scenes.map(x=>x.status)).toEqual(["matched","matched","matched","matched","matched"]);
     expect(body.scenes.map(x=>x.media?.clip_id)).toEqual([
       "clip-000002","clip-000001","clip-000003","clip-000004","clip-000005",
@@ -113,7 +113,7 @@ describe("M23 guion to clips REST",()=>{
     expect(body.scenes[1]?.job?.status).toBe("queued");
     expect(body.scenes[2]?.reason).toBe("rate_limited");
     expect(body.scenes[1]?.media).toBeNull();
-    expect(body.summary).toEqual({matched:1,queued:1,missing:1});
+    expect(body.summary).toEqual({matched:1,queued:1,missing:1,reused:0});
     expect(calls.filter(x=>x.url.endsWith("/dispatches"))).toHaveLength(1);
   });
 
@@ -175,8 +175,98 @@ describe("M23 typed MCP resolver",()=>{
     const resolver=listed.result.tools.find((t:{name:string})=>t.name==="resolve_script");
     expect(resolver.outputSchema.properties).toHaveProperty("scenes");
     const result=await rpcPayload(await worker.fetch(rpc("resolve_script",{scenes:five}),env));
-    expect(result.result.structuredContent.summary).toEqual({matched:5,queued:0,missing:0});
+    expect(result.result.structuredContent.summary).toEqual({matched:5,queued:0,missing:0,reused:0});
     expect(result.result.structuredContent.scenes[0].media.type).toBe("video");
     expect(result.result.isError).not.toBe(true);
+  });
+});
+
+
+describe("M23 r2 bounded script dispatch and canonical input",()=>{
+  it("50 missing scenes make at most five remote subrequests",async()=>{
+    const calls=stubCatalog([]);
+    const rows=Array.from({length:50},(_,i)=>scene("part"+i,"missing_query_"+i));
+    const response=await worker.fetch(post(rows,"203.0.113.45"),env);
+    expect(response.status).toBe(200);
+    const data=await response.json() as {scenes:Array<{status:string;reason?:string}>;
+      summary:{matched:number;queued:number;missing:number;reused:number}};
+    expect(data.scenes).toHaveLength(50);
+    expect(data.scenes[0]?.status).toBe("queued");
+    expect(data.scenes.slice(1).every(x=>x.status==="missing"
+      && x.reason==="rate_limited")).toBe(true);
+    expect(calls).toHaveLength(3); // catalog, one job lookup, one dispatch
+    expect(data.summary).toEqual({matched:0,queued:1,missing:49,reused:0});
+  });
+
+  it("dedupes 50 repeated request IDs to one job and one dispatch",async()=>{
+    const calls=stubCatalog([]);
+    const rows=Array.from({length:50},(_,i)=>scene("part"+i,"same rain"));
+    const response=await worker.fetch(post(rows,"203.0.113.46"),env);
+    const data=await response.json() as {scenes:Array<{status:string;request_id?:string}>};
+    expect(data.scenes.every(x=>x.status==="queued")).toBe(true);
+    expect(new Set(data.scenes.map(x=>x.request_id)).size).toBe(1);
+    expect(calls.filter(x=>x.url.endsWith("/dispatches"))).toHaveLength(1);
+    expect(calls.length).toBeLessThanOrEqual(5);
+  });
+
+  it("allows whitespace controls in narration but rejects others and counts code points",()=>{
+    const text="Narration\nwith\ttab\rand return";
+    expect(parseScript({scenes:[{...scene("a","rain"),narration:text}]})[0]?.narration)
+      .toBe(text);
+    expect(()=>parseScript({scenes:[{...scene("a","rain"),
+      narration:"first\u0001second"}]})).toThrow();
+    const unicodeCharacter=String.fromCodePoint(0x1f600);
+    const parsed=parseScript({scenes:[{...scene("a","rain"),
+      narration:"a".repeat(1499)+unicodeCharacter}]});
+    expect([...parsed[0]!.narration].length).toBe(1500);
+    expect(()=>parseScript({scenes:[{...scene("a","rain"),
+      narration:"a".repeat(1500)+unicodeCharacter}]})).toThrow();
+  });
+
+  it("makes orientation aliases canonical in the deterministic script ID",async()=>{
+    stubCatalog([]);
+    const first=await worker.fetch(post([scene("a","rain","portrait")]),env);
+    const second=await worker.fetch(post([scene("a","rain","9:16")]),env);
+    const a=await first.json() as {script_id:string};
+    const b=await second.json() as {script_id:string};
+    expect(a.script_id).toBe(b.script_id);
+  });
+
+  it("reports reused count when only one clip fits two scenes",async()=>{
+    stubCatalog([clip(1,"rain")]);
+    const data=await (await worker.fetch(post([
+      scene("first","rain"),scene("second","rain")]),env)).json() as {
+      summary:{reused:number;matched:number};scenes:Array<{reason?:string}>;
+    };
+    expect(data.summary).toMatchObject({matched:2,reused:1});
+    expect(data.scenes.some(x=>x.reason==="reuse_unavoidable")).toBe(true);
+  });
+
+  it("filters images BEFORE paginating the first 100 results",async()=>{
+    const pictures=Array.from({length:120},(_,i)=>clip(i+1,"rain","16:9",12,".png"));
+    stubCatalog([...pictures,clip(220,"rain","16:9",12,".mp4")]);
+    const data=await (await worker.fetch(post([scene("one","rain")]),env)).json() as {
+      scenes:Array<{status:string;media:{clip_id:string}|null}>;
+    };
+    expect(data.scenes[0]?.status).toBe("matched");
+    expect(data.scenes[0]?.media?.clip_id).toBe("clip-000220");
+  });
+});
+
+
+describe("M23 r2 internal failure classification",()=>{
+  it("returns 500 for unexpected resolver exceptions after input validation",async()=>{
+    stubCatalog([]);
+    const unexpected=vi.spyOn(crypto.subtle,"digest").mockRejectedValueOnce(
+      new Error("synthetic digest engine failure"));
+    try{
+      const response=await worker.fetch(post([scene("valid","rain")]),env);
+      expect(response.status).toBe(500);
+      const payload=await response.json() as {error:{code:string;message:string}};
+      expect(payload.error.code).toBe("internal_error");
+      expect(JSON.stringify(payload)).not.toContain("synthetic digest engine failure");
+    }finally{
+      unexpected.mockRestore();
+    }
   });
 });

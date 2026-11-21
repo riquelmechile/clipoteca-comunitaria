@@ -61,7 +61,7 @@ def test_resolved_script_media_and_missing_schema():
             scene,
             {**scene, "id": "missing", "status": "missing", "media": None, "reason": "not_found"},
         ],
-        "summary": {"matched": 1, "queued": 0, "missing": 1},
+        "summary": {"matched": 1, "queued": 0, "missing": 1, "reused": 0},
     }
     validator.validate(resolved)
     with pytest.raises(Exception):

@@ -151,6 +151,7 @@ async function rememberDispatch(id: string): Promise<void> {
 
 export async function submitImport(
   request: Request, env: RestEnv, input: SearchInput,
+  options: {quotaFirst?:boolean} = {},
 ): Promise<Response> {
   // All content and pagination filters must participate in the deterministic key.
   // import_if_missing controls queuing, not the content identity.
@@ -161,6 +162,12 @@ export async function submitImport(
     max_duration: input.filters.max_duration ?? 20,
   };
   const rid = await requestId(input.query, dispatchFilters);
+  // Only the script endpoint pre-reserves its import quota before the
+  // anonymous GitHub jobs lookup. The normal search/import path is unchanged.
+  if(options.quotaFirst){
+    if(await recentlyDispatched(rid))return json({request_id:rid,status:"queued"},202);
+    if(!await quota(request,"import"))return error("rate_limited","Too many imports",429);
+  }
   const old = await loadJob(env, rid);
   if (old?.status === "dead_letter" && !expiredDeadLetter(old)) {
     return error("dead_letter", "Retry budget exhausted; try after 24 hours", 409);
@@ -178,7 +185,8 @@ export async function submitImport(
   if (await recentlyDispatched(rid)) {
     return json({ request_id: rid, status: "queued" }, 202);
   }
-  if (!await quota(request, "import")) return error("rate_limited", "Too many imports", 429);
+  if (!options.quotaFirst && !await quota(request, "import"))
+    return error("rate_limited", "Too many imports", 429);
   // The Python workflow must receive the identical filter set hashed above;
   // omitting a default (max_duration=20) caused the live request_id mismatch.
   const dispatched = await dispatchIngest(request, env,

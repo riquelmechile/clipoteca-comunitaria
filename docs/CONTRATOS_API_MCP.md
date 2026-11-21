@@ -1,4 +1,4 @@
-# Contratos U+2014 REST, MCP y catalogo
+# Contratos - REST, MCP y catalogo
 
 ## Endpoints REST
 
@@ -48,7 +48,7 @@ Ninguna respuesta MCP incluye bytes de video embebidos. Debe retornar objetos es
     "provider": "rutube",
     "provider_id": "source-id",
     "source_language": "ru",
-    "source_title": "U+0414U+043EU+0436U+0434U+044C U+043DU+0430 U+0443U+043BU+0438U+0446U+0435",
+    "source_title": "----- -- -----",
     "source_url": "https://example.org/original/123"
   },
   "media": {
@@ -80,10 +80,10 @@ Ninguna respuesta MCP incluye bytes de video embebidos. Debe retornar objetos es
 ## Clasificacion precisa de orientacion
 
 Calcular con width/height del stream de video, incorporando rotacion de metadatos:
-- Igualdad/aspecto proximo a 9:16 U+2192 `9:16`, `vertical`.
-- Proximo a 16:9 U+2192 `16:9`, `horizontal`.
-- Proximo a 1:1 U+2192 `1:1`, `square`.
-- Otro U+2192 `other` con razon reducida (`4:3`, `21:9`, etc.).
+- Igualdad/aspecto proximo a 9:16 - `9:16`, `vertical`.
+- Proximo a 16:9 - `16:9`, `horizontal`.
+- Proximo a 1:1 - `1:1`, `square`.
+- Otro - `other` con razon reducida (`4:3`, `21:9`, etc.).
 
 Usar tolerancia definida y testeada (p. ej. `abs(w/h - target) < 0.01`); no recortar para convertir orientacion. Guardar width/height reales de salida, no deducirlos del nombre de archivo.
 

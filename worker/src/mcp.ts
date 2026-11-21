@@ -76,7 +76,7 @@ const scriptOutputSchema = z.object({
     job:z.object({request_id:z.string(),status:z.string()}).optional(),
   })).min(1).max(50),
   summary:z.object({matched:z.number().int(),queued:z.number().int(),
-    missing:z.number().int()}),
+    missing:z.number().int(),reused:z.number().int()}),
 });
 const getClipOutputSchema = z.object({ clip: clipSchema });
 const downloadOutputSchema = z.object({ url: z.string().url(), clip_id: z.string().optional() });

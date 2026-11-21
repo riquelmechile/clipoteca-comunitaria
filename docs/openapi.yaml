@@ -195,11 +195,12 @@ components:
           items: {$ref: "#/components/schemas/ScriptResolvedScene"}
         summary:
           type: object
-          required: [matched, queued, missing]
+          required: [matched, queued, missing, reused]
           properties:
             matched: {type: integer, minimum: 0}
             queued: {type: integer, minimum: 0}
             missing: {type: integer, minimum: 0}
+            reused: {type: integer, minimum: 0}
     ContributionBody:
       type: object
       additionalProperties: false

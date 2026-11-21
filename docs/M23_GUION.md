@@ -91,3 +91,14 @@ A REST client sends the identical JSON to `POST /v1/script` with `Content-Type: 
 **Not executed here:** a live MCP invocation against an already deployed production Worker. A real end-to-end run requires a deployed Worker, its live catalog and suitable source videos. Do not present offline fixture IDs or placeholder URLs as published production assets.
 
 Run `cd worker && npm ci && npm run typecheck && npm test`, and `uv run pytest -q`. The three CI jobs (python, worker and real-argos) must be verified on the exact PR head before delivery.
+
+
+## Correcciones M23 r2
+
+- Un guion con 50 escenas sin material no ejecuta 50 lecturas anonimas a GitHub. El resolver deduplica consultas por el mismo request_id, comprueba primero la cuota de import, limita a tres comprobaciones de job por guion y, tras el primer rate_limited, devuelve missing/rate_limited a las escenas restantes. La operacion comparte la cuota import (no crea otra ruta de dispatch).
+- Cada clip se tokeniza una vez por guion; la busqueda solo-video se aplica antes de paginar. Medicion original antes de optimizar: 1000 clips aproximadamente 340 ms por guion de 50 escenas; 5000 clips aproximadamente 1,5 s. Workers Free (10 ms CPU) no es un objetivo realista para catalogos de ese tamano: usar Workers Paid y medir CPU real, o reducir escenas. Estos tiempos son de la revision anterior.
+- Narration permite tab, nueva linea y retorno de carro (escapes JSON: \t, \n, \r); rechaza otros controles. Los maximos se aplican a Unicode code points, no unidades UTF-16.
+- Errores de validacion del request: HTTP 400 invalid_script. Fallos internos despues de validar: HTTP 500 internal_error.
+- La importacion actual no transporta min_duration a la pipeline Python: el clip importado puede tener duracion menor. Un nuevo guion filtrara ese clip hasta que exista uno suficientemente largo.
+- El resumen incluye matched, queued, missing y reused; reused cuenta matched con reason=reuse_unavoidable.
+- Los alias de orientacion se convierten a 9:16, 16:9 o 1:1 al validar, por lo que portrait y 9:16 producen el mismo script_id. Reordenar escenas cambia el hash: su orden es parte del guion.

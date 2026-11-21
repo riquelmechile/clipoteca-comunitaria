@@ -220,7 +220,7 @@ SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
     "rutube": {"search": "supported", "preview": "supported", "download": "best_effort"},
     "peertube": {"search": "supported", "preview": "supported", "download": "supported"},
     "odysee": {"search": "supported", "preview": "best_effort", "download": "supported"},
-    "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
+    "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "ok_ru": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "vk_video": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "dzen": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},

@@ -27,7 +27,7 @@ list_sources usa data/sources.json generado en Actions en cada ingesta y por cro
 
 La publicacion real, descarga y E2E de terceros deben validarse por separado. Para desplegar ver [DESPLIEGUE.md](DESPLIEGUE.md).
 
-## M22 U+00B7 Fusion semantica
+## M22 - Fusion semantica
 
 `search_clips` retorna `semantic: ready | pending | unavailable`. En `ready`, `scores` es un mapa de IDs a puntaje RRF (`1/(60+rank_lexical) + 1/(60+rank_semantico)` para rankings presentes, contando desde 1). En `pending` responde busqueda literal y encola el vector cuando el dispatch esta habilitado. En `unavailable` conserva la busqueda literal. El esquema de cada Clip y las otras tools no cambian. Vease [M22_BUSQUEDA_SEMANTICA.md](M22_BUSQUEDA_SEMANTICA.md).
 

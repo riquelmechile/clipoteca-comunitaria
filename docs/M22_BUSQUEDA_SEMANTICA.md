@@ -35,7 +35,7 @@ Transitional reads of old per-query JSON remain supported; new writes use query 
 
 ## Rate limits, security and workflow queue
 
-A query-embedding dispatch requires both flags, a valid token and a nonempty corpus. Reservations for digest, IP and the hour counter are synchronous within one isolate, before the first await. A real HTTP attempt gets a 10-minute digest marker even on 422/network failure; a quota denial does not poison that digest for another user. Limit: 20 attempts per hour best-effort per Cloudflare colo. Cloudflare Cache API is not a globally atomic rate limiter. Both query embeddings and `import_if_missing` share existing import checks; a script resolver must not open an independent Actions lane.
+A query-embedding dispatch requires both flags, a valid token and a nonempty corpus. Reservations for digest, IP and the hour counter are synchronous within one isolate, before the first await. A real HTTP attempt gets a 10-minute digest marker even on 422/network failure; a quota denial does not poison that digest for another user. Limit: 20 attempts per hour best-effort per Cloudflare colo. Cloudflare Cache API is not a globally atomic rate limiter. Query embeddings use a separate `query-embed` quota, and imports use `import`; a script resolver must not open an independent Actions lane.
 
 The global GitHub Actions concurrency group for `query_embedding` admits at most **one running and one pending** workflow. New pending runs can replace and cancel older pending runs. This is deliberate cost control, **not a durable FIFO queue**. Clients should poll job/request status and retry according to quota rules.
 
