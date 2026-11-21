@@ -71,7 +71,13 @@ SOURCES: tuple[SourceSpec, ...] = (
         "global_data_api",
         "Data API has no direct MP4 endpoint",
     ),
-    SourceSpec("rutube", Rutube, (), "public_search", "often HLS rather than a direct MP4"),
+    SourceSpec(
+        "rutube",
+        Rutube,
+        (),
+        "public_search",
+        "bounded HLS download; live CDN evidence from M12 still pending",
+    ),
     SourceSpec(
         "peertube",
         PeerTube,
@@ -137,7 +143,7 @@ SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
     "internet_archive": {"search": "supported", "preview": "best_effort", "download": "supported"},
     "nasa": {"search": "supported", "preview": "best_effort", "download": "supported"},
     "youtube": {"search": "supported", "preview": "best_effort", "download": "unavailable"},
-    "rutube": {"search": "supported", "preview": "best_effort", "download": "unavailable"},
+    "rutube": {"search": "supported", "preview": "supported", "download": "best_effort"},
     "peertube": {"search": "supported", "preview": "supported", "download": "supported"},
     "odysee": {"search": "supported", "preview": "best_effort", "download": "supported"},
     "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
