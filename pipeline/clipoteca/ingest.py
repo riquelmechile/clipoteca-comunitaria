@@ -378,7 +378,7 @@ async def ingest(
                     # Never print secrets, URLs or raw upstream responses to Actions logs.
                     error_code = type(exc).__name__
                     if isinstance(exc, DownloadError):
-                        http_status = re.fullmatch(r"HTTP ([1-5]\\d{2})", str(exc))
+                        http_status = re.fullmatch(r"HTTP ([1-5][0-9]{2})", str(exc))
                         error_code = (
                             "download_error:HTTP " + http_status.group(1)
                             if http_status
