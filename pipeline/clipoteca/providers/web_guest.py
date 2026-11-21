@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from .base import AuthRequired, ProviderError, ProviderTimeout, RateLimited
-from .http import fetch_json, fetch_response
+from .http import ProviderPayloadError, fetch_json, fetch_response
 from .signing import BROWSER_UA, TTWID_REGISTER_URL
 
 
@@ -27,6 +27,18 @@ def safe_code(payload: dict) -> int:
 
 
 def require_success(payload: dict) -> None:
+    # A JSON 200 can still be an HTML/captcha or Web-session challenge.
+    # Empty result arrays with an explicit "data"/"item_list" key are genuine
+    # empty search responses and must NOT trigger a secret-cookie retry.
+    if not payload:
+        raise AuthRequired("session_required")
+    search_nil = payload.get("search_nil_info")
+    if (
+        isinstance(search_nil, dict) and search_nil.get("search_nil_type") == "verify_check"
+    ) or "verify_check" in json.dumps(payload, ensure_ascii=False).casefold():
+        raise AuthRequired("session_required")
+    if "captcha" in json.dumps(payload, ensure_ascii=False).casefold():
+        raise AuthRequired("session_required")
     code = safe_code(payload)
     if code == 2483:
         raise AuthRequired("session_required")
@@ -124,27 +136,44 @@ class GuestSession:
         secret_url_factory: Callable[[], Awaitable[str]] | None = None,
     ) -> dict:
         await self.initialize()
+
+        async def fetch(current_url: str, *, secret: bool) -> dict:
+            try:
+                payload = await fetch_json(
+                    self.client,
+                    current_url,
+                    params=params or None,
+                    headers=self.headers(use_secret=secret),
+                )
+                require_success(payload)
+                return payload
+            except ProviderPayloadError as exc:
+                # Empty body, malformed JSON, or HTML challenge is an identity
+                # failure, not proof that search legitimately returned no items.
+                raise AuthRequired("session_required") from exc
+            except ProviderError as exc:
+                # Unlike an access-token API, a guest Cookie is not considered
+                # an authorization header by fetch_json. Classify 403 here.
+                if isinstance(exc, AuthRequired):
+                    raise AuthRequired("session_required") from exc
+                if type(exc) is ProviderError and str(exc) in (
+                    "provider HTTP 401",
+                    "provider HTTP 403",
+                ):
+                    raise AuthRequired("session_required") from exc
+                raise
+
         try:
-            answer = await fetch_json(
-                self.client, url, params=params or None, headers=self.headers()
-            )
-            require_success(answer)
-            return answer
+            return await fetch(url, secret=self.used_secret)
         except AuthRequired:
             if not self.session_cookie or self.used_secret:
-                raise
-            # TikTok signatures include msToken. Retry using the secret identity.
+                raise AuthRequired("session_required") from None
+            # One retry. TikTok's signature includes the actual session
+            # msToken, so re-sign against the selected identity.
             self.used_secret = True
             try:
                 retry_url = await secret_url_factory() if secret_url_factory else url
-                answer = await fetch_json(
-                    self.client,
-                    retry_url,
-                    params=params or None,
-                    headers=self.headers(use_secret=True),
-                )
-                require_success(answer)
-                return answer
-            except (AuthRequired, ProviderError, ProviderTimeout):
+                return await fetch(retry_url, secret=True)
+            except Exception:
                 self.used_secret = False
-                raise
+                raise AuthRequired("session_required") from None

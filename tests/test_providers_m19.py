@@ -125,8 +125,8 @@ async def test_tiktok_search_signature_cursor_search_id_and_resolution():
         if req.url.params.get("offset") == "0":
             assert not req.url.params.get("search_id")
             return httpx.Response(200, json=fixture("tiktok_page1.json"))
-        assert req.url.params["offset"] == "20"
-        assert req.url.params["search_id"] == "SearchABC123"
+        assert req.url.params["offset"] == "1"
+        assert req.url.params["search_id"] == "CanonSearch555"
         return httpx.Response(200, json=fixture("tiktok_page2.json"))
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
@@ -207,9 +207,25 @@ async def test_secret_cookie_is_fallback_only_and_never_in_results(platform):
     assert "PRIVATE_M19_COOKIE" not in json.dumps([r.__dict__ for r in rows], ensure_ascii=False)
 
 
-def test_signatures_reference_golden_vectors_from_dtk_v5():
+def test_signatures_exact_upstream_reference_vectors():
+    """Outputs recorded by executing original reference code offline.
+
+    Evil0ctal/Douyin_TikTok_Download_API @
+    ed4ec42534b1194f8d8c18be7b4ba493334f5321:
+    src/dtk/signing/native/{xbogus,abogus,tiktok_sign}.py;
+    src/dtk/signing/base.py; tests/unit/test_signing_golden.py.
+    Native modules loaded unchanged with isolated package stubs; rng and
+    wall clock fixed, source code's browser query encoder retained.
+
+    Youhai020616/douyin @ 6b10a49a92ea3369d633043a99f20cfebb5d857e
+    src/dy_cli/engines/api_client.py _secsdk_sign executed from original
+    AST with time=1700000000 and uifid=UIFID-X.
+    """
+    from clipoteca.providers.signing import secsdk_sign
     from clipoteca.providers.signing.tiktok_params import search_posts_params
 
+    ref = fixture("upstream_signatures.json")
+    assert ref["commit"] == "ed4ec42534b1194f8d8c18be7b4ba493334f5321"
     assert sm3_hexdigest(b"abc") == (
         "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0"
     )
@@ -218,8 +234,11 @@ def test_signatures_reference_golden_vectors_from_dtk_v5():
         "&aweme_id=7372484719365098803&pc_client_type=1&version_code=190500"
         "&version_name=19.5.0"
     )
-    assert XBogus(BROWSER_UA).sign(query, timestamp=1735689600) == "DFSzswVYLFJANSqMt8kkae9WX7ro"
-    assert len(ABogus(BROWSER_UA, rng=random.Random(3)).get_value(query, now_ms=1740000000000)) > 80
+    assert XBogus(BROWSER_UA).sign(query, timestamp=1735689600) == ref["xbogus"]
+    assert (
+        ABogus(BROWSER_UA, rng=random.Random(3)).get_value(query, now_ms=1740000000000)
+        == ref["abogus"]
+    )
     signed, params = sign_tiktok(
         [("aid", "1988"), ("keyword", "rain")],
         BROWSER_UA,
@@ -228,8 +247,16 @@ def test_signatures_reference_golden_vectors_from_dtk_v5():
         nonce2=4,
         rng=random.Random(3),
     )
-    assert "X-Gnarly=" in signed and "X-Dynosaur=" in signed
-    assert set(params) == {"X-Dynosaur", "msToken", "X-Bogus", "X-Gnarly"}
+    assert signed == ref["tiktok_signed"]
+    assert params == ref["tiktok_params"]
+    assert (
+        secsdk_sign(
+            {"aweme_id": "123", "aid": 6383},
+            "UIFID-X",
+            timestamp=1700000000,
+        )
+        == ref["secsdk"]["params"]
+    )
     assert (
         search_posts_params(keyword="rain", cursor="20:SearchABC123")["search_id"] == "SearchABC123"
     )

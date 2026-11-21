@@ -98,6 +98,7 @@ class TikTok(Adapter):
         found: list[Candidate] = []
         seen: set[str] = set()
         cursor: str | None = None
+        offset = 0
         for page in range(max(1, limits.max_pages)):
             params = search_posts_params(
                 keyword=term,
@@ -143,15 +144,18 @@ class TikTok(Adapter):
                 break
             extra = payload.get("extra") or {}
             log = payload.get("log_pb") or {}
+            # DTK v5 params.py uses the response's search_id; the
+            # log_pb.impr_id is the authoritative search identity.
             search_id = str(
-                payload.get("search_id")
+                (log.get("impr_id") if isinstance(log, dict) else "")
+                or payload.get("search_id")
                 or (extra.get("logid") if isinstance(extra, dict) else "")
-                or (log.get("impr_id") if isinstance(log, dict) else "")
                 or ""
             )
             if not _SEARCH_ID.fullmatch(search_id):
                 break
-            cursor = f"{(page + 1) * min(20, limits.max_candidates)}:{search_id}"
+            offset += len(rows)
+            cursor = f"{offset}:{search_id}"
         return found
 
     async def metadata(self, candidate: Candidate) -> dict[str, Any]:

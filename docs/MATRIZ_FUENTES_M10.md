@@ -17,8 +17,8 @@ La matriz se genera a partir de `data/sources.json`, que representa las **21 fue
 | Odysee | D* | D* | D* | D* | búsqueda + archivo | SUPPORTED_SEARCH_DOWNLOAD | ninguna |
 | Bilibili | D* | D* | D* | D* | solo búsqueda | SUPPORTED_SEARCH_ONLY | ninguna |
 | VK Video | D* | D* | D* | D* | solo búsqueda | AUTH_REQUIRED | `VK_ACCESS_TOKEN` |
-| Douyin | D* | D* | D* | D* | solo búsqueda | AUTH_REQUIRED | `DOUYIN_ACCESS_TOKEN` |
-| TikTok | D* | D* | D* | D* | solo búsqueda | AUTH_REQUIRED | `TIKTOK_ACCESS_TOKEN` |
+| Douyin | D* | D* | D* | D* | búsqueda + archivo best_effort | SUPPORTED_SEARCH_DOWNLOAD | invitado; `DOUYIN_COOKIE` opcional |
+| TikTok | D* | D* | D* | D* | búsqueda + archivo best_effort | SUPPORTED_SEARCH_DOWNLOAD | invitado; `TIKTOK_COOKIE` opcional |
 | Instagram Reels | D* | D* | D* | D* | solo búsqueda | AUTH_REQUIRED | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID` |
 | Snapchat | D* | D* | D* | D* | solo búsqueda | AUTH_REQUIRED | `SNAPCHAT_ACCESS_TOKEN`, `SNAPCHAT_PROFILE_ID` |
 

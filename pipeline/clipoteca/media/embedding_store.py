@@ -153,6 +153,7 @@ class GitHubEmbeddingWriter:
             raise ValueError("invalid embedding repository grant")
         self.repository = repository
         self.branch = branch
+        self._owns_client = client is None
         self.client = client or httpx.Client(
             timeout=30,
             headers={
@@ -160,6 +161,11 @@ class GitHubEmbeddingWriter:
                 "X-GitHub-Api-Version": "2022-11-28",
             },
         )
+
+    def close(self) -> None:
+        """Release only the internally-owned transport after the ingest run."""
+        if self._owns_client:
+            self.client.close()
 
     def _url(self, name: str) -> str:
         if name != "index.json" and not re.fullmatch(r"clip-[0-9]{6}\.f16", name):
@@ -174,7 +180,10 @@ class GitHubEmbeddingWriter:
         body = result.json()
         if body.get("encoding") != "base64" or not isinstance(body.get("content"), str):
             raise EmbeddingError("github_embedding_content_unavailable")
-        return base64.b64decode(body["content"]), str(body["sha"])
+        sha = body.get("sha")
+        if not isinstance(sha, str) or not sha:
+            raise EmbeddingError("github_embedding_sha_missing")
+        return base64.b64decode(body["content"]), sha
 
     def _put(self, name: str, payload: bytes, sha: str | None) -> bool:
         request = {
@@ -193,7 +202,7 @@ class GitHubEmbeddingWriter:
     def publish(self, identifier: str, vector: np.ndarray) -> None:
         payload = vector_bytes(vector)
         metadata = _metadata(identifier, payload)
-        current, existing_sha = self._read(metadata["path"])
+        current, _ = self._read(metadata["path"])
         if current is not None and current != payload:
             raise EmbeddingError("remote_immutable_embedding_collision")
         if current is None and not self._put(metadata["path"], payload, None):
