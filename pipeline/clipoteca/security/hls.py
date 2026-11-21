@@ -23,11 +23,13 @@ from ..media.process_env import safe_media_env
 from .download import DownloadError, MAX_DOWNLOAD_BYTES
 from .ssrf import UnsafeMediaURL, _is_public, validate_public_url
 
-HLS_MIME_TYPES = frozenset({
-    "application/vnd.apple.mpegurl",
-    "application/x-mpegurl",
-    "audio/mpegurl",
-})
+HLS_MIME_TYPES = frozenset(
+    {
+        "application/vnd.apple.mpegurl",
+        "application/x-mpegurl",
+        "audio/mpegurl",
+    }
+)
 MAX_PLAYLIST_BYTES = 256 * 1024
 MAX_SEGMENTS = 80
 MAX_HLS_DURATION = 20.0
@@ -97,9 +99,7 @@ def parse_media(text: str) -> list[tuple[float, str]]:
     return segments
 
 
-async def _validated(
-    url: str, base: str, allowed_hosts: frozenset[str], resolver
-) -> str:
+async def _validated(url: str, base: str, allowed_hosts: frozenset[str], resolver) -> str:
     address = urljoin(base, url)
     parsed = urlsplit(address)
     if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
@@ -193,8 +193,12 @@ async def download_hls(
                 stage = Path(tmp)
                 master = (
                     await _fetch(
-                        connection, url, referer=referer, resolver=resolver,
-                        own_client=own, max_bytes=MAX_PLAYLIST_BYTES,
+                        connection,
+                        url,
+                        referer=referer,
+                        resolver=resolver,
+                        own_client=own,
+                        max_bytes=MAX_PLAYLIST_BYTES,
                     )
                 ).decode("utf-8", errors="replace")
                 variants = parse_master(master)
@@ -208,22 +212,24 @@ async def download_hls(
                     ]
                     chosen_uri = choose_variant(variants)
                     selected_index = next(
-                        index for index, row in enumerate(variants)
-                        if row[2] == chosen_uri
+                        index for index, row in enumerate(variants) if row[2] == chosen_uri
                     )
                     media_url = urls[selected_index]
                     media_text = (
                         await _fetch(
-                            connection, media_url, referer=referer, resolver=resolver,
-                            own_client=own, max_bytes=MAX_PLAYLIST_BYTES,
+                            connection,
+                            media_url,
+                            referer=referer,
+                            resolver=resolver,
+                            own_client=own,
+                            max_bytes=MAX_PLAYLIST_BYTES,
                         )
                     ).decode("utf-8", errors="replace")
                 segments = parse_media(media_text)
                 # A malicious URI anywhere in the selected playlist is rejected,
                 # including after our eventual 20-second cut.
                 validated = [
-                    await _validated(uri, media_url, hosts, resolver)
-                    for _duration, uri in segments
+                    await _validated(uri, media_url, hosts, resolver) for _duration, uri in segments
                 ]
                 used = 0
                 elapsed = 0.0
@@ -237,8 +243,12 @@ async def download_hls(
                     if remaining <= 0:
                         raise DownloadError("HLS aggregate byte cap reached")
                     payload = await _fetch(
-                        connection, segment_url, referer=referer,
-                        resolver=resolver, own_client=own, max_bytes=remaining,
+                        connection,
+                        segment_url,
+                        referer=referer,
+                        resolver=resolver,
+                        own_client=own,
+                        max_bytes=remaining,
                     )
                     if not payload:
                         raise DownloadError("HLS empty media segment")
@@ -252,13 +262,37 @@ async def download_hls(
                 playlist_path = stage / "local.m3u8"
                 playlist_path.write_text("\n".join(local_playlist) + "\n", encoding="utf-8")
                 command = [
-                    "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error",
-                    "-y", "-protocol_whitelist", "file,crypto",
-                    "-allowed_extensions", "ALL", "-i", str(playlist_path),
-                    "-t", str(max_duration), "-fs", str(max_bytes),
-                    "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264",
-                    "-preset", "ultrafast", "-pix_fmt", "yuv420p",
-                    "-c:a", "aac", "-movflags", "+faststart", str(output),
+                    "ffmpeg",
+                    "-nostdin",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-protocol_whitelist",
+                    "file,crypto",
+                    "-allowed_extensions",
+                    "ALL",
+                    "-i",
+                    str(playlist_path),
+                    "-t",
+                    str(max_duration),
+                    "-fs",
+                    str(max_bytes),
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "0:a?",
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "ultrafast",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-c:a",
+                    "aac",
+                    "-movflags",
+                    "+faststart",
+                    str(output),
                 ]
                 try:
                     await asyncio.to_thread(

@@ -44,9 +44,7 @@ high.m3u8
     variants = parse_master(body)
     assert choose_variant(variants) == "medium.m3u8"
     assert choose_variant([variants[0], variants[2]]) == "high.m3u8"
-    assert parse_media("#EXTM3U\n#EXTINF:2.0,\nsegment.ts\n") == [
-        (2.0, "segment.ts")
-    ]
+    assert parse_media("#EXTM3U\n#EXTINF:2.0,\nsegment.ts\n") == [(2.0, "segment.ts")]
     with pytest.raises(DownloadError, match="key"):
         parse_media('#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key.key"\n')
     with pytest.raises(DownloadError, match="byte-range"):
@@ -58,9 +56,23 @@ async def test_hls_m3u8_to_mp4_with_mock_http_and_real_ffmpeg(tmp_path):
     source = tmp_path / "segment.ts"
     subprocess.run(
         [
-            "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error",
-            "-y", "-f", "lavfi", "-i", "color=c=blue:s=160x90:r=12:d=2",
-            "-t", "2", "-c:v", "libx264", "-f", "mpegts", str(source),
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=160x90:r=12:d=2",
+            "-t",
+            "2",
+            "-c:v",
+            "libx264",
+            "-f",
+            "mpegts",
+            str(source),
         ],
         check=True,
         capture_output=True,
@@ -71,12 +83,15 @@ async def test_hls_m3u8_to_mp4_with_mock_http_and_real_ffmpeg(tmp_path):
         seen.append(request.url.path)
         assert request.headers["referer"] == "https://rutube.ru/video/demo/"
         if request.url.path == "/master.m3u8":
-            return httpx.Response(200, text="""#EXTM3U
+            return httpx.Response(
+                200,
+                text="""#EXTM3U
 #EXT-X-STREAM-INF:BANDWIDTH=500000,RESOLUTION=640x360
 low.m3u8
 #EXT-X-STREAM-INF:BANDWIDTH=1600000,RESOLUTION=1280x720
 medium.m3u8
-""")
+""",
+            )
         if request.url.path == "/medium.m3u8":
             return httpx.Response(
                 200,
@@ -127,9 +142,7 @@ async def test_hls_rejects_private_ip_segment_before_fetch(tmp_path):
 @pytest.mark.asyncio
 async def test_hls_rejects_redirect_to_other_host(tmp_path):
     def handler(request: httpx.Request):
-        return httpx.Response(
-            302, headers={"location": "https://evil.example.invalid/secret.m3u8"}
-        )
+        return httpx.Response(302, headers={"location": "https://evil.example.invalid/secret.m3u8"})
 
     async with async_client(handler) as client:
         with pytest.raises(DownloadError, match="blocked or redirected"):
@@ -187,9 +200,7 @@ async def test_rutube_pagination_same_origin_only():
         )
 
     async with async_client(handler) as client:
-        found = await Rutube(client=client).search(
-            "rain", "ru", SearchLimits(max_pages=2)
-        )
+        found = await Rutube(client=client).search("rain", "ru", SearchLimits(max_pages=2))
     assert len(found) == 2
     assert paths == ["/api/search/video/", "/api/search/video/"]
 
@@ -210,8 +221,13 @@ async def test_rutube_detail_blocking_and_missing_video_balancer():
 
     async with async_client(missing) as client:
         candidate = Candidate(
-            "rutube", VIDEO, "rain", "en",
-            "https://rutube.ru/video/" + VIDEO + "/", "Rain", "en",
+            "rutube",
+            VIDEO,
+            "rain",
+            "en",
+            "https://rutube.ru/video/" + VIDEO + "/",
+            "Rain",
+            "en",
         )
         assert await Rutube(client=client).direct_media(candidate) is None
 
@@ -226,6 +242,4 @@ async def test_rutube_refuses_cross_origin_next():
 
     async with async_client(handler) as client:
         with pytest.raises(ProviderError, match="pagination origin"):
-            await Rutube(client=client).search(
-                "rain", "en", SearchLimits(max_pages=2)
-            )
+            await Rutube(client=client).search("rain", "en", SearchLimits(max_pages=2))

@@ -99,8 +99,7 @@ class Rutube(Adapter):
                 if not ID.fullmatch(identifier) or identifier in seen:
                     continue
                 if any(
-                    row.get(flag)
-                    for flag in ("is_deleted", "is_hidden", "is_paid", "is_locked")
+                    row.get(flag) for flag in ("is_deleted", "is_hidden", "is_paid", "is_locked")
                 ):
                     continue
                 seen.add(identifier)
