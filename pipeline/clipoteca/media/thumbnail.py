@@ -1,4 +1,4 @@
-"""Miniatura WebP limpia tomada cerca del 10 % del clip."""
+"""Miniatura WebP del fotograma central del clip elegido."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def create_thumbnail(source: str | Path, destination: str | Path, *, timeout: fl
     if output_path.suffix.lower() != ".webp":
         raise ValueError("thumbnail destination must end in .webp")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    timestamp = max(0.0, probe_media(input_path).duration_seconds * 0.1)
+    timestamp = max(0.0, probe_media(input_path).duration_seconds * 0.5)
     command = [
         "ffmpeg",
         "-nostdin",
