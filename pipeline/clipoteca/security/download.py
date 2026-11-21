@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 import httpx
 
+from ..config import USER_AGENT
 from .ssrf import UnsafeMediaURL, _is_public, validate_public_url
 
 MAX_DOWNLOAD_BYTES = 350 * 1024 * 1024
@@ -60,6 +61,7 @@ async def download_media(
         timeout=httpx.Timeout(40, connect=10, read=25),
         follow_redirects=False,
         trust_env=False,
+        headers={"User-Agent": USER_AGENT},
     )
     fd, name = tempfile.mkstemp(prefix="clipoteca-download-", suffix=".bin", dir=target_dir)
     target = Path(name)
@@ -73,7 +75,9 @@ async def download_media(
                 await validate_public_url(
                     current, resolver=resolver, validated_addresses=validated_addresses
                 )
-                async with client.stream("GET", current, follow_redirects=False) as response:
+                async with client.stream(
+                    "GET", current, headers={"User-Agent": USER_AGENT}, follow_redirects=False
+                ) as response:
                     stream = response.extensions.get("network_stream")
                     if stream is None:
                         if own_client:
