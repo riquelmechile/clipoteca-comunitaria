@@ -21,6 +21,13 @@ from clipoteca.providers.internet_archive import (
 )
 
 
+@pytest.fixture(autouse=True)
+def reset_archive_pacing_between_tests():
+    InternetArchive.reset_pacing_state()
+    yield
+    InternetArchive.reset_pacing_state()
+
+
 def example_candidate(identifier: str = "documentary") -> Candidate:
     return Candidate(
         "internet_archive",
@@ -366,8 +373,7 @@ async def test_host_rate_limit_shared_across_instances_and_direct_media():
             },
         )
 
-    with InternetArchive._slot_lock:
-        InternetArchive._next_by_host.clear()
+    InternetArchive.reset_pacing_state()
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         first = InternetArchive(client=client, min_interval_seconds=0.05)
         second = InternetArchive(client=client, min_interval_seconds=0.05)

@@ -254,6 +254,12 @@ class InternetArchive(Adapter):
     _slot_lock = threading.Lock()
     _next_by_host: dict[str, float] = {}
 
+    @classmethod
+    def reset_pacing_state(cls) -> None:
+        """Reset process-local host reservations in isolated test fixtures."""
+        with cls._slot_lock:
+            cls._next_by_host.clear()
+
     def __init__(
         self,
         *,
@@ -374,6 +380,7 @@ class InternetArchive(Adapter):
             enriched["clipoteca_scan_media"] = scan
             if isinstance(files, list) and files:
                 if len(self._metadata_cache) >= 100:
+                    # FIFO eviction: cache hits do not refresh insertion order (not LRU).
                     self._metadata_cache.pop(next(iter(self._metadata_cache)))
                 self._metadata_cache[identifier] = deepcopy(enriched)
         if isinstance(candidate.metadata, dict):
