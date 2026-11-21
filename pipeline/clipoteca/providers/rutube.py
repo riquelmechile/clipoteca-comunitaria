@@ -15,7 +15,7 @@ from urllib.parse import quote, urlsplit
 import httpx
 
 from .base import Adapter, Candidate, MediaRef, SearchLimits, SupportStatus, detect_source_language
-from .http import fetch_json
+from .http import fetch_json, provider_client
 
 API = "https://rutube.ru/api"
 ID = re.compile(r"[a-fA-F0-9]{32}")
@@ -29,7 +29,7 @@ class Rutube(Adapter):
     accepts_text_languages = ("es", "en", "zh", "ru")
 
     def __init__(self, *, client: httpx.AsyncClient | None = None) -> None:
-        self.client = client or httpx.AsyncClient(timeout=15, follow_redirects=False)
+        self.client = client or provider_client()
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         payload = await fetch_json(
