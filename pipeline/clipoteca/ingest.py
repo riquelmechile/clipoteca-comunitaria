@@ -172,7 +172,7 @@ async def ingest(
                     # Fail multilingual metadata before spending bandwidth on a large video.
                     localized = localize_candidate(candidate, translator=translator)
                     raw = await (
-                        downloader(ref.url, temp) if downloader else download_media(ref.url, temp)
+                        downloader(ref.url, temp) if downloader else download_media(ref.url, temp, expected_bytes=ref.size_bytes)
                     )
                     downloaded_count += 1
                     advance("processing")

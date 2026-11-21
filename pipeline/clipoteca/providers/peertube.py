@@ -128,7 +128,7 @@ class PeerTube(Adapter):
                 all_files.extend(
                     item for item in playlist.get("files", []) if isinstance(item, dict)
                 )
-        choices: list[tuple[int, int, str, str]] = []
+        choices: list[tuple[int, bool, int, str, str]] = []
         for item in all_files:
             if item.get("hasVideo") is False:
                 continue
@@ -147,9 +147,11 @@ class PeerTube(Adapter):
             height = int(resolution.get("id") or item.get("height") or 0)
             # Prefer best up to 1080p, then smallest among equal resolutions.
             score = height if height <= 1080 else -height
-            choices.append((-score, size, url, "video/mp4" if ext == "mp4" else "video/webm"))
+            choices.append(
+                (-score, ext != "mp4", size, url, "video/mp4" if ext == "mp4" else "video/webm")
+            )
         if not choices:
             return None
         choices.sort()
-        _, _, url, mime = choices[0]
+        _, _, _, url, mime = choices[0]
         return MediaRef(url, mime)

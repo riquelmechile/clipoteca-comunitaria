@@ -25,6 +25,10 @@ on:
         description: Optional deterministic request ID to validate
         required: false
         type: string
+      providers:
+        description: Optional comma-separated source allowlist
+        required: false
+        type: string
       concurrency:
         description: External discovery concurrency
         required: false
@@ -70,6 +74,16 @@ jobs:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
+          DOUYIN_ACCESS_TOKEN: ${{ secrets.DOUYIN_ACCESS_TOKEN }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ vars.INSTAGRAM_USER_ID }}
+          SNAPCHAT_ACCESS_TOKEN: ${{ secrets.SNAPCHAT_ACCESS_TOKEN }}
+          SNAPCHAT_PROFILE_ID: ${{ vars.SNAPCHAT_PROFILE_ID }}
+          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          PEERTUBE_ALLOWED_INSTANCES: ${{ vars.PEERTUBE_ALLOWED_INSTANCES }}
           ARGOS_MODEL_CACHE_DIR: .cache/argos
           ARGOS_MODEL_PINS_JSON: data/argos-pins.json
           CLIPOTECA_QUERY: ${{ inputs.query }}
@@ -78,6 +92,7 @@ jobs:
           CLIPOTECA_MAX_RESULTS: ${{ inputs.max_results }}
           CLIPOTECA_REQUEST_ID: ${{ inputs.request_id }}
           CLIPOTECA_CONCURRENCY: ${{ inputs.concurrency }}
+          CLIPOTECA_PROVIDERS: ${{ inputs.providers }}
           CLIPOTECA_PERSIST_JOBS: '1'
         run: |
           uv run python -m clipoteca ingest \
@@ -86,7 +101,8 @@ jobs:
             --max-duration "$CLIPOTECA_MAX_SECONDS" \
             --max-results "$CLIPOTECA_MAX_RESULTS" \
             --request-id "$CLIPOTECA_REQUEST_ID" \
-            --concurrency "$CLIPOTECA_CONCURRENCY"
+            --concurrency "$CLIPOTECA_CONCURRENCY" \
+            --providers "$CLIPOTECA_PROVIDERS"
       - name: Upload job records and metrics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

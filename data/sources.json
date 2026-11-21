@@ -1,0 +1,308 @@
+[
+  {
+    "name": "pexels",
+    "category": "stock_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "catalog_search",
+    "requires": [
+      "PEXELS_API_KEY"
+    ],
+    "missing_credential_names": [
+      "PEXELS_API_KEY"
+    ],
+    "download_supported": false,
+    "notes": "key required; direct MP4 when present"
+  },
+  {
+    "name": "pixabay",
+    "category": "stock_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "catalog_search",
+    "requires": [
+      "PIXABAY_API_KEY"
+    ],
+    "missing_credential_names": [
+      "PIXABAY_API_KEY"
+    ],
+    "download_supported": false,
+    "notes": "key required; video variants when present"
+  },
+  {
+    "name": "wikimedia_commons",
+    "category": "public_media",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_commons",
+    "requires": [],
+    "missing_credential_names": [],
+    "download_supported": true,
+    "notes": "file namespace, inspect rights"
+  },
+  {
+    "name": "internet_archive",
+    "category": "archive_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_archive",
+    "requires": [],
+    "missing_credential_names": [],
+    "download_supported": true,
+    "notes": "movie catalog; rights vary"
+  },
+  {
+    "name": "nasa",
+    "category": "space_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_archive",
+    "requires": [],
+    "missing_credential_names": [],
+    "download_supported": true,
+    "notes": "asset manifest; source title from NASA metadata"
+  },
+  {
+    "name": "youtube",
+    "category": "social_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "global_data_api",
+    "requires": [
+      "YOUTUBE_API_KEY"
+    ],
+    "missing_credential_names": [
+      "YOUTUBE_API_KEY"
+    ],
+    "download_supported": false,
+    "notes": "Data API has no direct MP4 endpoint"
+  },
+  {
+    "name": "rutube",
+    "category": "social_video",
+    "status": "SUPPORTED_SEARCH_ONLY",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_search",
+    "requires": [],
+    "missing_credential_names": [],
+    "download_supported": false,
+    "notes": "often HLS rather than a direct MP4"
+  },
+  {
+    "name": "peertube",
+    "category": "federated_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "trusted_federation",
+    "requires": [],
+    "missing_credential_names": [],
+    "download_supported": true,
+    "notes": "allowed instances only; bounded direct MP4/WebM"
+  },
+  {
+    "name": "odysee",
+    "category": "decentralized_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_search",
+    "requires": [],
+    "missing_credential_names": [],
+    "download_supported": true,
+    "notes": "SDK claim resolution, size and rights gates"
+  },
+  {
+    "name": "bilibili",
+    "category": "social_video",
+    "status": "SUPPORTED_SEARCH_ONLY",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_search",
+    "requires": [],
+    "missing_credential_names": [],
+    "download_supported": false,
+    "notes": "risk control/WBI may block search; media not reusable"
+  },
+  {
+    "name": "vk_video",
+    "category": "social_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "oauth_search",
+    "requires": [
+      "VK_ACCESS_TOKEN"
+    ],
+    "missing_credential_names": [
+      "VK_ACCESS_TOKEN"
+    ],
+    "download_supported": false,
+    "notes": "third-party copying requires separate rights"
+  },
+  {
+    "name": "douyin",
+    "category": "social_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "authorized_account_only",
+    "requires": [
+      "DOUYIN_ACCESS_TOKEN"
+    ],
+    "missing_credential_names": [
+      "DOUYIN_ACCESS_TOKEN"
+    ],
+    "download_supported": false,
+    "notes": "no general global video search"
+  },
+  {
+    "name": "tiktok",
+    "category": "social_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "authorized_account_only",
+    "requires": [
+      "TIKTOK_ACCESS_TOKEN"
+    ],
+    "missing_credential_names": [
+      "TIKTOK_ACCESS_TOKEN"
+    ],
+    "download_supported": false,
+    "notes": "Display API, no global search"
+  },
+  {
+    "name": "instagram",
+    "category": "social_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "authorized_professional_account_only",
+    "requires": [
+      "INSTAGRAM_ACCESS_TOKEN",
+      "INSTAGRAM_USER_ID"
+    ],
+    "missing_credential_names": [
+      "INSTAGRAM_ACCESS_TOKEN",
+      "INSTAGRAM_USER_ID"
+    ],
+    "download_supported": false,
+    "notes": "no general global video search"
+  },
+  {
+    "name": "snapchat",
+    "category": "social_video",
+    "status": "AUTH_REQUIRED",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "authorized_profile_only",
+    "requires": [
+      "SNAPCHAT_ACCESS_TOKEN",
+      "SNAPCHAT_PROFILE_ID"
+    ],
+    "missing_credential_names": [
+      "SNAPCHAT_ACCESS_TOKEN",
+      "SNAPCHAT_PROFILE_ID"
+    ],
+    "download_supported": false,
+    "notes": "profile Spotlight list, no global video search"
+  }
+]

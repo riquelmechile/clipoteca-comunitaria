@@ -43,10 +43,15 @@ async def download_media(
     client: httpx.AsyncClient | None = None,
     resolver=None,
     max_redirects: int = 4,
-    total_seconds: float = 60.0,
+    total_seconds: float | None = None,
+    expected_bytes: int | None = None,
 ) -> Path:
     if max_bytes < 1:
         raise ValueError("max_bytes must be positive")
+    if total_seconds is None:
+        # Scale by expected size, but keep a hard wall-clock bound.
+        estimated = expected_bytes if expected_bytes and expected_bytes > 0 else max_bytes
+        total_seconds = min(180.0, max(45.0, 20.0 + estimated / (2 * 1024 * 1024)))
     if total_seconds <= 0:
         raise ValueError("total_seconds must be positive")
     target_dir.mkdir(parents=True, exist_ok=True)
