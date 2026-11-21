@@ -59,11 +59,11 @@ async def test_guest_probe_redacts_payload_and_handles_blocked_http():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         result = await probe_candidate(client, "tiktok", "zh", resolver=lambda _host: ["8.8.8.8"])
-    assert len(result) == 1
-    assert result[0]["status_code"] == 403
-    assert result[0]["platform_code"] == 2483
+    assert [r["operation"] for r in result] == ["init", "search"]
+    assert result[1]["status_code"] == 403
+    assert result[1]["platform_code"] == 2483
     assert "SECRET" not in json.dumps(result)
-    assert "url" not in result[0]
+    assert all("url" not in item for item in result)
 
 
 def test_render_redacts_untrusted_payload():
@@ -172,12 +172,17 @@ async def test_bilibili_nav_sign_wbi_then_search(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_douyin_guest_ttwid_forwarded_cross_domain_only_in_memory():
+    from clipoteca.providers.signing import BROWSER_UA
+
     requests = []
     guest = "very_private_guest_cookie_123"
 
     def handler(request):
         requests.append(request)
-        assert request.headers["user-agent"] == USER_AGENT
+        if request.url.host == "ttwid.bytedance.com":
+            assert request.headers["user-agent"] == USER_AGENT
+        else:
+            assert request.headers["user-agent"] == BROWSER_UA
         if request.url.host == "ttwid.bytedance.com":
             assert request.method == "POST"
             return httpx.Response(
@@ -185,6 +190,8 @@ async def test_douyin_guest_ttwid_forwarded_cross_domain_only_in_memory():
             )
         assert request.url.host == "www.douyin.com"
         assert request.headers.get("cookie") == f"ttwid={guest}"
+        assert request.url.params["a_bogus"]
+        assert request.url.params["X-Bogus"]
         return httpx.Response(
             200, json={"status_code": 0, "data": [{"aweme_info": {"video": {"play_addr": {}}}}]}
         )

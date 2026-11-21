@@ -1,0 +1,21 @@
+{
+  "status_code": 0,
+  "aweme_detail": {
+    "aweme_id": "7381000000000000003",
+    "desc": "雨滴",
+    "video": {
+      "bit_rate": [
+        {
+          "gear_name": "normal_1080_0",
+          "bit_rate": 1200000,
+          "play_addr": {
+            "url_list": [
+              "https://v3-web.douyinvod.com/playwm/other.mp4",
+              "https://v3-web.douyinvod.com/playwm/detail.mp4"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

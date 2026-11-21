@@ -93,16 +93,20 @@ def test_auth_required_when_missing_and_no_false_global_search_claims():
         "dpla",
         "smithsonian",
         "youtube",
-        "douyin",
-        "tiktok",
         "instagram",
         "snapchat",
     ):
         assert rows[key]["status"] == "AUTH_REQUIRED"
-    for key in ("douyin", "tiktok", "instagram", "snapchat"):
+    for key in ("instagram", "snapchat"):
         assert "authorized_" in rows[key]["scope"]
         assert not rows[key]["download_supported"]
         assert rows[key]["support_status"] == "SUPPORTED_SEARCH_ONLY"
+    for key in ("douyin", "tiktok"):
+        assert rows[key]["scope"] == "public_search"
+        assert rows[key]["status"] == "SUPPORTED_SEARCH_DOWNLOAD"
+        assert rows[key]["download_supported"]
+        assert rows[key]["support_status"] == "SUPPORTED_SEARCH_DOWNLOAD"
+        assert rows[key]["requires"] == []
 
 
 def test_env_values_never_revealed_even_with_fake_keys():
@@ -118,6 +122,8 @@ def test_env_values_never_revealed_even_with_fake_keys():
         "VK_ACCESS_TOKEN": "VERY-SECRET",
         "DOUYIN_ACCESS_TOKEN": "VERY-SECRET",
         "TIKTOK_ACCESS_TOKEN": "VERY-SECRET",
+        "DOUYIN_COOKIE": "VERY-SECRET",
+        "TIKTOK_COOKIE": "VERY-SECRET",
         "INSTAGRAM_ACCESS_TOKEN": "VERY-SECRET",
         "INSTAGRAM_USER_ID": "123456789",
         "SNAPCHAT_ACCESS_TOKEN": "VERY-SECRET",
@@ -125,7 +131,9 @@ def test_env_values_never_revealed_even_with_fake_keys():
     }
     rows = list_sources(env=env)
     assert "VERY-SECRET" not in json.dumps(rows)
-    assert {entry["name"]: entry["status"] for entry in rows}["tiktok"] == "SUPPORTED_SEARCH_ONLY"
+    assert {entry["name"]: entry["status"] for entry in rows}[
+        "tiktok"
+    ] == "SUPPORTED_SEARCH_DOWNLOAD"
 
 
 def test_cli_list_sources_json_and_alias(capsys):

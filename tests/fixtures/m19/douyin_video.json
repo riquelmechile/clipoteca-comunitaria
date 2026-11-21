@@ -1,0 +1,27 @@
+{
+  "status_code": 0,
+  "data": [
+    {
+      "aweme_info": {
+        "aweme_id": "7381000000000000001",
+        "desc": "下雨街景",
+        "duration": 15000,
+        "video": {
+          "bit_rate": [
+            {
+              "gear_name": "normal_720_0",
+              "bit_rate": 800000,
+              "play_addr": {
+                "url_list": [
+                  "https://v3-web.douyinvod.com/playwm/first",
+                  "https://v3-web.douyinvod.com/playwm/movie.mp4"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "has_more": false
+}
