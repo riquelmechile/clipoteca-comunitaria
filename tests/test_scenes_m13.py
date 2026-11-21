@@ -23,11 +23,25 @@ from clipoteca.media.scenes import (
 def make_video(tmp_path: Path, name: str, duration: float, color: str = "red") -> Path:
     dest = tmp_path / name
     subprocess.run(
-        ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-         "-f", "lavfi", "-i",
-         f"color=c={color}:s=160x90:r=4:d={duration}",
-         "-c:v", "libx264", "-preset", "ultrafast", str(dest)],
-        capture_output=True, check=True,
+        [
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"color=c={color}:s=160x90:r=4:d={duration}",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            str(dest),
+        ],
+        capture_output=True,
+        check=True,
     )
     return dest
 
@@ -43,7 +57,11 @@ def test_normalize_short_merge_and_long_split():
     assert all(scene.duration >= 1.5 for scene in scenes)
     long = normalize_scenes([], start=0, end=45)
     assert [(x.start, x.end) for x in long] == [
-        (0, 10), (10, 20), (20, 30), (30, 40), (40, 45),
+        (0, 10),
+        (10, 20),
+        (20, 30),
+        (30, 40),
+        (40, 45),
     ]
     assert len(normalize_scenes([], start=0, end=900)) <= 120
 
@@ -72,15 +90,28 @@ def test_four_takes_including_title_intro(tmp_path):
         make_video(tmp_path, "blue.mp4", 18, "blue"),
     ]
     listing = tmp_path / "concat.txt"
-    listing.write_text(
-        "".join(f"file '{item}'\n" for item in clips), encoding="utf-8"
-    )
+    listing.write_text("".join(f"file '{item}'\n" for item in clips), encoding="utf-8")
     assembled = tmp_path / "scenes.mp4"
     subprocess.run(
-        ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error",
-         "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
-         "-c", "copy", str(assembled)],
-        check=True, capture_output=True,
+        [
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(listing),
+            "-c",
+            "copy",
+            str(assembled),
+        ],
+        check=True,
+        capture_output=True,
     )
     result = detect_scenes(assembled, max_window=60)
     assert result[0].start == 0
@@ -100,12 +131,13 @@ def test_ffmpeg_command_safe_env_and_timeouts(monkeypatch, tmp_path):
         captured.update({"args": args, "env": kwargs["env"]})
         return SimpleNamespace(returncode=0, stderr="Duration: 00:00:03.00\n")
 
-    scenes = _ffmpeg_scenes(
-        source, start=0, max_window=3, runner=fake_run
-    )
+    scenes = _ffmpeg_scenes(source, start=0, max_window=3, runner=fake_run)
     assert scenes == [Scene(0, 3)]
     assert captured["args"][:4] == [
-        "ffmpeg", "-nostdin", "-hide_banner", "-loglevel",
+        "ffmpeg",
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
     ]
     assert "CANARY_SECRET" not in str(captured)
     assert any("select='gt(scene,0.3)',showinfo" in arg for arg in captured["args"])
@@ -126,8 +158,10 @@ async def test_remote_range_probes_once_without_download():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         rows = await detect_scenes_async(
-            "https://video.example.com/test.mp4", max_window=12,
-            client=client, resolver=lambda host: ["8.8.8.8"],
+            "https://video.example.com/test.mp4",
+            max_window=12,
+            client=client,
+            resolver=lambda host: ["8.8.8.8"],
             runner=fake_run,
         )
     assert len(seen) == 1
@@ -145,9 +179,9 @@ def test_invalid_source_and_limits(tmp_path):
 
 @pytest.mark.asyncio
 async def test_remote_ssrf_rejected_without_network():
-    async with httpx.AsyncClient(transport=httpx.MockTransport(
-        lambda _r: pytest.fail("must not call remote address")
-    )) as client:
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda _r: pytest.fail("must not call remote address"))
+    ) as client:
         from clipoteca.security.ssrf import UnsafeMediaURL
 
         with pytest.raises(UnsafeMediaURL):
