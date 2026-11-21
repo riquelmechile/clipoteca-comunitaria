@@ -23,7 +23,9 @@ NAMES = {
     "peertube",
     "odysee",
     "bilibili",
+    "ok_ru",
     "vk_video",
+    "dzen",
     "douyin",
     "tiktok",
     "instagram",
@@ -68,9 +70,9 @@ def test_exported_source_snapshot_matches_code(tmp_path):
     assert json.loads(destination.read_text(encoding="utf-8")) == expected
 
 
-def test_list_sources_21_unique_and_all_have_language_matrix():
+def test_list_sources_23_unique_and_all_have_language_matrix():
     rows = list_sources(env={})
-    assert len(rows) == len(SOURCES) == 21
+    assert len(rows) == len(SOURCES) == 23
     assert {row["name"] for row in rows} == NAMES
     assert all(
         set(row["accepts_text_languages"]).issubset({"es", "en", "zh", "ru"}) for row in rows
@@ -91,7 +93,6 @@ def test_auth_required_when_missing_and_no_false_global_search_claims():
         "dpla",
         "smithsonian",
         "youtube",
-        "vk_video",
         "douyin",
         "tiktok",
         "instagram",
@@ -130,7 +131,7 @@ def test_env_values_never_revealed_even_with_fake_keys():
 def test_cli_list_sources_json_and_alias(capsys):
     assert main(["list_sources"]) == 0
     first = json.loads(capsys.readouterr().out)
-    assert first["count"] == 21
+    assert first["count"] == 23
     assert set(x["name"] for x in first["sources"]) == NAMES
     assert main(["list-sources"]) == 0
     second = json.loads(capsys.readouterr().out)
