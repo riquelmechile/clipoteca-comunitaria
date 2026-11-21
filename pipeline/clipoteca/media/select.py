@@ -172,7 +172,10 @@ def rank_scene_windows(
         quality = sum(selected) / len(selected)
         bad_fraction = sum(x <= 0.03 for x in selected) / len(selected)
         adjusted = quality - bad_fraction * 0.35
-        if adjusted >= MIN_WINDOW_QUALITY:
+        # Sub-second sources can contain only one sampled frame, so motion is
+        # unknowable; keep textured/non-black media while still rejecting black.
+        quality_floor = 0.02 if horizon < MIN_SCENE_SECONDS else MIN_WINDOW_QUALITY
+        if adjusted >= quality_floor:
             ranked.append((adjusted, SourceWindow(start, end)))
 
     ranked.sort(key=lambda pair: (-pair[0], pair[1].start))
