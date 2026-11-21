@@ -78,6 +78,8 @@ class MediaRef:
     url: str
     mime: str
     size_bytes: int | None = None
+    referer: str | None = None
+    allowed_hosts: tuple[str, ...] = ()
 
 
 class Adapter(ABC):

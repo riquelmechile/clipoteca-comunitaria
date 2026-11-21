@@ -15,8 +15,18 @@ def provider_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=15, follow_redirects=False, headers={"User-Agent": USER_AGENT})
 
 
-async def fetch_json(client: httpx.AsyncClient, url: str, *, params=None, headers=None) -> dict:
-    """Bounded 429 retry with Retry-After. 403 is auth only with credentials."""
+async def fetch_json(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    params=None,
+    headers=None,
+    detail_statuses: frozenset[int] = frozenset(),
+) -> dict:
+    """Bounded 429 retry with Retry-After. Opt-in provider-specific error JSON.
+
+    Other providers retain the original HTTP 403/429/451 classification.
+    """
     request_headers = httpx.Headers(headers or {})
     request_headers.setdefault("User-Agent", USER_AGENT)
     response = None
@@ -27,6 +37,16 @@ async def fetch_json(client: httpx.AsyncClient, url: str, *, params=None, header
             raise ProviderTimeout("provider timeout") from exc
         except httpx.HTTPError as exc:
             raise ProviderError("provider request failed") from exc
+        if response.status_code in detail_statuses:
+            # Only trusted adapter opt-in may inspect an HTTP-error JSON body.
+            # Do not propagate raw error details to logs or user reports.
+            if "json" in response.headers.get("content-type", ""):
+                try:
+                    details = response.json()
+                except ValueError:
+                    details = None
+                if isinstance(details, dict) and details.get("detail"):
+                    return details
         if response.status_code != 429:
             break
         if attempt == 2:
