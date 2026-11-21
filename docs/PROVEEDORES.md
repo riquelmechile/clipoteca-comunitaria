@@ -64,3 +64,18 @@ El filtro `videoDuration=short` significa menos de 4 minutos, **no** 20 segundos
 - https://rutube.ru/info/embed/
 - https://rutube.ru/api/search/video/?query=rain&limit=2
 - https://rutube.ru/api/play/options/8411dde9e6521796b6805e5966ad4297/
+
+## M5c: PeerTube y Odysee (evidencia real 20-11-2026)
+
+| Fuente | Descubrimiento | Detalle/archivo | Descarga real y restricciones |
+|---|---|---|---|
+| PeerTube | `GET https://sepiasearch.org/api/v1/search/videos?search=…&count=N` | `GET https://<instancia>/api/v1/videos/<uuid>`; `files[].fileUrl` o `streamingPlaylists[].files[].fileUrl` | **SUPPORTED_SEARCH_DOWNLOAD** cuando hay MP4/WebM HTTPS con tamaño conocido y ≤350 MiB. Solo instancias explícitamente autorizadas en `PEERTUBE_ALLOWED_INSTANCES`; HLS sin archivo verificable queda search-only. |
+| Odysee | Lighthouse `GET https://lighthouse.odysee.tv/search?s=…&size=N&claimType=file&free_only=true`; `POST https://api.na-backend.odysee.com/api/v1/proxy?m=claim_search` | SDK `resolve` y `get` por JSON-RPC; `get` puede devolver `https://player.odycdn.com/v6/streams/...mp4` | **SUPPORTED_SEARCH_DOWNLOAD** solo si hay MP4/WebM HTTPS permitido, tamaño reclamado ≤350 MiB y el stream URL se puede verificar por el downloader. No se inventan streams para claims inaccesibles o de gran tamaño. |
+
+**Comprobación HTTP real:** SepiaSearch devolvió **200 JSON** con `total=3050`, `data[0].uuid=84ed4b77-a3e5-411f-8723-026106481b6e`, `url=https://pt.na4.eu/videos/watch/…`, duración 301. La instancia `pt.na4.eu/api/v1/videos/<uuid>` devolvió **200 JSON** con `files=[]` y `streamingPlaylists[0].files` con URLs `.mp4` fragmentadas de varios tamaños (la primera ~765 MB, rechazada). Lighthouse devolvió **200 JSON** con `claimId` y `name`. SDK `claim_search` devolvió **200 JSON**, `result.items[0].value.source.size=390601464`; SDK `get` devolvió **200 JSON** con `result.streaming_url` MP4. Ese claim supera 350 MiB y no se importaría. No se descargó ni redistribuyó material de usuarios externos.
+
+Los tests incluyen cuatro lenguas, vacío, 429/500, timeout, licencia/metadatos, protección contra instancias no autorizadas y una ejecución offline de FFmpeg+ingesta PeerTube→GitHub Releases simulado. Los endpoints concretos, formatos y licencias pueden variar.
+
+- https://docs.joinpeertube.org/api-rest-reference/api/video.html
+- https://sepiasearch.org/api/v1/search/videos?search=rain&count=2
+- https://github.com/OdyseeTeam/odysee-frontend/blob/master/llms.txt
