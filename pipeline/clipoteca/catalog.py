@@ -43,10 +43,19 @@ def normalize_text(value: str) -> str:
     )
 
 
-_SECRET_QUERY_KEYS = frozenset({
-    "api_key", "apikey", "access_token", "auth_token", "client_secret",
-    "password", "secret", "token", "key",
-})
+_SECRET_QUERY_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "access_token",
+        "auth_token",
+        "client_secret",
+        "password",
+        "secret",
+        "token",
+        "key",
+    }
+)
 
 _TRACKING_QUERY_KEYS = {
     "_hsenc",
@@ -98,7 +107,6 @@ def canonical_source_url(value: str) -> str:
         )
     ]
     return urlunsplit(("https", host, path, urlencode(sorted(query)), ""))
-
 
 
 def safe_source_url(value: str) -> str:
@@ -203,10 +211,9 @@ class Catalog:
         for clip in self.clips:
             published_source = clip["source"]
             published_media = clip["media"]
-            if (
-                published_source["provider"] == source.get("provider")
-                and published_source["provider_id"] == source.get("provider_id")
-            ):
+            if published_source["provider"] == source.get("provider") and published_source[
+                "provider_id"
+            ] == source.get("provider_id"):
                 return clip, "provider_id"
             if media.get("sha256") and published_media.get("sha256") == media["sha256"]:
                 return clip, "sha256"
@@ -217,9 +224,7 @@ class Catalog:
                 phash_similar
                 and media.get("perceptual_hash")
                 and published_media.get("perceptual_hash")
-                and phash_similar(
-                    published_media["perceptual_hash"], media["perceptual_hash"]
-                )
+                and phash_similar(published_media["perceptual_hash"], media["perceptual_hash"])
             ):
                 return clip, "perceptual_hash"
             if (
@@ -240,15 +245,16 @@ class Catalog:
                     and math.isfinite(previous_duration)
                     and abs(current_duration - previous_duration) <= 1
                 )
+
                 def same_field(key: str) -> bool:
                     value = source.get(key)
                     return bool(
                         isinstance(value, str)
                         and value.strip()
                         and isinstance(published_source.get(key), str)
-                        and normalize_text(value)
-                        == normalize_text(published_source[key])
+                        and normalize_text(value) == normalize_text(published_source[key])
                     )
+
                 if duration_match or same_field("creator") or same_field("collection"):
                     return clip, "normalized_title"
         return None

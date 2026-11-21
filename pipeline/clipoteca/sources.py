@@ -185,7 +185,11 @@ SOURCES: tuple[SourceSpec, ...] = (
 # never evidence of a successful live request. M12 candidate probes measure that.
 CAPABILITY_LEVELS = frozenset({"supported", "best_effort", "unavailable"})
 SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
-    "library_of_congress": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "library_of_congress": {
+        "search": "best_effort",
+        "preview": "best_effort",
+        "download": "best_effort",
+    },
     "coverr": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "europeana": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "nara": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},

@@ -39,7 +39,10 @@ def clip(
 
 
 def candidate_draft(
-    *, source_url: str, source_title: str, fingerprint: str = "",
+    *,
+    source_url: str,
+    source_title: str,
+    fingerprint: str = "",
     duration: float | None = None,
 ) -> dict:
     return {
@@ -178,21 +181,27 @@ def test_same_common_title_across_providers_different_content_is_not_duplicate(t
     """An identical descriptive title cannot discard distinct content."""
     existing = clip(
         source_url="https://archive.example/item/A",
-        source_title=title, fingerprint="aaaa",
+        source_title=title,
+        fingerprint="aaaa",
         duration=10.0,
     )
     draft = candidate_draft(
         source_url="https://museum.example/item/B",
-        source_title=title, fingerprint="bbbb",
+        source_title=title,
+        fingerprint="bbbb",
         duration=16.0,
     )
-    assert Catalog([existing]).duplicate_match(
-        draft, phash_similar=lambda left, right: left == right
-    ) is None
+    assert (
+        Catalog([existing]).duplicate_match(draft, phash_similar=lambda left, right: left == right)
+        is None
+    )
     # Even after download, title alone is not a signal.
-    assert Catalog([existing]).duplicate_match(
-        {"source": draft["source"], "media": {"perceptual_hash": "bbbb"}}
-    ) is None
+    assert (
+        Catalog([existing]).duplicate_match(
+            {"source": draft["source"], "media": {"perceptual_hash": "bbbb"}}
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize(
@@ -224,7 +233,8 @@ def test_same_provider_canonical_url_with_new_provider_id_is_duplicate():
 def test_same_video_from_two_sources_is_duplicate_by_hash_or_phash():
     existing = clip(source_url="https://first.example/a", source_title="Newsreel 1945")
     draft = candidate_draft(
-        source_url="https://second.example/b", source_title="Untitled motion picture",
+        source_url="https://second.example/b",
+        source_title="Untitled motion picture",
         fingerprint="aaaa~100.00:bbbb~120.00",
     )
     matched = Catalog([existing]).duplicate_match(

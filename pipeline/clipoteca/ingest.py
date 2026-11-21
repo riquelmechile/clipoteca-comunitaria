@@ -239,9 +239,8 @@ async def ingest(
                     (
                         published
                         for published in catalogue.clips
-                        if canonical_source_url(
-                            str(published["source"].get("source_url", ""))
-                        ) == candidate_url
+                        if canonical_source_url(str(published["source"].get("source_url", "")))
+                        == candidate_url
                     ),
                     None,
                 )
@@ -316,9 +315,7 @@ async def ingest(
                             "duration_seconds": normalized.media.duration_seconds,
                         },
                     }
-                    match = remote.duplicate_match(
-                        draft, phash_similar=perceptually_similar
-                    )
+                    match = remote.duplicate_match(draft, phash_similar=perceptually_similar)
                     if match:
                         record_duplicate(candidate, *match)
                         continue

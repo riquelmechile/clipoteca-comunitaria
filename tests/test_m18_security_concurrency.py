@@ -55,8 +55,12 @@ def adapter_for(provider: str):
 
 
 PROVIDERS = (
-    "library_of_congress", "coverr", "europeana",
-    "nara", "dpla", "smithsonian",
+    "library_of_congress",
+    "coverr",
+    "europeana",
+    "nara",
+    "dpla",
+    "smithsonian",
 )
 
 
@@ -110,16 +114,28 @@ async def test_archive_explicit_download_restriction_overrides_video_url(kind):
         "download_restricted": "true",
     }
     restricted = Candidate(
-        kind.name, "1", "rain", "en", "https://archive.example/item/1",
-        "Rain", "en", metadata=raw,
+        kind.name,
+        "1",
+        "rain",
+        "en",
+        "https://archive.example/item/1",
+        "Rain",
+        "en",
+        metadata=raw,
     )
     assert await adapter.direct_media(restricted) is None
     nested = dict(raw)
     nested.pop("download_restricted")
     nested["resources"] = [{"downloadRestricted": True}]
     nested_candidate = Candidate(
-        kind.name, "2", "rain", "en", "https://archive.example/item/2",
-        "Rain", "en", metadata=nested,
+        kind.name,
+        "2",
+        "rain",
+        "en",
+        "https://archive.example/item/2",
+        "Rain",
+        "en",
+        metadata=nested,
     )
     assert await adapter.direct_media(nested_candidate) is None
 
@@ -143,9 +159,7 @@ async def test_archive_provider_errors_never_expose_secret_keys(kind):
     assert secret not in json.dumps({"status": type(raised.value).__name__})
     if kind in (DPLA, Smithsonian):
         assert any("api_key" in request.url.params for request in seen)
-    clean = safe_source_url(
-        f"https://archive.example/item/1?api_key={secret}&feature=abc"
-    )
+    clean = safe_source_url(f"https://archive.example/item/1?api_key={secret}&feature=abc")
     assert secret not in clean and "api_key" not in clean and "feature=abc" in clean
 
 
@@ -181,9 +195,9 @@ def test_github_catalog_writer_detects_concurrent_duplicate_before_second_put():
             calls["get"] += 1
             rows = [] if calls["get"] == 1 else [existing]
             content = base64.b64encode(json.dumps(rows).encode()).decode()
-            return httpx.Response(200, json={
-                "sha": str(calls["get"]), "encoding": "base64", "content": content
-            })
+            return httpx.Response(
+                200, json={"sha": str(calls["get"]), "encoding": "base64", "content": content}
+            )
         calls["put"] += 1
         return httpx.Response(409, json={"message": "concurrent update"})
 
@@ -195,12 +209,16 @@ def test_github_catalog_writer_detects_concurrent_duplicate_before_second_put():
         1, "clip_clip-000043.mp4", 100, "uploaded", incoming["storage"]["asset_url"]
     )
     thumbnail = ReleaseAsset(
-        2, "thumb_clip-000043.webp", 10, "uploaded",
+        2,
+        "thumb_clip-000043.webp",
+        10,
+        "uploaded",
         incoming["storage"]["thumbnail_url"],
     )
     with pytest.raises(DuplicateClip) as error:
         writer.update(
-            [incoming], verified_assets={incoming["id"]: (video, thumbnail)},
+            [incoming],
+            verified_assets={incoming["id"]: (video, thumbnail)},
             phash_similar=lambda x, y: x == y,
         )
     assert error.value.clip_id == existing["id"]
