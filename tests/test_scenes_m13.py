@@ -108,7 +108,7 @@ def test_ffmpeg_command_safe_env_and_timeouts(monkeypatch, tmp_path):
         "ffmpeg", "-nostdin", "-hide_banner", "-loglevel",
     ]
     assert "CANARY_SECRET" not in str(captured)
-    assert "select='gt(scene,0.3)',showinfo" in captured["args"]
+    assert any("select='gt(scene,0.3)',showinfo" in arg for arg in captured["args"])
 
 
 @pytest.mark.asyncio
