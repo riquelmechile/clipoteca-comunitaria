@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 import time
@@ -21,7 +22,7 @@ from .base import (
     detect_source_language,
 )
 from .http import fetch_json, provider_client
-from .m17_common import allowed_https, duration, response_json, walk
+from .m17_common import allowed_https, duration, walk
 
 LOGIN = "https://login.vk.com/"
 API = "https://api.vkvideo.ru/method"
@@ -32,8 +33,10 @@ WEB_CLIENT_ID = "6287487"
 ORIGIN = "https://vkvideo.ru"
 ID = re.compile(r"-?[0-9]+_[0-9]+")
 ROOTS = ("vkvideo.ru", "vk.com", "vkuser.net", "userapi.com", "vk-cdn.net")
+ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 HLS = "application/vnd.apple.mpegurl"
 _TOKEN: tuple[str, float] | None = None
+_TOKEN_LOCK = asyncio.Lock()
 
 
 def _error(payload: dict) -> None:
@@ -74,6 +77,17 @@ def _file_url(files: object) -> str:
     return max(candidates, default=(0, ""))[1]
 
 
+def _section_cursor(payload: object) -> tuple[str, str]:
+    for item in walk(payload):
+        start = item.get("next_from") or item.get("nextFrom")
+        section = item.get("section_id") or item.get("sectionId")
+        if start and not section:
+            section = item.get("id")
+        if start and section:
+            return str(section), str(start)
+    return "", ""
+
+
 class VKVideo(Adapter):
     name = "vk_video"
     category = "social_video"
@@ -98,26 +112,33 @@ class VKVideo(Adapter):
             return self.token
         if _TOKEN and self.clock() < _TOKEN[1] - 60:
             return _TOKEN[0]
-        response = await self.client.post(
-            LOGIN,
-            params={"act": "get_anonym_token"},
-            data={"client_id": WEB_CLIENT_ID},
-            headers={"Origin": ORIGIN, "Referer": ORIGIN + "/"},
-        )
-        payload = await response_json(response, "VK token")
-        nested = payload.get("data") if isinstance(payload.get("data"), dict) else {}
-        token = str(
-            payload.get("token") or payload.get("access_token") or nested.get("token") or ""
-        )
-        expiry = payload.get("expired_at") or payload.get("expires_at") or nested.get("expired_at")
-        try:
-            expires = float(expiry)
-        except (TypeError, ValueError):
-            expires = self.clock() + 3600
-        if not token:
-            raise AuthRequired("VK anonymous token unavailable")
-        _TOKEN = (token, expires)
-        return token
+        async with _TOKEN_LOCK:
+            if _TOKEN and self.clock() < _TOKEN[1] - 60:
+                return _TOKEN[0]
+            payload = await fetch_json(
+                self.client,
+                LOGIN,
+                method="POST",
+                params={"act": "get_anonym_token"},
+                data={"client_id": WEB_CLIENT_ID},
+                headers={"Origin": ORIGIN, "Referer": ORIGIN + "/"},
+            )
+            _error(payload)
+            nested = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+            token = str(
+                payload.get("token") or payload.get("access_token") or nested.get("token") or ""
+            )
+            expiry = (
+                payload.get("expired_at") or payload.get("expires_at") or nested.get("expired_at")
+            )
+            try:
+                expires = float(expiry)
+            except (TypeError, ValueError):
+                expires = self.clock() + 3600
+            if not token:
+                raise AuthRequired("VK anonymous token unavailable")
+            _TOKEN = (token, expires)
+            return token
 
     async def _classic_call(self, method: str, params: dict[str, Any]) -> dict:
         payload = await fetch_json(
@@ -133,12 +154,12 @@ class VKVideo(Adapter):
 
     async def _web_call(self, method: str, params: dict[str, Any]) -> dict:
         token = await self._token()
-        response = await self.client.get(
+        payload = await fetch_json(
+            self.client,
             API + "/" + method,
             params={**params, "access_token": token, "v": VERSION},
             headers={"Origin": ORIGIN, "Referer": ORIGIN + "/"},
         )
-        payload = await response_json(response, "VK")
         _error(payload)
         result = payload.get("response")
         if not isinstance(result, dict):
@@ -165,9 +186,26 @@ class VKVideo(Adapter):
                     "content_type": "video",
                 },
             )
+        pages: list[object] = [data]
+        if not self.token:
+            section_id, start_from = _section_cursor(data)
+            for _page in range(1, limits.max_pages):
+                if not section_id or not start_from:
+                    break
+                page = await self._web_call(
+                    "catalog.getSection",
+                    {
+                        "section_id": section_id,
+                        "start_from": start_from,
+                        "count": min(30, limits.max_candidates),
+                    },
+                )
+                pages.append(page)
+                next_section, start_from = _section_cursor(page)
+                section_id = next_section or section_id
         found: list[Candidate] = []
         seen: set[str] = set()
-        for item in _video_rows(data):
+        for item in _video_rows(pages):
             try:
                 identifier = f"{int(item.get('owner_id') or item.get('ownerId'))}_{int(item['id'])}"
             except (TypeError, ValueError, KeyError):
@@ -222,17 +260,6 @@ class VKVideo(Adapter):
                 link,
                 HLS,
                 referer=referer,
-                allowed_hosts=(
-                    "vkvideo.ru",
-                    ".vkvideo.ru",
-                    "vk.com",
-                    ".vk.com",
-                    "vkuser.net",
-                    ".vkuser.net",
-                    "userapi.com",
-                    ".userapi.com",
-                    "vk-cdn.net",
-                    ".vk-cdn.net",
-                ),
+                allowed_hosts=ALLOWED_HOSTS,
             )
-        return MediaRef(link, "video/mp4", referer=referer)
+        return MediaRef(link, "video/mp4", referer=referer, allowed_hosts=ALLOWED_HOSTS)

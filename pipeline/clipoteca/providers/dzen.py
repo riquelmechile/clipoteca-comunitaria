@@ -17,14 +17,18 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import provider_client
-from .m17_common import allowed_https, duration, embedded_json, response_json, walk
+from .http import fetch_json, fetch_text, provider_client
+from .m17_common import allowed_https, duration, embedded_json, json_attributes, walk
 
 SEARCH = "https://dzen.ru/api/web/v1/zen-search"
+SEARCH_PAGE = "https://dzen.ru/search"
 WATCH = "https://dzen.ru/video/watch/"
-ROOTS = ("dzen.ru", "yandex.net", "yandex.ru", "strm.yandex.ru")
+ROOTS = ("dzen.ru", "strm.yandex.ru", "strm.yandex.net", "frontend.vh.yandex.ru")
+ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 ID = re.compile(r"[A-Za-z0-9_-]{6,160}")
 HLS = "application/vnd.apple.mpegurl"
+STREAM_KEYS = frozenset({"hls", "streamurl", "downloadurl", "mp4", "url"})
+_COOKIE_JAR = httpx.Cookies()
 
 
 def _identifier(item: dict) -> str:
@@ -36,9 +40,11 @@ def _streams(payloads: list[object]) -> str:
     for payload in payloads:
         for item in walk(payload):
             for key, value in item.items():
-                if isinstance(value, str) and (
-                    key.casefold() in {"url", "hls", "streamurl", "downloadurl"}
-                    or key.casefold().startswith("mp4")
+                key_name = key.casefold()
+                if (
+                    isinstance(value, str)
+                    and (key_name in STREAM_KEYS or re.fullmatch(r"mp4_?\d+", key_name))
+                    and any(ext in value.casefold() for ext in (".m3u8", ".mp4"))
                 ):
                     links.append(value.replace("\\/", "/"))
     safe = [url for url in links if allowed_https(url, ROOTS)]
@@ -55,16 +61,32 @@ class Dzen(Adapter):
     accepts_text_languages = ("es", "en", "zh", "ru")
 
     def __init__(self, *, client: httpx.AsyncClient | None = None) -> None:
-        self.client = client or provider_client()
+        self.client = client or provider_client(cookies=_COOKIE_JAR)
+        self.cookies = self.client.cookies
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
-        response = await self.client.get(
-            SEARCH, params={"query": term, "type_filter": "video", "page": 0}
-        )
-        payload = await response_json(response, "Dzen")
+        payloads: list[object]
+        try:
+            payloads = [
+                await fetch_json(
+                    self.client,
+                    SEARCH,
+                    params={"query": term, "type_filter": "video", "page": 0},
+                    timeout_seconds=limits.timeout_seconds,
+                )
+            ]
+        except ProviderError:
+            document = await fetch_text(
+                self.client,
+                SEARCH_PAGE,
+                params={"query": term},
+                timeout_seconds=limits.timeout_seconds,
+            )
+            payloads = embedded_json(document, '"items"')
+            payloads.extend(json_attributes(document, "data-props"))
         found: list[Candidate] = []
         seen: set[str] = set()
-        for item in walk(payload):
+        for item in walk(payloads):
             identifier = _identifier(item)
             title = item.get("title") or item.get("name")
             if not ID.fullmatch(identifier) or identifier in seen or not isinstance(title, str):
@@ -94,11 +116,9 @@ class Dzen(Adapter):
         if not ID.fullmatch(candidate.provider_id):
             return None
         referer = WATCH + candidate.provider_id
-        response = await self.client.get(referer, headers={"Referer": "https://dzen.ru/"})
-        if response.status_code != 200 or response.is_redirect:
-            raise ProviderError(f"Dzen watch HTTP {response.status_code}")
-        payloads = embedded_json(response.text, "videoMetaResponse")
-        payloads.extend(embedded_json(response.text, "oneVideoStreams"))
+        document = await fetch_text(self.client, referer, headers={"Referer": "https://dzen.ru/"})
+        payloads = embedded_json(document, "videoMetaResponse")
+        payloads.extend(embedded_json(document, "oneVideoStreams"))
         link = _streams(payloads)
         if not link:
             return None
@@ -107,15 +127,6 @@ class Dzen(Adapter):
                 link,
                 HLS,
                 referer=referer,
-                allowed_hosts=(
-                    "dzen.ru",
-                    ".dzen.ru",
-                    "yandex.net",
-                    ".yandex.net",
-                    "yandex.ru",
-                    ".yandex.ru",
-                    "strm.yandex.ru",
-                    ".strm.yandex.ru",
-                ),
+                allowed_hosts=ALLOWED_HOSTS,
             )
-        return MediaRef(link, "video/mp4", referer=referer)
+        return MediaRef(link, "video/mp4", referer=referer, allowed_hosts=ALLOWED_HOSTS)

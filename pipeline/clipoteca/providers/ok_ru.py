@@ -14,20 +14,21 @@ from .base import (
     Adapter,
     Candidate,
     MediaRef,
-    ProviderError,
     SearchLimits,
     SupportStatus,
     detect_source_language,
 )
-from .http import provider_client
-from .m17_common import allowed_https, duration, json_attributes, response_json, walk
+from .http import fetch_json, fetch_text, provider_client
+from .m17_common import allowed_https, duration, json_attributes, walk
 
 SEARCH = "https://ok.ru/video/search"
 PAGE = "https://ok.ru/web-api/v2/video/fetchSearchResult"
 EMBED = "https://ok.ru/videoembed/"
 ROOTS = ("ok.ru", "okcdn.ru", "mycdn.me")
+ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 HLS = "application/vnd.apple.mpegurl"
 ID = re.compile(r"[0-9]{4,24}")
+STREAM_KEYS = frozenset({"url", "hls", "mp4", "streamurl", "downloadurl", "movieurl"})
 
 
 def _rows(payloads: list[object]) -> list[dict]:
@@ -46,8 +47,10 @@ def _media(payloads: list[object]) -> str:
     for payload in payloads:
         for item in walk(payload):
             for key, value in item.items():
-                if isinstance(value, str) and (
-                    "url" in key.casefold() or key.casefold() in {"hls", "mp4"}
+                if (
+                    isinstance(value, str)
+                    and key.casefold() in STREAM_KEYS
+                    and any(ext in value.casefold() for ext in (".m3u8", ".mp4"))
                 ):
                     links.append(value.replace("\\/", "/"))
             videos = item.get("videos")
@@ -72,13 +75,23 @@ class OkRu(Adapter):
         self.client = client or provider_client()
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
-        response = await self.client.get(
+        document = await fetch_text(
+            self.client,
             SEARCH,
             params={"st.cmd": "anonymVideo", "st.ft": "search", "st.gsq": term, "st.m": "SEARCH"},
+            timeout_seconds=limits.timeout_seconds,
         )
-        if response.status_code != 200 or response.is_redirect:
-            raise ProviderError(f"OK.ru HTTP {response.status_code}")
-        payloads = json_attributes(response.text, "data-props")
+        payloads = json_attributes(document, "data-props")
+        for page in range(1, limits.max_pages):
+            payloads.append(
+                await fetch_json(
+                    self.client,
+                    PAGE,
+                    method="POST",
+                    data={"query": term, "page": page, "offset": page * 20},
+                    timeout_seconds=limits.timeout_seconds,
+                )
+            )
         result: list[Candidate] = []
         seen: set[str] = set()
         for item in _rows(payloads):
@@ -115,10 +128,8 @@ class OkRu(Adapter):
         if not ID.fullmatch(candidate.provider_id):
             return None
         referer = EMBED + candidate.provider_id
-        response = await self.client.get(referer, headers={"Referer": "https://ok.ru/"})
-        if response.status_code != 200 or response.is_redirect:
-            raise ProviderError(f"OK.ru embed HTTP {response.status_code}")
-        payloads = json_attributes(response.text, "data-options")
+        document = await fetch_text(self.client, referer, headers={"Referer": "https://ok.ru/"})
+        payloads = json_attributes(document, "data-options")
         expanded = list(payloads)
         for payload in payloads:
             for item in walk(payload):
@@ -130,8 +141,7 @@ class OkRu(Adapter):
                         pass
                 metadata_url = item.get("metadataUrl")
                 if isinstance(metadata_url, str) and allowed_https(metadata_url, ("ok.ru",)):
-                    response = await self.client.get(metadata_url)
-                    expanded.append(await response_json(response, "OK.ru"))
+                    expanded.append(await fetch_json(self.client, metadata_url))
         link = _media(expanded)
         if not link:
             return None
@@ -140,13 +150,6 @@ class OkRu(Adapter):
                 link,
                 HLS,
                 referer=referer,
-                allowed_hosts=(
-                    "ok.ru",
-                    ".ok.ru",
-                    "okcdn.ru",
-                    ".okcdn.ru",
-                    "mycdn.me",
-                    ".mycdn.me",
-                ),
+                allowed_hosts=ALLOWED_HOSTS,
             )
-        return MediaRef(link, "video/mp4", referer=referer)
+        return MediaRef(link, "video/mp4", referer=referer, allowed_hosts=ALLOWED_HOSTS)
