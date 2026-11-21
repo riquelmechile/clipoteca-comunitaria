@@ -1,5 +1,6 @@
 import { loadCatalog, type Clip } from "./catalog";
-import { loadJob, requestId, type JobRecord } from "./jobs";
+import { loadJob, requestId } from "./jobs";
+import { dispatchIngest } from "./dispatch";
 
 export interface RestEnv {
   CATALOG_URL?: string;
@@ -132,30 +133,6 @@ async function quota(request: Request, scope: string): Promise<boolean> {
   return true;
 }
 
-function dispatchFields(input: SearchInput, rid: string): Record<string, string> {
-  return {
-    query: input.query, request_id: rid,
-    aspect_ratio: input.filters.aspect_ratio ?? "",
-    max_duration: String(input.filters.max_duration ?? 20),
-    max_results: String(Math.min(input.filters.limit ?? 3, 50)),
-  };
-}
-
-async function dispatchNow(env: RestEnv, input: SearchInput, rid: string): Promise<boolean> {
-  const token = env.CLIPOTECA_DISPATCH_TOKEN;
-  const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
-  if (!token || !/^[\w.-]+\/[\w.-]+$/.test(repo)) return false;
-  const result = await fetch(
-    "https://api.github.com/repos/" + repo + "/actions/workflows/ingest.yml/dispatches",
-    { method: "POST", headers: {
-      authorization: "Bearer " + token, accept: "application/vnd.github+json",
-      "x-github-api-version": "2022-11-28", "content-type": "application/json",
-      "user-agent": "clipoteca-worker",
-    }, body: JSON.stringify({ ref: "main", inputs: dispatchFields(input, rid) }) },
-  );
-  return result.status === 204;
-}
-
 export async function submitImport(
   request: Request, env: RestEnv, input: SearchInput,
 ): Promise<Response> {
@@ -172,8 +149,9 @@ export async function submitImport(
     return json({ request_id: rid, status: old.status, job: old }, 202);
   }
   if (!await quota(request, "import")) return error("rate_limited", "Too many imports", 429);
-  if (!await dispatchNow(env, input, rid)) {
-    return error("dispatch_unavailable", "Could not schedule ingest", 503);
+  const dispatched = await dispatchIngest(request, env, input, rid);
+  if (!dispatched.ok) {
+    return error(dispatched.code, dispatched.message, dispatched.status);
   }
   return json({ request_id: rid, status: "queued" }, 202);
 }
