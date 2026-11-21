@@ -68,6 +68,15 @@ def test_normalize_short_merge_and_long_split():
     assert len(normalize_scenes([], start=0, end=900)) <= 120
 
 
+def test_exact_end_and_no_short_tail_from_long_scene():
+    end = 3.1415926535
+    assert normalize_scenes([], start=0, end=end)[-1].end == end
+    chunks = normalize_scenes([], start=0, end=21)
+    assert chunks[0].start == 0 and chunks[-1].end == 21
+    assert all(1.5 <= part.duration <= 20 for part in chunks)
+    assert len(chunks) == 2
+
+
 def test_single_take_45s(tmp_path):
     video = make_video(tmp_path, "single.mp4", 45)
     result = detect_scenes(video, max_window=45)
