@@ -141,7 +141,12 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
 
 export async function handleMcp(request: Request, env: McpEnv): Promise<Response> {
   const hosts = (env.MCP_ALLOWED_HOSTS ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-  const origins = (env.MCP_ALLOWED_ORIGINS ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  const origins = (env.MCP_ALLOWED_ORIGINS ?? "").split(",").map((x) => {
+    const entry = x.trim();
+    if (!entry) return "";
+    try { return new URL(entry).hostname.toLowerCase(); }
+    catch { return entry.toLowerCase(); }
+  }).filter(Boolean);
   if (!hosts.length) return Response.json({
     error: { code: "mcp_host_config_required", message: "MCP_ALLOWED_HOSTS must be configured" },
   }, { status: 503 });
