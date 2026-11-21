@@ -46,10 +46,10 @@ class Odysee(Adapter):
         self.client = client or provider_client()
 
     async def _request(self, method: str, url: str, **kwargs: Any) -> Any:
+        headers = httpx.Headers(kwargs.pop("headers", None) or {})
+        headers.setdefault("User-Agent", USER_AGENT)
         for attempt in range(3):
             try:
-                headers = httpx.Headers(kwargs.pop("headers", None) or {})
-                headers.setdefault("User-Agent", USER_AGENT)
                 response = await self.client.request(method, url, headers=headers, **kwargs)
             except httpx.TimeoutException as exc:
                 raise ProviderTimeout("Odysee request timed out") from exc
