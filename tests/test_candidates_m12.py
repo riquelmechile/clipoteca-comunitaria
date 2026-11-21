@@ -76,9 +76,7 @@ async def test_guest_probe_redacts_payload_and_handles_blocked_http():
         return httpx.Response(403, json={"status_code": 2483, "access_token": "SECRET"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        result = await probe_candidate(
-            client, "tiktok", "zh", resolver=lambda _host: ["8.8.8.8"]
-        )
+        result = await probe_candidate(client, "tiktok", "zh", resolver=lambda _host: ["8.8.8.8"])
     assert len(result) == 1
     assert result[0]["status_code"] == 403
     assert result[0]["platform_code"] == 2483
@@ -159,20 +157,28 @@ async def test_bilibili_nav_sign_wbi_then_search(monkeypatch):
         requests.append(request)
         assert request.headers["user-agent"] == USER_AGENT
         if request.url.path.endswith("/nav"):
-            return httpx.Response(200, json={
-                "data": {"wbi_img": {
-                    "img_url": f"https://i0.hdslb.com/bfs/wbi/{img}.png",
-                    "sub_url": f"https://i0.hdslb.com/bfs/wbi/{sub}.png",
-                }}
-            })
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "wbi_img": {
+                            "img_url": f"https://i0.hdslb.com/bfs/wbi/{img}.png",
+                            "sub_url": f"https://i0.hdslb.com/bfs/wbi/{sub}.png",
+                        }
+                    }
+                },
+            )
         assert request.url.path.endswith("/wbi/search/type")
         assert request.url.params["wts"] == "1702204169"
-        assert request.url.params["w_rid"] == sign_wbi(
-            {"search_type": "video", "keyword": "lluvia"},
-            f"https://i0.hdslb.com/bfs/wbi/{img}.png",
-            f"https://i0.hdslb.com/bfs/wbi/{sub}.png",
-            1702204169,
-        )["w_rid"]
+        assert (
+            request.url.params["w_rid"]
+            == sign_wbi(
+                {"search_type": "video", "keyword": "lluvia"},
+                f"https://i0.hdslb.com/bfs/wbi/{img}.png",
+                f"https://i0.hdslb.com/bfs/wbi/{sub}.png",
+                1702204169,
+            )["w_rid"]
+        )
         return httpx.Response(200, json={"code": 0, "data": {"result": [{"bvid": "BV1"}]}})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
@@ -197,9 +203,9 @@ async def test_douyin_guest_ttwid_forwarded_cross_domain_only_in_memory():
             )
         assert request.url.host == "www.douyin.com"
         assert request.headers.get("cookie") == f"ttwid={guest}"
-        return httpx.Response(200, json={
-            "status_code": 0, "data": [{"aweme_info": {"video": {"play_addr": {}}}}]
-        })
+        return httpx.Response(
+            200, json={"status_code": 0, "data": [{"aweme_info": {"video": {"play_addr": {}}}}]}
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         rows = await probe_candidate(client, "douyin", "zh", resolver=PUBLIC_RESOLVER)
@@ -236,20 +242,33 @@ async def test_dns_private_ip_rejected_before_network():
         pytest.fail("private DNS must be rejected before sending a request")
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        rows = await probe_candidate(
-            client, "tiktok", "es", resolver=lambda _host: ["127.0.0.1"]
-        )
+        rows = await probe_candidate(client, "tiktok", "es", resolver=lambda _host: ["127.0.0.1"])
     assert rows[0]["status_code"] is None
     assert rows[0]["error_type"] == "UnsafeMediaURL"
 
 
 def test_candidate_report_displays_error_type_and_search_nil_info():
-    markdown = render({"mode": "candidates", "provider_languages": [
-        {"provider": "douyin", "language": "zh", "operation": "search",
-         "status_code": 403, "search_nil_info": True, "error_type": "TimeoutException"},
-        {"provider": "rutube", "language": "en", "operation": "search",
-         "status_code": None},
-    ]})
+    markdown = render(
+        {
+            "mode": "candidates",
+            "provider_languages": [
+                {
+                    "provider": "douyin",
+                    "language": "zh",
+                    "operation": "search",
+                    "status_code": 403,
+                    "search_nil_info": True,
+                    "error_type": "TimeoutException",
+                },
+                {
+                    "provider": "rutube",
+                    "language": "en",
+                    "operation": "search",
+                    "status_code": None,
+                },
+            ],
+        }
+    )
     assert "search_nil_info" in markdown
     assert "TimeoutException" in markdown
     assert "NO_HTTP_RESPONSE" in markdown
@@ -259,11 +278,18 @@ def test_candidate_report_displays_error_type_and_search_nil_info():
 def test_smoke_no_mode_runs_both_report_families(tmp_path, monkeypatch):
     import scripts.smoke_sources as smoke
 
-    provider = {"mode": "live_network_probes", "provider_languages": [],
-                "total_probes": 1, "elapsed_seconds_measured": 0.1}
-    candidate = {"mode": "candidates", "provider_languages": [
-        {"provider": "douyin", "language": "es", "operation": "search"}
-    ], "total_probes": 1, "elapsed_seconds_measured": 0.2}
+    provider = {
+        "mode": "live_network_probes",
+        "provider_languages": [],
+        "total_probes": 1,
+        "elapsed_seconds_measured": 0.1,
+    }
+    candidate = {
+        "mode": "candidates",
+        "provider_languages": [{"provider": "douyin", "language": "es", "operation": "search"}],
+        "total_probes": 1,
+        "elapsed_seconds_measured": 0.2,
+    }
 
     async def fake_providers():
         return provider.copy()

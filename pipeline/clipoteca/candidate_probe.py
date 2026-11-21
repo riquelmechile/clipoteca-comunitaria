@@ -200,7 +200,9 @@ async def _request(client: httpx.AsyncClient, method: str, url: str, *, resolver
         raise ValueError("candidate endpoint outside allowlist")
     await validate_public_url(url, resolver=resolver)
     headers = {**kwargs.pop("headers", {}), "User-Agent": USER_AGENT}
-    async with client.stream(method, url, follow_redirects=False, headers=headers, **kwargs) as response:
+    async with client.stream(
+        method, url, follow_redirects=False, headers=headers, **kwargs
+    ) as response:
         chunks = bytearray()
         async for chunk in response.aiter_bytes():
             chunks.extend(chunk)
