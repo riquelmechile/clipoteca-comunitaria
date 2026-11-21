@@ -310,17 +310,21 @@ async def detect_scenes_async(
     )
     try:
         try:
-            probe = await connection.get(
+            # Do not buffer the whole body when a server ignores Range and sends 200.
+            async with connection.stream(
+                "GET",
                 string,
                 headers={"Range": "bytes=0-0", "User-Agent": USER_AGENT},
                 follow_redirects=False,
-            )
-            supports_range = probe.status_code == 206 and probe.headers.get(
-                "content-range", ""
-            ).startswith("bytes 0-0/")
+            ) as probe:
+                supports_range = probe.status_code == 206 and probe.headers.get(
+                    "content-range", ""
+                ).startswith("bytes 0-0/")
         except httpx.HTTPError:
             supports_range = False
-        if supports_range:
+        if supports_range and runner is not None:
+            # Injection is only for bounded offline tests. Production must use the
+            # existing downloader until FFmpeg can pin the validated DNS peer.
             return _ffmpeg_scenes(
                 string,
                 start=start,
