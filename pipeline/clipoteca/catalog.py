@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import math
 import os
 import tempfile
 import re
@@ -47,18 +48,21 @@ _TRACKING_QUERY_KEYS = {
     "_hsmi",
     "dclid",
     "fbclid",
-    "feature",
     "gclid",
     "igshid",
     "mc_cid",
     "mc_eid",
     "msclkid",
-    "si",
 }
 
 
 def canonical_source_url(value: str) -> str:
-    """Return a stable public source identity without transport/tracking noise."""
+    """Keep identity-bearing query params; remove only known tracking keys.
+
+    In particular, 'si' and 'feature' are retained unless a provider-specific
+    contract proves them to be tracking-only. Conservative false negatives
+    are safer than collapsing distinct assets.
+    """
     try:
         parsed = urlsplit(value.strip())
         host = (parsed.hostname or "").encode("idna").decode("ascii").casefold()
@@ -155,34 +159,68 @@ class Catalog:
         *,
         phash_similar: Callable[[str, str], bool] | None = None,
     ) -> tuple[dict[str, Any], str] | None:
+        """Require a strong content/URL signal, not title similarity alone.
+
+        Independent duplicates: same provider identity, same canonical URL
+        (even if provider_id changed), SHA-256 match, or close pHash.
+        A cross-provider title match needs secondary evidence: duration
+        within one second, or identical explicit creator/collection.
+        """
         source = candidate.get("source", {})
         media = candidate.get("media", {})
         candidate_url = canonical_source_url(str(source.get("source_url", "")))
         candidate_title = normalized_source_title(str(source.get("source_title", "")))
         for clip in self.clips:
-            if (clip["source"]["provider"], clip["source"]["provider_id"]) == (
-                source.get("provider"),
-                source.get("provider_id"),
+            published_source = clip["source"]
+            published_media = clip["media"]
+            if (
+                published_source["provider"] == source.get("provider")
+                and published_source["provider_id"] == source.get("provider_id")
             ):
                 return clip, "provider_id"
-            if media.get("sha256") and clip["media"].get("sha256") == media["sha256"]:
+            if media.get("sha256") and published_media.get("sha256") == media["sha256"]:
                 return clip, "sha256"
-            cross_provider = clip["source"]["provider"] != source.get("provider")
-            if cross_provider and candidate_url:
-                clip_url = canonical_source_url(str(clip["source"].get("source_url", "")))
-                if clip_url and clip_url == candidate_url:
-                    return clip, "canonical_url"
-            if cross_provider and _distinctive_title(candidate_title):
-                clip_title = normalized_source_title(str(clip["source"].get("source_title", "")))
-                if clip_title == candidate_title:
-                    return clip, "normalized_title"
+            published_url = canonical_source_url(str(published_source.get("source_url", "")))
+            if candidate_url and published_url and candidate_url == published_url:
+                return clip, "canonical_url"
             if (
                 phash_similar
                 and media.get("perceptual_hash")
-                and clip["media"].get("perceptual_hash")
-                and phash_similar(clip["media"]["perceptual_hash"], media["perceptual_hash"])
+                and published_media.get("perceptual_hash")
+                and phash_similar(
+                    published_media["perceptual_hash"], media["perceptual_hash"]
+                )
             ):
                 return clip, "perceptual_hash"
+            if (
+                published_source["provider"] != source.get("provider")
+                and _distinctive_title(candidate_title)
+                and normalized_source_title(str(published_source.get("source_title", "")))
+                == candidate_title
+            ):
+                # Missing duration or metadata never counts as corroboration.
+                current_duration = media.get("duration_seconds")
+                previous_duration = published_media.get("duration_seconds")
+                duration_match = (
+                    isinstance(current_duration, (int, float))
+                    and not isinstance(current_duration, bool)
+                    and isinstance(previous_duration, (int, float))
+                    and not isinstance(previous_duration, bool)
+                    and math.isfinite(current_duration)
+                    and math.isfinite(previous_duration)
+                    and abs(current_duration - previous_duration) <= 1
+                )
+                def same_field(key: str) -> bool:
+                    value = source.get(key)
+                    return bool(
+                        isinstance(value, str)
+                        and value.strip()
+                        and isinstance(published_source.get(key), str)
+                        and normalize_text(value)
+                        == normalize_text(published_source[key])
+                    )
+                if duration_match or same_field("creator") or same_field("collection"):
+                    return clip, "normalized_title"
         return None
 
     def find_duplicate(
