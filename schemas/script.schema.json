@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipoteca.example/schemas/script.schema.json",
+  "title": "Clipoteca M23 script request or resolved response",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenes"
+      ],
+      "properties": {
+        "scenes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/scene"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "script_id",
+        "scenes",
+        "summary"
+      ],
+      "properties": {
+        "script_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "scenes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/resolved_scene"
+          }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "matched",
+            "queued",
+            "missing"
+          ],
+          "properties": {
+            "matched": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "queued": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "narration",
+        "query",
+        "orientation",
+        "min_duration"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "narration": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "orientation": {
+          "enum": [
+            "9:16",
+            "16:9",
+            "1:1",
+            "other",
+            "portrait",
+            "vertical",
+            "landscape",
+            "horizontal",
+            "square"
+          ]
+        },
+        "min_duration": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 20
+        }
+      }
+    },
+    "resolved_scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "narration",
+        "query",
+        "orientation",
+        "min_duration",
+        "status",
+        "media"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "narration": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "orientation": {
+          "enum": [
+            "9:16",
+            "16:9",
+            "1:1",
+            "other",
+            "portrait",
+            "vertical",
+            "landscape",
+            "horizontal",
+            "square"
+          ]
+        },
+        "min_duration": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 20
+        },
+        "status": {
+          "enum": [
+            "matched",
+            "queued",
+            "missing"
+          ]
+        },
+        "media": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "clip_id",
+                "url",
+                "thumbnail_url",
+                "storyboard_urls",
+                "duration_seconds",
+                "source"
+              ],
+              "properties": {
+                "type": {
+                  "const": "video"
+                },
+                "clip_id": {
+                  "type": "string",
+                  "pattern": "^clip-[0-9]{6}$"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "thumbnail_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uri"
+                },
+                "storyboard_urls": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "duration_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "source": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "provider",
+                    "source_language"
+                  ],
+                  "properties": {
+                    "provider": {
+                      "type": "string"
+                    },
+                    "source_language": {
+                      "type": "string"
+                    },
+                    "provider_id": {
+                      "type": "string"
+                    },
+                    "source_title": {
+                      "type": "string"
+                    },
+                    "source_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "source_start": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "source_end": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "job": {
+          "type": "object",
+          "required": [
+            "request_id",
+            "status"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "request_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
