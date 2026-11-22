@@ -694,5 +694,74 @@
     },
     "status": "published",
     "created_at": "2026-11-22T10:51:13.020050Z"
+  },
+  {
+    "id": "clip-000013",
+    "title": {
+      "es": "Vista aérea de los escaladores en la cumbre de chimborazo nevado",
+      "en": "Aerial view of climbers on snowy chimborazo summit"
+    },
+    "description": {
+      "es": "Vista aérea de los escaladores en la cumbre de chimborazo nevado",
+      "en": "Aerial view of climbers on snowy chimborazo summit"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "escaladores",
+        "cumbre",
+        "chimborazo",
+        "nevado",
+        "volcán"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "climbers",
+        "snowy",
+        "chimborazo",
+        "summit",
+        "volcano"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "32694437",
+      "source_language": "en",
+      "source_title": "aerial-view-of-climbers-on-snowy-chimborazo-summit-32694437",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-climbers-on-snowy-chimborazo-summit-32694437/",
+      "source_start": 30.0,
+      "source_end": 38.413375
+    },
+    "media": {
+      "duration_seconds": 8.383375,
+      "width": 1920,
+      "height": 1080,
+      "fps": 23.976023976023978,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2099280,
+      "sha256": "2014c8e94302a242835acc571cd50b819c4ee286e14bad0f357df44727b3a210",
+      "perceptual_hash": "bf60ce3a60cd02f6~1867.32:bf60ce3a60cd02f6~1890.45:bf61c63a61cc10f6~1913.60:bf61c63a614d10f6~1935.68:bf41c63e614d10f6~1944.59"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000013.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000013.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000013_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000013_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000013_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000013_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000013_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000013_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T10:52:45.630601Z"
   }
 ]
