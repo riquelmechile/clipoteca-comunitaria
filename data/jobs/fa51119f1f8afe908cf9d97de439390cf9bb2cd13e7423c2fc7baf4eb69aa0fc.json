@@ -2,7 +2,7 @@
   "request_id": "fa51119f1f8afe908cf9d97de439390cf9bb2cd13e7423c2fc7baf4eb69aa0fc",
   "status": "processing",
   "attempt": 2,
-  "updated_at": "2026-11-22T22:03:18.718386Z",
+  "updated_at": "2026-11-22T22:03:20.707712Z",
   "language_counts": {
     "es": 23
   },
@@ -44,17 +44,21 @@
     "smithsonian:es": "auth_required",
     "instagram:es": "auth_required",
     "snapchat:es": "auth_required",
-    "youtube:es": "auth_required"
+    "youtube:es": "auth_required",
+    "pexels:852435": "scene_quality_rejected"
   },
   "terms": {
     "es": "aurora boreal"
   },
-  "terminal_sources": [],
+  "terminal_sources": [
+    "https://pexels.com/video/time-lapse-video-of-aurora-borealis-852435"
+  ],
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
     "translation:en": "translation_failed:es->en:unchanged_translation",
     "translation:zh": "translation_failed:es->en:unchanged_translation",
     "translation:ru": "translation_failed:es->en:unchanged_translation",
-    "translation:metadata:pexels:852435:en": "translation_failed:es->en:unchanged_translation"
+    "translation:metadata:pexels:852435:en": "translation_failed:es->en:unchanged_translation",
+    "pexels:852435": "embeddings_unavailable:m14_quality_fallback"
   }
 }
