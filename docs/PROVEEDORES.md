@@ -230,3 +230,42 @@ la ausencia de resultados en otros idiomas tampoco es un error.
 descarga de clips reales, comparar bloqueo IP en runner aislado y
 realizar demo E2E. Ninguna fuente asciende a SUPPORTED_SEARCH_DOWNLOAD
 con evidencia de solo busqueda. No se modifica .github/.
+
+
+## M24 r7 - HTTPS con DNS pinning real sin rebinding
+
+El smoke 44977121143 detecto un falso positivo intermitente en TikTok es:
+provider peer changed after DNS validation. Antes, validate_public_url()
+comprobaba un conjunto de IP publicas pero HTTPX volvia a resolver al
+conectarse: dos respuestas CDN distintas (ambas publicas) producian un
+error y abrian una carrera DNS (TOCTOU).
+
+providers/http.py y security/download.py comparten security/pinning.py:
+validan cada URL HTTPS y su DNS completo con validate_public_url,
+rechazan IP privadas/reservadas y usan una IP validada como destino TCP.
+La solicitud conserva Host y la extension sni_hostname con el nombre
+original; secure_pinned_transport() usa TLS con verify=True, verificacion
+de certificados y hostname habilitada, trust_env=False y transporte aislado
+por intento para impedir reutilizar una sesion TLS de otro hostname
+servido por la misma IP CDN.
+
+Una falla de conexion permite probar solo la siguiente IP ya validada;
+no se vuelve a consultar DNS ni se reintentan fallos de peer. La
+comparacion de IP normaliza IPv6 y IPv4-mapped. La validacion del
+certificado sigue contra el nombre original, no contra la IP CDN.
+
+follow_redirects=False se conserva. En descargas, cada salto se valida
+por separado, con allowlist de hostname, tamano maximo, MIME y plazo
+total sin cambios. MockTransport exacto se conserva en pruebas sin red,
+con validacion de peer si el transporte simulado lo publica; un transporte
+externo distinto no elude la comprobacion de IP conectada.
+security/hls.py ya hacia pinning directo (IP + Host + SNI) y
+comparacion IPv6 normalizada: no se altero su comportamiento.
+El DASH mux usa download_media en ambas rutas y FFmpeg solo ve archivos
+locales, nunca URL remota.
+
+Las pruebas M24 r7 reproducen DNS rotativo A/B, rechazo privado,
+segundo destino ante fallo de conexion, Host/SNI y TLS verificado,
+redireccion de descarga validada por salto e IPv6 equivalente.
+Este cambio no demuestra disponibilidad nueva de TikTok ni cambia
+estados de proveedores; una confirmacion live exige otro smoke en main.
