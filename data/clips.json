@@ -428,5 +428,71 @@
     },
     "status": "published",
     "created_at": "2026-11-21T03:55:05.986484Z"
+  },
+  {
+    "id": "clip-000009",
+    "title": {
+      "es": "Canción original de Tay Zonday",
+      "en": "\"Chocolate Rain\" Original Song by Tay Zonday"
+    },
+    "description": {
+      "es": "Canción original de Tay Zonday",
+      "en": "\"Chocolate Rain\" Original Song by Tay Zonday"
+    },
+    "tags": {
+      "es": [
+        "Canción",
+        "original",
+        "Tay",
+        "Zonday",
+        "lluvia"
+      ],
+      "en": [
+        "Chocolate",
+        "Rain",
+        "Original",
+        "Song",
+        "Tay",
+        "Zonday"
+      ]
+    },
+    "source": {
+      "provider": "internet_archive",
+      "provider_id": "youtube-EwTZ2xpQwpA",
+      "source_language": "en",
+      "source_title": "\"Chocolate Rain\" Original Song by Tay Zonday",
+      "source_url": "https://archive.org/details/youtube-EwTZ2xpQwpA",
+      "source_start": 162.0,
+      "source_end": 182.0
+    },
+    "media": {
+      "duration_seconds": 19.986653,
+      "width": 640,
+      "height": 480,
+      "fps": 29.97,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 1874851,
+      "sha256": "8fdcf39dbb713f220fe62ba04643211c6eb903cb475e8cf3e6f5c86a0c9c3498",
+      "perceptual_hash": "deef808083143e7f~5640.82:deeb8080c3143f7b~5696.63:dfef808091453e79~5678.49:d7af808083553e7b~5599.60:deaf808083543e7f~5648.82"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000009.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000009.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000009_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000009_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000009_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000009_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000009_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000009_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T10:15:19.715523Z"
   }
 ]
