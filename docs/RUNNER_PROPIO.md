@@ -4,7 +4,7 @@
 
 ## 1. Riesgo critico de un repo publico
 
-**Nunca confiar solo en un `if` del workflow.** Un PR de fork podria anadir OTRO workflow con `runs-on: [self-hosted, clipoteca-home]` y trigger `pull_request` para ejecutar codigo arbitrario en el PC. GitHub > Settings > Actions > General: elegir **Require approval for all outside collaborators**, no solo first-time contributors. No enviar tokens ni secretos a PR de forks, no usar `pull_request_target` con checkout del fork, bloquear workflows no revisados en branch protection y revisar cambios de workflows de manera independiente.
+**Nunca confiar solo en un `if` del workflow.** Un PR de fork podria anadir OTRO workflow con `runs-on: [self-hosted, clipoteca-home]` y trigger `pull_request` para ejecutar codigo arbitrario en el PC. GitHub > Settings > Actions > General: elegir **Require approval for all external contributors (outside collaborators)**, no solo first-time contributors. No enviar tokens ni secretos a PR de forks, no usar `pull_request_target` con checkout del fork, bloquear workflows no revisados en branch protection y revisar cambios de workflows de manera independiente.
 
 Los **runner groups restringidos por workflow existen para organizaciones/enterprise**; este es un repo personal, no asumir ese control. Lo mas seguro es un runner **efimero** (`./config.sh --ephemeral`) en una VM o contenedor dedicado, sin acceso a los archivos de la sesion personal, ni redes de confianza, montajes de Docker ni otras credenciales. **No basta una VLAN si puede alcanzar LAN u otros servicios locales.** Bloquear acceso a la LAN de la casa; agentes como Ollama en localhost o servicios privados del host podrian ser accesibles si no se aisla tambien el espacio de red. Usar firewall, red NAT aislada, ACL de salida, DNS restringido y sin acceso al host/LAN.
 
@@ -21,9 +21,13 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
+Environment=HOME=/srv/clipoteca-runner
+Environment=XDG_CACHE_HOME=/srv/clipoteca-runner/.cache
+Environment=UV_CACHE_DIR=/srv/clipoteca-runner/.cache/uv
+Environment=ARGOS_MODEL_CACHE_DIR=/srv/clipoteca-runner/.cache/argos
 ReadWritePaths=/srv/clipoteca-runner /var/tmp
 ```
-No alojar el runner bajo `/home` si `ProtectHome=true`. Probar el workspace, cache, ffmpeg y logs con los permisos efectivos. Restringir acceso de red por fuera de systemd.
+Fijar el HOME real de clipoteca-runner en /srv/clipoteca-runner, y las caches de uv y argos bajo /srv/clipoteca-runner/.cache (el usuario debe ser propietario). No alojar el runner bajo `/home` si `ProtectHome=true`. Probar el workspace, cache, ffmpeg y logs con los permisos efectivos. Restringir acceso de red por fuera de systemd.
 4. Controlar autoactualizaciones: si se deshabilitan con `./config.sh --disableupdate`, mantener un procedimiento manual documentado para actualizar la version del runner dentro del plazo de compatibilidad de GitHub. Si se permiten, controlar reinicios, revisiones y funcionamiento. Nunca olvidar actualizar.
 5. Probar `ffmpeg -version`, `uv --version`, `python3.13 --version`, `node --version` si corresponde. Validar espacio, DNS publico e imposibilidad de conectar a LAN. Poner el proveedor en `self_hosted_providers` solo tras smoke comparativo. El default debe continuar vacio.
 
@@ -39,11 +43,24 @@ Runner aislado, solo con enrutamiento aprobado:
 CLIPOTECA_RUNNER=self-hosted uv run --no-sync python -m clipoteca ingest --query "lluvia" --providers bilibili --runner self-hosted
 ```
 
-`--runner actions|self-hosted` y `--runner-config data/runner-routing.json` seleccionan una particion. Las fuentes omitidas se registran en el job remoto (cuando `CLIPOTECA_PERSIST_JOBS=1`) y en el reporte CLI como `deferred_to_self_hosted` / `deferred_to_actions`. Un conjunto de proveedores vacio persiste estado `unavailable`, con ID determinista, y retorna codigo de salida distinto de cero para evitar `404` repetidos del Worker. No iniciar el mismo request_id desde ambos runners en paralelo.
+`--runner actions|self-hosted` y `--runner-config data/runner-routing.json` seleccionan una particion. Las fuentes omitidas se registran en el job remoto (cuando `CLIPOTECA_PERSIST_JOBS=1`) y en el reporte CLI como `deferred_to_self_hosted` / `deferred_to_actions`. Un conjunto de proveedores vacio persiste estado `unavailable`, con ID determinista, y retorna codigo de salida distinto de cero para evitar `404` repetidos del Worker. No iniciar el mismo request_id desde ambos runners en paralelo. Si hay proveedores diferidos pero ningun candidato restante, el job puede acabar no_results (terminal); consultar source_errors. Con la particion vacia, unavailable es el estado durable y NO incrementa attempt; la salida distinta de cero impide re-dispatch/404.
 
-## 4. Plantilla completa para ingest.yml (aplicacion MANUAL)
+## 4. Fragmento a combinar con ingest.yml (aplicacion MANUAL)
 
-Este documento NO modifica `.github/`. Esta plantilla incorpora los inputs actuales, guard de main, router, secretos opcionales y `--no-sync`. El operador debe coordinarla con **M22 query_embedding** de [OPERACION_V2.md](OPERACION_V2.md) antes de usar el modo liviano. Es un modelo de reemplazo para revision, no permiso de despliegue. La semantica del CLI es la misma que en el workflow actual.
+**Obligatorio al combinar con los workflows reales:** los bloques que siguen NO
+son reemplazos completos. Preservar en los pasos Ingest y en el snapshot los env
+NASA_API_KEY, YOUTUBE_API_KEY, VK_ACCESS_TOKEN, INSTAGRAM_ACCESS_TOKEN,
+INSTAGRAM_USER_ID, SNAPCHAT_ACCESS_TOKEN, SNAPCHAT_PROFILE_ID,
+PEERTUBE_ALLOWED_INSTANCES, DOUYIN_ACCESS_TOKEN, TIKTOK_ACCESS_TOKEN,
+PEXELS_API_KEY, PIXABAY_API_KEY, BILIBILI_COOKIE, GITHUB_TOKEN,
+GITHUB_REPOSITORY. Preservar en snapshot tambien EUROPEANA_API_KEY,
+COVERR_API_KEY, NARA_API_KEY, DPLA_API_KEY, SMITHSONIAN_API_KEY.
+Solo AGREGAR DOUYIN_COOKIE y TIKTOK_COOKIE si aun no estan. Mantener variables
+Argos y de inputs, y todos los pasos setup/cache/metricas originales.
+
+
+
+Este documento NO modifica `.github/`. Este fragmento ilustra inputs actuales, guard de main, router, secretos opcionales y `--no-sync`. El operador debe coordinarla con **M22 query_embedding** de [OPERACION_V2.md](OPERACION_V2.md) antes de usar el modo liviano. Es un modelo de reemplazo para revision, no permiso de despliegue. La semantica del CLI es la misma que en el workflow actual.
 
 ```yaml
 name: Ingest verified video candidates
@@ -243,9 +260,21 @@ jobs:
           retention-days: 30
 ```
 
-**Nota integracion:** este ejemplo replica los inputs del workflow actual y ofrece rutas alternativas; aun se debe incorporar el bloque M22 de `mode: query_embedding` descrito en [OPERACION_V2.md](OPERACION_V2.md) y validar workflows con GitHub antes de habilitar flags. No despliega ni crea runner en este PR.
+**Nota integracion:** estos fragmentos requieren fusion manual con los workflows actuales y sus pasos env; replican los inputs del workflow actual y ofrece rutas alternativas; aun se debe incorporar el bloque M22 de `mode: query_embedding` descrito en [OPERACION_V2.md](OPERACION_V2.md) y validar workflows con GitHub antes de habilitar flags. No despliega ni crea runner en este PR.
 
-## 5. Plantilla completa smoke.yml
+## 5. Fragmento a combinar con smoke.yml
+
+**Conservar en AMBOS jobs smoke** todos los env originales:
+NASA_API_KEY, YOUTUBE_API_KEY, VK_ACCESS_TOKEN, INSTAGRAM_ACCESS_TOKEN,
+INSTAGRAM_USER_ID, SNAPCHAT_ACCESS_TOKEN, SNAPCHAT_PROFILE_ID,
+PEERTUBE_ALLOWED_INSTANCES, DOUYIN_ACCESS_TOKEN, TIKTOK_ACCESS_TOKEN,
+PEXELS_API_KEY, PIXABAY_API_KEY, BILIBILI_COOKIE, GITHUB_TOKEN,
+GITHUB_REPOSITORY y GITHUB_RUN_ID. Agregar DOUYIN_COOKIE y TIKTOK_COOKIE
+y, cuando aplique, EUROPEANA_API_KEY, COVERR_API_KEY, NARA_API_KEY,
+DPLA_API_KEY, SMITHSONIAN_API_KEY. Los YAML son FRAGMENTOS, NO reemplazos
+completos: nunca copiar sin fusionar los env ni los guard originales.
+
+
 
 La prueba de cuatro idiomas no descarga media. No ejecutar smoke desde PR de fork. Conservar los secretos opcionales solo como `secrets` y subir artifacts, nunca imprimirlos.
 
@@ -266,7 +295,7 @@ permissions:
   contents: read
 jobs:
   smoke-actions:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner != 'self-hosted'
+    if: github.repository == 'riquelmechile/clipoteca-comunitaria' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner != 'self-hosted'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -306,7 +335,7 @@ jobs:
           retention-days: 30
 
   smoke-self-hosted:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted'
+    if: github.repository == 'riquelmechile/clipoteca-comunitaria' && github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.runner == 'self-hosted'
     runs-on: [self-hosted, clipoteca-home]
     timeout-minutes: 30
     permissions:

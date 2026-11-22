@@ -32,6 +32,27 @@
 | `DPLA_API_KEY` | vacio | M18 opcional, proveedor AUTH_REQUIRED sin clave |
 | `SMITHSONIAN_API_KEY` | vacio | M18 opcional, proveedor AUTH_REQUIRED sin clave |
 | `PEXELS_API_KEY`/`PIXABAY_API_KEY` | vacio | proveedores existentes, requieren clave |
+| VK_ACCESS_TOKEN | vacio | token propio opcional para VK Video |
+| YOUTUBE_API_KEY | vacio | credencial de YouTube, ausente = AUTH_REQUIRED |
+| INSTAGRAM_ACCESS_TOKEN | vacio | cuenta profesional autorizada |
+| INSTAGRAM_USER_ID | no definido | vars en Actions, vinculado a token Instagram |
+| SNAPCHAT_ACCESS_TOKEN | vacio | cuenta autorizada |
+| SNAPCHAT_PROFILE_ID | no definido | vars en Actions, vinculado a token Snapchat |
+| NASA_API_KEY | DEMO_KEY | valor por defecto real de NASA (cuota limitada) |
+| PEERTUBE_ALLOWED_INSTANCES | pt.na4.eu,tilvids.com,diode.zone,framatube.org | allowlist por defecto |
+| DOUYIN_ACCESS_TOKEN | vacio | token legado opcional; web guest no requiere |
+| TIKTOK_ACCESS_TOKEN | vacio | token legado opcional; web guest no requiere |
+| CLIPOTECA_IMAGE_MODEL_REVISION | None (sin definir) | pin opcional de CLIP imagen, fijar en jobs reproducibles |
+| CLIPOTECA_TEXT_MODEL_REVISION | None (sin definir) | pin opcional de CLIP texto |
+| CLIPOTECA_GITHUB_REPO | riquelmechile/clipoteca-comunitaria | repositorio Worker por defecto |
+| CLIPOTECA_DISPATCH_TOKEN | no definido | token para dispatch de Actions |
+| CLIPOTECA_WRITE_TOKEN | no definido | bearer para import REST |
+| CLIPOTECA_ISSUE_TOKEN | no definido | token para aportes Issues |
+| MCP_ALLOWED_HOSTS | host de request | por defecto solo host del Worker |
+| MCP_ALLOWED_ORIGINS | lista vacia | allowlist de origins, por defecto ninguno externo |
+| CATALOG_URL | API Github Contents data/clips.json?ref=main | URL default derivada del repositorio Worker |
+| CATALOG_JOBS_URL | API Github Contents data/jobs/ | prefix de jobs, opcional |
+| CATALOG_TTL_SECONDS | 10 (max 30) | cache catalogo, 0 desactiva |
 | `CLIPOTECA_PERSIST_JOBS` | apagado local | `1` en job de Actions para recibos remotos y estado del Worker |
 
 `SEMANTIC_SEARCH` y `CLIPOTECA_QUERY_DISPATCH_MODE` se activan de manera independiente. No poner ambos en `1` antes de verificar los archivos de embeddings y los inputs de Actions. La consulta vectorial usa cuota `query-embed`, separada de cuota `import` por IP. Los errores no deben publicar valores de las variables.
@@ -56,31 +77,27 @@ Agregar los dos cookies **opcionales** como secrets de GitHub, nunca variables l
 ```yaml
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
-          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
 ```
 
 `.github/workflows/ingest.yml` > `Ingest`:
 ```yaml
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
-          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
 ```
 
 `.github/workflows/smoke.yml` > `Probe sources across four languages without publishing media`:
 ```yaml
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
-          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
 ```
 
 `.github/workflows/sources.yml` > paso de snapshot/exportacion de fuentes:
 ```yaml
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
-          BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
 ```
 
-No agregar dos veces `BILIBILI_COOKIE` si ya existe en el bloque. Verificar que el workflow de fuentes usa esas claves solo cuando corresponde. `BILIBILI_USER_AGENT` no es secreto; solo asignarlo si se prueba un UA diferente al propio y se acepta su compatibilidad.
+BILIBILI_COOKIE ya existe en los cuatro env y debe conservarse sin duplicar. No agregar dos veces `BILIBILI_COOKIE` si ya existe en el bloque. Verificar que el workflow de fuentes usa esas claves solo cuando corresponde. `BILIBILI_USER_AGENT` no es secreto; solo asignarlo si se prueba un UA diferente al propio y se acepta su compatibilidad.
 
 Para M18 (Europeana, Coverr, NARA, DPLA y Smithsonian), aplicar en esos mismos pasos solo los secretos que el adaptador vaya a utilizar:
 ```yaml
