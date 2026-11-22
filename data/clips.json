@@ -1354,5 +1354,69 @@
     },
     "status": "published",
     "created_at": "2026-11-22T23:20:50.936805Z"
+  },
+  {
+    "id": "clip-000023",
+    "title": {
+      "es": "Barco de tranquil en el lago forestal",
+      "en": "Tranquil boat on forest lake"
+    },
+    "description": {
+      "es": "Barco de tranquil en el lago forestal",
+      "en": "Tranquil boat on forest lake"
+    },
+    "tags": {
+      "es": [
+        "Barco",
+        "tranquil",
+        "lago",
+        "forestal",
+        "bosque"
+      ],
+      "en": [
+        "Tranquil",
+        "boat",
+        "forest",
+        "lake"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "32535366",
+      "source_language": "en",
+      "source_title": "tranquil-boat-on-forest-lake-32535366",
+      "source_url": "https://www.pexels.com/video/tranquil-boat-on-forest-lake-32535366/",
+      "source_start": 0.0,
+      "source_end": 16.04
+    },
+    "media": {
+      "duration_seconds": 16.04,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 14075917,
+      "sha256": "830ecf94e49549a1e972299ef748714442b1629e59721aff11feb20d10342403",
+      "perceptual_hash": "92639f9c8db470c3~4859.52:92479f988d3461cf~4822.44:82479f988db470cf~4785.84:82679f988d9470cf~4766.61:82469e998db561cf~4753.55"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000023.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000023.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000023_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000023_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000023_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000023_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000023_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000023_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T23:57:39.807607Z"
   }
 ]
