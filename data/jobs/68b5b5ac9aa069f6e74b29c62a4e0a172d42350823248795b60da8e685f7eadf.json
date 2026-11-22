@@ -1,10 +1,33 @@
 {
   "request_id": "68b5b5ac9aa069f6e74b29c62a4e0a172d42350823248795b60da8e685f7eadf",
-  "status": "searching",
+  "status": "fetching",
   "attempt": 1,
-  "updated_at": "2026-11-22T10:14:34.578842Z",
-  "language_counts": {},
-  "provider_counts": {},
-  "source_errors": {},
-  "terms": {}
+  "updated_at": "2026-11-22T10:14:49.894797Z",
+  "language_counts": {
+    "es": 4,
+    "en": 4,
+    "zh": 4,
+    "ru": 4
+  },
+  "provider_counts": {
+    "internet_archive": 400,
+    "rutube": 0,
+    "ok_ru": 64,
+    "vk_video": 65
+  },
+  "source_errors": {
+    "rutube:es": "ProviderError",
+    "rutube:en": "ProviderError",
+    "rutube:zh": "ProviderError",
+    "rutube:ru": "circuit_open"
+  },
+  "terms": {
+    "es": "lluvia",
+    "en": "rain",
+    "zh": "下雨",
+    "ru": "дождь"
+  },
+  "source_warnings": {
+    "semantic_query": "embeddings_unavailable:m14_quality_fallback"
+  }
 }
