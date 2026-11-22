@@ -337,7 +337,7 @@ async def test_v206_publication_round_robins_providers_without_lowering_quality(
         async def search(self, term, lang, limits):
             if lang != "en":
                 return []
-            counts = 3 if self.name == "pexels" and valid_sources == 1 else 1
+            counts = 5 if self.name == "pexels" and valid_sources == 1 else 1
             return [
                 Candidate(
                     self.name,
@@ -364,7 +364,7 @@ async def test_v206_publication_round_robins_providers_without_lowering_quality(
     # tests do not mock or weaken normalization, scene quality or catalog CAS.
     async def downloader(url: str, root: Path):
         output = root / "source.mp4"
-        patterns = ["320x180", "240x240", "180x320", "400x200", "200x400"]
+        patterns = ["320x180", "240x240", "180x320", "400x200", "320x240", "400x300", "300x400"]
         if "pixabay" in url:
             index = 1
         elif "wikimedia" in url:
@@ -373,6 +373,10 @@ async def test_v206_publication_round_robins_providers_without_lowering_quality(
             index = 3
         elif "source-1" in url and valid_sources == 1:
             index = 4
+        elif "source-3" in url:
+            index = 5
+        elif "source-4" in url:
+            index = 6
         else:
             index = 0
         subprocess.run(
