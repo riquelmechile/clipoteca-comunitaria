@@ -1,0 +1,24 @@
+{
+  "responseHeader": {
+    "params": {
+      "qin": "mediatype:movies AND format:(h.264 OR &quot;h.264 IA&quot; OR &quot;512Kb MPEG4&quot; OR MPEG4) AND ((title:&quot;rain&quot; OR subject:&quot;rain&quot; OR description:&quot;rain&quot; OR shotlist:&quot;rain&quot;))",
+      "query": "mediatype:movies AND format:(h.264 OR \"h.264 IA\" OR \"512Kb MPEG4\" OR MPEG4) AND (title:rain OR subject:rain OR description:rain OR shotlist:rain)",
+      "fields": [
+        "identifier",
+        "mediatype"
+      ],
+      "wt": "json",
+      "rows": 100,
+      "start": 0
+    }
+  },
+  "response": {
+    "docs": [
+      {
+        "identifier": "rain_movie",
+        "mediatype": "movies",
+        "title": "Rain footage"
+      }
+    ]
+  }
+}

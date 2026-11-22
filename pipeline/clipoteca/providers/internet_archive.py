@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
+from html import unescape
 import math
 import re
 import threading
@@ -310,7 +311,7 @@ class InternetArchive(Adapter):
         response_params = payload.get("responseHeader")
         echo = response_params.get("params") if isinstance(response_params, dict) else None
         query_echo = (
-            [echo[key] for key in ("q", "qin") if isinstance(echo.get(key), str)]
+            [unescape(echo[key]) for key in ("q", "qin") if isinstance(echo.get(key), str)]
             if isinstance(echo, dict)
             else []
         )
