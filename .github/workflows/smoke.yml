@@ -2,6 +2,15 @@ name: Live provider smoke and usage evidence
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Probe mode (all = search + candidates; downloads = bounded real downloads, nothing published)
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - downloads
 
 permissions:
   contents: read
@@ -22,6 +31,9 @@ jobs:
         with:
           python-version: "3.13"
       - run: uv sync --frozen
+      - name: Install FFmpeg for bounded download probes
+        if: inputs.mode == 'downloads'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Probe sources across four languages without publishing media
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +52,8 @@ jobs:
           SNAPCHAT_PROFILE_ID: ${{ vars.SNAPCHAT_PROFILE_ID }}
           BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
           PEERTUBE_ALLOWED_INSTANCES: ${{ vars.PEERTUBE_ALLOWED_INSTANCES }}
-        run: uv run python scripts/smoke_sources.py --output "data/reports/smoke-$GITHUB_RUN_ID.json"
+          SMOKE_MODE: ${{ inputs.mode || 'all' }}
+        run: uv run python scripts/smoke_sources.py --mode "$SMOKE_MODE" --output "data/reports/smoke-$GITHUB_RUN_ID.json"
       - name: Preserve measured results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
