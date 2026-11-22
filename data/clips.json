@@ -1226,5 +1226,68 @@
     },
     "status": "published",
     "created_at": "2026-11-22T23:19:18.880984Z"
+  },
+  {
+    "id": "clip-000021",
+    "title": {
+      "es": "Parque público en barcelona",
+      "en": "Public park in barcelona"
+    },
+    "description": {
+      "es": "Parque público en barcelona",
+      "en": "Public park in barcelona"
+    },
+    "tags": {
+      "es": [
+        "Parque",
+        "público",
+        "barcelona",
+        "cascada"
+      ],
+      "en": [
+        "Public",
+        "park",
+        "barcelona",
+        "waterfall"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "10801860",
+      "source_language": "en",
+      "source_title": "public-park-in-barcelona-10801860",
+      "source_url": "https://www.pexels.com/video/public-park-in-barcelona-10801860/",
+      "source_start": 0.0,
+      "source_end": 14.0
+    },
+    "media": {
+      "duration_seconds": 14.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 14190274,
+      "sha256": "693c504fb15c90ecd1c6b8bb79609b1b5d193bd7359676afed8c13193e5a0532",
+      "perceptual_hash": "dbc1b6a6212de45a~6454.48:cadbb6a43929661a~6134.36:c8daa7b619e906ca~5906.72:dbd0a627392d20cf~5878.94:dbd8a4b7392883c6~5845.03"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000021.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000021.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000021_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000021_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000021_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000021_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000021_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000021_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T23:20:06.870551Z"
   }
 ]
