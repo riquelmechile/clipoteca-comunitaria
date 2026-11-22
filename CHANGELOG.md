@@ -1,5 +1,18 @@
 # Historial de cambios
 
+## 2.0.1 (preparado, sin deploy ni tag)
+
+- Worker: defaults de CATALOG_URL y CATALOG_JOBS_URL usan
+  raw.githubusercontent.com sin alterar wrangler.toml; sus overrides
+  siguen teniendo prioridad. sources.json se lee por raw en MCP.
+  El cache de origen puede retrasar clips y estados de jobs ~5 min.
+- Smoke: modo opt-in downloads (o all --include-downloads), una
+  descarga real acotada por proveedor, corte temporal de hasta 20 s,
+  tope de 8 MiB, borrado de archivos y resultado sanitizado. Nada se
+  publica y sources.json no se cambia.
+- Version Python, Worker, OpenAPI, CLI, health y MCP sincronizada a 2.0.1.
+  Sin commits a main, sin despliegue, tag o release en este PR.
+
 ## 2.0.0 (preparacion de cierre, noviembre 2026; NO release ni deploy)
 
 **Alcance:** M11-M23 fusionados en main y preparacion M24 en curso. El numero

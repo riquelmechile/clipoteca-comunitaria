@@ -50,8 +50,8 @@
 | CLIPOTECA_ISSUE_TOKEN | no definido | token para aportes Issues |
 | MCP_ALLOWED_HOSTS | host de request | por defecto solo host del Worker |
 | MCP_ALLOWED_ORIGINS | lista vacia | allowlist de origins, por defecto ninguno externo |
-| CATALOG_URL | API Github Contents data/clips.json?ref=main | URL default derivada del repositorio Worker |
-| CATALOG_JOBS_URL | API Github Contents data/jobs/ | prefix de jobs, opcional |
+| CATALOG_URL | default raw.githubusercontent.com/.../main/data/clips.json | opcional; override de URL para el Worker |
+| CATALOG_JOBS_URL | default raw.githubusercontent.com/.../main/data/jobs/ | opcional; override del prefijo de jobs |
 | CATALOG_TTL_SECONDS | 10 (max 30) | cache catalogo, 0 desactiva |
 | `CLIPOTECA_PERSIST_JOBS` | apagado local | `1` en job de Actions para recibos remotos y estado del Worker |
 
@@ -59,7 +59,7 @@
 
 ## 3. Orden de activacion y retroceso
 
-1. `uv sync --frozen --extra dev` y `cd worker && npm ci && npm run typecheck && npm test`. Comprobar la paridad de version 2.0.0 y los tres jobs CI.
+1. `uv sync --frozen --extra dev` y `cd worker && npm ci && npm run typecheck && npm test`. Comprobar la paridad de version 2.0.1 y los tres jobs CI.
 2. Ejecutar migracion local desde datos validados: `uv run python -m clipoteca migrate-embeddings --root data/embeddings`; revisar el manifiesto SHA y respaldar HEAD. Publicar solo mediante una operacion explicitamente autorizada: `uv run python -m clipoteca migrate-embeddings --root data/embeddings --publish` con `GITHUB_REPOSITORY` y `GITHUB_TOKEN` efimeros. No sobrescribir un indice existente sin cotejar checksums.
 3. Pegar primero el YAML de modo liviano M22 descrito abajo, con revision de los permisos. En modo `query_embedding` no se ejecutan Argos ni ingesta normal. Verificar que Actions acepta `mode`, `query` y `request_id` y que hay 1 running + 1 pending; el segundo pendiente puede ser reemplazado por uno nuevo (no FIFO durable).
 4. Con manifiesto, permisos y job mode confirmados, activar `SEMANTIC_SEARCH=1`; si el encoder no corre, mantener `CLIPOTECA_QUERY_DISPATCH_MODE=0`. Activarlo en `1` solamente tras smoke de consulta con recibos.
@@ -205,3 +205,38 @@ Documentacion: [M22_BUSQUEDA_SEMANTICA.md](M22_BUSQUEDA_SEMANTICA.md), [M23_GUIO
 - [ ] Informe de proveedores y CI verde sobre SHA final, luego decidir tag/release y despliegue fuera de este PR.
 
 No declarar satisfaccion de estos criterios a partir de tests offline ni de un PR verde.
+
+## Operacion 2.0.1: raw GitHub y smoke de descarga sin publicacion
+
+El Worker usa por defecto raw.githubusercontent.com para clips.json
+y jobs/*.json en worker/src/catalog.ts y worker/src/jobs.ts;
+CATALOG_URL y CATALOG_JOBS_URL, si se configuran, tienen prioridad.
+No hace falta pasar --var al desplegar ni tocar worker/wrangler.toml.
+MCP list_sources usa tambien
+raw.githubusercontent.com/.../main/data/sources.json. Esto evita
+la cuota anonima compartida de 60 requests/h de la API Contents.
+El CDN raw puede cachear alrededor de cinco minutos: un clip nuevo o
+el estado de un job publicado pueden tardar hasta ~5 minutos en reflejarse
+en las respuestas. CATALOG_TTL_SECONDS es la cache adicional local
+del Worker y no anula el cache de origen.
+
+Alternativa para una futura operacion autorizada: una API GitHub
+autenticada con token de solo lectura (secret CLIPOTECA_READ_TOKEN).
+No se implementa ni se requiere ese token en este cambio; si se
+incorpora despues, debe ser opcional, privado y con fallback a raw,
+nunca guardado en wrangler.toml, logs ni artefactos.
+
+El smoke habitual --mode all NO descarga videos. La prueba real se
+activa expresamente con:
+uv run python scripts/smoke_sources.py --mode downloads --output data/reports/downloads.json
+O bien --mode all --include-downloads para incluirla como parte
+separada del reporte; sin la flag all conserva su significado.
+La sonda toma un candidato por proveedor, resuelve direct_media,
+descarga como maximo 8 MiB y recorta un clip local de hasta 20 segundos
+con FFmpeg -t (HLS usa tambien -t y -fs). Guarda resultado y motivo
+sanitizados por proveedor, sin URLs firmadas, tokens ni videos. Los
+temporales se borran siempre y no se crea release ni publicacion.
+
+Una sonda DOWNLOAD_OK observada en main es evidencia para revisar
+la capacidad download en data/sources.json en un PR APARTE,
+nunca una promocion automatica en este script.

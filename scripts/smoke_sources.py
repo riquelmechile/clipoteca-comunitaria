@@ -8,6 +8,7 @@ import json
 import os
 import re
 import time
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -20,12 +21,16 @@ from clipoteca.providers.base import (
     RateLimited,
     SearchLimits,
 )
-from clipoteca.security.download import DownloadError
+from clipoteca.security.download import DownloadError, download_media
+from clipoteca.security.hls import download_hls
 from clipoteca.sources import SOURCES
 from clipoteca.candidate_probe import candidates_smoke
 
 TERMS = {"es": "lluvia", "en": "rain", "zh": "\u4e0b\u96e8", "ru": "\u0434\u043e\u0436\u0434\u044c"}
 REPO = "riquelmechile/clipoteca-comunitaria"
+DOWNLOAD_LIMIT_BYTES = 8 * 1024 * 1024
+DOWNLOAD_CLIP_SECONDS = 20.0
+DOWNLOAD_DEADLINE_SECONDS = 60.0
 
 
 # Our own typed errors may be recorded, but only with narrow ASCII grammar.
@@ -95,6 +100,165 @@ async def probe(spec, lang: str, *, timeout: float = 6.0) -> dict:
             await client.aclose()
     row["elapsed_ms"] = round((time.monotonic() - started) * 1000, 1)
     return row
+
+
+async def _cut_local_clip(source: Path, destination: Path) -> None:
+    """Trim only a local file using FFmpeg; never pass a remote URL."""
+    try:
+        process = await asyncio.create_subprocess_exec(
+            "ffmpeg",
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(source),
+            "-t",
+            str(DOWNLOAD_CLIP_SECONDS),
+            "-fs",
+            str(DOWNLOAD_LIMIT_BYTES),
+            "-c",
+            "copy",
+            "-f",
+            "matroska",
+            str(destination),
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+    except FileNotFoundError as exc:
+        raise DownloadError("ffmpeg_unavailable") from exc
+    try:
+        await asyncio.wait_for(process.communicate(), timeout=20)
+    except (TimeoutError, asyncio.CancelledError):
+        process.kill()
+        await process.communicate()
+        raise
+    if process.returncode != 0 or not destination.is_file() or not destination.stat().st_size:
+        raise DownloadError("ffmpeg_trim_failed")
+    if destination.stat().st_size > DOWNLOAD_LIMIT_BYTES:
+        raise DownloadError("download exceeds smoke byte cap")
+
+
+async def _download_candidate(media, stage: Path) -> Path:
+    """Only stream validated media to a temporary directory, never publish it."""
+    if media.size_bytes is not None and media.size_bytes > DOWNLOAD_LIMIT_BYTES:
+        raise DownloadError("declared media size exceeds smoke byte cap")
+    if ".m3u8" in media.url.casefold() or "mpegurl" in media.mime.casefold():
+        return await asyncio.wait_for(
+            download_hls(
+                media.url,
+                stage,
+                referer=media.referer,
+                allowed_hosts=media.allowed_hosts,
+                max_duration=DOWNLOAD_CLIP_SECONDS,
+                max_bytes=DOWNLOAD_LIMIT_BYTES,
+            ),
+            timeout=DOWNLOAD_DEADLINE_SECONDS,
+        )
+    if not media.mime.casefold().startswith("video/"):
+        raise DownloadError("media type not supported by smoke")
+    # download_media restricts Referer to the Bilibili origin; never weaken it
+    # for a provider without an approved media Referer.
+    referer = media.referer if media.referer == "https://www.bilibili.com/" else None
+    original = await download_media(
+        media.url,
+        stage,
+        max_bytes=DOWNLOAD_LIMIT_BYTES,
+        total_seconds=DOWNLOAD_DEADLINE_SECONDS,
+        allowed_hosts=media.allowed_hosts,
+        referer=referer,
+    )
+    trimmed = stage / "clipoteca-smoke-cut.mkv"
+    await _cut_local_clip(original, trimmed)
+    return trimmed
+
+
+async def download_probe(spec, *, language: str = "en") -> dict:
+    """One real candidate per provider; no URLs, credentials or media retained."""
+    started = time.monotonic()
+    row = {"provider": spec.name, "language": language, "status": "UNAVAILABLE", "ok": False}
+    if any(not os.environ.get(key) for key in spec.requires):
+        row["status"] = "AUTH_REQUIRED"
+        row["elapsed_ms"] = 0
+        return row
+    adapter = None
+    try:
+        adapter = spec.adapter()
+        accepted = tuple(adapter.accepts_text_languages)
+        if not accepted:
+            raise ProviderError("provider has no accepted smoke language")
+        language = language if language in accepted else accepted[0]
+        row["language"] = language
+        search_timeout = min(15.0, float(getattr(adapter, "smoke_timeout_seconds", 15.0)))
+        found = await asyncio.wait_for(
+            adapter.search(TERMS[language], language, SearchLimits(1, 1, search_timeout)),
+            timeout=search_timeout,
+        )
+        if not found:
+            row["status"] = "NO_CANDIDATE"
+            row["error_detail"] = "no candidates in bounded search"
+        else:
+            media = await asyncio.wait_for(adapter.direct_media(found[0]), timeout=15.0)
+            if media is None:
+                row["status"] = "NO_DIRECT_MEDIA"
+                row["error_detail"] = "direct media unavailable"
+            else:
+                with tempfile.TemporaryDirectory(prefix="clipoteca-smoke-download-") as temp:
+                    file = await _download_candidate(media, Path(temp))
+                    if not file.is_file() or not 0 < file.stat().st_size <= DOWNLOAD_LIMIT_BYTES:
+                        raise DownloadError("download file missing or outside byte cap")
+                    row["status"] = "DOWNLOAD_OK"
+                    row["ok"] = True
+                    row["download_bytes"] = file.stat().st_size
+    except RateLimited as exc:
+        row["status"] = "RATE_LIMITED"
+        _diagnostic(row, exc)
+    except AuthRequired as exc:
+        row["status"] = "SESSION_REQUIRED" if str(exc) == "session_required" else "AUTH_REQUIRED"
+        _diagnostic(row, exc)
+    except (ProviderTimeout, TimeoutError) as exc:
+        row["status"] = "TIMEOUT"
+        _diagnostic(row, exc)
+    except Exception as exc:
+        row["status"] = "DOWNLOAD_ERROR"
+        _diagnostic(row, exc)
+    finally:
+        client = getattr(adapter, "client", None) if adapter is not None else None
+        if client is not None and hasattr(client, "aclose"):
+            await client.aclose()
+    row["elapsed_ms"] = round((time.monotonic() - started) * 1000, 1)
+    return row
+
+
+async def downloads_smoke() -> dict:
+    """Explicit opt-in real download probes, never part of the default smoke."""
+    started = time.monotonic()
+    semaphore = asyncio.Semaphore(3)
+
+    async def bounded(spec):
+        async with semaphore:
+            return await download_probe(spec)
+
+    rows = await asyncio.gather(*(bounded(spec) for spec in SOURCES))
+    return {
+        "timestamp_utc": datetime.now(UTC).isoformat(),
+        "github": {
+            "ref": os.getenv("GITHUB_REF") or None,
+            "sha": os.getenv("GITHUB_SHA") or None,
+            "run_id": os.getenv("GITHUB_RUN_ID") or None,
+        },
+        "mode": "real_download_probes",
+        "provider_downloads": rows,
+        "total_probes": len(rows),
+        "elapsed_seconds_measured": round(time.monotonic() - started, 3),
+        "notes": [
+            "Each configured provider searches one candidate and probes direct media.",
+            "Temporary files are removed; no clips, assets or releases are published.",
+            "A successful download is measured evidence only; sources.json is unchanged.",
+            "HLS is cut to 20 seconds; MP4 is locally trimmed with FFmpeg -t 20.",
+        ],
+    }
 
 
 def github_usage() -> dict:
@@ -182,12 +346,23 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="data/reports/smoke.json")
     # The existing workflow invokes this script without --mode.
-    parser.add_argument("--mode", choices=("all", "providers", "candidates"), default="all")
+    parser.add_argument(
+        "--mode", choices=("all", "providers", "candidates", "downloads"), default="all"
+    )
+    parser.add_argument(
+        "--include-downloads",
+        action="store_true",
+        help="Opt in to real bounded downloads only when --mode all is selected",
+    )
     args = parser.parse_args(argv)
+    if args.include_downloads and args.mode != "all":
+        parser.error("--include-downloads requires --mode all")
 
     async def collect() -> dict:
         if args.mode == "candidates":
             return await candidates_smoke()
+        if args.mode == "downloads":
+            return await downloads_smoke()
         provider_report = await main_async()
         if args.mode == "all":
             candidate_report = await candidates_smoke()
@@ -196,6 +371,10 @@ def main(argv: list[str] | None = None) -> int:
             provider_report["candidates"] = candidate_report
             provider_report["mode"] = "live_network_and_candidate_probes"
             provider_report["total_candidate_probes"] = candidate_report["total_probes"]
+            if args.include_downloads:
+                download_report = await downloads_smoke()
+                provider_report["downloads"] = download_report
+                provider_report["total_download_probes"] = download_report["total_probes"]
         return provider_report
 
     data = asyncio.run(collect())
@@ -205,7 +384,9 @@ def main(argv: list[str] | None = None) -> int:
     print(
         json.dumps(
             {
-                "probes": data["total_probes"] + data.get("total_candidate_probes", 0),
+                "probes": data["total_probes"]
+                + data.get("total_candidate_probes", 0)
+                + data.get("total_download_probes", 0),
                 "elapsed_seconds_measured": data["elapsed_seconds_measured"],
                 "report": str(path),
             },
