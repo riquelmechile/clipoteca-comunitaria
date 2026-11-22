@@ -25,6 +25,25 @@ from .relocalize import relocalize_catalog
 from .metadata import MetadataTranslationError
 
 
+class _MissingCredentialsAdapter(Adapter):
+    """Unavailable credentials cannot consume the discovery semaphore."""
+
+    support_status = SupportStatus.AUTH_REQUIRED
+
+    def __init__(self, name: str, languages: tuple[str, ...]) -> None:
+        self.name = name
+        self.accepts_text_languages = languages
+
+    async def search(self, term, lang, limits):
+        return []
+
+    async def metadata(self, candidate):
+        return {}
+
+    async def direct_media(self, candidate):
+        return None
+
+
 class _UnavailableAdapter(Adapter):
     """Safe substitute when a single provider cannot be initialized."""
 
@@ -104,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     ingest_parser.add_argument("--aspect-ratio")
     ingest_parser.add_argument("--max-duration", type=float, default=20)
     ingest_parser.add_argument("--horizon", default="v1")
-    ingest_parser.add_argument("--concurrency", type=int, default=4)
+    ingest_parser.add_argument("--concurrency", type=int, default=16)
     ingest_parser.add_argument("--providers", default="", help="Comma-separated source names")
     ingest_parser.add_argument(
         "--runner",
@@ -340,6 +359,11 @@ def main(argv: list[str] | None = None) -> int:
             adapters = []
             for spec in SOURCES:
                 if selected and spec.name not in selected:
+                    continue
+                if any(not os.environ.get(key) for key in spec.requires):
+                    adapters.append(
+                        _MissingCredentialsAdapter(spec.name, spec.adapter.accepts_text_languages)
+                    )
                     continue
                 try:
                     adapters.append(spec.adapter())

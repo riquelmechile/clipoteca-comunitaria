@@ -37,7 +37,7 @@ on:
       concurrency:
         description: External discovery concurrency
         required: false
-        default: "4"
+        default: "16"
         type: string
 
 permissions:

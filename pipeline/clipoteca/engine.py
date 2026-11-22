@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable, Sequence
 
@@ -90,7 +92,7 @@ class SearchEngine:
         self,
         adapters: Sequence[Adapter],
         *,
-        concurrency: int = 4,
+        concurrency: int = 16,
         discovery_seconds: float = 15.0,
         per_source_seconds: float = 6.0,
         max_pages: int = 2,
@@ -98,7 +100,12 @@ class SearchEngine:
         breaker: CircuitBreaker | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        if concurrency < 1 or discovery_seconds <= 0 or max_candidates < 1:
+        if (
+            concurrency < 1
+            or discovery_seconds <= 0
+            or per_source_seconds <= 0
+            or max_candidates < 1
+        ):
             raise ValueError("invalid discovery limits")
         self.adapters = list(adapters)
         self.concurrency = concurrency
@@ -126,68 +133,12 @@ class SearchEngine:
         sem = asyncio.Semaphore(self.concurrency)
         provider_locks = {adapter.name: asyncio.Lock() for adapter in self.adapters}
         limits = SearchLimits(self.max_pages, self.max_candidates, self.per_source_seconds)
-        tasks: dict[asyncio.Task, tuple[str, str, str]] = {}
+        languages = ("es", "en", "zh", "ru")
+        completed: dict[tuple[str, str], tuple[list[Candidate], SupportStatus, str, float]] = {}
 
-        async def one(adapter: Adapter, language: str, term: str):
-            # Acquire per-provider slot BEFORE global semaphore to prevent starvation.
-            async with provider_locks[adapter.name]:
-                async with sem:
-                    started = self.clock()
-                    if adapter.support_status == SupportStatus.UNAVAILABLE:
-                        return (
-                            [],
-                            SupportStatus.UNAVAILABLE,
-                            getattr(adapter, "unavailable_reason", "provider_unavailable"),
-                            0.0,
-                        )
-                    if self.breaker.open(adapter.name):
-                        return [], SupportStatus.UNAVAILABLE, "circuit_open", 0.0
-                    try:
-                        candidates = await asyncio.wait_for(
-                            adapter.search(term, language, limits),
-                            timeout=max(
-                                self.per_source_seconds,
-                                float(getattr(adapter, "search_timeout_seconds", 0)),
-                            ),
-                        )
-                        self.breaker.record(adapter.name, True)
-                        return (
-                            candidates[: limits.max_candidates],
-                            adapter.support_status,
-                            "",
-                            self.clock() - started,
-                        )
-                    except RateLimited:
-                        # HTTP 429 does not trip the outage circuit breaker.
-                        return (
-                            [],
-                            SupportStatus.RATE_LIMITED,
-                            "rate_limited",
-                            self.clock() - started,
-                        )
-                    except AuthRequired:
-                        return (
-                            [],
-                            SupportStatus.AUTH_REQUIRED,
-                            "auth_required",
-                            self.clock() - started,
-                        )
-                    except asyncio.TimeoutError:
-                        self.breaker.record(adapter.name, False)
-                        return [], SupportStatus.TIMEOUT, "provider_timeout", self.clock() - started
-                    except ProviderError as exc:
-                        self.breaker.record(adapter.name, False)
-                        return [], exc.status, type(exc).__name__, self.clock() - started
-                    except Exception as exc:
-                        self.breaker.record(adapter.name, False)
-                        return (
-                            [],
-                            SupportStatus.UNAVAILABLE,
-                            type(exc).__name__,
-                            self.clock() - started,
-                        )
-
-        # Terms are queued round-robin by language, never four per provider first.
+        # One worker per provider, four languages in series. This prevents
+        # rate-limit bursts while allowing other providers to make progress.
+        # Credentials known absent at scheduling time never acquire a slot.
         ordered_adapters = sorted(
             self.adapters,
             key=lambda adapter: (
@@ -196,79 +147,158 @@ class SearchEngine:
                 adapter.name == "youtube",
             ),
         )
-        for lang in ("es", "en", "zh", "ru"):
-            for adapter in ordered_adapters:
-                term = expansion.terms.get(lang)
-                if term and lang in adapter.accepts_text_languages:
-                    task = asyncio.create_task(one(adapter, lang, term))
-                    tasks[task] = (adapter.name, lang, term)
-        # YouTube Data API is discovery-only. Never hold a completed round
-        # hostage to its slow requests; harvest only already-finished results.
-        blocking = {task for task, (name, _, _) in tasks.items() if name != "youtube"}
-        deadline_tasks = blocking or set(tasks)
-        if deadline_tasks:
-            # A configured TikTok session may require a real browser, while
-            # every other source keeps its original per-source deadline.
-            browser_budget = max(
-                (float(getattr(adapter, "search_timeout_seconds", 0)) for adapter in self.adapters),
-                default=0.0,
+        active: list[tuple[Adapter, list[tuple[str, str]]]] = []
+        for adapter in ordered_adapters:
+            terms = [
+                (lang, expansion.terms[lang])
+                for lang in languages
+                if expansion.terms.get(lang) and lang in adapter.accepts_text_languages
+            ]
+            if not terms:
+                continue
+            if adapter.support_status in (SupportStatus.UNAVAILABLE, SupportStatus.AUTH_REQUIRED):
+                reason = (
+                    "auth_required"
+                    if adapter.support_status == SupportStatus.AUTH_REQUIRED
+                    else getattr(adapter, "unavailable_reason", "provider_unavailable")
+                )
+                for lang, _ in terms:
+                    completed[(adapter.name, lang)] = ([], adapter.support_status, reason, 0.0)
+            else:
+                active.append((adapter, terms))
+
+        async def execute_one(adapter: Adapter, lang: str, term: str):
+            started = self.clock()
+            timeout = max(
+                self.per_source_seconds,
+                float(getattr(adapter, "search_timeout_seconds", 0)),
             )
-            deadline = (
-                max(self.discovery_seconds, browser_budget + 5.0)
-                if browser_budget > 0
-                else self.discovery_seconds
-            )
-            await asyncio.wait(deadline_tasks, timeout=deadline)
-        finished = {task for task in tasks if task.done()}
-        pending = set(tasks) - finished
+            try:
+                found = await asyncio.wait_for(adapter.search(term, lang, limits), timeout=timeout)
+                self.breaker.record(adapter.name, True)
+                return (
+                    found[: limits.max_candidates],
+                    adapter.support_status,
+                    "",
+                    self.clock() - started,
+                )
+            except RateLimited:
+                return [], SupportStatus.RATE_LIMITED, "rate_limited", self.clock() - started
+            except AuthRequired:
+                return [], SupportStatus.AUTH_REQUIRED, "auth_required", self.clock() - started
+            except asyncio.TimeoutError:
+                self.breaker.record(adapter.name, False)
+                return [], SupportStatus.TIMEOUT, "provider_timeout", self.clock() - started
+            except ProviderError as exc:
+                self.breaker.record(adapter.name, False)
+                return [], exc.status, type(exc).__name__, self.clock() - started
+            except Exception as exc:
+                self.breaker.record(adapter.name, False)
+                return [], SupportStatus.UNAVAILABLE, type(exc).__name__, self.clock() - started
+
+        async def execute_provider(adapter: Adapter, terms: list[tuple[str, str]]):
+            async with provider_locks[adapter.name]:
+                # Preserve the breaker across requests, but do not let three
+                # failures within THIS request suppress its fourth language.
+                # An already-open breaker skips the entire provider upfront.
+                if self.breaker.open(adapter.name):
+                    for lang, _ in terms:
+                        completed[(adapter.name, lang)] = (
+                            [], SupportStatus.UNAVAILABLE, "circuit_open", 0.0
+                        )
+                    return
+                # YouTube is best-effort discovery only: never occupies a
+                # media-provider slot and never retains the completed round.
+                if adapter.name == "youtube":
+                    for lang, term in terms:
+                        completed[(adapter.name, lang)] = await execute_one(adapter, lang, term)
+                else:
+                    async with sem:
+                        for lang, term in terms:
+                            completed[(adapter.name, lang)] = await execute_one(adapter, lang, term)
+
+        tasks = {
+            asyncio.create_task(execute_provider(adapter, terms)): adapter.name
+            for adapter, terms in active
+        }
+        blocking = {task for task, name in tasks.items() if name != "youtube"}
+        watched = blocking or set(tasks)
+        # Upper bound covers the worst case: all provider calls time out
+        # individually, in ceiling(N/concurrency) waves. Unlike the former
+        # fixed 15s deadline, queued languages receive their own attempt.
+        non_youtube = [(a, terms) for a, terms in active if a.name != "youtube"]
+        waves = math.ceil(len(non_youtube) / self.concurrency)
+        slowest_provider_budget = max(
+            (
+                sum(
+                    max(
+                        self.per_source_seconds,
+                        float(getattr(adapter, "search_timeout_seconds", 0)),
+                    )
+                    for _ in terms
+                )
+                for adapter, terms in non_youtube
+            ),
+            default=0.0,
+        )
+        hard_cap = min(
+            180.0,
+            max(self.discovery_seconds, waves * slowest_provider_budget + 12.0),
+        )
+        if watched:
+            await asyncio.wait(watched, timeout=hard_cap)
+        pending = {task for task in tasks if not task.done()}
         for task in pending:
             task.cancel()
         if pending:
             await asyncio.gather(*pending, return_exceptions=True)
-        executions = []
+
+        executions: list[Execution] = []
+        source_candidates: dict[str, deque[Candidate]] = {}
+        for adapter in ordered_adapters:
+            for lang in languages:
+                term = expansion.terms.get(lang)
+                if not term or lang not in adapter.accepts_text_languages:
+                    continue
+                entry = completed.get((adapter.name, lang))
+                if entry is None:
+                    entry = (
+                        [],
+                        SupportStatus.TIMEOUT,
+                        "youtube_nonblocking"
+                        if adapter.name == "youtube"
+                        else "discovery_hard_cap",
+                        hard_cap,
+                    )
+                found, status, error, elapsed = entry
+                executions.append(
+                    Execution(
+                        adapter.name,
+                        lang,
+                        term,
+                        status,
+                        len(found),
+                        max(0.0, elapsed),
+                        error,
+                    )
+                )
+                source_candidates.setdefault(adapter.name, deque()).extend(found)
+
+        # Interleave providers BEFORE applying the global candidate cap.
+        # Otherwise one high-volume provider consumes all 100 slots.
         seen = {
             f"{clip['source']['provider']}:{clip['source']['provider_id']}": clip["id"]
             for clip in catalog.clips
         }
-        candidates = []
-        duplicate_ids: set[str] = set()
+        candidates: list[Candidate] = []
         duplicates = 0
-        # Prioritize actual download adapters when the global quota fills.
-        ordered_tasks = sorted(
-            tasks,
-            key=lambda task: (
-                tasks[task][0]
-                not in {
-                    adapter.name
-                    for adapter in self.adapters
-                    if adapter.support_status == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
-                },
-                tasks[task][0] == "youtube",
-            ),
-        )
-        for task in ordered_tasks:
-            provider, language, term = tasks[task]
-            if task in pending:
-                found, status, error, elapsed = (
-                    [],
-                    SupportStatus.TIMEOUT,
-                    "discovery_deadline",
-                    self.discovery_seconds,
-                )
-            else:
-                found, status, error, elapsed = task.result()
-            executions.append(
-                Execution(
-                    provider,
-                    language,
-                    term,
-                    status,
-                    len(found),
-                    max(0.0, elapsed),
-                    error,
-                )
-            )
-            for candidate in found:
+        duplicate_ids: set[str] = set()
+        for _ in range(max((len(q) for q in source_candidates.values()), default=0)):
+            for adapter in ordered_adapters:
+                queue = source_candidates.get(adapter.name)
+                if not queue:
+                    continue
+                candidate = queue.popleft()
                 if candidate.origin_id in seen:
                     duplicates += 1
                     if seen[candidate.origin_id]:

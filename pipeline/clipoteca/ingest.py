@@ -256,7 +256,7 @@ async def ingest(
     job_root: Path = Path("data/jobs"),
     max_results: int = 3,
     max_clips_per_source: int = 2,
-    concurrency: int = 4,
+    concurrency: int = 16,
     filters: dict | None = None,
     horizon: str = "v1",
     writer: GitHubCatalogWriter | None = None,
@@ -455,7 +455,27 @@ async def ingest(
                 != SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
             ),
         )
-        for candidate in prioritized:
+        # Give each provider a real first chance before any single video
+        # consumes multiple publication slots. The fallback pass retains the
+        # original multi-window cap when other sources fail quality/download.
+        diverse_sources = (
+            len(
+                {
+                    candidate.provider
+                    for candidate in prioritized
+                    if by_name[candidate.provider].support_status
+                    == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+                }
+            )
+            > 1
+        )
+        selections = (
+            [(candidate, 1) for candidate in prioritized]
+            + [(candidate, max_clips_per_source) for candidate in prioritized]
+            if diverse_sources and max_clips_per_source > 1
+            else [(candidate, max_clips_per_source) for candidate in prioritized]
+        )
+        for candidate, window_cap in selections:
             if len(ids) >= max_results:
                 break
             adapter = by_name[candidate.provider]
@@ -540,7 +560,7 @@ async def ingest(
                     windows = _candidate_windows(
                         raw,
                         duration_limit=duration_limit,
-                        max_clips=max_clips_per_source,
+                        max_clips=window_cap,
                         job=job,
                         origin_id=candidate.origin_id,
                         query=query,

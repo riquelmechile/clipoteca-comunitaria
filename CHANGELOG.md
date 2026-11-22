@@ -1,5 +1,22 @@
 # Historial de cambios
 
+## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
+
+- Descubrimiento por proveedor: idiomas secuenciales para evitar ráfagas 429,
+  hasta 16 proveedores simultáneos y timeout individual por llamada.
+  El tope duro de la ronda se calcula en función de oleadas y tiempos
+  individuales (máximo 180 s). El antiguo plazo fijo de 15 s ya no corta
+  idiomas pendientes por posición en la cola.
+- Fuentes sin credenciales conocidas se registran AUTH_REQUIRED sin ocupar slots;
+  se mantienen CircuitBreaker, bypass no bloqueante de YouTube y el presupuesto
+  extendido opcional del navegador TikTok (gate deshabilitado por defecto).
+- Se intercalan candidatos por proveedor antes de aplicar el máximo global.
+  Publicación en primera ronda con una ventana por candidato; segunda ronda
+  recupera ventanas adicionales si otras fuentes no aportan clips válidos.
+  Deduplicación, calidad, límites y verificación de archivos intactos.
+- Versión sincronizada en API, Worker, Python, OpenAPI y lockfiles.
+
+
 ## 2.0.5 (TikTok session and bounded browser fallback)
 
 - ingest.yml and smoke.yml forward repository TIKTOK_COOKIE and optional
