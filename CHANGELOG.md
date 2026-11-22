@@ -12,6 +12,9 @@
 - The source capability remains best_effort: the live verification run
   45080343083 returned HTTP 200/status_code 0 but no search items.
   MediaRef download could not yet be validated in that run.
+- The TikTok session is opt-in: workflows forward TIKTOK_COOKIE only when the
+  repository variable TIKTOK_SESSION_ENABLED is '1'. It ships disabled, so no
+  browser is installed and no session is used until a live probe passes.
 - Python, Worker, OpenAPI and lockfiles use version 2.0.5.
 
 
