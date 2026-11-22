@@ -2,7 +2,7 @@
   "request_id": "eac415941e00e4a4415112ebfe84c67e734faaa261b5a1294cc9decb5f670f86",
   "status": "publishing",
   "attempt": 1,
-  "updated_at": "2026-11-22T23:58:43.924192Z",
+  "updated_at": "2026-11-22T23:59:02.502478Z",
   "language_counts": {
     "es": 23,
     "en": 23,
@@ -86,7 +86,8 @@
     "wikimedia_commons:71429951": "translation_failed:en->es:unchanged_translation",
     "internet_archive:RedForest": "translation_failed:en->es:unchanged_translation",
     "nasa:GSFC_20140908_Mapping_m11633_Alaska": "translation_failed:en->es:unchanged_translation",
-    "odysee:e5ba3464a5e692e315d4e0c53b26dfdd438b39d6": "translation_failed:en->es:unchanged_translation"
+    "odysee:e5ba3464a5e692e315d4e0c53b26dfdd438b39d6": "translation_failed:en->es:unchanged_translation",
+    "bilibili:BV1Hj4HedEph": "scene_quality_rejected"
   },
   "terms": {
     "es": "bosque",
@@ -96,6 +97,10 @@
   },
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
-    "pexels:32535366": "embeddings_unavailable:m14_quality_fallback"
-  }
+    "pexels:32535366": "embeddings_unavailable:m14_quality_fallback",
+    "bilibili:BV1Hj4HedEph": "embeddings_unavailable:m14_quality_fallback"
+  },
+  "terminal_sources": [
+    "https://bilibili.com/video/BV1Hj4HedEph"
+  ]
 }
