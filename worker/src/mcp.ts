@@ -73,6 +73,7 @@ const scriptOutputSchema = z.object({
     status:z.enum(["matched","queued","missing"]),
     media:scriptMediaSchema.nullable(),
     reason:z.string().optional(),
+    semantic_reason:z.string().optional(),
     request_id:z.string().regex(/^[a-f0-9]{64}$/).optional(),
     job:z.object({request_id:z.string(),status:z.string()}).optional(),
   })).min(1).max(50),
