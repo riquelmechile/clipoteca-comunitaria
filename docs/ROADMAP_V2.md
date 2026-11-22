@@ -43,10 +43,19 @@ M12 va antes de las fuentes porque decide que corre en Actions y que en el runne
 
 ## Estado de cierre v2 (preparacion M24)
 
-M11-M23: implementacion integrada en main mediante los PR indicados; los fixtures,
-contratos y CI no sustituyen los smokes reales de los proveedores ni la demostracion
-MCP. M24 esta **en curso**, con version 2.0.0 y documentacion preparados en PR
-pendiente, sin tag/release/deploy. Para cerrar faltan: smoke real en main de todas las
-fuentes por idioma, Bilibili y runner propio solo tras evidencia, matriz regenerada
-con reporte live, demo E2E de cinco escenas y consulta semantica con datos reales.
-Consultar docs/OPERACION_V2.md, docs/MATRIZ_FUENTES_V2.md y docs/DEMO_E2E_V2.md.
+M11-M23: implementacion integrada en main mediante los PR indicados. M24 esta
+**en curso**, sin tag/release/deploy. El workflow smoke.yml en main
+(ref refs/heads/main, SHA bf0454baa76c7aa8e2528b51f38302b30581cf0d,
+run_id 44972077685) midio 92 pruebas de 23 proveedores en cuatro idiomas
+y 44 sondas de candidatos M12. De las 92, 43 requirieron credenciales;
+se registraron 64 resultados de busqueda. Los datos completos estan en
+data/reports/smoke-44972077685.json; las tablas regeneradas estan en
+docs/MATRIZ_FUENTES_V2.md y docs/EVIDENCIA_FUENTES_V2.md.
+La medicion no publica clips ni prueba CDN, runner propio o Worker 2.0.0.
+
+**Pendientes para Zana:** probar Bilibili/runner propio solo tras evidencia
+comparativa, aplicar manualmente el YAML de operacion que corresponda,
+autorizar y medir el despliegue del Worker 2.0.0, ejecutar la consulta
+semantica real y la demo E2E MCP de cinco escenas, y decidir tag/release.
+M24 **permanece [ ]** hasta esa demo E2E reproducible. Consultar
+docs/OPERACION_V2.md, docs/RUNNER_PROPIO.md y docs/DEMO_E2E_V2.md.

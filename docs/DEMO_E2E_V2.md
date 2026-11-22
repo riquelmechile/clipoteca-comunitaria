@@ -100,14 +100,22 @@ curl --fail-with-body -sS "$CLIPOTECA_WORKER_URL/mcp" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   --data-binary @/tmp/clipoteca-mcp-request.json \
-  | sed -n 's/^data: //p' | jq '.result.content[0].text | fromjson'
+  > /tmp/clipoteca-mcp-response.txt
+# SSE: extraer el JSON-RPC de cada linea data:. Si el servidor responde
+# application/json, procesar directamente el body JSON.
+if grep -q '^data: ' /tmp/clipoteca-mcp-response.txt; then
+  sed -n 's/^data: //p' /tmp/clipoteca-mcp-response.txt |
+    jq '.result.content[0].text | fromjson'
+else
+  jq '.result.content[0].text | fromjson' /tmp/clipoteca-mcp-response.txt
+fi
 ```
 
-MCP Streamable HTTP entrega este resultado en `text/event-stream` (SSE), no
-como JSON plano: el filtro `sed` extrae la linea `data: ` y `jq` decodifica
-el JSON-RPC y el texto JSON del primer bloque `result.content`. El modo
-responseMode: json del SDK puede usar application/json en otros clientes;
-este ejemplo fija Accept compatible con SSE.
+El Worker puede responder en text/event-stream (SSE) o application/json:
+si hay lineas data:, el filtro sed extrae su JSON-RPC; en ausencia de
+ellas, jq procesa directamente el body JSON. En ambos casos se decodifica
+result.content[0].text cuando existe. La peticion admite ambos formatos
+en Accept y no exige uno especifico.
 
 La respuesta real debe incluir 5 escenas, `status` por escena (`matched`, `queued` o `missing`), `media.type=video` para matched, URL de video, thumbnail, storyboard, duracion, origen factual y `summary.reused`. Como la cuota import por IP es de 15 segundos, reenviar el mismo guion despues de 15 segundos si hay escenas `rate_limited`. Si `queued`, consultar `GET /v1/jobs/{request_id}` con el ID devuelto. Guardar solo datos no sensibles.
 
