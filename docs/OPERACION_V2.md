@@ -240,3 +240,35 @@ temporales se borran siempre y no se crea release ni publicacion.
 Una sonda DOWNLOAD_OK observada en main es evidencia para revisar
 la capacidad download en data/sources.json en un PR APARTE,
 nunca una promocion automatica en este script.
+
+## Operacion 2.0.5: sesion de TikTok opcional y apagada
+
+Desde 2.0.5 los pasos de ingest.yml y smoke.yml reciben el secreto
+solo cuando la variable de repositorio lo habilita:
+
+```yaml
+TIKTOK_COOKIE: ${{ vars.TIKTOK_SESSION_ENABLED == '1' && secrets.TIKTOK_COOKIE || '' }}
+```
+
+Con la variable ausente o distinta de `1` (estado de fabrica) no se
+instala Chromium, no se usa ninguna sesion y TikTok informa
+SESSION_REQUIRED sin afectar al resto de las fuentes.
+
+Para encenderla: Settings > Secrets and variables > Actions > Variables,
+crear `TIKTOK_SESSION_ENABLED` con valor `1`. Para apagarla, borrar la
+variable o ponerla en `0`. No requiere cambios de codigo ni despliegue.
+
+Cautelas medidas el 22-nov-2026:
+
+- La busqueda con firma nativa responde AuthRequired aun con cookie
+  valida; el camino que entrega resultados es el navegador (Playwright).
+- Una cuenta nueva usada a la vez desde una red domestica y desde
+  runners de GitHub fue marcada por TikTok: las respuestas pasaron a
+  HTTP 200 con cero videos y la cuenta pidio captcha en el navegador
+  del propietario. No es un error del codigo ni de la cookie.
+- Usar siempre una cuenta dedicada, nunca personal. Si se enciende,
+  esperar pocas consultas diarias y captchas manuales ocasionales.
+- Una cookie vencida o rechazada degrada a AUTH_REQUIRED saneado; el
+  valor de la cookie nunca aparece en logs, artefactos ni catalogo.
+
+El estado medido de todas las fuentes esta en [ESTADO.md](ESTADO.md).

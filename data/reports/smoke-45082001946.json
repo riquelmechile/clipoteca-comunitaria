@@ -1,0 +1,197 @@
+{
+  "timestamp_utc": "2026-11-22T23:13:42.718942+00:00",
+  "github": {
+    "ref": "refs/heads/main",
+    "sha": "9d85365c6dc0b122402e9aad35c158ce6fa03e44",
+    "run_id": "45082001946"
+  },
+  "mode": "real_download_probes",
+  "provider_downloads": [
+    {
+      "provider": "library_of_congress",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 33554432,
+      "elapsed_ms": 754.8
+    },
+    {
+      "provider": "coverr",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "pexels",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 33554432,
+      "elapsed_ms": 984.7
+    },
+    {
+      "provider": "pixabay",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 22202094,
+      "elapsed_ms": 482.6
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 20744023,
+      "elapsed_ms": 1495.3
+    },
+    {
+      "provider": "internet_archive",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 33554432,
+      "elapsed_ms": 27709.8
+    },
+    {
+      "provider": "nasa",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 6466138,
+      "elapsed_ms": 900.3
+    },
+    {
+      "provider": "youtube",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "rutube",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 1153568,
+      "elapsed_ms": 13862.4
+    },
+    {
+      "provider": "peertube",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 33554432,
+      "elapsed_ms": 4251.6
+    },
+    {
+      "provider": "odysee",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 33554432,
+      "elapsed_ms": 1577.9
+    },
+    {
+      "provider": "bilibili",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 18480751,
+      "elapsed_ms": 2486.0
+    },
+    {
+      "provider": "ok_ru",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 7437656,
+      "elapsed_ms": 10068.2
+    },
+    {
+      "provider": "vk_video",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 2655500,
+      "elapsed_ms": 7637.6
+    },
+    {
+      "provider": "dzen",
+      "language": "en",
+      "status": "DOWNLOAD_OK",
+      "ok": true,
+      "download_bytes": 8751400,
+      "elapsed_ms": 9298.7
+    },
+    {
+      "provider": "douyin",
+      "language": "en",
+      "status": "SESSION_REQUIRED",
+      "ok": false,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 1891.9
+    },
+    {
+      "provider": "tiktok",
+      "language": "en",
+      "status": "SESSION_REQUIRED",
+      "ok": false,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 814.1
+    },
+    {
+      "provider": "instagram",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "ok": false,
+      "elapsed_ms": 0
+    }
+  ],
+  "total_probes": 23,
+  "elapsed_seconds_measured": 29.738,
+  "notes": [
+    "Each configured provider searches one candidate and probes direct media.",
+    "Temporary files are removed; no clips, assets or releases are published.",
+    "A successful download is measured evidence only; sources.json is unchanged.",
+    "HLS segments are sampled up to 20 seconds/32 MiB; MP4 Range samples 32 MiB."
+  ]
+}

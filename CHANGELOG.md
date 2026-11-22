@@ -16,6 +16,17 @@
   repository variable TIKTOK_SESSION_ENABLED is '1'. It ships disabled, so no
   browser is installed and no session is used until a live probe passes.
 - Python, Worker, OpenAPI and lockfiles use version 2.0.5.
+- Cierre de v2: README rehecho con portada, consola y diagrama animados
+  (SVG puro, SMIL/CSS, texto en trazados, sin recursos externos), nuevo
+  docs/ESTADO.md como referencia unica de estado, indice docs/README.md
+  que separa lo vigente de lo historico, y M24 cerrado en ROADMAP_V2.md.
+- Evidencia de cierre sobre main 9d85365: smoke de busqueda 45082009984
+  (92 sondas, 13 fuentes con resultados) y smoke de descarga real
+  45082001946 (13 DOWNLOAD_OK, incluido Bilibili). Reportes guardados en
+  data/reports/. Worker 2.0.5 desplegado y verificado con /v1/health.
+- Demostracion de punta a punta: importacion real de "cascada" desde el
+  Worker (run 45082441011, cuatro idiomas, tres clips publicados) y guion
+  de cinco escenas resuelto 5/5 por REST y por MCP.
 
 
 ## 2.0.4 (expansion multilingue tolerante a calidad)
