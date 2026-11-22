@@ -352,6 +352,28 @@
     "notes": "WBI search best effort; download only after successful main-branch smoke"
   },
   {
+    "name": "ok_ru",
+    "category": "social_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_search",
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "anonymous HTML discovery; CDN download remains best-effort pending live smoke"
+  },
+  {
     "name": "vk_video",
     "category": "social_video",
     "status": "SUPPORTED_SEARCH_DOWNLOAD",
@@ -364,14 +386,36 @@
     ],
     "languages_semantically_verified": false,
     "scope": "public_search",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "anonymous Web2 token; VK_ACCESS_TOKEN remains optional",
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
       "download": "best_effort"
-    }
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "anonymous Web2 token; VK_ACCESS_TOKEN remains optional"
+  },
+  {
+    "name": "dzen",
+    "category": "social_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "languages_semantically_verified": false,
+    "scope": "public_search",
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "best_effort"
+    },
+    "download_supported": true,
+    "credentials_present": true,
+    "notes": "cookie-aware public search; stream availability is best-effort"
   },
   {
     "name": "douyin",
@@ -460,49 +504,5 @@
     "download_supported": false,
     "credentials_present": false,
     "notes": "profile Spotlight list, no global video search"
-  },
-  {
-    "name": "ok_ru",
-    "category": "social_video",
-    "status": "SUPPORTED_SEARCH_DOWNLOAD",
-    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
-    "accepts_text_languages": [
-      "es",
-      "en",
-      "zh",
-      "ru"
-    ],
-    "languages_semantically_verified": false,
-    "scope": "public_search",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "anonymous HTML discovery; CDN download remains best-effort pending live smoke",
-    "capabilities": {
-      "search": "best_effort",
-      "preview": "best_effort",
-      "download": "best_effort"
-    }
-  },
-  {
-    "name": "dzen",
-    "category": "social_video",
-    "status": "SUPPORTED_SEARCH_DOWNLOAD",
-    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
-    "accepts_text_languages": [
-      "es",
-      "en",
-      "zh",
-      "ru"
-    ],
-    "languages_semantically_verified": false,
-    "scope": "public_search",
-    "download_supported": true,
-    "credentials_present": true,
-    "notes": "cookie-aware public search; stream availability is best-effort",
-    "capabilities": {
-      "search": "supported",
-      "preview": "best_effort",
-      "download": "best_effort"
-    }
   }
 ]
