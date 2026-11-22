@@ -56,7 +56,7 @@ async def main():
                 if not isinstance(item, dict):
                     continue
                 res["items"] += 1
-            captured_items.append(item)
+                captured_items.append(item)
                 if item.get("id") and len(res["sample_ids"]) < 5:
                     res["sample_ids"].append(item["id"])
                 v = item.get("video") or {}
