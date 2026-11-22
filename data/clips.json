@@ -829,5 +829,71 @@
     },
     "status": "published",
     "created_at": "2026-11-22T10:53:39.211672Z"
+  },
+  {
+    "id": "clip-000015",
+    "title": {
+      "es": "Vista aérea de intersección ocupada en la carretera",
+      "en": "Aerial view of busy intersection on highway"
+    },
+    "description": {
+      "es": "Vista aérea de intersección ocupada en la carretera",
+      "en": "Aerial view of busy intersection on highway"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "intersección",
+        "ocupada",
+        "carretera",
+        "autopista"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "busy",
+        "intersection",
+        "highway"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "30861422",
+      "source_language": "en",
+      "source_title": "aerial-view-of-busy-intersection-on-highway-30861422",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-busy-intersection-on-highway-30861422/",
+      "source_start": 28.0,
+      "source_end": 48.0
+    },
+    "media": {
+      "duration_seconds": 19.986633,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 9687839,
+      "sha256": "9d27f39880230ef783f085966d29a0e32fd47fe9fa6597ef3566ce81eee079d7",
+      "perceptual_hash": "a888b7e5c9d2b62c~4797.01:ad9db2e4c9d2b620~4691.87:c49db2e6a9931e32~4661.77:c698b3eca985987a~4581.61:c699b3acad849b98~4507.43"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000015.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000015.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000015_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000015_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000015_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000015_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000015_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000015_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T10:54:25.586361Z"
   }
 ]
