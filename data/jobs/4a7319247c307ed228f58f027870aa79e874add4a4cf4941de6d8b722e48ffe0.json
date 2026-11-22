@@ -2,7 +2,7 @@
   "request_id": "4a7319247c307ed228f58f027870aa79e874add4a4cf4941de6d8b722e48ffe0",
   "status": "processing",
   "attempt": 1,
-  "updated_at": "2026-11-22T10:49:48.021087Z",
+  "updated_at": "2026-11-22T10:50:30.056777Z",
   "language_counts": {
     "es": 23,
     "en": 23,
@@ -103,6 +103,7 @@
     "ru": "автомагистраль"
   },
   "source_warnings": {
-    "semantic_query": "embeddings_unavailable:m14_quality_fallback"
+    "semantic_query": "embeddings_unavailable:m14_quality_fallback",
+    "pexels:36031419": "embeddings_unavailable:m14_quality_fallback"
   }
 }
