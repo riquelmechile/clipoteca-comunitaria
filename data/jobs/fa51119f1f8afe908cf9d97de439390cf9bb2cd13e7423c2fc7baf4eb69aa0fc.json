@@ -2,7 +2,7 @@
   "request_id": "fa51119f1f8afe908cf9d97de439390cf9bb2cd13e7423c2fc7baf4eb69aa0fc",
   "status": "processing",
   "attempt": 2,
-  "updated_at": "2026-11-22T22:03:22.366947Z",
+  "updated_at": "2026-11-22T22:03:24.509396Z",
   "language_counts": {
     "es": 23
   },
@@ -45,13 +45,15 @@
     "instagram:es": "auth_required",
     "snapchat:es": "auth_required",
     "youtube:es": "auth_required",
-    "pexels:852435": "scene_quality_rejected"
+    "pexels:852435": "scene_quality_rejected",
+    "pexels:31280471": "scene_quality_rejected"
   },
   "terms": {
     "es": "aurora boreal"
   },
   "terminal_sources": [
-    "https://pexels.com/video/time-lapse-video-of-aurora-borealis-852435"
+    "https://pexels.com/video/time-lapse-video-of-aurora-borealis-852435",
+    "https://pexels.com/video/stunning-display-of-northern-lights-in-sweden-31280471"
   ],
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
@@ -60,6 +62,7 @@
     "translation:ru": "translation_failed:es->en:unchanged_translation",
     "translation:metadata:pexels:852435:en": "translation_failed:es->en:unchanged_translation",
     "pexels:852435": "embeddings_unavailable:m14_quality_fallback",
-    "translation:metadata:pexels:31280471:en": "translation_failed:es->en:unchanged_translation"
+    "translation:metadata:pexels:31280471:en": "translation_failed:es->en:unchanged_translation",
+    "pexels:31280471": "embeddings_unavailable:m14_quality_fallback"
   }
 }
