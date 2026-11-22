@@ -256,7 +256,7 @@ async def ingest(
     job_root: Path = Path("data/jobs"),
     max_results: int = 3,
     max_clips_per_source: int = 2,
-    concurrency: int = 4,
+    concurrency: int = 16,
     filters: dict | None = None,
     horizon: str = "v1",
     writer: GitHubCatalogWriter | None = None,
@@ -455,9 +455,35 @@ async def ingest(
                 != SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
             ),
         )
-        for candidate in prioritized:
+        # Give each provider a real first chance before any single video
+        # consumes multiple publication slots. The fallback pass retains the
+        # original multi-window cap when other sources fail quality/download.
+        diverse_sources = (
+            len(
+                {
+                    candidate.provider
+                    for candidate in prioritized
+                    if by_name[candidate.provider].support_status
+                    == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+                }
+            )
+            > 1
+        )
+        selections = (
+            [(candidate, 1) for candidate in prioritized]
+            + [(candidate, max_clips_per_source) for candidate in prioritized]
+            if diverse_sources and max_clips_per_source > 1
+            else [(candidate, max_clips_per_source) for candidate in prioritized]
+        )
+        published_providers: set[str] = set()
+        first_pass_size = len(prioritized) if diverse_sources and max_clips_per_source > 1 else 0
+        for selection_index, (candidate, window_cap) in enumerate(selections):
             if len(ids) >= max_results:
                 break
+            # First pass: no provider takes a second slot while another
+            # provider still has a candidate that might pass quality gates.
+            if selection_index < first_pass_size and candidate.provider in published_providers:
+                continue
             adapter = by_name[candidate.provider]
             requested_language = (filters or {}).get("language")
             if requested_language and candidate.source_language != requested_language:
@@ -540,7 +566,7 @@ async def ingest(
                     windows = _candidate_windows(
                         raw,
                         duration_limit=duration_limit,
-                        max_clips=max_clips_per_source,
+                        max_clips=window_cap,
                         job=job,
                         origin_id=candidate.origin_id,
                         query=query,
@@ -709,6 +735,7 @@ async def ingest(
                                     phash_similar=perceptually_similar,
                                 )
                                 ids.append(identifier)
+                                published_providers.add(candidate.provider)
                                 samples = semantic_frames.get(candidate.origin_id)
                                 if samples is not None:
                                     try:

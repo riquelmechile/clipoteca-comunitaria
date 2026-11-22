@@ -16,7 +16,7 @@ Cliente de IA / aplicación externa
                          │
                 GitHub Actions (Python 3.13 + FFmpeg)
                  ├─ expandir ES/EN/ZH/RU
-                 ├─ buscar en proveedores, concurrencia=4, discovery<=15s
+                 ├─ buscar en proveedores, hasta 16 proveedores paralelos, 4 idiomas seriales por proveedor; tope <=180s
                  ├─ resolver URL de archivo / descargar
                  ├─ deduplicar y procesar FFmpeg
                  ├─ traducir metadata a ES/EN

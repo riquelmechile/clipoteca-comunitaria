@@ -302,3 +302,127 @@ def test_workflow_only_writes_on_main():
     assert "group: clipoteca-ingest-" in source
     assert "group: clipoteca-catalog" not in source
     assert "contents: write" in source
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("valid_sources", [1, 3])
+async def test_v206_publication_round_robins_providers_without_lowering_quality(
+    tmp_path, valid_sources
+):
+    """Three genuine publication slots: diversity when available, fallback when not."""
+    repo = "riquelmechile/clipoteca-comunitaria"
+    catalog: list[dict] = []
+    revision = 0
+
+    def github(request):
+        nonlocal revision, catalog
+        if request.method == "GET":
+            return httpx.Response(
+                200,
+                json={
+                    "sha": f"catalog-{revision}",
+                    "encoding": "base64",
+                    "content": base64.b64encode(json.dumps(catalog).encode()).decode(),
+                },
+            )
+        if request.method == "PUT":
+            payload = json.loads(request.content)
+            assert payload["sha"] == f"catalog-{revision}"
+            catalog = json.loads(base64.b64decode(payload["content"]))
+            revision += 1
+            return httpx.Response(200, json={"commit": {"sha": f"published-{revision}"}})
+        raise AssertionError(request.method)
+
+    class Multiple(FixtureAdapter):
+        async def search(self, term, lang, limits):
+            if lang != "en":
+                return []
+            counts = 5 if self.name == "pexels" and valid_sources == 1 else 1
+            return [
+                Candidate(
+                    self.name,
+                    f"source-{n}",
+                    term,
+                    lang,
+                    f"https://{self.name}.example.org/source/{n}",
+                    f"rain falling scene from {self.name} number {n}",
+                    "en",
+                    metadata={"description": f"rain landscape from {self.name} number {n}"},
+                )
+                for n in range(counts)
+            ]
+
+        async def direct_media(self, candidate):
+            if self.name != "pexels" and valid_sources == 1:
+                return None
+            return MediaRef(
+                f"https://cdn.example.org/{self.name}/{candidate.provider_id}.mp4",
+                "video/mp4",
+            )
+
+    # Different source footage shapes protect the real perceptual-dedup gate:
+    # tests do not mock or weaken normalization, scene quality or catalog CAS.
+    async def downloader(url: str, root: Path):
+        output = root / "source.mp4"
+        patterns = ["320x180", "240x240", "180x320", "400x200", "320x240", "400x300", "300x400"]
+        if "pixabay" in url:
+            index = 1
+        elif "wikimedia" in url:
+            index = 2
+        elif "source-2" in url:
+            index = 3
+        elif "source-1" in url and valid_sources == 1:
+            index = 4
+        elif "source-3" in url:
+            index = 5
+        elif "source-4" in url:
+            index = 6
+        else:
+            index = 0
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-nostdin",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                f"testsrc2=size={patterns[index]}:rate=12:duration=0.8",
+                "-c:v",
+                "libx264",
+                str(output),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=30,
+        )
+        return output
+
+    writer = GitHubCatalogWriter(
+        repo,
+        "fake-token",
+        client=httpx.Client(transport=httpx.MockTransport(github)),
+    )
+    report = await ingest(
+        "lluvia",
+        [Multiple("pexels"), Multiple("pixabay"), Multiple("wikimedia_commons")],
+        repository=repo,
+        token="fake-token",
+        job_root=tmp_path / "jobs",
+        writer=writer,
+        storage=FakeStorage(),
+        downloader=downloader,
+        max_results=3,
+        max_clips_per_source=2,
+        translator=lambda text, src, dst: f"Escena de {text}"
+        if dst == "es"
+        else f"Scene of {text}",
+    )
+    assert report.status == "published", report.errors
+    assert len(report.published_ids) == 3, report
+    assert len(catalog) == 3
+    contributing = {clip["source"]["provider"] for clip in catalog}
+    assert len(contributing) > 1 if valid_sources == 3 else contributing == {"pexels"}

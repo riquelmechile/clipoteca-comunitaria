@@ -89,14 +89,15 @@ async def test_concurrent_limit_and_hung_adapter_isolated():
 
 
 @pytest.mark.asyncio
-async def test_discovery_global_deadline_fast_and_no_blocking():
+async def test_provider_own_timeouts_replace_old_fixed_global_deadline():
     stuck = FakeAdapter(delay=10)
     started = time.monotonic()
-    result = await SearchEngine([stuck], discovery_seconds=0.03, per_source_seconds=5).search(
+    result = await SearchEngine([stuck], discovery_seconds=0.03, per_source_seconds=0.025).search(
         "lluvia"
     )
     assert time.monotonic() - started < 0.5
     assert {entry.status for entry in result.executions} == {SupportStatus.TIMEOUT}
+    assert {entry.error for entry in result.executions} == {"provider_timeout"}
 
 
 @pytest.mark.asyncio
