@@ -92,6 +92,27 @@ async def test_all_destination_quality_failures_keep_original_language(tmp_path,
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("bad_translation", "reason"),
+    [
+        ("", "empty_translation"),
+        ("drift" * 5, "repeated_translation"),
+        ("aurora boreal", "unchanged_translation"),
+    ],
+)
+async def test_all_quality_reasons_keep_original_language(
+    tmp_path, monkeypatch, bad_translation, reason
+):
+    report, job, calls = await run_ingest(tmp_path, monkeypatch, lambda *_: bad_translation)
+    assert report.status == "no_results"
+    assert calls == [("es", "aurora boreal")]
+    for language in ("en", "zh", "ru"):
+        assert job["source_warnings"][f"translation:{language}"] == (
+            f"translation_failed:es->en:{reason}"
+        )
+
+
+@pytest.mark.asyncio
 async def test_unconfigured_models_still_fail_before_discovery(tmp_path, monkeypatch):
     monkeypatch.delenv("ARGOS_MODEL_PINS_JSON", raising=False)
     report, job, calls = await run_ingest(tmp_path, monkeypatch, None)
