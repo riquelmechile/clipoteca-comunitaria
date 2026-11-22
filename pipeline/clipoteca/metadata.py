@@ -7,7 +7,12 @@ import re
 from typing import Callable
 
 from .providers.base import Candidate
-from .translate.argos import TranslationFailed, translate_text
+from .translate.argos import (
+    QUALITY_TRANSLATION_REASONS,
+    TranslationFailed,
+    public_translation_error,
+    translate_text,
+)
 from .translate.dictionary import find_concept, normalize
 
 
@@ -148,6 +153,7 @@ def localize_candidate(
     *,
     translator: Callable[[str, str, str], str] | None = None,
     include_query_tags: bool = True,
+    on_query_tag_warning: Callable[[str, str], None] | None = None,
 ) -> LocalizedMetadata:
     original = candidate.source_title.strip()
     if not original:
@@ -170,14 +176,22 @@ def localize_candidate(
     # hallucinated repeated fragments or language stopwords in the index.
     tags = {}
     for language in ("es", "en"):
-        words = [
-            *_title_tags(title[language]),
-            *(
-                _keyword_tags(candidate.term, candidate.language, language, translator)
-                if include_query_tags
-                else []
-            ),
-        ]
+        query_tags: list[str] = []
+        if include_query_tags:
+            try:
+                query_tags = _keyword_tags(candidate.term, candidate.language, language, translator)
+            except MetadataTranslationError as exc:
+                code = public_translation_error(str(exc))
+                if (
+                    not code
+                    or code.rsplit(":", 1)[-1] not in QUALITY_TRANSLATION_REASONS
+                    or on_query_tag_warning is None
+                ):
+                    raise
+                # Only the ingestion caller can explicitly accept and record
+                # degradation of optional tags; standalone metadata stays strict.
+                on_query_tag_warning(language, code)
+        words = [*_title_tags(title[language]), *query_tags]
         seen = set()
         tags[language] = []
         for word in words:
