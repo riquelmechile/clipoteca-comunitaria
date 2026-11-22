@@ -1,5 +1,24 @@
 # Historial de cambios
 
+## 2.0.2 (correcciones de descarga, sin deploy ni tag)
+
+- Smoke downloads: archivos MP4/WebM se prueban con Range de 8 MiB y
+  validacion de magic, sin exigir tamano total menor al limite. Si el
+  servidor ignora Range, el lector corta localmente a 8 MiB. HLS toma
+  segmentos con maximo 8 MiB o 20 segundos, validando playlist,
+  hosts DNS y firma MPEG-TS. Temporales borrados, sin publicar.
+- OK.ru: HLS real dentro de flashvars.metadata.hlsManifestUrl y videos
+  con URL firmada sin extension, usando solo hosts OK permitidos.
+- VK Video: omite entradas region-restringidas del Web2, selecciona
+  solo metadata del ID solicitado y admite CDN publico *.okcdn.ru.
+- Dzen: redirecciones de watch limitadas a 3 saltos con DNS y
+  allowlist exacta por salto. SSO externo de Yandex sigue bloqueado.
+- Odysee: permite resolver streaming_url HTTPS aunque el video total
+  supere el limite de ingest; el downloader real conserva su cap.
+- LoC: smoke respeta timeout especifico de adaptador hasta 45 s.
+- Version 2.0.2 en Python, Worker, OpenAPI, lockfiles y pruebas.
+  Ninguna capacidad se promociona; requiere otro smoke en main.
+
 ## 2.0.1 (preparado, sin deploy ni tag)
 
 - Worker: defaults de CATALOG_URL y CATALOG_JOBS_URL usan
