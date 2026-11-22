@@ -95,11 +95,15 @@ class TikTok(Adapter):
             "tiktok",
             session_cookie=cookie if cookie is not None else os.getenv("TIKTOK_COOKIE", ""),
         )
-        # The browser path is bounded but slower than native HTTP; only a
-        # configured session opts into a larger per-provider discovery budget.
-        self.search_timeout_seconds = 42.0 if self.guest.session_cookie else 0.0
-        self.smoke_timeout_seconds = 42.0 if self.guest.session_cookie else 6.0
-        self.discovery_priority = 1 if self.guest.session_cookie else 0
+        # Only a real session cookie enables the optional browser path;
+        # anonymous guest tokens and legacy synthetic test cookies do not.
+        self.browser_session = any(
+            pair.strip().partition("=")[0] in {"sessionid", "sid_tt", "sessionid_ss"}
+            for pair in self.guest.session_cookie.removeprefix("Cookie:").split(";")
+        )
+        self.search_timeout_seconds = 42.0 if self.browser_session else 0.0
+        self.smoke_timeout_seconds = 42.0 if self.browser_session else 6.0
+        self.discovery_priority = 1 if self.browser_session else 0
         self.device_id = str(secrets.randbelow(9 * 10**18) + 10**18)
         self._videos: dict[str, dict] = {}
 
@@ -142,12 +146,12 @@ class TikTok(Adapter):
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         try:
             native = await self._native_search(term, lang, limits)
-            if native or not self.guest.session_cookie:
+            if native or not self.browser_session:
                 return native
         except RateLimited:
             raise
         except (AuthRequired, ProviderError):
-            if not self.guest.session_cookie:
+            if not self.browser_session:
                 raise
         # The native signature may be refused even with a valid cookie.
         # Browser fallback is TikTok-only, optional and bounded by SearchLimits.

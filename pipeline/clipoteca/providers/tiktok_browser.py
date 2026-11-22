@@ -14,7 +14,7 @@ _TIKTOK_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
-_MAX_RESPONSE = 2 * 1024 * 1024
+_MAX_RESPONSE = 8 * 1024 * 1024
 
 
 def _browser_cookies(raw: str) -> list[dict[str, object]]:
@@ -63,7 +63,14 @@ async def search_with_browser(
     payloads: list[dict] = []
     pending: list[asyncio.Task] = []
     ready = asyncio.Event()
-    counts = {"api_hits": 0, "valid_payloads": 0, "items": 0, "http_auth": 0}
+    counts = {
+        "api_hits": 0,
+        "valid_payloads": 0,
+        "items": 0,
+        "http_auth": 0,
+        "oversize": 0,
+        "largest_body_bytes": 0,
+    }
 
     async def capture(response) -> None:
         try:
@@ -77,7 +84,11 @@ async def search_with_browser(
             if response.status != 200:
                 return
             body = await response.body()
-            if not body or len(body) > _MAX_RESPONSE:
+            counts["largest_body_bytes"] = max(counts["largest_body_bytes"], len(body))
+            if len(body) > _MAX_RESPONSE:
+                counts["oversize"] += 1
+                return
+            if not body:
                 return
             data = json.loads(body)
             if isinstance(data, dict):

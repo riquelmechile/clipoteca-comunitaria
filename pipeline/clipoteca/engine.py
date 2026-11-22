@@ -213,9 +213,12 @@ class SearchEngine:
                 (float(getattr(adapter, "search_timeout_seconds", 0)) for adapter in self.adapters),
                 default=0.0,
             )
-            await asyncio.wait(
-                deadline_tasks, timeout=max(self.discovery_seconds, browser_budget + 5.0)
+            deadline = (
+                max(self.discovery_seconds, browser_budget + 5.0)
+                if browser_budget > 0
+                else self.discovery_seconds
             )
+            await asyncio.wait(deadline_tasks, timeout=deadline)
         finished = {task for task in tasks if task.done()}
         pending = set(tasks) - finished
         for task in pending:
