@@ -62,13 +62,18 @@ async def download_media(
     max_redirects: int = 4,
     total_seconds: float | None = None,
     expected_bytes: int | None = None,
+    probe_prefix_bytes: int | None = None,
     allowed_hosts: tuple[str, ...] = (),
     referer: str | None = None,
     allowed_mime_types: frozenset[str] | None = None,
 ) -> Path:
     if max_bytes < 1:
         raise ValueError("max_bytes must be positive")
+    if probe_prefix_bytes is not None and not 12 <= probe_prefix_bytes <= max_bytes:
+        raise ValueError("invalid media probe prefix cap")
     headers = {"User-Agent": USER_AGENT}
+    if probe_prefix_bytes is not None:
+        headers["Range"] = f"bytes=0-{probe_prefix_bytes - 1}"
     if referer is not None:
         if referer != "https://www.bilibili.com/":
             raise ValueError("unexpected media Referer")
@@ -110,15 +115,21 @@ async def download_media(
                             raise DownloadError("invalid or excessive redirect chain")
                         current = urljoin(current, location)
                         continue
-                    if response.status_code != 200:
+                    if response.status_code not in (
+                        {200, 206} if probe_prefix_bytes is not None else {200}
+                    ):
                         raise DownloadError(f"HTTP {response.status_code}")
+                    if response.status_code == 206:
+                        content_range = response.headers.get("content-range", "")
+                        if not content_range.startswith("bytes 0-"):
+                            raise DownloadError("invalid media Content-Range")
                     length = response.headers.get("content-length")
                     if length:
                         try:
                             declared = int(length)
                         except ValueError as exc:
                             raise DownloadError("invalid Content-Length") from exc
-                        if declared > max_bytes:
+                        if declared > max_bytes and probe_prefix_bytes is None:
                             raise DownloadError("declared media size exceeds limit")
                     kind = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
                     if kind not in (allowed_mime_types or VIDEO_TYPES):
@@ -126,13 +137,18 @@ async def download_media(
                     total = 0
                     header = b""
                     with target.open("wb") as file:
-                        async for chunk in response.aiter_bytes(chunk_size=1024 * 1024):
+                        async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
+                            if probe_prefix_bytes is not None:
+                                remaining = probe_prefix_bytes - total
+                                chunk = chunk[:remaining]
                             total += len(chunk)
                             if total > max_bytes:
                                 raise DownloadError("streamed media size exceeds limit")
                             if len(header) < 12:
                                 header += chunk[: 12 - len(header)]
                             file.write(chunk)
+                            if probe_prefix_bytes is not None and total >= probe_prefix_bytes:
+                                break
                     if total == 0 or not _magic_ok(header):
                         raise DownloadError("response is not a recognized media container")
                     successful = True
