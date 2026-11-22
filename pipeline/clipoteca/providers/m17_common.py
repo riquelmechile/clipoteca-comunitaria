@@ -84,3 +84,37 @@ async def response_json(response, provider: str) -> dict:
     if not isinstance(payload, dict):
         raise ProviderError(f"{provider} payload must be an object")
     return payload
+
+
+async def fetch_text_follow(
+    client,
+    url: str,
+    roots: tuple[str, ...],
+    *,
+    max_redirects: int = 3,
+    **kwargs,
+) -> str:
+    """Fetch text following at most ``max_redirects`` HTTPS hops inside ``roots``.
+
+    Every hop goes through fetch_response, so each one is DNS-checked and
+    IP-pinned. A hop outside the exact allowlist is rejected, never followed.
+    """
+    from urllib.parse import urljoin
+
+    from .http import fetch_response
+
+    current = url
+    for hop in range(max_redirects + 1):
+        if not allowed_https(current, roots):
+            raise ProviderError("provider redirect host not allowed")
+        response = await fetch_response(client, current, **kwargs)
+        if response.is_redirect:
+            location = response.headers.get("location")
+            if not location or hop >= max_redirects:
+                raise ProviderError("provider redirect limit exceeded")
+            current = urljoin(current, location)
+            continue
+        if response.status_code >= 400:
+            raise ProviderError(f"provider HTTP {response.status_code}")
+        return response.text
+    raise ProviderError("provider redirect limit exceeded")
