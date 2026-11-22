@@ -136,10 +136,17 @@ class VKVideo(Adapter):
             _error(payload)
             nested = payload.get("data") if isinstance(payload.get("data"), dict) else {}
             token = str(
-                payload.get("token") or payload.get("access_token") or nested.get("token") or ""
+                payload.get("token")
+                or payload.get("access_token")
+                or nested.get("token")
+                or nested.get("access_token")
+                or ""
             )
             expiry = (
-                payload.get("expired_at") or payload.get("expires_at") or nested.get("expired_at")
+                payload.get("expired_at")
+                or payload.get("expires_at")
+                or nested.get("expired_at")
+                or nested.get("expires")
             )
             try:
                 expires = float(expiry)
