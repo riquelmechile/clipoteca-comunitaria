@@ -133,3 +133,46 @@ async def test_browser_internal_exception_never_exposes_cookie(monkeypatch):
             "aurora boreal", "sessionid=LOCAL_SECRET_SHOULD_NEVER_APPEAR", 1
         )
     assert "LOCAL_SECRET_SHOULD_NEVER_APPEAR" not in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_tiktok_cookie_not_sent_to_media_or_redirect_off_provider(tmp_path, monkeypatch):
+    from clipoteca.providers.base import Candidate
+    from clipoteca.security.download import DownloadError, download_media
+
+    marker = "SESSION_SYNTHETIC_NOT_FOR_LOGS"
+    monkeypatch.setenv("TIKTOK_COOKIE", "sessionid=" + marker)
+    adapter = TikTok()
+    candidate = Candidate(
+        "tiktok",
+        "7491959005745646801",
+        "aurora boreal",
+        "es",
+        "https://www.tiktok.com/@clipoteca38/video/7491959005745646801",
+        "Aurora over mountains",
+        "en",
+    )
+    adapter._videos[candidate.provider_id] = {
+        "video": {"playAddr": "https://v16-webapp-prime.tiktok.com/play.mp4"}
+    }
+    media = await adapter.direct_media(candidate)
+    assert media is not None
+    assert marker not in repr(media)
+    requested = []
+
+    def handler(req):
+        requested.append((req.url.host, req.headers.get("cookie")))
+        return httpx.Response(302, headers={"location": "https://not-tiktok.example.org/file.mp4"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(DownloadError, match="allowlist") as exc:
+            await download_media(
+                media.url,
+                tmp_path,
+                allowed_hosts=media.allowed_hosts,
+                client=client,
+                resolver=lambda _host: ["8.8.8.8"],
+            )
+    assert requested == [("v16-webapp-prime.tiktok.com", None)]
+    assert marker not in str(exc.value)
+    await adapter.client.aclose()

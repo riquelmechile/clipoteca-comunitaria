@@ -178,7 +178,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         TikTok,
         (),
         "public_search",
-        "native-signed web search; optional TIKTOK_COOKIE fallback; downloads best-effort",
+        "native-signed search; optional session-scoped Playwright fallback; download best-effort pending live validation",
     ),
     SourceSpec(
         "instagram",

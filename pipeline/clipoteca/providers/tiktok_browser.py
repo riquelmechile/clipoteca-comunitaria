@@ -105,7 +105,9 @@ async def search_with_browser(
                             "item_list_size": len(raw_items) if isinstance(raw_items, list) else -1,
                             "data_list_size": len(raw_data) if isinstance(raw_data, list) else -1,
                             "data_is_dict": isinstance(raw_data, dict),
-                            "top_items_size": len(data.get("items")) if isinstance(data.get("items"), list) else -1,
+                            "top_items_size": len(data.get("items"))
+                            if isinstance(data.get("items"), list)
+                            else -1,
                         }
                     )
                 if len(payloads) < max(3, max_pages * 4):
