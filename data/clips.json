@@ -1098,5 +1098,68 @@
     },
     "status": "published",
     "created_at": "2026-11-22T22:04:21.234457Z"
+  },
+  {
+    "id": "clip-000019",
+    "title": {
+      "es": "Aurora boreal se forma en el cielo",
+      "en": "Aurora borealis forms in the sky"
+    },
+    "description": {
+      "es": "Aurora boreal se forma en el cielo",
+      "en": "Aurora borealis forms in the sky"
+    },
+    "tags": {
+      "es": [
+        "Aurora",
+        "boreal",
+        "forma",
+        "cielo"
+      ],
+      "en": [
+        "Aurora",
+        "borealis",
+        "forms",
+        "sky"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "5700940",
+      "source_language": "en",
+      "source_title": "aurora-borealis-forms-in-the-sky-5700940",
+      "source_url": "https://www.pexels.com/video/aurora-borealis-forms-in-the-sky-5700940/",
+      "source_start": 0.0,
+      "source_end": 7.56
+    },
+    "media": {
+      "duration_seconds": 7.56,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 5310607,
+      "sha256": "0821e8eabeb84ce457b53a12b51e8e41654d7cf37de6ff30acfef4f800d1727a",
+      "perceptual_hash": "9c336c7384bb49d2~1545.47:94334c5bb4a649db~1616.49:8c336c5394b56dca~2321.32:84336c5b84bc6bc7~1712.75:9c336c5b94a768ca~1612.75"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000019.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000019.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000019_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000019_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000019_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000019_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000019_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000019_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T22:05:29.615002Z"
   }
 ]
