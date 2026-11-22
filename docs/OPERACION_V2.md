@@ -232,8 +232,8 @@ uv run python scripts/smoke_sources.py --mode downloads --output data/reports/do
 O bien --mode all --include-downloads para incluirla como parte
 separada del reporte; sin la flag all conserva su significado.
 La sonda toma un candidato por proveedor, resuelve direct_media,
-descarga como maximo 8 MiB y recorta un clip local de hasta 20 segundos
-con FFmpeg -t (HLS usa tambien -t y -fs). Guarda resultado y motivo
+toma como maximo 32 MiB (Range en MP4, 20 s de segmentos en HLS)
+y valida la firma del contenedor. Guarda resultado y motivo
 sanitizados por proveedor, sin URLs firmadas, tokens ni videos. Los
 temporales se borran siempre y no se crea release ni publicacion.
 

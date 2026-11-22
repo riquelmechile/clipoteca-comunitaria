@@ -128,7 +128,7 @@ async def test_download_hls_probe_uses_short_cut_and_low_byte_cap(smoke, monkeyp
     monkeypatch.setattr(smoke, "download_hls_probe", fake_hls)
     path = await smoke._download_candidate(media, tmp_path)
     assert path.exists()
-    assert calls[0][2]["max_bytes"] == 8 * 1024 * 1024
+    assert calls[0][2]["max_bytes"] == 32 * 1024 * 1024
     assert calls[0][2]["max_duration"] == 20.0
     assert calls[0][2]["referer"] == "https://dzen.ru/video/watch/abc"
 
@@ -147,9 +147,9 @@ async def test_download_mp4_range_prefix_is_bounded(smoke, monkeypatch, tmp_path
     monkeypatch.setattr(smoke, "download_media", fake_download)
     out = await smoke._download_candidate(media, tmp_path)
     assert out.name == "incoming.bin"
-    assert seen[0][1]["max_bytes"] == 8 * 1024 * 1024
-    assert seen[0][1]["probe_prefix_bytes"] == 8 * 1024 * 1024
-    assert seen[0][1]["total_seconds"] == 60.0
+    assert seen[0][1]["max_bytes"] == 32 * 1024 * 1024
+    assert seen[0][1]["probe_prefix_bytes"] == 32 * 1024 * 1024
+    assert seen[0][1]["total_seconds"] == 90.0
 
 
 def test_download_mode_is_explicit_and_all_is_opt_in(smoke, monkeypatch, tmp_path):

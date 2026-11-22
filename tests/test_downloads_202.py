@@ -269,12 +269,12 @@ async def test_odysee_large_claim_still_resolves_public_stream(monkeypatch):
             "https://odysee.com/rain",
             "Rain",
             "en",
-            metadata={"uri": "lbry://rain#a", "size_bytes": 400 * 1024 * 1024},
+            metadata={"uri": "lbry://rain#a", "size_bytes": 2 * 1024 * 1024 * 1024},
         )
         assert await adapter.direct_media(candidate) is None
         media = await adapter.smoke_direct_media(candidate)
     assert seen == ["get"]
-    assert media and media.size_bytes == 400 * 1024 * 1024
+    assert media and media.size_bytes == 2 * 1024 * 1024 * 1024
     assert media.allowed_hosts == ("player.odycdn.com",)
 
 

@@ -16,6 +16,9 @@
 - Odysee: permite resolver streaming_url HTTPS aunque el video total
   supere el limite de ingest; el downloader real conserva su cap.
 - LoC: smoke respeta timeout especifico de adaptador hasta 45 s.
+- Topes: el ingest real acepta videos de hasta 1 GiB (antes 350 MiB)
+  con limite de tiempo de descarga hasta 600 s. El smoke downloads
+  toma muestras de 32 MiB (antes 8 MiB) con plazo de 90 s.
 - Version 2.0.2 en Python, Worker, OpenAPI, lockfiles y pruebas.
   Ninguna capacidad se promociona; requiere otro smoke en main.
 

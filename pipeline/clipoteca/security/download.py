@@ -15,7 +15,7 @@ from ..config import USER_AGENT
 from .pinning import PinnedPeerError, stream_pinned
 from .ssrf import UnsafeMediaURL, validate_public_url
 
-MAX_DOWNLOAD_BYTES = 350 * 1024 * 1024
+MAX_DOWNLOAD_BYTES = 1024 * 1024 * 1024
 VIDEO_TYPES = {
     "video/mp4",
     "video/x-m4v",
@@ -81,7 +81,7 @@ async def download_media(
     if total_seconds is None:
         # Scale by expected size, but keep a hard wall-clock bound.
         estimated = expected_bytes if expected_bytes and expected_bytes > 0 else max_bytes
-        total_seconds = min(180.0, max(45.0, 20.0 + estimated / (2 * 1024 * 1024)))
+        total_seconds = min(600.0, max(45.0, 20.0 + estimated / (2 * 1024 * 1024)))
     if total_seconds <= 0:
         raise ValueError("total_seconds must be positive")
     target_dir.mkdir(parents=True, exist_ok=True)
