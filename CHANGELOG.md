@@ -41,12 +41,12 @@ la demostracion E2E quedan pendientes hasta su ejecucion en main.
 - Busqueda web invitado y firma nativa con paginacion y fallback; cookies
   opcionales. El YAML de cookies pendiente esta en OPERACION_V2.
 
-### M20 - Bilibili WBI + runner (PR #60; ajuste de cierre M24)
-- Firma WBI, HTML5 MP4 preferido y DASH con mux seguro local, UA/Referer,
-  clasificacion de bloqueos, rutas CDN y verificacion de candidatos.
-- En la preparacion M24, Bilibili queda de nuevo search-only hasta smoke
-  real. Runner por fuentes, recibos de fuentes diferidas, defaults a Actions
-  y advertencias para runner de repo publico en PC aislado.
+### M20 - Bilibili WBI + runner (PR #60; correcciones PR #61)
+- PR #60: Firma WBI, ruta DASH/MP4, UA/Referer, CDNs validadas,
+  seleccion declarativa de runner y tests offline.
+- PR #61: Preferencia HTML5 MP4 antes de DASH, backups CDN, lock de WBI,
+  bloqueos de IP, recibos de fuentes diferidas y seguridad del runner
+  publico. Bilibili queda search-only hasta smoke real.
 
 ### M21 - Embeddings de escenas (PR #54, #55)
 - CLIP multilingue, vectores f16 por clip, ranking contra consulta,
@@ -55,7 +55,8 @@ la demostracion E2E quedan pendientes hasta su ejecucion en main.
 ### M22 - Busqueda semantica (PR #57, #58, #59)
 - Worker REST/MCP con RRF, corpus de shards con checksums, cache acotado,
   cuota por isolate, Unicode casefold y consulta de encoder fuera de Worker.
-- Preparacion M24 limita vector fetches por guion, deja resto lexical.
+- PR #61 (M24 preparacion): limite de vectores de consulta por guion;
+  tras el tope mantiene resultados lexicales.
 
 ### M23 - Guion a clips (PR #59, #60)
 - `POST /v1/script` y MCP `resolve_script` con 1..50 escenas, clips video

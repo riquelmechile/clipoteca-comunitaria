@@ -1,0 +1,347 @@
+[
+  {
+    "name": "library_of_congress",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "coverr",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "europeana",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "nara",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "dpla",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "unavailable",
+      "download": "unavailable"
+    }
+  },
+  {
+    "name": "smithsonian",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "unavailable",
+      "download": "unavailable"
+    }
+  },
+  {
+    "name": "pexels",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
+  },
+  {
+    "name": "pixabay",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
+  },
+  {
+    "name": "wikimedia_commons",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
+  },
+  {
+    "name": "internet_archive",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
+  },
+  {
+    "name": "nasa",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
+  },
+  {
+    "name": "youtube",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
+  },
+  {
+    "name": "rutube",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "supported",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "peertube",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "supported",
+      "download": "supported"
+    }
+  },
+  {
+    "name": "odysee",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "supported",
+      "preview": "best_effort",
+      "download": "supported"
+    }
+  },
+  {
+    "name": "bilibili",
+    "status": "SUPPORTED_SEARCH_ONLY",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
+  },
+  {
+    "name": "vk_video",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "douyin",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "tiktok",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "instagram",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
+  },
+  {
+    "name": "snapchat",
+    "status": "AUTH_REQUIRED",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "unavailable"
+    }
+  },
+  {
+    "name": "ok_ru",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  },
+  {
+    "name": "dzen",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "accepts_text_languages": [
+      "es",
+      "en",
+      "zh",
+      "ru"
+    ],
+    "capabilities": {
+      "search": "best_effort",
+      "preview": "best_effort",
+      "download": "best_effort"
+    }
+  }
+]

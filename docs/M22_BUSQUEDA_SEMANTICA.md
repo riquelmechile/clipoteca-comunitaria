@@ -105,3 +105,7 @@ This path does not download/normalize videos or run Argos. Once deployed and val
 ## Validation
 
 `uv sync --frozen --extra dev`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest -q`, `npm run typecheck` and `npm test`. Offline fixtures test float16, Unicode, manifest integrity, CAS conflicts, rate limits, 300/5000 clip storage, query eviction and recovery after a transient corrupt shard. Real encoder latency and actual deployed Worker end-to-end are separate verifications, not simulated CI results.
+
+## M24 r2: limite por guion
+
+El limite de maxQueryVectorFetches=3 en POST /v1/script y MCP resolve_script cuenta **vectores de consulta normalizados**, no todas las peticiones GitHub. Tras las tres consultas diferentes se resuelve lexicalmente; la escena expone semantic_reason: query_vector_budget_exceeded cuando corresponde, independiente de reason (estado de importacion/material). Los hashes/IDs de shards del corpus tienen un costo fijo adicional en un isolate frio; cache local, manifiesto y lookups no son equivalentes a vectores de consulta. Este codigo no atribuye ese motivo a una respuesta de /v1/search.

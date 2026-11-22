@@ -32,13 +32,41 @@ def test_runner_templates_include_exact_safety_guard_and_inputs():
         ("ingest-self-hosted", ingest["jobs"]["ingest-self-hosted"]),
         ("smoke-self-hosted", smoke["jobs"]["smoke-self-hosted"]),
     ]:
-        assert job["if"] == (
+        guard = (
             "github.ref == 'refs/heads/main' && github.event_name == "
             "'workflow_dispatch' && inputs.runner == 'self-hosted'"
-        ), name
+        )
+        if name.startswith("smoke"):
+            guard = "github.repository == 'riquelmechile/clipoteca-comunitaria' && " + guard
+        assert job["if"] == guard, name
         assert job["runs-on"] == ["self-hosted", "clipoteca-home"]
         assert any("uv run --no-sync" in step.get("run", "") for step in job["steps"])
-    assert "Require approval for all outside collaborators" in text
+    assert "Require approval for all external contributors" in text
+    for job in ("smoke-actions", "smoke-self-hosted"):
+        assert smoke["jobs"][job]["if"].startswith(
+            "github.repository == 'riquelmechile/clipoteca-comunitaria' && "
+        )
+    assert "FRAGMENTOS" in text
+    for var in (
+        "NASA_API_KEY",
+        "YOUTUBE_API_KEY",
+        "VK_ACCESS_TOKEN",
+        "INSTAGRAM_ACCESS_TOKEN",
+        "INSTAGRAM_USER_ID",
+        "SNAPCHAT_ACCESS_TOKEN",
+        "SNAPCHAT_PROFILE_ID",
+        "PEERTUBE_ALLOWED_INSTANCES",
+        "DOUYIN_ACCESS_TOKEN",
+        "TIKTOK_ACCESS_TOKEN",
+        "EUROPEANA_API_KEY",
+        "COVERR_API_KEY",
+        "NARA_API_KEY",
+        "DPLA_API_KEY",
+        "SMITHSONIAN_API_KEY",
+    ):
+        assert var in text
+    assert "NO incrementa attempt" in text and "no_results" in text
+    assert "Environment=HOME=/srv/clipoteca-runner" in text
     assert "NoNewPrivileges" in text and "ProtectHome" in text
     assert "PrivateTmp" in text and "ProtectSystem" in text
     assert "--ephemeral" in text
@@ -71,3 +99,30 @@ def test_operator_guide_collects_all_pending_workflow_sections():
     assert "timeout-minutes" in text
     assert "RUNNER_PROPIO.md" in text
     assert "No declarar satisfaccion" in text
+    section = text.split("## 4. YAML pendiente M19")[1].split("## 5. YAML pendiente M22")[0]
+    assert section.count("DOUYIN_COOKIE: ") == 4
+    assert section.count("TIKTOK_COOKIE: ") == 4
+    assert "BILIBILI_COOKIE:" not in section
+    for name in (
+        "VK_ACCESS_TOKEN",
+        "YOUTUBE_API_KEY",
+        "INSTAGRAM_ACCESS_TOKEN",
+        "INSTAGRAM_USER_ID",
+        "SNAPCHAT_ACCESS_TOKEN",
+        "SNAPCHAT_PROFILE_ID",
+        "NASA_API_KEY",
+        "DEMO_KEY",
+        "PEERTUBE_ALLOWED_INSTANCES",
+        "CLIPOTECA_IMAGE_MODEL_REVISION",
+        "CLIPOTECA_TEXT_MODEL_REVISION",
+        "CLIPOTECA_GITHUB_REPO",
+        "CLIPOTECA_WRITE_TOKEN",
+        "CLIPOTECA_ISSUE_TOKEN",
+        "CLIPOTECA_DISPATCH_TOKEN",
+        "MCP_ALLOWED_HOSTS",
+        "MCP_ALLOWED_ORIGINS",
+        "CATALOG_URL",
+        "CATALOG_JOBS_URL",
+        "CATALOG_TTL_SECONDS",
+    ):
+        assert name in text, name

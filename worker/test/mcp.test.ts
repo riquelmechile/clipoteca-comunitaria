@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
+import { APP_VERSION } from "../src/version";
 
 const environment = { MCP_ALLOWED_HOSTS: "clipoteca.test", MCP_ALLOWED_ORIGINS: "https://client.example" };
 const rpc = (method: string, params?: unknown, domain = "clipoteca.test", origin = "https://client.example") =>
@@ -25,6 +26,20 @@ describe("M10 MCP Streamable HTTP", () => {
   beforeEach(() => {
     vi.stubGlobal("caches", { default: { match: vi.fn(async () => undefined), put: vi.fn() } });
     vi.stubGlobal("fetch", vi.fn(async () => Response.json([])));
+  });
+
+  it("initialize serverInfo.version matches the shared APP_VERSION", async () => {
+    const response=await worker.fetch(rpc("initialize",{
+      protocolVersion:"2025-11-25",
+      capabilities:{},
+      clientInfo:{name:"clipoteca-m24-parity",version:"1.0.0"},
+    }),environment);
+    expect(response.status).toBe(200);
+    const body=await rpcPayload(response) as {
+      result:{serverInfo:{name:string;version:string}}
+    };
+    expect(body.result.serverInfo.name).toBe("clipoteca-comunitaria");
+    expect(body.result.serverInfo.version).toBe(APP_VERSION);
   });
 
   it("accepts its own workers.dev hostname by default without Origin", async () => {

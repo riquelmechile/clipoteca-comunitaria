@@ -1,3 +1,5 @@
 """Shared HTTP identity for source providers and media downloads."""
 
-USER_AGENT = "clipoteca/1.0 (https://github.com/riquelmechile/clipoteca-comunitaria)"
+from . import __version__
+
+USER_AGENT = f"clipoteca/{__version__} (https://github.com/riquelmechile/clipoteca-comunitaria)"

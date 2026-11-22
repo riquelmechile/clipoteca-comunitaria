@@ -278,6 +278,9 @@
               "type": "string"
             }
           }
+        },
+        "semantic_reason": {
+          "type": "string"
         }
       }
     }

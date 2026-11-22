@@ -171,6 +171,7 @@ components:
         min_duration: {type: number, exclusiveMinimum: 0, maximum: 20}
         status: {type: string, enum: [matched, queued, missing]}
         reason: {type: string}
+        semantic_reason: {type: string}
         media:
           oneOf:
             - {$ref: "#/components/schemas/ScriptMedia"}

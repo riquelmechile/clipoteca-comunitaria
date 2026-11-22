@@ -294,6 +294,10 @@ describe("M24 script semantic network budget and source reasons",()=>{
     const scenes=Array.from({length:50},(_,i)=>scene("part"+i,"different_query_"+i));
     const response=await worker.fetch(post(scenes),{...env,SEMANTIC_SEARCH:"1"});
     expect(response.status).toBe(200);
+    const payload=await response.json() as {scenes:Array<{semantic_reason?:string}>};
+    expect(payload.scenes).toHaveLength(50);
+    expect(payload.scenes.slice(3).every(s=>
+      s.semantic_reason==="query_vector_budget_exceeded")).toBe(true);
     const jobs=calls.filter(x=>x.includes("api.github.com"));
     expect(jobs.length).toBeLessThanOrEqual(8);
     expect(calls.filter(x=>x.includes("/queries/")&&x.endsWith(".json")).length)

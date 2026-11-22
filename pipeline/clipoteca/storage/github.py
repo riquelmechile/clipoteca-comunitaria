@@ -16,6 +16,8 @@ from typing import Any, Self
 
 import httpx
 
+from .. import __version__
+
 
 class StorageError(RuntimeError):
     """A release operation did not complete safely."""
@@ -55,7 +57,7 @@ class GitHubReleaseStorage:
         headers = {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "clipoteca/1",
+            "User-Agent": f"clipoteca/{__version__}",
         }
         if credential:
             headers["Authorization"] = f"Bearer {credential}"

@@ -38,6 +38,7 @@ export type ResolvedScene = ScriptScene & {
   status: "matched" | "queued" | "missing";
   media: ResolvedMedia | null;
   reason?: string;
+  semantic_reason?: string;
   request_id?: string;
   job?: { request_id: string; status: string };
 };
@@ -142,10 +143,11 @@ export async function resolveScript(
   const index=prepareSearchIndex(videos);
   const completeIndex=prepareSearchIndex(catalogue);
   const vectorQueries=new Set<string>();
-  const results=new Map<string,{clips:Clip[];reason:string}>();
+  const results=new Map<string,{clips:Clip[];reason:string;semantic_reason?:string}>();
   const maxQueryVectorFetches=3;
   const candidates: Clip[][] = [];
   const reasons: string[] = [];
+  const semanticReasons: (string|undefined)[] = [];
   for (const scene of scenes) {
     try {
       const params = new URLSearchParams({
@@ -172,14 +174,17 @@ export async function resolveScript(
             scene.query,params,false,catalogue,completeIndex);
           if(full.clips.some(clip=>!isVideo(clip)))reason="non_video_material";
         }
-        cached={clips:page.clips,reason};
+        cached={clips:page.clips,reason,
+          ...(page.semantic_reason?{semantic_reason:page.semantic_reason}:{})};
         results.set(cacheKey,cached);
       }
       candidates.push(cached.clips);
       reasons.push(cached.reason);
+      semanticReasons.push(cached.semantic_reason);
     } catch {
       candidates.push([]);
       reasons.push("search_unavailable");
+      semanticReasons.push(undefined);
     }
   }
   // Maximum bipartite matching: if a later scene needs a clip used by an
@@ -275,7 +280,10 @@ export async function resolveScript(
     queued:output.filter(s=>s.status==="queued").length,
     missing:output.filter(s=>s.status==="missing").length,
     reused:output.filter(s=>s.reason==="reuse_unavoidable").length};
-  return {script_id,scenes:output,summary};
+  return {script_id,scenes:output.map((scene,index)=>({
+    ...scene,
+    ...(semanticReasons[index]?{semantic_reason:semanticReasons[index]}:{}),
+  })),summary};
 }
 
 export async function handleScript(request:Request,env:RestEnv):Promise<Response>{
