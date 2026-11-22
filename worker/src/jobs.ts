@@ -53,7 +53,7 @@ export async function loadJob(env: JobEnv, id: string): Promise<JobRecord | null
   const prefix = env.CATALOG_JOBS_URL;
   const address = prefix
     ? prefix.replace(/\/?$/, "/") + id + ".json"
-    : "https://api.github.com/repos/" + repo + "/contents/data/jobs/" + id + ".json?ref=main";
+    : "https://raw.githubusercontent.com/" + repo + "/main/data/jobs/" + id + ".json";
   const response = await fetch(address, {
     headers: { accept: "application/vnd.github+json", "cache-control": "no-cache",
       "user-agent": "clipoteca-worker" },

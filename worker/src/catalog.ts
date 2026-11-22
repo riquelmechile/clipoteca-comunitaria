@@ -40,7 +40,7 @@ export async function loadCatalog(env: CatalogEnv): Promise<Clip[]> {
   const repo = env.CLIPOTECA_GITHUB_REPO || DEFAULT_REPOSITORY;
   if (!REPO_PATTERN.test(repo)) throw new Error("invalid catalogue repository");
   const url = env.CATALOG_URL ??
-    "https://api.github.com/repos/" + repo + "/contents/data/clips.json?ref=main";
+    "https://raw.githubusercontent.com/" + repo + "/main/data/clips.json";
   const configured = Number.parseInt(env.CATALOG_TTL_SECONDS ?? "10", 10);
   const ttl = Number.isFinite(configured) && configured >= 0
     ? Math.min(30, configured) : 10;
@@ -84,7 +84,7 @@ export function normalizeSearch(value: string): string {
   return value
     .normalize("NFKC")
     .toLocaleLowerCase("und")
-    .replace(/ß/g, "ss")
+    .replace(/\u00df/g, "ss")
     .normalize("NFKD")
     .replace(/\p{M}/gu, "");
 }
