@@ -1,5 +1,15 @@
 # Historial de cambios
 
+## 2.0.4 (expansion multilingue tolerante a calidad)
+
+- Las traducciones rechazadas por calidad se registran como avisos publicos
+  translation:<idioma> y la busqueda continua con idiomas validos,
+  siempre incluyendo el idioma original. No se inventan terminos.
+- Los errores de modelos, pins o paquetes siguen abortando la ingesta.
+- Etiquetas de busqueda opcionales con errores de calidad ya no descartan
+  clips cuyos titulos y descripciones bilingues si pasan la validacion.
+- Version 2.0.4 sincronizada en Python, Worker, OpenAPI y lockfiles.
+
 ## 2.0.3 (desbloqueos medidos desde GitHub Actions)
 
 - Dzen: sesion anonima como bolknote/0W-Tube (MIT): las redirecciones SSO

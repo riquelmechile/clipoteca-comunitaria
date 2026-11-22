@@ -25,6 +25,15 @@ PAIRS = {
 }
 
 
+QUALITY_TRANSLATION_REASONS = frozenset(
+    {
+        "empty_translation",
+        "disproportionate_translation",
+        "repeated_translation",
+        "unchanged_translation",
+    }
+)
+
 PUBLIC_TRANSLATION_REASONS = frozenset(
     {
         "unsupported_language_pair",
@@ -43,7 +52,7 @@ PUBLIC_TRANSLATION_REASONS = frozenset(
     }
 )
 _PUBLIC_TRANSLATION_PATTERN = re.compile(
-    r"translation_failed:(es|en|zh|ru)->(es|en|zh|ru):([a-z_]+)"
+    r"translation_failed:(es|en|zh|ru)->(es|en|zh|ru):([a-z0-9_]+)"
 )
 
 

@@ -61,7 +61,7 @@ from .media.thumbnail import create_thumbnail
 from .metadata import MetadataTranslationError, localize_candidate
 from .metrics import discovery_metrics, write_metrics
 from .providers.base import Adapter, AuthRequired, RateLimited, SupportStatus
-from .translate.argos import public_translation_error
+from .translate.argos import QUALITY_TRANSLATION_REASONS, public_translation_error
 from .translate.expand import QueryExpansion, expand_query
 from .security.download import DownloadError, download_dash, download_media
 from .security.hls import HLS_MIME_TYPES, download_hls
@@ -376,27 +376,34 @@ async def ingest(
             else QueryExpansion(concept=query, terms={"es": query})
         )
         job["terms"] = dict(expansion.terms)
+        partial_quality_expansion = False
         if expand_search and (not expansion.complete or expansion.errors):
-            missing = next(
-                (
-                    language
-                    for language in ("es", "en", "zh", "ru")
-                    if not expansion.terms.get(language)
-                ),
-                next(iter(expansion.errors), "unknown"),
-            )
-            job["status"] = "dead_letter" if job.get("attempt", 1) >= MAX_ATTEMPTS else "failed"
-            code = public_translation_error(expansion.errors.get(missing, ""))
-            code = code or f"translation_failed:{missing}"
-            job["source_errors"]["translation"] = code
-            jobs.save(job)
-            return IngestReport(rid, "failed", (), (code,))
+            fatal_errors = []
+            for language in ("es", "en", "zh", "ru"):
+                if expansion.terms.get(language) and language not in expansion.errors:
+                    continue
+                code = public_translation_error(expansion.errors.get(language, ""))
+                if (
+                    not expansion.terms.get(language)
+                    and code
+                    and code.rsplit(":", 1)[-1] in QUALITY_TRANSLATION_REASONS
+                ):
+                    job.setdefault("source_warnings", {})[f"translation:{language}"] = code
+                    partial_quality_expansion = True
+                else:
+                    # Unknown, missing, and configuration failures remain fatal.
+                    fatal_errors.append(code or f"translation_failed:{language}")
+            if fatal_errors:
+                job["status"] = "dead_letter" if job.get("attempt", 1) >= MAX_ATTEMPTS else "failed"
+                job["source_errors"]["translation"] = fatal_errors[0]
+                jobs.save(job)
+                return IngestReport(rid, "failed", (), (fatal_errors[0],))
         catalogue, _ = writer.read_catalog()
         search = await SearchEngine(adapters, concurrency=concurrency).search(
             query,
             catalog=catalogue,
             expansion=expansion,
-            allow_partial_expansion=not expand_search,
+            allow_partial_expansion=not expand_search or partial_quality_expansion,
         )
         for execution in search.executions:
             job["language_counts"][execution.language] = (
@@ -487,11 +494,18 @@ async def ingest(
                         errors.append(f"{candidate.origin_id}:search_only")
                         job["source_errors"][candidate.origin_id] = "search_only"
                         continue
+
                     # Fail multilingual metadata before spending bandwidth on a large video.
+                    def note_query_tag_warning(language: str, code: str) -> None:
+                        job.setdefault("source_warnings", {})[
+                            f"translation:metadata:{candidate.origin_id}:{language}"
+                        ] = code
+
                     localized = localize_candidate(
                         candidate,
                         translator=translator,
                         include_query_tags=candidate.provider != "community",
+                        on_query_tag_warning=note_query_tag_warning,
                     )
                     if downloader:
                         raw = await downloader(ref.url, temp)
