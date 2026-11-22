@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
+import { sourceSnapshot } from "../src/mcp";
 
 const environment = {
   MCP_ALLOWED_HOSTS: "clipoteca.test",
@@ -54,7 +55,7 @@ describe("M12 REST/MCP source capability contract", () => {
       ],
     });
     const fetchArgs = vi.mocked(fetch).mock.calls[0]!;
-    expect(String(fetchArgs[0])).toContain("/contents/data/sources.json?ref=main");
+    expect(String(fetchArgs[0])).toContain("/main/data/sources.json");
   });
 
   it("POST /v1/sources returns 405 and GET with source outage returns 503", async () => {
@@ -114,4 +115,18 @@ describe("M12 REST/MCP source capability contract", () => {
     expect(result.result.isError).toBe(true);
     expect(JSON.stringify(result)).toContain("Source snapshot unavailable");
   });
+});
+
+
+it("M24 2.0.1 loads provider sources directly from raw GitHub", async () => {
+  const calls: string[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    calls.push(String(url));
+    return Response.json(rows);
+  }));
+  const snapshot = await sourceSnapshot({});
+  expect(snapshot.sources).toHaveLength(2);
+  expect(calls).toEqual([
+    "https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/data/sources.json",
+  ]);
 });
