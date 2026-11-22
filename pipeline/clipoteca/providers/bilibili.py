@@ -164,8 +164,10 @@ class Bilibili(Adapter):
     name = "bilibili"
     category = "social_video"
     auth = "BILIBILI_COOKIE_optional"
-    # Download stays disabled until a real main-branch Bilibili smoke succeeds.
-    support_status = SupportStatus.SUPPORTED_SEARCH_ONLY
+    # Real download measured from GitHub Actions (smoke 45051277263): search,
+    # pagelist cid, html5 playurl and Akamai mirror MP4. CDN speed varies
+    # (45051899129 hit the 90 s smoke deadline), so download is best effort.
+    support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
     accepts_text_languages = ("es", "en", "zh", "ru")
 
     def __init__(self, *, cookie: str | None = None, client: httpx.AsyncClient | None = None):
