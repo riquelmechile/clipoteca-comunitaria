@@ -2,7 +2,7 @@
   "request_id": "fa51119f1f8afe908cf9d97de439390cf9bb2cd13e7423c2fc7baf4eb69aa0fc",
   "status": "publishing",
   "attempt": 2,
-  "updated_at": "2026-11-22T22:05:07.170243Z",
+  "updated_at": "2026-11-22T22:05:11.227103Z",
   "language_counts": {
     "es": 23
   },
@@ -50,7 +50,8 @@
     "pexels:31401354": "scene_quality_rejected",
     "pexels:25988225": "scene_quality_rejected",
     "pexels:28191115": "scene_quality_rejected",
-    "pexels:28492331": "scene_quality_rejected"
+    "pexels:28492331": "scene_quality_rejected",
+    "pexels:40449011": "scene_quality_rejected"
   },
   "terms": {
     "es": "aurora boreal"
@@ -61,7 +62,8 @@
     "https://pexels.com/video/aurora-borealis-over-snowy-cabins-at-night-31401354",
     "https://pexels.com/video/the-aurora-bore-is-shown-in-this-photo-25988225",
     "https://pexels.com/video/aurora-borealis-over-lake-iphone-5-case-28191115",
-    "https://pexels.com/video/northern-lights-timelapse-28492331"
+    "https://pexels.com/video/northern-lights-timelapse-28492331",
+    "https://pexels.com/video/stunning-northern-lights-display-night-sky-40449011"
   ],
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
@@ -82,6 +84,7 @@
     "pexels:28191115": "embeddings_unavailable:m14_quality_fallback",
     "translation:metadata:pexels:28492331:en": "translation_failed:es->en:unchanged_translation",
     "pexels:28492331": "embeddings_unavailable:m14_quality_fallback",
-    "translation:metadata:pexels:40449011:en": "translation_failed:es->en:unchanged_translation"
+    "translation:metadata:pexels:40449011:en": "translation_failed:es->en:unchanged_translation",
+    "pexels:40449011": "embeddings_unavailable:m14_quality_fallback"
   }
 }
