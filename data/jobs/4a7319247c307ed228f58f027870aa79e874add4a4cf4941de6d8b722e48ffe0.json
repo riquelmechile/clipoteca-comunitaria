@@ -2,7 +2,7 @@
   "request_id": "4a7319247c307ed228f58f027870aa79e874add4a4cf4941de6d8b722e48ffe0",
   "status": "processing",
   "attempt": 1,
-  "updated_at": "2026-11-22T10:50:31.819385Z",
+  "updated_at": "2026-11-22T10:51:16.165383Z",
   "language_counts": {
     "es": 23,
     "en": 23,
@@ -94,7 +94,8 @@
     "youtube:es": "auth_required",
     "youtube:en": "auth_required",
     "youtube:zh": "auth_required",
-    "youtube:ru": "discovery_deadline"
+    "youtube:ru": "discovery_deadline",
+    "pexels:18438150": "ffmpeg_failed"
   },
   "terms": {
     "es": "autopista",
@@ -104,6 +105,7 @@
   },
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
-    "pexels:36031419": "embeddings_unavailable:m14_quality_fallback"
+    "pexels:36031419": "embeddings_unavailable:m14_quality_fallback",
+    "pexels:18438150": "embeddings_unavailable:m14_quality_fallback"
   }
 }
