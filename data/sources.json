@@ -15,7 +15,7 @@
     "capabilities": {
       "search": "supported",
       "preview": "best_effort",
-      "download": "best_effort"
+      "download": "supported"
     },
     "download_supported": true,
     "credentials_present": true,
@@ -367,7 +367,7 @@
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
-      "download": "best_effort"
+      "download": "supported"
     },
     "download_supported": true,
     "credentials_present": true,
@@ -389,7 +389,7 @@
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
-      "download": "best_effort"
+      "download": "supported"
     },
     "download_supported": true,
     "credentials_present": true,

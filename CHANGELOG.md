@@ -19,6 +19,11 @@
 - Topes: el ingest real acepta videos de hasta 1 GiB (antes 350 MiB)
   con limite de tiempo de descarga hasta 600 s. El smoke downloads
   toma muestras de 32 MiB (antes 8 MiB) con plazo de 90 s.
+- Playlists HLS: tope 256 KiB -> 4 MiB (RuTube largos superaban el
+  limite en el smoke 45041573596).
+- Capacidades: download pasa a supported en library_of_congress, ok_ru
+  y vk_video tras DOWNLOAD_OK real en el smoke 45041573596 sobre main
+  f1489d0 (11 proveedores OK). RuTube y Dzen siguen best_effort.
 - Version 2.0.2 en Python, Worker, OpenAPI, lockfiles y pruebas.
   Ninguna capacidad se promociona; requiere otro smoke en main.
 

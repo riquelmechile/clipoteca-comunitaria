@@ -53,7 +53,7 @@ def ffmpeg_hls_extension_capable() -> bool:
     )
 
 
-MAX_PLAYLIST_BYTES = 256 * 1024
+MAX_PLAYLIST_BYTES = 4 * 1024 * 1024
 MAX_HLS_DURATION = 20.0
 STREAM_RE = re.compile(r"RESOLUTION=(\d+)x(\d+)")
 BANDWIDTH_RE = re.compile(r"BANDWIDTH=(\d+)")
