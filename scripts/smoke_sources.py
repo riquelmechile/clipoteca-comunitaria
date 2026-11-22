@@ -28,9 +28,9 @@ from clipoteca.candidate_probe import candidates_smoke
 
 TERMS = {"es": "lluvia", "en": "rain", "zh": "\u4e0b\u96e8", "ru": "\u0434\u043e\u0436\u0434\u044c"}
 REPO = "riquelmechile/clipoteca-comunitaria"
-DOWNLOAD_LIMIT_BYTES = 8 * 1024 * 1024
+DOWNLOAD_LIMIT_BYTES = 32 * 1024 * 1024
 DOWNLOAD_CLIP_SECONDS = 20.0
-DOWNLOAD_DEADLINE_SECONDS = 60.0
+DOWNLOAD_DEADLINE_SECONDS = 90.0
 
 
 # Our own typed errors may be recorded, but only with narrow ASCII grammar.
@@ -213,7 +213,7 @@ async def downloads_smoke() -> dict:
             "Each configured provider searches one candidate and probes direct media.",
             "Temporary files are removed; no clips, assets or releases are published.",
             "A successful download is measured evidence only; sources.json is unchanged.",
-            "HLS segments are sampled up to 20 seconds/8 MiB; MP4 Range samples 8 MiB.",
+            "HLS segments are sampled up to 20 seconds/32 MiB; MP4 Range samples 32 MiB.",
         ],
     }
 

@@ -436,7 +436,7 @@ async def download_hls_probe(
     referer: str | None = None,
     allowed_hosts: tuple[str, ...] = (),
     max_duration: float = 20.0,
-    max_bytes: int = 8 * 1024 * 1024,
+    max_bytes: int = 32 * 1024 * 1024,
     client: httpx.AsyncClient | None = None,
     resolver=None,
 ) -> Path:

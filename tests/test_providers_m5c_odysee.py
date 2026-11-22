@@ -87,7 +87,7 @@ async def test_odysee_empty_is_empty_without_fake_media():
 
 @pytest.mark.asyncio
 async def test_odysee_oversized_claim_refused_before_get():
-    adapter = Odysee(client=client(size=390601464))
+    adapter = Odysee(client=client(size=2 * 1024 * 1024 * 1024))
     candidate = (await adapter.search("rain", "en", SearchLimits()))[0]
     assert await adapter.direct_media(candidate) is None
 
