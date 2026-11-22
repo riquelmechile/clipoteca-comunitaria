@@ -28,6 +28,7 @@ ROOTS = ("dzen.ru", "strm.yandex.ru", "strm.yandex.net", "frontend.vh.yandex.ru"
 ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 ID = re.compile(r"[A-Za-z0-9_-]{6,160}")
 HLS = "application/vnd.apple.mpegurl"
+WATCH_PAGE_MAX_BYTES = 8 * 1024 * 1024
 STREAM_KEYS = frozenset({"hls", "streamurl", "downloadurl", "mp4", "url"})
 _COOKIE_JAR = httpx.Cookies()
 
@@ -84,6 +85,9 @@ async def _watch_document(
                 "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
             },
             resolver=resolver,
+            # Real watch pages embed the player state inline and exceed the
+            # 2 MiB provider default (branch smoke 45048688673).
+            max_bytes=WATCH_PAGE_MAX_BYTES,
         )
         if response.status_code in {301, 302, 303, 307, 308}:
             location = response.headers.get("location")
