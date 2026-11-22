@@ -1,0 +1,1151 @@
+{
+  "timestamp_utc": "2026-11-22T23:13:37.751293+00:00",
+  "github": {
+    "ref": "refs/heads/main",
+    "sha": "9d85365c6dc0b122402e9aad35c158ce6fa03e44",
+    "run_id": "45082009984"
+  },
+  "mode": "live_network_and_candidate_probes",
+  "provider_languages": [
+    {
+      "provider": "library_of_congress",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 210.7
+    },
+    {
+      "provider": "library_of_congress",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 17248.9
+    },
+    {
+      "provider": "library_of_congress",
+      "language": "zh",
+      "status": "RATE_LIMITED",
+      "count": 0,
+      "error_type": "RateLimited",
+      "error_detail": "provider rate limit",
+      "elapsed_ms": 10163.4
+    },
+    {
+      "provider": "library_of_congress",
+      "language": "ru",
+      "status": "RATE_LIMITED",
+      "count": 0,
+      "error_type": "RateLimited",
+      "error_detail": "provider rate limit",
+      "elapsed_ms": 10177.4
+    },
+    {
+      "provider": "coverr",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "coverr",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "coverr",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "coverr",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "pexels",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 367.5
+    },
+    {
+      "provider": "pexels",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 372.0
+    },
+    {
+      "provider": "pexels",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 238.7
+    },
+    {
+      "provider": "pexels",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 253.3
+    },
+    {
+      "provider": "pixabay",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 183.2
+    },
+    {
+      "provider": "pixabay",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 100.4
+    },
+    {
+      "provider": "pixabay",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 151.3
+    },
+    {
+      "provider": "pixabay",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 126.8
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 478.2
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 530.5
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 435.2
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 450.3
+    },
+    {
+      "provider": "internet_archive",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1515.6
+    },
+    {
+      "provider": "internet_archive",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 3286.7
+    },
+    {
+      "provider": "internet_archive",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1386.1
+    },
+    {
+      "provider": "internet_archive",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1831.4
+    },
+    {
+      "provider": "nasa",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 167.4
+    },
+    {
+      "provider": "nasa",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 99.0
+    },
+    {
+      "provider": "nasa",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 86.2
+    },
+    {
+      "provider": "nasa",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 210.0
+    },
+    {
+      "provider": "youtube",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "youtube",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "youtube",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "youtube",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "rutube",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1556.2
+    },
+    {
+      "provider": "rutube",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1208.9
+    },
+    {
+      "provider": "rutube",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 483.7
+    },
+    {
+      "provider": "rutube",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1452.4
+    },
+    {
+      "provider": "peertube",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 819.2
+    },
+    {
+      "provider": "peertube",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 2,
+      "elapsed_ms": 455.4
+    },
+    {
+      "provider": "peertube",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 424.6
+    },
+    {
+      "provider": "peertube",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 521.1
+    },
+    {
+      "provider": "odysee",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 428.4
+    },
+    {
+      "provider": "odysee",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1425.4
+    },
+    {
+      "provider": "odysee",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 626.1
+    },
+    {
+      "provider": "odysee",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 2,
+      "elapsed_ms": 355.0
+    },
+    {
+      "provider": "bilibili",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 999.6
+    },
+    {
+      "provider": "bilibili",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 918.8
+    },
+    {
+      "provider": "bilibili",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 850.6
+    },
+    {
+      "provider": "bilibili",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 888.0
+    },
+    {
+      "provider": "ok_ru",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1266.3
+    },
+    {
+      "provider": "ok_ru",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1645.8
+    },
+    {
+      "provider": "ok_ru",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1040.5
+    },
+    {
+      "provider": "ok_ru",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1321.9
+    },
+    {
+      "provider": "vk_video",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 2621.3
+    },
+    {
+      "provider": "vk_video",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1459.0
+    },
+    {
+      "provider": "vk_video",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1178.9
+    },
+    {
+      "provider": "vk_video",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1512.9
+    },
+    {
+      "provider": "dzen",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1148.3
+    },
+    {
+      "provider": "dzen",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 782.7
+    },
+    {
+      "provider": "dzen",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 652.3
+    },
+    {
+      "provider": "dzen",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 857.2
+    },
+    {
+      "provider": "douyin",
+      "language": "es",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 2580.0
+    },
+    {
+      "provider": "douyin",
+      "language": "en",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 968.0
+    },
+    {
+      "provider": "douyin",
+      "language": "zh",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 715.8
+    },
+    {
+      "provider": "douyin",
+      "language": "ru",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 918.6
+    },
+    {
+      "provider": "tiktok",
+      "language": "es",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 1031.3
+    },
+    {
+      "provider": "tiktok",
+      "language": "en",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 709.1
+    },
+    {
+      "provider": "tiktok",
+      "language": "zh",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 713.2
+    },
+    {
+      "provider": "tiktok",
+      "language": "ru",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 629.9
+    },
+    {
+      "provider": "instagram",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "instagram",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "instagram",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "instagram",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    }
+  ],
+  "total_probes": 92,
+  "elapsed_seconds_measured": 39.304,
+  "github_usage": {
+    "run_id": "45082009984",
+    "release_bytes_first_page": 150558749,
+    "release_assets_first_page": 104,
+    "release_bytes_scope": "up to 100 newest releases, API page 1",
+    "actions_billed_minutes": null,
+    "actions_cost_usd": null,
+    "billing_note": "Actions billing and cost cannot be inferred from job wall time"
+  },
+  "notes": [
+    "Real API search probes; successful search does not imply download rights or publication.",
+    "No release upload, FFmpeg or deployed Worker E2E is asserted by this smoke.",
+    "Unconfigured credentials are AUTH_REQUIRED, not supplier failures."
+  ],
+  "candidates": {
+    "mode": "candidates",
+    "provider_languages": [
+      {
+        "provider": "rutube",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 934.0,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "rutube",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 647.5,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "rutube",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 646.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "rutube",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 529.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "es",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 1366.9,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "en",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 686.5,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 483.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 459.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 662.5,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 301.7,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 306.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 139.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 761.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 468.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 387.8,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 555.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "es",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 31.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "en",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 13.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 13.9,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 13.9,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 803.1,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 357.2,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "douyin",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 597.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 326.0,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "douyin",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 513.3,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 310.8,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "douyin",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 519.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 317.4,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 725.9,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 73.0,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "tiktok",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 241.5,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 36.0,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "tiktok",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 246.2,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 160.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "tiktok",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 255.4,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 68.1,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 434.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 518.5,
+        "count": 20,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 249.8,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 547.2,
+        "count": 20,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 266.1,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 541.5,
+        "count": 20,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 257.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 499.2,
+        "count": 20,
+        "has_stream": false
+      }
+    ],
+    "total_probes": 44,
+    "elapsed_seconds_measured": 18.293
+  },
+  "total_candidate_probes": 44
+}

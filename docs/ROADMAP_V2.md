@@ -86,3 +86,34 @@ runner propio aislado, NO se activa data/runner-routing.json.
 - Autorizar tag/release solo una vez cerradas las verificaciones anteriores.
 
 Ningun tag, release o despliegue se realizo en M24 r6.
+
+## Cierre de v2 - version 2.0.5 (22-nov-2026)
+
+Las condiciones que mantenian M24 abierto se cumplieron despues de M24 r6,
+en las versiones 2.0.1 a 2.0.5. El detalle y los enlaces estan en
+[ESTADO.md](ESTADO.md); este es el resumen frente a cada criterio.
+
+| Criterio de M24 | Evidencia |
+|---|---|
+| Smoke real sobre todas las fuentes | Runs 45082009984 (busqueda, 92 sondas) y 45082001946 (descarga real, 23 fuentes) sobre main 9d85365 |
+| Matriz final por proveedor e idioma | Tabla de ESTADO.md, generada desde esos dos reportes |
+| Documentacion de operacion | ESTADO.md, DESPLIEGUE.md, OPERACION_V2.md, RUNNER_PROPIO.md |
+| Version sincronizada | 2.0.5 en Python, Worker, OpenAPI, health y MCP; CI verde |
+| Demostracion E2E reproducible | Importacion real desde el Worker y guion de cinco escenas por REST y MCP, registrados en ESTADO.md |
+| Worker desplegado y release | Worker 2.0.5 en produccion; releases v2.0.0 a v2.0.5 publicados |
+
+Diferencias frente a lo previsto en este roadmap:
+
+- **Runner propio (M20): no se usa.** Los bloqueos de Bilibili y Dzen se
+  resolvieron desde GitHub Actions en 2.0.3 con las tecnicas de los
+  repositorios de referencia. Todo el motor corre en Actions; ninguna
+  maquina personal forma parte del servicio. RUNNER_PROPIO.md queda
+  como alternativa documentada, sin activar.
+- **Douyin y TikTok (M19): busqueda por palabra clave exige sesion.**
+  El codigo existe; TikTok queda apagado por defecto (ver OPERACION_V2.md)
+  y Douyin sin sesion configurada.
+- **Busqueda semantica (M21-M22): implementada y apagada de fabrica.**
+- **Expansion multilingue:** desde 2.0.4 una traduccion rechazada por
+  calidad no cancela la ingesta; se busca con los idiomas validos.
+
+- [x] **M24 . Cierre v2.** Cerrado con la version 2.0.5.

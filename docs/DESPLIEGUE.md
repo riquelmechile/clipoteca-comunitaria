@@ -1,6 +1,17 @@
 # Despliegue de Clipoteca v2
 
-**Estado:** guia operativa de la version 2.0.1. El despliegue de 2.0.0 ya se verifico por separado; este PR no ejecuta despliegues.
+**Estado (22-nov-2026):** el Worker de produccion corre la version 2.0.5 en https://clipoteca-worker.clipoteca.workers.dev, dentro de una cuenta de Cloudflare dedicada al proyecto, separada de cualquier cuenta personal o de otros servicios. Esta guia sirve para repetir ese despliegue o montar una instancia propia. El estado medido esta en [ESTADO.md](ESTADO.md).
+
+Para desplegar sin sesion interactiva (por ejemplo desde una maquina de operacion), usar un token de Cloudflare limitado a Workers de esa cuenta:
+
+```bash
+cd worker
+npm ci
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... npx wrangler deploy
+curl --fail-with-body -sS https://clipoteca-worker.clipoteca.workers.dev/v1/health
+```
+
+`/v1/health` debe responder la misma version que `worker/src/version.ts`.
 
 ## Cloudflare Workers
 
