@@ -21,6 +21,9 @@
   palabra exige sesion iniciada (Douyin 2483 + captcha, TikTok 403 + login).
   Sin cambios de codigo en esta version.
 - Version 2.0.3 en Python, Worker, OpenAPI, lockfiles y pruebas.
+- Worker movido a una cuenta de Cloudflare propia de la Clipoteca:
+  https://clipoteca-worker.clipoteca.workers.dev (antes sc-plasticov).
+  Tokens nuevos de alcance minimo; despliegue sin depender del PC.
 
 ## 2.0.2 (correcciones de descarga, sin deploy ni tag)
 
