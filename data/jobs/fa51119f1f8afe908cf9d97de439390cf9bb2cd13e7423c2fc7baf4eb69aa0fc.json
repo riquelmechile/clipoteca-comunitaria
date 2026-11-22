@@ -1,11 +1,59 @@
 {
   "request_id": "fa51119f1f8afe908cf9d97de439390cf9bb2cd13e7423c2fc7baf4eb69aa0fc",
-  "status": "searching",
+  "status": "fetching",
   "attempt": 2,
-  "updated_at": "2026-11-22T22:03:05.549641Z",
-  "language_counts": {},
-  "provider_counts": {},
-  "source_errors": {},
-  "terms": {},
-  "terminal_sources": []
+  "updated_at": "2026-11-22T22:03:17.112253Z",
+  "language_counts": {
+    "es": 23
+  },
+  "provider_counts": {
+    "library_of_congress": 0,
+    "coverr": 0,
+    "europeana": 0,
+    "nara": 0,
+    "pexels": 80,
+    "pixabay": 100,
+    "wikimedia_commons": 50,
+    "internet_archive": 100,
+    "nasa": 0,
+    "rutube": 0,
+    "peertube": 0,
+    "odysee": 47,
+    "bilibili": 40,
+    "ok_ru": 19,
+    "vk_video": 0,
+    "dzen": 17,
+    "douyin": 0,
+    "tiktok": 0,
+    "dpla": 0,
+    "smithsonian": 0,
+    "instagram": 0,
+    "snapchat": 0,
+    "youtube": 0
+  },
+  "source_errors": {
+    "library_of_congress:es": "provider_timeout",
+    "coverr:es": "auth_required",
+    "europeana:es": "auth_required",
+    "nara:es": "auth_required",
+    "rutube:es": "ProviderError",
+    "vk_video:es": "ProviderError",
+    "douyin:es": "auth_required",
+    "tiktok:es": "auth_required",
+    "dpla:es": "auth_required",
+    "smithsonian:es": "auth_required",
+    "instagram:es": "auth_required",
+    "snapchat:es": "auth_required",
+    "youtube:es": "auth_required"
+  },
+  "terms": {
+    "es": "aurora boreal"
+  },
+  "terminal_sources": [],
+  "source_warnings": {
+    "semantic_query": "embeddings_unavailable:m14_quality_fallback",
+    "translation:en": "translation_failed:es->en:unchanged_translation",
+    "translation:zh": "translation_failed:es->en:unchanged_translation",
+    "translation:ru": "translation_failed:es->en:unchanged_translation"
+  }
 }
