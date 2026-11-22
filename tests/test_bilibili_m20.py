@@ -151,10 +151,12 @@ async def test_wbi_playurl_prefers_mp4_durl_and_rejects_external_cdns():
         )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(hostile)) as client:
-        with pytest.raises(ProviderError, match="CDN host rejected"):
+        assert (
             await Bilibili(client=client).direct_media(
                 Candidate(**{**candidate().__dict__, "metadata": {"cid": 987654}})
             )
+            is None
+        )
 
 
 @pytest.mark.asyncio
@@ -316,3 +318,172 @@ async def test_dash_mux_downloads_two_checked_local_streams(tmp_path, monkeypatc
     assert not (tmp_path / "audio.m4a").exists()
     assert len(downloads) == 2
     assert downloads[1][1]["allowed_mime_types"]
+
+
+@pytest.mark.asyncio
+async def test_html5_first_dash_fallback_backup_urls_bandwidth_and_root_domain():
+    calls = []
+
+    def responder(req: httpx.Request):
+        if req.url.path.endswith("/nav"):
+            return httpx.Response(200, json=NAV)
+        calls.append(dict(req.url.params))
+        if req.url.params["platform"] == "html5":
+            assert req.url.params["fnval"] == "1"
+            assert req.url.params["high_quality"] == "1"
+            return httpx.Response(200, json={"code": 0, "data": {"durl": []}})
+        assert req.url.params["platform"] == "pc"
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "data": {
+                    "dash": {
+                        "video": [
+                            {
+                                "baseUrl": "https://evil.example/stream.m4s",
+                                "backupUrl": ["https://bilivideo.com/video.m4s"],
+                                "bandwidth": "not-a-number",
+                            }
+                        ],
+                        "audio": [
+                            {
+                                "base_url": "https://evil.example/audio.m4s",
+                                "backup_url": ["https://sub.hdslb.com/audio.m4s"],
+                                "bandwidth": object_id(),
+                            }
+                        ],
+                    }
+                },
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(responder)) as client:
+        media = await Bilibili(client=client).direct_media(
+            Candidate(**{**candidate().__dict__, "metadata": {"cid": 987654}})
+        )
+    assert media and media.url == "https://bilivideo.com/video.m4s"
+    assert media.audio_url == "https://sub.hdslb.com/audio.m4s"
+    assert len(calls) == 2
+
+
+def object_id():
+    return None
+
+
+@pytest.mark.asyncio
+async def test_html5_durl_backup_when_primary_outside_cdn():
+    calls = []
+
+    def responder(req: httpx.Request):
+        if req.url.path.endswith("/nav"):
+            return httpx.Response(200, json=NAV)
+        calls.append(req.url.params["platform"])
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "data": {
+                    "durl": [
+                        {
+                            "url": "https://outside.invalid/untrusted.mp4",
+                            "backup_url": ["https://bilivideo.cn/trusted.mp4"],
+                        }
+                    ]
+                },
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(responder)) as client:
+        media = await Bilibili(client=client).direct_media(
+            Candidate(**{**candidate().__dict__, "metadata": {"cid": 987654}})
+        )
+    assert media and media.url == "https://bilivideo.cn/trusted.mp4"
+    assert calls == ["html5"]
+
+
+@pytest.mark.asyncio
+async def test_nav_keys_concurrent_requests_single_refresh():
+    import asyncio
+
+    counts = {"nav": 0}
+
+    def responder(req: httpx.Request):
+        if req.url.path.endswith("/nav"):
+            counts["nav"] += 1
+            return httpx.Response(200, json=NAV)
+        return httpx.Response(200, json={"code": 0, "data": {"result": []}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(responder)) as client:
+        adapter = Bilibili(client=client)
+        await asyncio.gather(
+            *(adapter.search("rain", "en", SearchLimits(max_pages=1)) for _ in range(12))
+        )
+    assert counts["nav"] == 1
+
+
+@pytest.mark.asyncio
+async def test_three_http_412_blocks_job_without_more_network():
+    count = 0
+
+    def responder(req: httpx.Request):
+        nonlocal count
+        count += 1
+        return httpx.Response(412, json={"code": -412})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(responder)) as client:
+        adapter = Bilibili(client=client)
+        for _ in range(2):
+            with pytest.raises(RateLimited):
+                await adapter.search("rain", "en", SearchLimits(max_pages=1))
+        with pytest.raises(ProviderError, match="ip_blocked"):
+            await adapter.search("rain", "en", SearchLimits(max_pages=1))
+        with pytest.raises(ProviderError, match="ip_blocked"):
+            await adapter.search("rain", "en", SearchLimits(max_pages=1))
+    assert count == 3
+
+
+@pytest.mark.asyncio
+async def test_dash_ffmpeg_protocol_restricted_and_absent_is_download_error(tmp_path, monkeypatch):
+    import asyncio
+    from pathlib import Path
+    import clipoteca.security.download as module
+
+    class Proc:
+        returncode = 0
+
+        async def communicate(self):
+            return b"", b""
+
+    async def downloader(url, path, **kwargs):
+        target = path / ("vid.mp4" if "video" in url else "aud.mp4")
+        target.write_bytes(b"ftyp" + b"0" * 20)
+        return target
+
+    async def ffmpeg(*args, **kwargs):
+        args = list(args)
+        assert args.count("-protocol_whitelist") == 2
+        for i, value in enumerate(args):
+            if value == "-i":
+                assert args[i - 4 : i] == ["-f", "mp4", "-protocol_whitelist", "file"]
+        Path(args[-1]).write_bytes(b"ftyp" + b"0" * 20)
+        return Proc()
+
+    monkeypatch.setattr(module, "download_media", downloader)
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", ffmpeg)
+    kwargs = {"allowed_hosts": ("a.bilivideo.com",), "referer": "https://www.bilibili.com/"}
+    await module.download_dash(
+        "https://a.bilivideo.com/video.m4s", "https://a.bilivideo.com/audio.m4s", tmp_path, **kwargs
+    )
+
+    async def missing(*args, **kwargs):
+        raise FileNotFoundError("ffmpeg")
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", missing)
+    with pytest.raises(module.DownloadError, match="ffmpeg_unavailable"):
+        await module.download_dash(
+            "https://a.bilivideo.com/video.m4s",
+            "https://a.bilivideo.com/audio.m4s",
+            tmp_path,
+            **kwargs,
+        )

@@ -48,7 +48,7 @@ Ninguna respuesta MCP incluye bytes de video embebidos. Debe retornar objetos es
     "provider": "rutube",
     "provider_id": "source-id",
     "source_language": "ru",
-    "source_title": "----- -- -----",
+    "source_title": "\u0414\u043e\u0436\u0434\u044c \u043d\u0430 \u0443\u043b\u0438\u0446\u0435",
     "source_url": "https://example.org/original/123"
   },
   "media": {

@@ -145,6 +145,7 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
             max_results=1 if mode == "single" else 2,
             max_clips_per_source=1,
             embedding_encoder=FakeEncoder(),
+            deferred_sources=("bilibili",) if mode == "single" else (),
             translator=lambda _text, _src, dst: {
                 "es": "Lluvia",
                 "en": "Rain",
@@ -160,6 +161,10 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
     else:
         report = await run()
         assert report.status == "published", report.errors
+        if mode == "single":
+            assert "bilibili:deferred_to_self_hosted" in report.errors
+            job = json.loads(next((tmp_path / "jobs").glob("*.json")).read_text())
+            assert job["source_errors"]["bilibili"] == "deferred_to_self_hosted"
         assert len(catalogue) == (2 if mode == "multiple" else 1)
     assert batch_sizes == [len(catalogue)]
     assert len(opened) == 1

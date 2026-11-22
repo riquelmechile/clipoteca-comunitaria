@@ -2,7 +2,7 @@
 import { loadCatalog, type Clip } from "./catalog";
 import { canonicalJson, requestId } from "./jobs";
 import { submitImport, type RestEnv } from "./rest";
-import { semanticSearch, sha256, prepareSearchIndex } from "./semantic";
+import { semanticSearch, sha256, prepareSearchIndex, normalizedQuery } from "./semantic";
 
 export const MAX_SCRIPT_SCENES = 50;
 const MAX_SCRIPT_BYTES = 65_536;
@@ -54,7 +54,7 @@ function plain(value: unknown): value is Record<string,unknown> {
 function limitedString(value: unknown, max: number, label: string): string {
   if (typeof value !== "string" || !value.trim() ||
       [...value].length>max || (label==="narration"
-        ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value)
+        ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u0085\u2028\u2029]/u.test(value)
         : /[\u0000-\u001f\u007f]/u.test(value))) {
     throw new TypeError("invalid " + label);
   }
@@ -140,6 +140,10 @@ export async function resolveScript(
   // Filtering after pagination hid valid MP4 clips behind up to 100 images.
   const videos=catalogue.filter(isVideo);
   const index=prepareSearchIndex(videos);
+  const completeIndex=prepareSearchIndex(catalogue);
+  const vectorQueries=new Set<string>();
+  const results=new Map<string,{clips:Clip[];reason:string}>();
+  const maxQueryVectorFetches=3;
   const candidates: Clip[][] = [];
   const reasons: string[] = [];
   for (const scene of scenes) {
@@ -148,10 +152,31 @@ export async function resolveScript(
         aspect_ratio: ASPECT[scene.orientation]!, min_duration:String(scene.min_duration),
         limit:"100", cursor:"0",
       });
-      const page = await semanticSearch(request,env,scene.query,params,false,videos,index);
-      candidates.push(page.clips);
-      reasons.push(catalogue.length>videos.length && !page.clips.length
-        ? "non_video_material" : "no_material");
+      const queryKey=normalizedQuery(scene.query);
+      const cacheKey=JSON.stringify([queryKey,scene.orientation,scene.min_duration]);
+      let cached=results.get(cacheKey);
+      if(!cached){
+        let skipVectorFetch=false;
+        if(env.SEMANTIC_SEARCH==="1"){
+          skipVectorFetch=!vectorQueries.has(queryKey) &&
+            vectorQueries.size>=maxQueryVectorFetches;
+          if(!skipVectorFetch)vectorQueries.add(queryKey);
+        }
+        const page=await semanticSearch(request,env,scene.query,params,false,
+          videos,index,skipVectorFetch);
+        let reason="no_material";
+        if(!page.clips.length && catalogue.length!==videos.length){
+          // Only declare non-video material when the full, unfiltered catalog
+          // really matches this query, orientation and duration lexically.
+          const full=await semanticSearch(request,{...env,SEMANTIC_SEARCH:"0"},
+            scene.query,params,false,catalogue,completeIndex);
+          if(full.clips.some(clip=>!isVideo(clip)))reason="non_video_material";
+        }
+        cached={clips:page.clips,reason};
+        results.set(cacheKey,cached);
+      }
+      candidates.push(cached.clips);
+      reasons.push(cached.reason);
     } catch {
       candidates.push([]);
       reasons.push("search_unavailable");
@@ -177,6 +202,10 @@ export async function resolveScript(
   for (let i=0;i<scenes.length;i++) assign(i,new Set());
   const output:ResolvedScene[]=[];
   const completedImports=new Map<string,ResolvedScene>();
+  const sceneReason=(index:number,cause:string):string=>
+    reasons[index]==="non_video_material"
+      ? cause==="non_video_material"?"non_video_material":"non_video_material:"+cause
+      : cause==="non_video_material"?"no_material":cause;
   let importLookups=0;
   let rateLimited=false;
   for(let i=0;i<scenes.length;i++){
@@ -198,11 +227,11 @@ export async function resolveScript(
       output.push({...scene,status:prior.status,media:null,
         ...(prior.request_id?{request_id:prior.request_id}:{}),
         ...(prior.job?{job:prior.job}:{}),
-        ...(prior.reason?{reason:prior.reason}:{})});
+        ...(prior.reason?{reason:sceneReason(i,prior.reason.split(":").at(-1)??prior.reason)}:{})});
       continue;
     }
     if(rateLimited || importLookups>=3){
-      output.push({...scene,status:"missing",media:null,reason:"rate_limited"});
+      output.push({...scene,status:"missing",media:null,reason:sceneReason(i,"rate_limited")});
       continue;
     }
     try {
@@ -217,7 +246,7 @@ export async function resolveScript(
         const cause=problem.error?.code ?? "import_unavailable";
         if(cause==="rate_limited")rateLimited=true;
         const entry:ResolvedScene={...scene,status:"missing",media:null,
-          reason:reasons[i]==="non_video_material"?"non_video_material:"+cause:cause};
+          reason:sceneReason(i,cause)};
         output.push(entry);completedImports.set(rid,entry);
         continue;
       }

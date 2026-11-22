@@ -1,27 +1,101 @@
 # Historial de cambios
 
-## 1.0.0 (preparación de lanzamiento, 21-11-2026)
+## 2.0.0 (preparacion de cierre, noviembre 2026; NO release ni deploy)
 
-### Plataforma y catálogo (M0–M2)
-- Contratos de catálogo, índices y assets públicos de GitHub Releases; publicación idempotente y recuperación.
-- Pipeline Python/FFmpeg con normalización, miniaturas, metadatos y deduplicación.
+**Alcance:** M11-M23 fusionados en main y preparacion M24 en curso. El numero
+2.0.0 se sincroniza en la rama de preparacion, pero este cambio no crea tag,
+release de GitHub ni despliega un Worker. La matriz live, los smokes reales y
+la demostracion E2E quedan pendientes hasta su ejecucion en main.
 
-### Búsqueda y proveedores (M3–M6)
-- Expansión y búsqueda en español, inglés, chino y ruso, con modelos Argos verificados y aislamiento de fallos.
-- Adaptadores y clasificación explícita de las 15 fuentes del roadmap: descarga donde está permitida, solo búsqueda o `AUTH_REQUIRED` cuando faltan credenciales.
-- Pruebas y diagnóstico de conectividad real; Bilibili puede bloquear IP de datacenter.
+### M11 - Roadmap y definicion del contrato (PR #31)
+- Roadmap v2 y camino critico para motor de corte, fuentes y herramientas MCP.
 
-### API, MCP e ingesta (M7–M9)
-- Worker Cloudflare con REST `/v1/*`, MCP HTTP `/mcp`, salud del catálogo y jobs.
-- GitHub Actions para importación y publicación con reintentos, protección de secretos y deduplicación.
-- Aportes públicos mediante Issues, con validaciones de URL/SSRF, metadatos, comentarios de estado y retiro de etiquetas de error tras éxito.
+### M12 - Fuentes declarativas y sonda de proveedores (PR #39)
+- Capacidades por fuente, snapshot, candidatos y sonda de cuatro idiomas;
+  los estados de fixtures no se interpretan como conectividad live.
 
-### Estabilización y operación (M10)
-- Smoke tests, documentación de operación, recuperación y matriz de proveedores.
-- Ajustes de compatibilidad Argos real, traducción y detección de salidas degeneradas; User-Agent en descargas.
-- Versión sincronizada a `1.0.0` entre paquete Python, Worker, OpenAPI, CLI, salud y MCP.
+### M13 - Deteccion de escenas (PR #38)
+- Deteccion de cortes y degradacion segura por FFmpeg, limites de escena,
+  rangos y casos sin cortes, con pruebas offline.
 
-### Evidencia y límites
+### M14 - Corte, thumbnail y storyboard (PR #49)
+- Seleccion de mejores fragmentos, miniatura por escena y fotogramas de
+  storyboard; recuperacion y deduplicacion de fuente.
+
+### M15 - Internet Archive v2 (PR #43)
+- Descubrimiento ordenado, ranking y seleccion de derivados de video.
+
+### M16 - HLS + RuTube (PR #40)
+- Descargas HLS con proteccion de red, seguridad de playlists y segmentos,
+  RuTube con clasificadores de bloqueo y fallos.
+
+### M17 - OK.ru, VK Video y Dzen (PR #52; integraciones anteriores revisadas)
+- Fuentes y clasificacion best_effort, tokens y reproductores sujetos a smoke.
+  Los resultados live de cada fuente siguen sin afirmarse.
+
+### M18 - Instituciones, archivos y dedup (PR #42)
+- Library of Congress, Europeana, Coverr, NARA, DPLA, Smithsonian y
+  deteccion entre proveedores con identidad y datos verificables.
+
+### M19 - Douyin/TikTok (PR #53, #55)
+- Busqueda web invitado y firma nativa con paginacion y fallback; cookies
+  opcionales. El YAML de cookies pendiente esta en OPERACION_V2.
+
+### M20 - Bilibili WBI + runner (PR #60; ajuste de cierre M24)
+- Firma WBI, HTML5 MP4 preferido y DASH con mux seguro local, UA/Referer,
+  clasificacion de bloqueos, rutas CDN y verificacion de candidatos.
+- En la preparacion M24, Bilibili queda de nuevo search-only hasta smoke
+  real. Runner por fuentes, recibos de fuentes diferidas, defaults a Actions
+  y advertencias para runner de repo publico en PC aislado.
+
+### M21 - Embeddings de escenas (PR #54, #55)
+- CLIP multilingue, vectores f16 por clip, ranking contra consulta,
+  degradacion por CPU y dual-write de indices.
+
+### M22 - Busqueda semantica (PR #57, #58, #59)
+- Worker REST/MCP con RRF, corpus de shards con checksums, cache acotado,
+  cuota por isolate, Unicode casefold y consulta de encoder fuera de Worker.
+- Preparacion M24 limita vector fetches por guion, deja resto lexical.
+
+### M23 - Guion a clips (PR #59, #60)
+- `POST /v1/script` y MCP `resolve_script` con 1..50 escenas, clips video
+  con fuentes/preview/storyboard, busqueda, matching y reutilizacion
+  explicita, importacion existente, cuotas, resumen y estados mixtos.
+
+### M24 - Trabajo preparado, aun incompleto
+- Version 2.0.0 sincronizada en Python, Worker, OpenAPI, CLI, health y MCP.
+- Operacion integrada en docs/OPERACION_V2.md; procedimientos de runner en
+  docs/RUNNER_PROPIO.md; matriz generada desde fuentes declaradas y
+  docs/DEMO_E2E_V2.md como receta de validacion.
+- **Pendiente:** smoke live de todos los proveedores por idioma en main,
+  prueba Bilibili/routing donde corresponda, prueba semantica con embeddings
+  reales y demo MCP de cinco escenas. No se inventan resultados.
+
+---
+
+
+## 1.0.0 (preparacion de lanzamiento, 21-11-2026)
+
+### Plataforma y catalogo (M0-M2)
+- Contratos de catalogo, indices y assets publicos de GitHub Releases; publicacion idempotente y recuperacion.
+- Pipeline Python/FFmpeg con normalizacion, miniaturas, metadatos y deduplicacion.
+
+### Busqueda y proveedores (M3-M6)
+- Expansion y busqueda en espanol, ingles, chino y ruso, con modelos Argos verificados y aislamiento de fallos.
+- Adaptadores y clasificacion explicita de las 15 fuentes del roadmap: descarga donde esta permitida, solo busqueda o `AUTH_REQUIRED` cuando faltan credenciales.
+- Pruebas y diagnostico de conectividad real; Bilibili puede bloquear IP de datacenter.
+
+### API, MCP e ingesta (M7-M9)
+- Worker Cloudflare con REST `/v1/*`, MCP HTTP `/mcp`, salud del catalogo y jobs.
+- GitHub Actions para importacion y publicacion con reintentos, proteccion de secretos y deduplicacion.
+- Aportes publicos mediante Issues, con validaciones de URL/SSRF, metadatos, comentarios de estado y retiro de etiquetas de error tras exito.
+
+### Estabilizacion y operacion (M10)
+- Smoke tests, documentacion de operacion, recuperacion y matriz de proveedores.
+- Ajustes de compatibilidad Argos real, traduccion y deteccion de salidas degeneradas; User-Agent en descargas.
+- Version sincronizada a `1.0.0` entre paquete Python, Worker, OpenAPI, CLI, salud y MCP.
+
+### Evidencia y limites
 - Worker desplegado en `https://clipoteca-worker.sc-plasticov.workers.dev` y 8 clips reales catalogados, incluidos Pexels, PeerTube e Issue #26 (`clip-000008`).
-- Ejecuciones documentadas en [informe v1](docs/INFORME_V1.md), con pruebas de ingesta, importación Worker, PeerTube, aporte y smoke.
-- No se afirma que las 15 fuentes devuelvan clips en todos los idiomas, ni que existan mediciones de facturación. Esta entrada **no** constituye un tag, GitHub Release ni despliegue nuevo.
+- Ejecuciones documentadas en [informe v1](docs/INFORME_V1.md), con pruebas de ingesta, importacion Worker, PeerTube, aporte y smoke.
+- No se afirma que las 15 fuentes devuelvan clips en todos los idiomas, ni que existan mediciones de facturacion. Esta entrada **no** constituye un tag, GitHub Release ni despliegue nuevo.

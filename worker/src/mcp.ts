@@ -6,6 +6,7 @@ import * as z from "zod/v4";
 import { handleCatalog } from "./catalog";
 import { handleRest, type RestEnv } from "./rest";
 import { handleScript } from "./script";
+import { APP_VERSION } from "./version";
 
 export interface McpEnv extends RestEnv {
   MCP_ALLOWED_HOSTS?: string;
@@ -164,7 +165,7 @@ export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider:
 
 export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer {
   const server = new McpServer(
-    { name: "clipoteca-comunitaria", version: "1.0.0" },
+    { name: "clipoteca-comunitaria", version: APP_VERSION },
     { capabilities: { tools: {} } },
   );
 

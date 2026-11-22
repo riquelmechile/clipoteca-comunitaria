@@ -270,3 +270,51 @@ describe("M23 r2 internal failure classification",()=>{
     }
   });
 });
+
+
+describe("M24 script semantic network budget and source reasons",()=>{
+  it("limits 50 distinct semantic queries to at most eight GitHub fetches",async()=>{
+    const calls:string[]=[];
+    const videos=Array.from({length:6},(_,i)=>clip(i+1,"different "+i));
+    vi.stubGlobal("fetch",vi.fn(async (input:RequestInfo|URL)=>{
+      const url=String(input instanceof Request?input.url:input);
+      calls.push(url);
+      if(url===env.CATALOG_URL)return Response.json(videos);
+      if(url.endsWith("/data/embeddings/manifest.json"))return Response.json({
+        version:3,dimension:512,dtype:"float16-le",shard_capacity:4096,
+        seal_capacity:256,shards:[],tail:{seq:0,count:1,
+          path:"shards/tail-"+ "a".repeat(64)+".f16",
+          ids_path:"ids/tail-"+ "b".repeat(64)+".json",
+          sha256:"a".repeat(64),ids_sha256:"b".repeat(64),
+          blob_sha:"c".repeat(40),ids_blob_sha:"d".repeat(40)},
+      });
+      if(url.endsWith("/dispatches"))return new Response(null,{status:204});
+      return new Response(null,{status:404});
+    }));
+    const scenes=Array.from({length:50},(_,i)=>scene("part"+i,"different_query_"+i));
+    const response=await worker.fetch(post(scenes),{...env,SEMANTIC_SEARCH:"1"});
+    expect(response.status).toBe(200);
+    const jobs=calls.filter(x=>x.includes("api.github.com"));
+    expect(jobs.length).toBeLessThanOrEqual(8);
+    expect(calls.filter(x=>x.includes("/queries/")&&x.endsWith(".json")).length)
+      .toBeLessThanOrEqual(4);
+  });
+
+  it("only labels non_video_material for matching image results",async()=>{
+    stubCatalog([clip(1,"rain","16:9",12,".png")]);
+    const rows=[scene("rain","rain"),scene("snow","snow"),scene("rainagain","rain")];
+    const body=await (await worker.fetch(post(rows),env)).json() as {
+      scenes:Array<{status:string;reason?:string}>;
+    };
+    expect(body.scenes[0]?.reason).toBe("non_video_material");
+    expect(body.scenes[1]?.reason).toBe("rate_limited");
+    expect(body.scenes[2]?.reason).toBe("non_video_material");
+  });
+
+  it("rejects additional Unicode separators in narration",()=>{
+    for(const cp of [0x85,0x2028,0x2029]){
+      expect(()=>parseScript({scenes:[{...scene("one","rain"),
+        narration:"hello"+String.fromCodePoint(cp)+"world"}]})).toThrow();
+    }
+  });
+});

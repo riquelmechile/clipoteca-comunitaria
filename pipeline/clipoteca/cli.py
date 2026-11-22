@@ -10,6 +10,7 @@ import re
 import sys
 from pathlib import Path
 
+from . import __version__
 from .ingest import ingest
 from .jobs import (
     GitHubJobWriter,
@@ -148,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"relocalized_ids": updated}, ensure_ascii=False))
         return 0
     if args.command == "version":
-        print("clipoteca 1.0.0")
+        print("clipoteca " + __version__)
         return 0
     if args.command == "migrate-embeddings":
         from .media.embedding_store import EmbeddingStore
@@ -283,10 +284,11 @@ def main(argv: list[str] | None = None) -> int:
         except (ValueError, OSError, json.JSONDecodeError):
             print("invalid runner routing configuration", file=sys.stderr)
             return 2
-        if not routed:
-            print(json.dumps({"status": "no_sources_for_runner", "runner": args.runner}))
-            return 0
-        selected = routed
+        requested = selected or source_names
+        deferred = requested - routed
+        deferred_reason = (
+            "deferred_to_self_hosted" if args.runner == "actions" else "deferred_to_actions"
+        )
         expected = calculate_request_id(args.query, filters, args.horizon)
         if args.request_id and args.request_id != expected:
             try:
@@ -299,6 +301,40 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
             print("request_id mismatch", file=sys.stderr)
             return 2
+
+        if not routed:
+            try:
+                remote = (
+                    GitHubJobWriter(repository, token)
+                    if os.getenv("CLIPOTECA_PERSIST_JOBS") == "1"
+                    else None
+                )
+                jobs = JobStore(Path(args.job_root), remote=remote)
+                old = jobs.load(expected)
+                if old is None or old["status"] not in {"published", "duplicate", "no_results"}:
+                    receipt = new_job(expected) if old is None else dict(old)
+                    receipt["status"] = "unavailable"
+                    receipt["source_errors"] = {
+                        **receipt.get("source_errors", {}),
+                        **{source: deferred_reason for source in sorted(deferred)},
+                    }
+                    jobs.save(receipt)
+            except Exception:
+                print("deferred runner job persistence unavailable", file=sys.stderr)
+                return 2
+            print(
+                json.dumps(
+                    {
+                        "request_id": expected,
+                        "status": "unavailable",
+                        "runner": args.runner,
+                        "error_types": [deferred_reason],
+                        "deferred_sources": sorted(deferred),
+                    }
+                )
+            )
+            return 1
+        selected = routed
 
         async def run():
             adapters = []
@@ -325,6 +361,8 @@ def main(argv: list[str] | None = None) -> int:
                     job_root=Path(args.job_root),
                     filters=filters,
                     horizon=args.horizon,
+                    deferred_sources=tuple(sorted(deferred)),
+                    deferred_reason=deferred_reason,
                 )
             finally:
                 for adapter in adapters:
@@ -340,6 +378,7 @@ def main(argv: list[str] | None = None) -> int:
                     "status": report.status,
                     "published_ids": report.published_ids,
                     "error_types": tuple(error.rsplit(":", 1)[-1] for error in report.errors),
+                    "deferred_sources": sorted(deferred),
                 },
                 ensure_ascii=False,
             )

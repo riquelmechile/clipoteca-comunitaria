@@ -332,8 +332,8 @@
   {
     "name": "bilibili",
     "category": "social_video",
-    "status": "SUPPORTED_SEARCH_DOWNLOAD",
-    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "status": "SUPPORTED_SEARCH_ONLY",
+    "support_status": "SUPPORTED_SEARCH_ONLY",
     "accepts_text_languages": [
       "es",
       "en",
@@ -345,11 +345,11 @@
     "capabilities": {
       "search": "best_effort",
       "preview": "best_effort",
-      "download": "best_effort"
+      "download": "unavailable"
     },
-    "download_supported": true,
+    "download_supported": false,
     "credentials_present": true,
-    "notes": "risk control/WBI may block search; media not reusable"
+    "notes": "WBI search best effort; download only after successful main-branch smoke"
   },
   {
     "name": "vk_video",
