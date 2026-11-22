@@ -964,5 +964,72 @@
     },
     "status": "published",
     "created_at": "2026-11-22T10:55:40.299282Z"
+  },
+  {
+    "id": "clip-000017",
+    "title": {
+      "es": "impresionantes luces del sur sobre el lago Queenstown",
+      "en": "Stunning southern lights over queenstown lake"
+    },
+    "description": {
+      "es": "impresionantes luces del sur sobre el lago Queenstown",
+      "en": "Stunning southern lights over queenstown lake"
+    },
+    "tags": {
+      "es": [
+        "impresionantes",
+        "luces",
+        "sur",
+        "lago",
+        "Queenstown",
+        "aurora",
+        "boreal"
+      ],
+      "en": [
+        "Stunning",
+        "southern",
+        "lights",
+        "queenstown",
+        "lake"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "34794659",
+      "source_language": "en",
+      "source_title": "stunning-southern-lights-over-queenstown-lake-34794659",
+      "source_url": "https://www.pexels.com/video/stunning-southern-lights-over-queenstown-lake-34794659/",
+      "source_start": 24.0,
+      "source_end": 32.04
+    },
+    "media": {
+      "duration_seconds": 8.04,
+      "width": 1620,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3496232,
+      "sha256": "6e0759cd4fc550f56cc0459f0128837c5d9ff9a110ca150ac7e07e1155c90b1e",
+      "perceptual_hash": "cbc16624bd7a1b86~1462.66:c9c47630bd374fc0~1610.08:99d03b13a76648be~1762.30:8da52f07a76643b2~1909.42:90e03f0795969bab~1735.31"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000017.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000017.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000017_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000017_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000017_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000017_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000017_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000017_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T22:03:45.869758Z"
   }
 ]
