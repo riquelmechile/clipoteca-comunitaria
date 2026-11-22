@@ -197,5 +197,12 @@ class Dzen(Adapter):
                 HLS,
                 referer=referer,
                 allowed_hosts=ALLOWED_HOSTS,
+                user_agent=BROWSER_UA,
             )
-        return MediaRef(link, "video/mp4", referer=referer, allowed_hosts=ALLOWED_HOSTS)
+        return MediaRef(
+            link,
+            "video/mp4",
+            referer=referer,
+            allowed_hosts=ALLOWED_HOSTS,
+            user_agent=BROWSER_UA,
+        )

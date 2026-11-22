@@ -137,6 +137,15 @@ async def _validated(url: str, base: str, allowed_hosts: frozenset[str], resolve
     return address
 
 
+def _user_agent(value: str | None) -> str:
+    """Provider-requested browser UA (signed CDN URLs bind it), else ours."""
+    if value is None:
+        return USER_AGENT
+    if not value or len(value) > 256 or any(ch in value for ch in "\r\n"):
+        raise DownloadError("invalid media User-Agent")
+    return value
+
+
 async def _fetch(
     client: httpx.AsyncClient,
     url: str,
@@ -146,6 +155,7 @@ async def _fetch(
     own_client: bool,
     max_bytes: int,
     probe_prefix: bool = False,
+    user_agent: str | None = None,
 ) -> bytes:
     """Connect to the previously validated public IP, not a second DNS answer.
 
@@ -160,7 +170,7 @@ async def _fetch(
         raise DownloadError("HLS host has no validated address")
     host = urlsplit(url).hostname
     assert host is not None
-    headers = {"User-Agent": USER_AGENT, "Host": host}
+    headers = {"User-Agent": _user_agent(user_agent), "Host": host}
     if referer:
         if "\r" in referer or "\n" in referer or urlsplit(referer).scheme != "https":
             raise DownloadError("invalid HLS Referer")
@@ -238,6 +248,7 @@ async def download_hls(
     max_bytes: int = MAX_DOWNLOAD_BYTES,
     client: httpx.AsyncClient | None = None,
     resolver=None,
+    user_agent: str | None = None,
 ) -> Path:
     """Download bounded HLS segments and let FFmpeg read *local* media only."""
     if not 0 < max_duration <= MAX_HLS_DURATION:
@@ -269,6 +280,7 @@ async def download_hls(
                         connection,
                         url,
                         referer=referer,
+                        user_agent=user_agent,
                         resolver=resolver,
                         own_client=own,
                         max_bytes=MAX_PLAYLIST_BYTES,
@@ -293,6 +305,7 @@ async def download_hls(
                             connection,
                             media_url,
                             referer=referer,
+                            user_agent=user_agent,
                             resolver=resolver,
                             own_client=own,
                             max_bytes=MAX_PLAYLIST_BYTES,
@@ -338,6 +351,7 @@ async def download_hls(
                         connection,
                         segment_url,
                         referer=referer,
+                        user_agent=user_agent,
                         resolver=resolver,
                         own_client=own,
                         max_bytes=remaining,
@@ -439,6 +453,7 @@ async def download_hls_probe(
     max_bytes: int = 32 * 1024 * 1024,
     client: httpx.AsyncClient | None = None,
     resolver=None,
+    user_agent: str | None = None,
 ) -> Path:
     """Opt-in smoke: verify HLS bytes to a cap without publishing or remuxing.
 
@@ -471,6 +486,7 @@ async def download_hls_probe(
                     connection,
                     url,
                     referer=referer,
+                    user_agent=user_agent,
                     resolver=resolver,
                     own_client=own,
                     max_bytes=MAX_PLAYLIST_BYTES,
@@ -490,6 +506,7 @@ async def download_hls_probe(
                         connection,
                         media_url,
                         referer=referer,
+                        user_agent=user_agent,
                         resolver=resolver,
                         own_client=own,
                         max_bytes=MAX_PLAYLIST_BYTES,
@@ -513,6 +530,7 @@ async def download_hls_probe(
                         connection,
                         segment,
                         referer=referer,
+                        user_agent=user_agent,
                         resolver=resolver,
                         own_client=own,
                         max_bytes=remaining,

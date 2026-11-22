@@ -81,6 +81,9 @@ class MediaRef:
     referer: str | None = None
     allowed_hosts: tuple[str, ...] = ()
     audio_url: str | None = None
+    # Some signed CDN URLs bind the browser family that loaded the page
+    # (OK/VK CDN for Dzen carries srcAg=CHROME and answers 400 otherwise).
+    user_agent: str | None = None
 
 
 class Adapter(ABC):

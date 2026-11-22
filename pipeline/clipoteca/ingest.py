@@ -510,6 +510,7 @@ async def ingest(
                             referer=ref.referer,
                             allowed_hosts=ref.allowed_hosts,
                             max_duration=duration_limit,
+                            user_agent=ref.user_agent,
                         )
                     else:
                         raw = await download_media(
@@ -518,6 +519,7 @@ async def ingest(
                             expected_bytes=ref.size_bytes,
                             allowed_hosts=ref.allowed_hosts,
                             referer=ref.referer if candidate.provider == "bilibili" else None,
+                            user_agent=ref.user_agent,
                         )
                     downloaded_count += 1
                     advance("processing")
