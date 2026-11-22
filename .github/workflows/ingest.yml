@@ -63,6 +63,11 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Prepare verified translation resources
         uses: ./.github/actions/prepare-translations
+      - name: Prepare optional TikTok Chromium
+        uses: ./.github/actions/prepare-tiktok
+        env:
+          TIKTOK_COOKIE: ${{ vars.TIKTOK_SESSION_ENABLED == '1' && secrets.TIKTOK_COOKIE || '' }}
+          TIKTOK_WITH_TRANSLATE: "1"
       - name: Publish credential-presence source snapshot
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -74,6 +79,8 @@ jobs:
           VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
           DOUYIN_ACCESS_TOKEN: ${{ secrets.DOUYIN_ACCESS_TOKEN }}
           TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_COOKIE: ${{ vars.TIKTOK_SESSION_ENABLED == '1' && secrets.TIKTOK_COOKIE || '' }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ vars.INSTAGRAM_USER_ID }}
           SNAPCHAT_ACCESS_TOKEN: ${{ secrets.SNAPCHAT_ACCESS_TOKEN }}
@@ -92,6 +99,8 @@ jobs:
           VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
           DOUYIN_ACCESS_TOKEN: ${{ secrets.DOUYIN_ACCESS_TOKEN }}
           TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_COOKIE: ${{ vars.TIKTOK_SESSION_ENABLED == '1' && secrets.TIKTOK_COOKIE || '' }}
+          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_USER_ID: ${{ vars.INSTAGRAM_USER_ID }}
           SNAPCHAT_ACCESS_TOKEN: ${{ secrets.SNAPCHAT_ACCESS_TOKEN }}

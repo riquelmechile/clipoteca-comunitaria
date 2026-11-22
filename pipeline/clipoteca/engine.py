@@ -145,7 +145,10 @@ class SearchEngine:
                     try:
                         candidates = await asyncio.wait_for(
                             adapter.search(term, language, limits),
-                            timeout=self.per_source_seconds,
+                            timeout=max(
+                                self.per_source_seconds,
+                                float(getattr(adapter, "search_timeout_seconds", 0)),
+                            ),
                         )
                         self.breaker.record(adapter.name, True)
                         return (
@@ -189,6 +192,7 @@ class SearchEngine:
             self.adapters,
             key=lambda adapter: (
                 adapter.support_status != SupportStatus.SUPPORTED_SEARCH_DOWNLOAD,
+                -int(getattr(adapter, "discovery_priority", 0)),
                 adapter.name == "youtube",
             ),
         )
@@ -203,7 +207,18 @@ class SearchEngine:
         blocking = {task for task, (name, _, _) in tasks.items() if name != "youtube"}
         deadline_tasks = blocking or set(tasks)
         if deadline_tasks:
-            await asyncio.wait(deadline_tasks, timeout=self.discovery_seconds)
+            # A configured TikTok session may require a real browser, while
+            # every other source keeps its original per-source deadline.
+            browser_budget = max(
+                (float(getattr(adapter, "search_timeout_seconds", 0)) for adapter in self.adapters),
+                default=0.0,
+            )
+            deadline = (
+                max(self.discovery_seconds, browser_budget + 5.0)
+                if browser_budget > 0
+                else self.discovery_seconds
+            )
+            await asyncio.wait(deadline_tasks, timeout=deadline)
         finished = {task for task in tasks if task.done()}
         pending = set(tasks) - finished
         for task in pending:

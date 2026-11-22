@@ -459,7 +459,7 @@
     },
     "download_supported": true,
     "credentials_present": true,
-    "notes": "native-signed web search; optional TIKTOK_COOKIE fallback; downloads best-effort"
+    "notes": "native-signed search; optional session-scoped Playwright fallback; download best-effort pending live validation"
   },
   {
     "name": "instagram",

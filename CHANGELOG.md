@@ -1,5 +1,23 @@
 # Historial de cambios
 
+## 2.0.5 (TikTok session and bounded browser fallback)
+
+- ingest.yml and smoke.yml forward repository TIKTOK_COOKIE and optional
+  DOUYIN_COOKIE through their pipeline steps. No token is embedded in code.
+- TikTok keeps native signing and optionally attempts a session-scoped
+  Playwright search if the native route fails or returns no results.
+  Browser installation is limited to the applicable workflows and cached.
+- Browser response capture is bounded by page/candidate count and response
+  bytes; expired/invalid sessions degrade to sanitized AUTH_REQUIRED.
+- The source capability remains best_effort: the live verification run
+  45080343083 returned HTTP 200/status_code 0 but no search items.
+  MediaRef download could not yet be validated in that run.
+- The TikTok session is opt-in: workflows forward TIKTOK_COOKIE only when the
+  repository variable TIKTOK_SESSION_ENABLED is '1'. It ships disabled, so no
+  browser is installed and no session is used until a live probe passes.
+- Python, Worker, OpenAPI and lockfiles use version 2.0.5.
+
+
 ## 2.0.4 (expansion multilingue tolerante a calidad)
 
 - Las traducciones rechazadas por calidad se registran como avisos publicos

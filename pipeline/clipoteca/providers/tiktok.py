@@ -15,6 +15,8 @@ import httpx
 
 from .base import (
     Adapter,
+    AuthRequired,
+    RateLimited,
     Candidate,
     MediaRef,
     ProviderError,
@@ -26,7 +28,7 @@ from .http import provider_client
 from .m17_common import duration
 from .signing import BROWSER_UA, sign_tiktok
 from .signing.tiktok_params import search_posts_params, base_params
-from .web_guest import GuestSession, media_url, urls_in
+from .web_guest import GuestSession, media_url, urls_in, require_success
 
 SEARCH = "https://www.tiktok.com/api/search/item/full/"
 DETAIL = "https://www.tiktok.com/api/item/detail/"
@@ -34,6 +36,7 @@ CDN_ROOTS = (
     "tiktokcdn.com",
     "tiktokcdn-us.com",
     "tiktokv.com",
+    "tiktok.com",
     "byteoversea.com",
     "ibytedtos.com",
 )
@@ -47,7 +50,16 @@ def _items(payload: dict) -> list[dict]:
     raw = payload.get("item_list") or payload.get("items")
     if raw is None and isinstance(data, dict):
         raw = data.get("item_list") or data.get("items")
-    return [item for item in raw if isinstance(item, dict)] if isinstance(raw, list) else []
+    elif raw is None and isinstance(data, list):
+        raw = data
+    if not isinstance(raw, list):
+        return []
+    # Browser API search wraps each video as {"item": {...}}.
+    return [
+        item.get("item", item)
+        for item in raw
+        if isinstance(item, dict) and isinstance(item.get("item", item), dict)
+    ]
 
 
 def _video_url(item: dict) -> str | None:
@@ -83,6 +95,15 @@ class TikTok(Adapter):
             "tiktok",
             session_cookie=cookie if cookie is not None else os.getenv("TIKTOK_COOKIE", ""),
         )
+        # Only a real session cookie enables the optional browser path;
+        # anonymous guest tokens and legacy synthetic test cookies do not.
+        self.browser_session = any(
+            pair.strip().partition("=")[0] in {"sessionid", "sid_tt", "sessionid_ss"}
+            for pair in self.guest.session_cookie.removeprefix("Cookie:").split(";")
+        )
+        self.search_timeout_seconds = 42.0 if self.browser_session else 0.0
+        self.smoke_timeout_seconds = 42.0 if self.browser_session else 6.0
+        self.discovery_priority = 1 if self.browser_session else 0
         self.device_id = str(secrets.randbelow(9 * 10**18) + 10**18)
         self._videos: dict[str, dict] = {}
 
@@ -94,7 +115,75 @@ class TikTok(Adapter):
         )
         return endpoint + "?" + signed
 
+    def _candidate_from_item(
+        self, item: dict, term: str, lang: str, seen: set[str]
+    ) -> Candidate | None:
+        identifier = str(item.get("id") or item.get("item_id") or "")
+        if not _VIDEO_ID.fullmatch(identifier) or identifier in seen:
+            return None
+        title = str(item.get("desc") or item.get("title") or "")
+        if not title:
+            return None
+        seen.add(identifier)
+        self._videos[identifier] = item
+        author = item.get("author") or {}
+        handle = str(author.get("uniqueId") or author.get("unique_id") or "video")
+        handle = re.sub(r"[^A-Za-z0-9_.]", "", handle)[:64] or "video"
+        return Candidate(
+            provider=self.name,
+            provider_id=identifier,
+            term=term,
+            language=lang,
+            source_url=f"https://www.tiktok.com/@{handle}/video/{identifier}",
+            source_title=title,
+            source_language=detect_source_language(title),
+            duration_seconds=duration(
+                item.get("duration") or (item.get("video") or {}).get("duration")
+            ),
+            metadata={"scope": "public_search"},
+        )
+
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
+        try:
+            native = await self._native_search(term, lang, limits)
+            if native or not self.browser_session:
+                return native
+        except RateLimited:
+            raise
+        except (AuthRequired, ProviderError):
+            if not self.browser_session:
+                raise
+        # The native signature may be refused even with a valid cookie.
+        # Browser fallback is TikTok-only, optional and bounded by SearchLimits.
+        from .tiktok_browser import search_with_browser
+
+        pages = await search_with_browser(term, self.guest.session_cookie, limits.max_pages)
+        found: list[Candidate] = []
+        seen: set[str] = set()
+        accepted = False
+        auth_rejected = False
+        for payload in pages:
+            try:
+                require_success(payload)
+            except AuthRequired:
+                auth_rejected = True
+                continue
+            except ProviderError:
+                continue
+            accepted = True
+            for item in _items(payload):
+                candidate = self._candidate_from_item(item, term, lang, seen)
+                if candidate:
+                    found.append(candidate)
+                    if len(found) >= limits.max_candidates:
+                        return found
+        if not accepted:
+            if auth_rejected:
+                raise AuthRequired("session_required")
+            raise ProviderError("tiktok_browser_invalid_results")
+        return found
+
+    async def _native_search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         found: list[Candidate] = []
         seen: set[str] = set()
         cursor: str | None = None
@@ -112,34 +201,11 @@ class TikTok(Adapter):
             )
             rows = _items(payload)
             for item in rows:
-                identifier = str(item.get("id") or item.get("item_id") or "")
-                if not _VIDEO_ID.fullmatch(identifier) or identifier in seen:
-                    continue
-                title = str(item.get("desc") or item.get("title") or "")
-                if not title:
-                    continue
-                seen.add(identifier)
-                self._videos[identifier] = item
-                author = item.get("author") or {}
-                handle = str(author.get("uniqueId") or author.get("unique_id") or "video")
-                handle = re.sub(r"[^A-Za-z0-9_.]", "", handle)[:64] or "video"
-                found.append(
-                    Candidate(
-                        provider=self.name,
-                        provider_id=identifier,
-                        term=term,
-                        language=lang,
-                        source_url=f"https://www.tiktok.com/@{handle}/video/{identifier}",
-                        source_title=title,
-                        source_language=detect_source_language(title),
-                        duration_seconds=duration(
-                            item.get("duration") or (item.get("video") or {}).get("duration")
-                        ),
-                        metadata={"scope": "public_search"},
-                    )
-                )
-                if len(found) >= limits.max_candidates:
-                    return found
+                candidate = self._candidate_from_item(item, term, lang, seen)
+                if candidate:
+                    found.append(candidate)
+                    if len(found) >= limits.max_candidates:
+                        return found
             if not rows or not payload.get("has_more") or page + 1 >= limits.max_pages:
                 break
             extra = payload.get("extra") or {}
