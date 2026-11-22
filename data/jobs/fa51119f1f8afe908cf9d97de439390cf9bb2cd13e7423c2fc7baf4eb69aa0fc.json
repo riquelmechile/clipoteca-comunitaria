@@ -2,7 +2,7 @@
   "request_id": "fa51119f1f8afe908cf9d97de439390cf9bb2cd13e7423c2fc7baf4eb69aa0fc",
   "status": "publishing",
   "attempt": 2,
-  "updated_at": "2026-11-22T22:04:36.843991Z",
+  "updated_at": "2026-11-22T22:04:39.678504Z",
   "language_counts": {
     "es": 23
   },
@@ -47,7 +47,8 @@
     "youtube:es": "auth_required",
     "pexels:852435": "scene_quality_rejected",
     "pexels:31280471": "scene_quality_rejected",
-    "pexels:31401354": "scene_quality_rejected"
+    "pexels:31401354": "scene_quality_rejected",
+    "pexels:25988225": "scene_quality_rejected"
   },
   "terms": {
     "es": "aurora boreal"
@@ -55,7 +56,8 @@
   "terminal_sources": [
     "https://pexels.com/video/time-lapse-video-of-aurora-borealis-852435",
     "https://pexels.com/video/stunning-display-of-northern-lights-in-sweden-31280471",
-    "https://pexels.com/video/aurora-borealis-over-snowy-cabins-at-night-31401354"
+    "https://pexels.com/video/aurora-borealis-over-snowy-cabins-at-night-31401354",
+    "https://pexels.com/video/the-aurora-bore-is-shown-in-this-photo-25988225"
   ],
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
@@ -70,6 +72,7 @@
     "pexels:34794659": "embeddings_unavailable:m14_quality_fallback",
     "translation:metadata:pexels:31401354:en": "translation_failed:es->en:unchanged_translation",
     "pexels:31401354": "embeddings_unavailable:m14_quality_fallback",
-    "translation:metadata:pexels:25988225:en": "translation_failed:es->en:unchanged_translation"
+    "translation:metadata:pexels:25988225:en": "translation_failed:es->en:unchanged_translation",
+    "pexels:25988225": "embeddings_unavailable:m14_quality_fallback"
   }
 }
