@@ -17,6 +17,10 @@ def cell(value: object) -> str:
 def render(sources: list[dict], report: dict | None = None) -> str:
     live = {}
     timestamp = None
+    provenance = ""
+    names = {source["name"] for source in sources}
+    if len(names) != len(sources):
+        raise ValueError("duplicate source declaration")
     if report is not None:
         if report.get("mode") not in ("live_network_probes", "live_network_and_candidate_probes"):
             raise ValueError("only a documented live smoke report is accepted")
@@ -29,18 +33,35 @@ def render(sources: list[dict], report: dict | None = None) -> str:
             name, language = row.get("provider"), row.get("language")
             if not isinstance(name, str) or language not in LANGUAGES:
                 raise ValueError("invalid smoke identity")
-            if not isinstance(row.get("status"), str) or not isinstance(row.get("count"), int):
+            if name not in names:
+                raise ValueError("unknown provider in smoke report: " + name)
+            if (
+                not isinstance(row.get("status"), str)
+                or isinstance(row.get("count"), bool)
+                or not isinstance(row.get("count"), int)
+                or row["count"] < 0
+            ):
                 raise ValueError("invalid smoke outcome")
             key = (name, language)
             if key in live:
                 raise ValueError("duplicate smoke row")
             live[key] = row
+        github = report.get("github")
+        if isinstance(github, dict):
+            verified = []
+            for label, field in (("ref", "ref"), ("SHA", "sha"), ("run_id", "run_id")):
+                value = github.get(field)
+                if isinstance(value, str) and value:
+                    verified.append(label + "=" + cell(value))
+            if verified:
+                provenance = " **GitHub:** " + ", ".join(verified) + "."
     lines = [
         "# M24 - matriz de proveedores e idiomas",
         "",
         "**Evidencia live:** "
         + (f"reporte de smoke de main {timestamp}" if timestamp else PENDING)
-        + ".",
+        + "."
+        + provenance,
         "Los estados declarativos no acreditan descarga ni publicacion de videos.",
         "Un reporte de busqueda live tampoco acredita MP4 publicado.",
         "",
@@ -59,7 +80,16 @@ def render(sources: list[dict], report: dict | None = None) -> str:
             if result is None:
                 observed.append(PENDING)
             else:
-                observed.append(cell(result["status"]) + f" (n={result['count']})")
+                status = cell(result["status"])
+                if result["count"] == 0 and status in {
+                    "SUPPORTED_SEARCH_DOWNLOAD",
+                    "SUPPORTED_SEARCH_ONLY",
+                    "OK",
+                    "SUCCESS",
+                }:
+                    observed.append("sin resultados (n=0)")
+                else:
+                    observed.append(status + f" (n={result['count']})")
         columns = [
             row["name"],
             row.get("status", ""),
@@ -84,6 +114,7 @@ def render(sources: list[dict], report: dict | None = None) -> str:
         "",
         "Nunca escribir credenciales, URLs firmadas ni resultados supuestos.",
         "Sin --smoke-report se preserva el estado de evidencia pendiente.",
+        "La evidencia live anota ref, SHA y run_id si el smoke los entrega.",
         "",
     ]
     return "\n".join(lines)

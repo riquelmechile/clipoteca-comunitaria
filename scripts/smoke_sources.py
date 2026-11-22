@@ -16,7 +16,7 @@ from clipoteca.providers.base import AuthRequired, RateLimited, SearchLimits
 from clipoteca.sources import SOURCES
 from clipoteca.candidate_probe import candidates_smoke
 
-TERMS = {"es": "lluvia", "en": "rain", "zh": "下雨", "ru": "дождь"}
+TERMS = {"es": "lluvia", "en": "rain", "zh": "\u4e0b\u96e8", "ru": "\u0434\u043e\u0436\u0434\u044c"}
 REPO = "riquelmechile/clipoteca-comunitaria"
 
 
@@ -117,6 +117,11 @@ async def main_async() -> dict:
     )
     return {
         "timestamp_utc": datetime.now(UTC).isoformat(),
+        "github": {
+            "ref": os.getenv("GITHUB_REF") or None,
+            "sha": os.getenv("GITHUB_SHA") or None,
+            "run_id": os.getenv("GITHUB_RUN_ID") or None,
+        },
         "mode": "live_network_probes",
         "provider_languages": results,
         "total_probes": len(results),
