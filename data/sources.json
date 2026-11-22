@@ -332,8 +332,8 @@
   {
     "name": "bilibili",
     "category": "social_video",
-    "status": "SUPPORTED_SEARCH_ONLY",
-    "support_status": "SUPPORTED_SEARCH_ONLY",
+    "status": "SUPPORTED_SEARCH_DOWNLOAD",
+    "support_status": "SUPPORTED_SEARCH_DOWNLOAD",
     "accepts_text_languages": [
       "es",
       "en",
@@ -343,13 +343,13 @@
     "languages_semantically_verified": false,
     "scope": "public_search",
     "capabilities": {
-      "search": "best_effort",
+      "search": "supported",
       "preview": "best_effort",
-      "download": "unavailable"
+      "download": "best_effort"
     },
-    "download_supported": false,
+    "download_supported": true,
     "credentials_present": true,
-    "notes": "WBI search best effort; download only after successful main-branch smoke"
+    "notes": "WBI search; MP4 via pagelist cid and html5 playurl, CDN speed best effort"
   },
   {
     "name": "ok_ru",

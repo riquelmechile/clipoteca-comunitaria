@@ -14,6 +14,9 @@
   resultados en es/en/zh/ru. El cid sale de /x/player/pagelist porque
   /x/web-interface/view, wbi/view y la pagina HTML dan 412 desde Actions.
   Espejos upos-*.akamaized.net permitidos.
+- Bilibili pasa a SUPPORTED_SEARCH_DOWNLOAD (download best_effort): smoke
+  45051277263 DOWNLOAD_OK; en 45051899129 (main 1fb0d1f) el espejo Akamai no
+  alcanzo 32 MiB en 90 s. Dzen DOWNLOAD_OK en ambos.
 - Douyin y TikTok: medido con Chromium real en Actions, la busqueda por
   palabra exige sesion iniciada (Douyin 2483 + captcha, TikTok 403 + login).
   Sin cambios de codigo en esta version.
