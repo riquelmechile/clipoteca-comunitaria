@@ -475,9 +475,15 @@ async def ingest(
             if diverse_sources and max_clips_per_source > 1
             else [(candidate, max_clips_per_source) for candidate in prioritized]
         )
-        for candidate, window_cap in selections:
+        published_providers: set[str] = set()
+        first_pass_size = len(prioritized) if diverse_sources and max_clips_per_source > 1 else 0
+        for selection_index, (candidate, window_cap) in enumerate(selections):
             if len(ids) >= max_results:
                 break
+            # First pass: no provider takes a second slot while another
+            # provider still has a candidate that might pass quality gates.
+            if selection_index < first_pass_size and candidate.provider in published_providers:
+                continue
             adapter = by_name[candidate.provider]
             requested_language = (filters or {}).get("language")
             if requested_language and candidate.source_language != requested_language:
@@ -729,6 +735,7 @@ async def ingest(
                                     phash_similar=perceptually_similar,
                                 )
                                 ids.append(identifier)
+                                published_providers.add(candidate.provider)
                                 samples = semantic_frames.get(candidate.origin_id)
                                 if samples is not None:
                                     try:

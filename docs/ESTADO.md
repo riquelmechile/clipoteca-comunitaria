@@ -1,6 +1,8 @@
 # Estado de Clipoteca
 
-**Versión 2.0.5 · medido el 22 de noviembre de 2026.**
+**Versión del repositorio 2.0.6 · medido el 22 de noviembre de 2026.**
+El Worker desplegado permanece en **2.0.5** hasta un despliegue autorizado; no se
+redespliega en este cambio.
 Esta página es la referencia de estado del proyecto. Todo lo que afirma tiene una ejecución enlazada; lo que no se midió, se dice.
 
 ## Resumen
@@ -24,6 +26,21 @@ Esta página es la referencia de estado del proyecto. Todo lo que afirma tiene u
 | Archivos de video | GitHub Releases |
 
 Ninguna máquina personal ni servidor propio forma parte del servicio.
+
+## Verificación de la versión 2.0.6
+
+El motor se ensayó en una rama temporal con permisos de solo lectura,
+persistencia de jobs deshabilitada, sin catálogo ni Release. El workflow se
+retiró antes del PR. Los registros históricos 2.0.5 se mantienen debajo.
+
+| Prueba | Resultado | Evidencia |
+|---|---|---|
+| Descubrimiento real «bosque» (4 idiomas) | 24,02 s; 11 búsquedas OK, 1 timeout propio, 10 AUTH_REQUIRED y 1 estado distinto por idioma; **0 discovery_deadline** en los cuatro idiomas; 10 fuentes aportaron candidatos | [run 45084878519](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45084878519) |
+| Planificación de 23 proveedores x 4 idiomas (falsos) | 92 intentos; las 22 fuentes sanas llegan a ruso; el proveedor lento agota su timeout individual | tests/test_engine_v206.py |
+| Selección y publicación entre fuentes (falsas, controles de calidad reales) | Con 3 fuentes válidas publica 3 clips de varias fuentes; si solo una es válida puede publicar 3 | tests/test_ingest_m4c.py |
+| CI Python, Worker, Argos real | Se añadirá la evidencia del PR integrado | Pendiente |
+| Smoke en main (all y downloads) | Se añadirá evidencia posterior al merge | Pendiente |
+| Ingesta real de consulta nueva en main | Se añadirá evidencia posterior al merge | Pendiente |
 
 ## Verificación de la versión 2.0.5
 
@@ -81,9 +98,9 @@ Lectura de la tabla:
 
 ## Límites conocidos
 
-1. **El tiempo de descubrimiento deja fuera búsquedas.** Una ingesta real tiene 15 segundos para consultar todas las fuentes en los cuatro idiomas, de a 4 a la vez. En la importación de «cascada» alcanzaron a responder Pexels, Pixabay, Wikimedia Commons, Internet Archive, Odysee, Bilibili, OK.ru, VK Video y Dzen, pero 23 búsquedas quedaron fuera por tiempo, casi todas las de ruso, que van al final de la cola. La prueba de búsqueda en vivo no sufre esto porque mide cada fuente por separado. Es la mejora de motor más útil que queda pendiente.
+1. **Descubrimiento: corregida la cancelación por cola.** En v2.0.5 la importación «cascada» (run 45082441011) dejó 23 consultas con discovery_deadline, principalmente ruso, por el tope fijo 15 s. En v2.0.6 cada proveedor procesa sus idiomas en serie, hasta 16 proveedores concurren, y cada petición tiene su timeout propio. El límite global se calcula para cubrir todas las oleadas con máximo 180 s. La prueba real no persistente de «bosque» duró 24,02 s y marcó **0 discovery_deadline en es/en/zh/ru**; aún puede haber timeout propio, límites de proveedor o fuentes sin credencial.
 2. **RuTube** respondió bien en la prueba de búsqueda y con error en esa misma importación. Su disponibilidad desde GitHub Actions es irregular.
-3. **Los tres clips publicados salieron de Pexels.** El motor publica los primeros candidatos que pasan los filtros de calidad; con varias fuentes respondiendo, las de stock suelen ganar.
+3. **Reparto de publicaciones: corregido el sesgo del primer proveedor.** En v2.0.5 «cascada» publicó sus 3 clips desde Pexels. V2.0.6 intercala resultados de distintas fuentes antes del límite de candidatos y reserva la primera ronda de publicación a una ventana por fuente; solo si no bastan los clips válidos ejecuta una segunda ronda para completar cupo. La prueba de tres fuentes y la prueba de una sola fuente válida publicaron 3 clips sin cambiar filtros, deduplicación ni calidad. El reparto real se validará en la ingesta posmerge.
 4. **Traducción.** Si el traductor entrega un resultado inválido para un idioma, la ingesta sigue con los demás y deja un aviso. Una consulta poco común puede terminar buscándose en un solo idioma.
 5. **Caché.** El catálogo se sirve desde `raw.githubusercontent.com`, que guarda copia unos 5 minutos: un clip recién publicado puede tardar ese tiempo en aparecer.
 6. **Costos.** No hay cifras de facturación medidas de GitHub Actions ni de Cloudflare; el proyecto usa los planes gratuitos.

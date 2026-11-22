@@ -360,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
             for spec in SOURCES:
                 if selected and spec.name not in selected:
                     continue
-                if any(not os.environ.get(key) for key in spec.requires):
+                if any(not os.environ.get(key) for key in getattr(spec, "requires", ())):
                     adapters.append(
                         _MissingCredentialsAdapter(spec.name, spec.adapter.accepts_text_languages)
                     )

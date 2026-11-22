@@ -204,7 +204,10 @@ class SearchEngine:
                 if self.breaker.open(adapter.name):
                     for lang, _ in terms:
                         completed[(adapter.name, lang)] = (
-                            [], SupportStatus.UNAVAILABLE, "circuit_open", 0.0
+                            [],
+                            SupportStatus.UNAVAILABLE,
+                            "circuit_open",
+                            0.0,
                         )
                     return
                 # YouTube is best-effort discovery only: never occupies a

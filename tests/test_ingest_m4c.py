@@ -413,7 +413,9 @@ async def test_v206_publication_round_robins_providers_without_lowering_quality(
         downloader=downloader,
         max_results=3,
         max_clips_per_source=2,
-        translator=lambda text, src, dst: f"Escena de {text}" if dst == "es" else f"Scene of {text}",
+        translator=lambda text, src, dst: f"Escena de {text}"
+        if dst == "es"
+        else f"Scene of {text}",
     )
     assert report.status == "published", report.errors
     assert len(report.published_ids) == 3, report
