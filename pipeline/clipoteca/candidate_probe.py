@@ -391,16 +391,16 @@ async def probe_candidate(
             headers={**adapter.guest.headers(), "User-Agent": BROWSER_UA},
         )
     elif provider == "bilibili":
-        # Guest identity remains memory-only, scoped to api.bilibili.com.
-        fingerprint = await sample("init", "GET", "https://api.bilibili.com/x/frontend/finger/spi")
-        guest = _obj(fingerprint.get("data"))
-        b3, b4 = guest.get("b_3"), guest.get("b_4")
-        safe_guest = all(
-            isinstance(v, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,128}", v) for v in (b3, b4)
-        )
-        headers = {"Referer": "https://www.bilibili.com/"}
-        if safe_guest:
-            headers["Cookie"] = f"buvid3={b3}; buvid4={b4}"
+        from .providers.signing import BROWSER_UA
+
+        # Measured from Actions 2026-11-22: browser-like headers WITHOUT guest
+        # buvid cookies answer the signed search; attaching them returns empty.
+        headers = {
+            "Referer": "https://www.bilibili.com/",
+            "Origin": "https://www.bilibili.com",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "User-Agent": BROWSER_UA,
+        }
         nav = await sample(
             "init",
             "GET",

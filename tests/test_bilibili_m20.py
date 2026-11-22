@@ -198,7 +198,7 @@ async def test_wbi_dash_video_audio_and_metadata_fallback():
         media = await Bilibili(client=client).direct_media(candidate())
     assert media and media.audio_url == "https://b.bilivideo.com/a.m4s"
     assert media.allowed_hosts == ("a.bilivideo.com", "b.bilivideo.com")
-    assert "/x/web-interface/view" in calls
+    assert "/x/web-interface/wbi/view" in calls
 
 
 @pytest.mark.asyncio

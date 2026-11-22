@@ -154,7 +154,7 @@ async def test_loc_retry_after_bounded_and_45_second_timeout(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_bilibili_guest_spi_retry_sends_cookie_to_api_only():
+async def test_bilibili_search_is_cookieless_and_retries_silent_empty_once(monkeypatch):
     nav = {
         "code": -101,
         "data": {
@@ -166,34 +166,35 @@ async def test_bilibili_guest_spi_retry_sends_cookie_to_api_only():
     }
     calls = []
 
+    async def fast_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", fast_sleep)
+
     def handler(req):
-        calls.append((req.url.path, req.headers.get("cookie")))
+        calls.append(req.url.path)
+        assert "cookie" not in req.headers
+        assert req.headers["origin"] == "https://www.bilibili.com"
+        assert req.headers["user-agent"].startswith("Mozilla/5.0")
+        assert not req.url.path.endswith("/finger/spi")
         if req.url.path.endswith("/nav"):
             return httpx.Response(200, json=nav)
-        if req.url.path.endswith("/finger/spi"):
-            assert not req.headers.get("cookie")
-            return httpx.Response(200, json=fixture("bilibili_guest_spi.json"))
-        if req.headers.get("cookie"):
-            assert req.headers["cookie"].startswith("buvid3=ABCDEF1234567890_1; buvid4=")
-            return httpx.Response(
-                200,
-                json={
-                    "code": 0,
-                    "data": {
-                        "result": [{"bvid": "BV1xx411c7mD", "title": "Rain"}],
-                        "numResults": 1,
-                    },
-                },
-            )
-        return httpx.Response(200, json={"code": 0, "data": {"result": []}})
+        if calls.count(req.url.path) == 1:
+            return httpx.Response(200, json={"code": 0, "data": {"result": []}})
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "data": {"result": [{"bvid": "BV1xx411c7mD", "title": "Rain"}], "numResults": 1},
+            },
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         rows = await Bilibili(cookie="", client=client).search(
             "rain", "en", SearchLimits(max_pages=1)
         )
     assert [x.provider_id for x in rows] == ["BV1xx411c7mD"]
-    assert len([path for path, _ in calls if path.endswith("/finger/spi")]) == 1
-    assert all(path.startswith("/x/") for path, _ in calls)
+    assert calls.count("/x/web-interface/wbi/search/type") == 2
 
 
 @pytest.mark.asyncio
@@ -326,7 +327,7 @@ async def test_tiktok_init_1001_plus_empty_search_is_session_required():
 
 
 @pytest.mark.asyncio
-async def test_candidate_probe_bilibili_guest_cookie_never_persisted(monkeypatch):
+async def test_candidate_probe_bilibili_cookieless_silent_block(monkeypatch):
     from clipoteca import candidate_probe as cp
 
     calls = []
@@ -334,8 +335,7 @@ async def test_candidate_probe_bilibili_guest_cookie_never_persisted(monkeypatch
     async def fake_request(_client, _method, url, **kwargs):
         headers = kwargs.get("headers") or {}
         calls.append((url, dict(headers)))
-        if url.endswith("/finger/spi"):
-            return 200, fixture("bilibili_guest_spi.json"), "", None
+        assert not url.endswith("/finger/spi")
         if url.endswith("/nav"):
             return (
                 200,
@@ -351,7 +351,7 @@ async def test_candidate_probe_bilibili_guest_cookie_never_persisted(monkeypatch
                 None,
             )
         assert url.endswith("/search/type")
-        assert headers.get("Cookie", "").startswith("buvid3=")
+        assert "Cookie" not in headers
         return 200, {"code": 0, "data": {"result": []}}, "", None
 
     monkeypatch.setattr(cp, "_request", fake_request)
@@ -359,7 +359,7 @@ async def test_candidate_probe_bilibili_guest_cookie_never_persisted(monkeypatch
         transport=httpx.MockTransport(lambda _req: pytest.fail("no real network expected"))
     ) as client:
         rows = await cp.probe_candidate(client, "bilibili", "en")
-    assert len(rows) == 3
+    assert len(rows) == 2
     assert rows[-1]["diagnosis"] == "silent_block"
     assert rows[-1]["count"] == 0
     assert all("Cookie" not in json.dumps(row) for row in rows)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from urllib.parse import quote, urljoin
+from urllib.parse import quote, urljoin, urlsplit
 
 import httpx
 
@@ -16,9 +16,9 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from ..security.ssrf import validate_public_url
 from .base import ProviderError
 from .http import ProviderPayloadError, fetch_json, fetch_response, fetch_text, provider_client
+from .signing import BROWSER_UA
 from .m17_common import allowed_https, duration, embedded_json, json_attributes, walk
 
 SEARCH = "https://dzen.ru/api/web/v1/zen-search"
@@ -59,35 +59,52 @@ async def _watch_document(
     url: str,
     *,
     resolver=None,
-    max_redirects: int = 3,
+    max_attempts: int = 4,
 ) -> str:
-    """Follow only HTTPS redirects inside exact Dzen/CDN allowlist.
+    """Load a watch page through Dzen's anonymous SSO handshake.
 
-    Each hop is separately DNS-checked and IP-pinned by fetch_response;
-    external SSO URLs are rejected rather than followed with cookies.
+    Port of bolknote/0W-Tube DzenClient.getPage (MIT): a fresh anonymous
+    session answers with SSO redirects whose only job is to set anonymous
+    cookies on dzen.ru. The SSO hosts are never fetched; the cookies from the
+    302 land in the client jar and the ORIGINAL URL is requested again.
+    Redirects inside the exact Dzen/CDN allowlist are followed; every hop is
+    DNS-checked and IP-pinned by fetch_response.
     """
     current = url
-    for hop in range(max_redirects + 1):
+    for _attempt in range(max_attempts):
         if not allowed_https(current, ROOTS):
             raise ProviderError("Dzen redirect host not allowed")
-        if resolver is not None or type(client._transport) is not httpx.MockTransport:
-            await validate_public_url(current, resolver=resolver)
         response = await fetch_response(
             client,
             current,
-            headers={"Referer": "https://dzen.ru/"},
+            headers={
+                "Referer": "https://dzen.ru/",
+                "User-Agent": BROWSER_UA,
+                "Accept": "text/html,application/xhtml+xml,*/*",
+                "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
+            },
             resolver=resolver,
         )
         if response.status_code in {301, 302, 303, 307, 308}:
             location = response.headers.get("location")
-            if not location or hop >= max_redirects:
-                raise ProviderError("Dzen redirect limit exceeded")
-            current = urljoin(current, location)
+            if not location:
+                raise ProviderError("Dzen redirect without location")
+            target = urljoin(current, location)
+            host = (urlsplit(target).hostname or "").casefold()
+            # SSO hop (sso.dzen.ru, sso.passport.yandex.ru or any foreign host):
+            # its cookies are already stored; repeat the original page.
+            sso = host.startswith("sso.") or not allowed_https(target, ROOTS)
+            current = url if sso else target
             continue
         if response.status_code >= 400:
             raise ProviderError(f"Dzen watch HTTP {response.status_code}")
-        return response.text
-    raise ProviderError("Dzen redirect limit exceeded")
+        body = response.text
+        if "videoMetaResponse" in body or "oneVideoStreams" in body:
+            return body
+        if "sso.dzen.ru" not in body and "sso.passport.yandex.ru" not in body:
+            return body
+        current = url
+    raise ProviderError("Dzen anonymous session not established")
 
 
 class Dzen(Adapter):

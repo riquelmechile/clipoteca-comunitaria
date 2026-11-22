@@ -2,7 +2,7 @@
 
 WBI algorithm reference: Evil0ctal/Douyin_TikTok_Download_API,
 Apache-2.0, commit ed4ec42534b1194f8d8c18be7b4ba493334f5321.
-Guest buvid cookies are optional and never persisted to evidence.
+Searches are sent without guest cookies (see _headers).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 
-from ..config import USER_AGENT
+from .signing import BROWSER_UA
 from .base import (
     Adapter,
     Candidate,
@@ -172,19 +172,23 @@ class Bilibili(Adapter):
         self._mixin: str | None = None
         self._keys_since = 0.0
         self._key_lock = asyncio.Lock()
-        self._guest_lock = asyncio.Lock()
-        self._guest_cookie = ""
-        self._guest_checked_at = 0.0
-        self._guest_checked = False
         self._blocked = False
 
     @property
     def _headers(self) -> dict[str, str]:
-        headers = {"User-Agent": os.getenv("BILIBILI_USER_AGENT") or USER_AGENT, "Referer": REFERER}
+        # Measured from GitHub Actions on 2026-11-22 (runs 45046484588,
+        # 45047038160): the signed search answers a browser-like request
+        # WITHOUT cookies in es/en/zh/ru, and answers empty once guest
+        # buvid3/buvid4/b_nut cookies are attached. Header set follows
+        # NanmiCoder/MediaCrawler and Evil0ctal DTK (UA, Origin, Referer).
+        headers = {
+            "User-Agent": os.getenv("BILIBILI_USER_AGENT") or BROWSER_UA,
+            "Referer": REFERER,
+            "Origin": "https://www.bilibili.com",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }
         if self.cookie:
             headers["Cookie"] = self.cookie
-        elif self._guest_cookie:
-            headers["Cookie"] = self._guest_cookie
         return headers
 
     async def _request(self, endpoint: str, query: str | dict[str, object] = ()) -> dict:
@@ -222,30 +226,6 @@ class Bilibili(Adapter):
         if not isinstance(payload, dict):
             raise ProviderError("Bilibili response not object")
         return payload
-
-    async def _ensure_guest(self) -> bool:
-        """Fetch bounded guest identity once per adapter, without persisting cookies."""
-        if self.cookie:
-            return False
-        if self._guest_checked and time.monotonic() - self._guest_checked_at < 3600:
-            return bool(self._guest_cookie)
-        async with self._guest_lock:
-            if self._guest_checked and time.monotonic() - self._guest_checked_at < 3600:
-                return bool(self._guest_cookie)
-            self._guest_checked = True
-            self._guest_checked_at = time.monotonic()
-            payload = await self._request("/x/frontend/finger/spi")
-            data = payload.get("data")
-            if not isinstance(data, dict):
-                return False
-            values = (data.get("b_3"), data.get("b_4"))
-            if not all(
-                isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,128}", value)
-                for value in values
-            ):
-                return False
-            self._guest_cookie = f"buvid3={values[0]}; buvid4={values[1]}"
-            return True
 
     async def _keys(self, *, refresh: bool = False) -> str:
         if self._mixin and time.monotonic() - self._keys_since < 86400 and not refresh:
@@ -290,11 +270,11 @@ class Bilibili(Adapter):
             params = {"search_type": "video", "keyword": term, "page": page}
             data = await self._signed("/x/web-interface/wbi/search/type", params)
             # A code=0 body with neither results nor numResults is not
-            # evidence that a search succeeded. Retry once with guest
-            # buvid cookies; keep SEARCH_ONLY until an actual clip is verified.
+            # evidence that a search succeeded: retry once after a short
+            # pause (risk control is intermittent from datacenter egress).
             if not data.get("result") and not isinstance(data.get("numResults"), int):
-                if not self.cookie and await self._ensure_guest():
-                    data = await self._signed("/x/web-interface/wbi/search/type", params)
+                await asyncio.sleep(2)
+                data = await self._signed("/x/web-interface/wbi/search/type", params)
                 if not data.get("result") and not isinstance(data.get("numResults"), int):
                     raise ProviderError("Bilibili silent empty search")
             for item in data.get("result") or []:
@@ -331,11 +311,9 @@ class Bilibili(Adapter):
     async def metadata(self, candidate: Candidate) -> dict[str, Any]:
         if not BVID.fullmatch(candidate.provider_id):
             return {}
-        response = await self._request("/x/web-interface/view", {"bvid": candidate.provider_id})
-        code = response.get("code")
-        if code not in (0, None):
-            raise ProviderError(f"Bilibili view error {code}")
-        data = response.get("data") or {}
+        # Evil0ctal DTK params.py: the unsigned /x/web-interface/view answers
+        # datacenter egress with an HTML 412; the signed wbi/view answers.
+        data = await self._signed("/x/web-interface/wbi/view", {"bvid": candidate.provider_id})
         if not isinstance(data, dict):
             raise ProviderError("Bilibili view payload invalid")
         return {
