@@ -2,7 +2,7 @@
   "request_id": "fa51119f1f8afe908cf9d97de439390cf9bb2cd13e7423c2fc7baf4eb69aa0fc",
   "status": "publishing",
   "attempt": 2,
-  "updated_at": "2026-11-22T22:04:59.938239Z",
+  "updated_at": "2026-11-22T22:05:01.570558Z",
   "language_counts": {
     "es": 23
   },
@@ -77,6 +77,7 @@
     "translation:metadata:pexels:25988225:en": "translation_failed:es->en:unchanged_translation",
     "pexels:25988225": "embeddings_unavailable:m14_quality_fallback",
     "translation:metadata:pexels:28191115:en": "translation_failed:es->en:unchanged_translation",
-    "pexels:28191115": "embeddings_unavailable:m14_quality_fallback"
+    "pexels:28191115": "embeddings_unavailable:m14_quality_fallback",
+    "translation:metadata:pexels:28492331:en": "translation_failed:es->en:unchanged_translation"
   }
 }
