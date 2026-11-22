@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Clipoteca Comunitaria REST API
-  version: 2.0.1
+  version: 2.0.2
   description: |
     Public catalogue/search and Issue contributions. Authenticated imports use
     a write bearer token. MCP uses a separate Streamable HTTP endpoint.

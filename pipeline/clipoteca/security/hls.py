@@ -145,6 +145,7 @@ async def _fetch(
     resolver,
     own_client: bool,
     max_bytes: int,
+    probe_prefix: bool = False,
 ) -> bytes:
     """Connect to the previously validated public IP, not a second DNS answer.
 
@@ -207,12 +208,17 @@ async def _fetch(
                         size = int(declared)
                     except ValueError as exc:
                         raise DownloadError("invalid HLS Content-Length") from exc
-                    if size > max_bytes:
+                    if size > max_bytes and not probe_prefix:
                         raise DownloadError("HLS segment exceeds byte cap")
                 async for chunk in response.aiter_bytes(chunk_size=64 * 1024):
-                    body.extend(chunk)
-                    if len(body) > max_bytes:
-                        raise DownloadError("HLS streamed bytes exceed cap")
+                    if probe_prefix:
+                        body.extend(chunk[: max_bytes - len(body)])
+                        if len(body) >= max_bytes:
+                            break
+                    else:
+                        body.extend(chunk)
+                        if len(body) > max_bytes:
+                            raise DownloadError("HLS streamed bytes exceed cap")
             return bytes(body)
         except httpx.HTTPError as exc:
             last_transport_error = exc
@@ -412,5 +418,118 @@ async def download_hls(
         output.unlink(missing_ok=True)
         raise
     finally:
+        if own:
+            await connection.aclose()
+
+
+def _hls_probe_magic(data: bytes) -> bool:
+    """Recognize MPEG-TS sync packets or an ISO BMFF media segment."""
+    return (len(data) >= 376 and data[0] == 0x47 and data[188] == 0x47) or (
+        len(data) >= 12 and data[4:8] == b"ftyp"
+    )
+
+
+async def download_hls_probe(
+    url: str,
+    target_dir: Path,
+    *,
+    referer: str | None = None,
+    allowed_hosts: tuple[str, ...] = (),
+    max_duration: float = 20.0,
+    max_bytes: int = 8 * 1024 * 1024,
+    client: httpx.AsyncClient | None = None,
+    resolver=None,
+) -> Path:
+    """Opt-in smoke: verify HLS bytes to a cap without publishing or remuxing.
+
+    Only validated playlist and segment hosts are touched. Capping a
+    single large segment is evidence of streaming, not a complete ingest.
+    """
+    if not 0 < max_duration <= MAX_HLS_DURATION:
+        raise ValueError("invalid HLS smoke duration")
+    if not 376 <= max_bytes <= MAX_DOWNLOAD_BYTES:
+        raise ValueError("invalid HLS smoke byte cap")
+    parsed = urlsplit(url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise UnsafeMediaURL("HLS playlist must be HTTPS")
+    hosts = frozenset((parsed.hostname, *allowed_hosts))
+    target_dir.mkdir(parents=True, exist_ok=True)
+    own = client is None
+    connection = client or httpx.AsyncClient(
+        timeout=httpx.Timeout(30, connect=10, read=20),
+        follow_redirects=False,
+        trust_env=False,
+        headers={"User-Agent": USER_AGENT},
+    )
+    target = target_dir / ("clipoteca-smoke-hls-" + os.urandom(8).hex() + ".ts")
+    successful = False
+    try:
+        async with asyncio.timeout(180):
+            await _validated(url, url, hosts, resolver)
+            master = (
+                await _fetch(
+                    connection,
+                    url,
+                    referer=referer,
+                    resolver=resolver,
+                    own_client=own,
+                    max_bytes=MAX_PLAYLIST_BYTES,
+                )
+            ).decode("utf-8", errors="replace")
+            variants = parse_master(master)
+            media_url = url
+            media_text = master
+            if variants:
+                choices = [await _validated(uri, url, hosts, resolver) for _, _, uri in variants]
+                chosen = choose_variant(variants)
+                media_url = choices[
+                    next(i for i, (_, _, uri) in enumerate(variants) if uri == chosen)
+                ]
+                media_text = (
+                    await _fetch(
+                        connection,
+                        media_url,
+                        referer=referer,
+                        resolver=resolver,
+                        own_client=own,
+                        max_bytes=MAX_PLAYLIST_BYTES,
+                    )
+                ).decode("utf-8", errors="replace")
+            segments = parse_media(media_text)
+            selected: list[tuple[float, str]] = []
+            duration = 0.0
+            for seconds, uri in segments:
+                if duration >= max_duration:
+                    break
+                selected.append((seconds, await _validated(uri, media_url, hosts, resolver)))
+                duration += seconds
+            total = 0
+            with target.open("wb") as output:
+                for _seconds, segment in selected:
+                    remaining = max_bytes - total
+                    if remaining <= 0:
+                        break
+                    body = await _fetch(
+                        connection,
+                        segment,
+                        referer=referer,
+                        resolver=resolver,
+                        own_client=own,
+                        max_bytes=remaining,
+                        probe_prefix=True,
+                    )
+                    if not body or (total == 0 and not _hls_probe_magic(body)):
+                        raise DownloadError("invalid HLS smoke media signature")
+                    total += len(body)
+                    output.write(body)
+                    if total >= max_bytes:
+                        break
+            if total == 0:
+                raise DownloadError("empty HLS smoke download")
+            successful = True
+            return target
+    finally:
+        if not successful:
+            target.unlink(missing_ok=True)
         if own:
             await connection.aclose()

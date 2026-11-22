@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 
 import httpx
 
@@ -16,7 +16,9 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import ProviderPayloadError, fetch_json, fetch_text, provider_client
+from ..security.ssrf import validate_public_url
+from .base import ProviderError
+from .http import ProviderPayloadError, fetch_json, fetch_response, fetch_text, provider_client
 from .m17_common import allowed_https, duration, embedded_json, json_attributes, walk
 
 SEARCH = "https://dzen.ru/api/web/v1/zen-search"
@@ -50,6 +52,42 @@ def _streams(payloads: list[object]) -> str:
     return next((url for url in safe if ".m3u8" in url.casefold()), None) or next(
         (url for url in safe if ".mp4" in url.casefold()), ""
     )
+
+
+async def _watch_document(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    resolver=None,
+    max_redirects: int = 3,
+) -> str:
+    """Follow only HTTPS redirects inside exact Dzen/CDN allowlist.
+
+    Each hop is separately DNS-checked and IP-pinned by fetch_response;
+    external SSO URLs are rejected rather than followed with cookies.
+    """
+    current = url
+    for hop in range(max_redirects + 1):
+        if not allowed_https(current, ROOTS):
+            raise ProviderError("Dzen redirect host not allowed")
+        if resolver is not None or type(client._transport) is not httpx.MockTransport:
+            await validate_public_url(current, resolver=resolver)
+        response = await fetch_response(
+            client,
+            current,
+            headers={"Referer": "https://dzen.ru/"},
+            resolver=resolver,
+        )
+        if response.status_code in {301, 302, 303, 307, 308}:
+            location = response.headers.get("location")
+            if not location or hop >= max_redirects:
+                raise ProviderError("Dzen redirect limit exceeded")
+            current = urljoin(current, location)
+            continue
+        if response.status_code >= 400:
+            raise ProviderError(f"Dzen watch HTTP {response.status_code}")
+        return response.text
+    raise ProviderError("Dzen redirect limit exceeded")
 
 
 class Dzen(Adapter):
@@ -117,7 +155,7 @@ class Dzen(Adapter):
         if not ID.fullmatch(candidate.provider_id):
             return None
         referer = WATCH + candidate.provider_id
-        document = await fetch_text(self.client, referer, headers={"Referer": "https://dzen.ru/"})
+        document = await _watch_document(self.client, referer)
         payloads = embedded_json(document, "videoMetaResponse")
         payloads.extend(embedded_json(document, "oneVideoStreams"))
         link = _streams(payloads)

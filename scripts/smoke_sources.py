@@ -22,7 +22,7 @@ from clipoteca.providers.base import (
     SearchLimits,
 )
 from clipoteca.security.download import DownloadError, download_media
-from clipoteca.security.hls import download_hls
+from clipoteca.security.hls import download_hls_probe
 from clipoteca.sources import SOURCES
 from clipoteca.candidate_probe import candidates_smoke
 
@@ -102,51 +102,11 @@ async def probe(spec, lang: str, *, timeout: float = 6.0) -> dict:
     return row
 
 
-async def _cut_local_clip(source: Path, destination: Path) -> None:
-    """Trim only a local file using FFmpeg; never pass a remote URL."""
-    try:
-        process = await asyncio.create_subprocess_exec(
-            "ffmpeg",
-            "-nostdin",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-i",
-            str(source),
-            "-t",
-            str(DOWNLOAD_CLIP_SECONDS),
-            "-fs",
-            str(DOWNLOAD_LIMIT_BYTES),
-            "-c",
-            "copy",
-            "-f",
-            "matroska",
-            str(destination),
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-    except FileNotFoundError as exc:
-        raise DownloadError("ffmpeg_unavailable") from exc
-    try:
-        await asyncio.wait_for(process.communicate(), timeout=20)
-    except (TimeoutError, asyncio.CancelledError):
-        process.kill()
-        await process.communicate()
-        raise
-    if process.returncode != 0 or not destination.is_file() or not destination.stat().st_size:
-        raise DownloadError("ffmpeg_trim_failed")
-    if destination.stat().st_size > DOWNLOAD_LIMIT_BYTES:
-        raise DownloadError("download exceeds smoke byte cap")
-
-
 async def _download_candidate(media, stage: Path) -> Path:
-    """Only stream validated media to a temporary directory, never publish it."""
-    if media.size_bytes is not None and media.size_bytes > DOWNLOAD_LIMIT_BYTES:
-        raise DownloadError("declared media size exceeds smoke byte cap")
+    """Measure real video bytes within a cap; never download/publish a full asset."""
     if ".m3u8" in media.url.casefold() or "mpegurl" in media.mime.casefold():
         return await asyncio.wait_for(
-            download_hls(
+            download_hls_probe(
                 media.url,
                 stage,
                 referer=media.referer,
@@ -158,20 +118,16 @@ async def _download_candidate(media, stage: Path) -> Path:
         )
     if not media.mime.casefold().startswith("video/"):
         raise DownloadError("media type not supported by smoke")
-    # download_media restricts Referer to the Bilibili origin; never weaken it
-    # for a provider without an approved media Referer.
     referer = media.referer if media.referer == "https://www.bilibili.com/" else None
-    original = await download_media(
+    return await download_media(
         media.url,
         stage,
         max_bytes=DOWNLOAD_LIMIT_BYTES,
+        probe_prefix_bytes=DOWNLOAD_LIMIT_BYTES,
         total_seconds=DOWNLOAD_DEADLINE_SECONDS,
         allowed_hosts=media.allowed_hosts,
         referer=referer,
     )
-    trimmed = stage / "clipoteca-smoke-cut.mkv"
-    await _cut_local_clip(original, trimmed)
-    return trimmed
 
 
 async def download_probe(spec, *, language: str = "en") -> dict:
@@ -190,7 +146,7 @@ async def download_probe(spec, *, language: str = "en") -> dict:
             raise ProviderError("provider has no accepted smoke language")
         language = language if language in accepted else accepted[0]
         row["language"] = language
-        search_timeout = min(15.0, float(getattr(adapter, "smoke_timeout_seconds", 15.0)))
+        search_timeout = min(45.0, max(1.0, float(getattr(adapter, "smoke_timeout_seconds", 15.0))))
         found = await asyncio.wait_for(
             adapter.search(TERMS[language], language, SearchLimits(1, 1, search_timeout)),
             timeout=search_timeout,
@@ -199,7 +155,8 @@ async def download_probe(spec, *, language: str = "en") -> dict:
             row["status"] = "NO_CANDIDATE"
             row["error_detail"] = "no candidates in bounded search"
         else:
-            media = await asyncio.wait_for(adapter.direct_media(found[0]), timeout=15.0)
+            media_resolver = getattr(adapter, "smoke_direct_media", adapter.direct_media)
+            media = await asyncio.wait_for(media_resolver(found[0]), timeout=search_timeout)
             if media is None:
                 row["status"] = "NO_DIRECT_MEDIA"
                 row["error_detail"] = "direct media unavailable"
@@ -256,7 +213,7 @@ async def downloads_smoke() -> dict:
             "Each configured provider searches one candidate and probes direct media.",
             "Temporary files are removed; no clips, assets or releases are published.",
             "A successful download is measured evidence only; sources.json is unchanged.",
-            "HLS is cut to 20 seconds; MP4 is locally trimmed with FFmpeg -t 20.",
+            "HLS segments are sampled up to 20 seconds/8 MiB; MP4 Range samples 8 MiB.",
         ],
     }
 

@@ -32,7 +32,8 @@ CLASSIC_VERSION = "5.199"
 WEB_CLIENT_ID = "6287487"
 ORIGIN = "https://vkvideo.ru"
 ID = re.compile(r"-?[0-9]+_[0-9]+")
-ROOTS = ("vkvideo.ru", "vk.com", "vkuser.net", "userapi.com", "vk-cdn.net")
+# VK Video Web2 uses OK CDN signed media URLs in public files metadata.
+ROOTS = ("vkvideo.ru", "vk.com", "vkuser.net", "userapi.com", "vk-cdn.net", "okcdn.ru", "mycdn.me")
 ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 HLS = "application/vnd.apple.mpegurl"
 _TOKEN: tuple[str, float] | None = None
@@ -223,6 +224,12 @@ class VKVideo(Adapter):
         found: list[Candidate] = []
         seen: set[str] = set()
         for item in _video_rows(pages):
+            restriction = item.get("restriction")
+            if item.get("content_restricted") or (
+                isinstance(restriction, dict) and restriction.get("can_play") == 0
+            ):
+                # Anonymous Web2 search includes region-locked metadata-only rows.
+                continue
             try:
                 identifier = f"{int(item.get('owner_id') or item.get('ownerId'))}_{int(item['id'])}"
             except (TypeError, ValueError, KeyError):
@@ -261,8 +268,14 @@ class VKVideo(Adapter):
                 "video.getByIds",
                 {"videos": candidate.provider_id, "video_fields": "files"},
             )
-        rows = _video_rows(data)
-        return rows[0] if rows else {}
+        for row in _video_rows(data):
+            try:
+                identity = f"{int(row.get('owner_id') or row.get('ownerId'))}_{int(row['id'])}"
+            except (TypeError, ValueError, KeyError):
+                continue
+            if identity == candidate.provider_id:
+                return row
+        return {}
 
     async def direct_media(self, candidate: Candidate) -> MediaRef | None:
         item = await self.metadata(candidate)
