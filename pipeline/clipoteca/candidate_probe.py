@@ -17,7 +17,7 @@ import httpx
 from .config import USER_AGENT
 from .security.ssrf import validate_public_url
 
-TERMS = {"es": "lluvia", "en": "rain", "zh": "下雨", "ru": "дождь"}
+TERMS = {"es": "lluvia", "en": "rain", "zh": "\u4e0b\u96e8", "ru": "\u0434\u043e\u0436\u0434\u044c"}
 PROVIDERS = (
     "rutube",
     "ok_ru",
@@ -270,6 +270,16 @@ async def probe_candidate(
                 guest_ttwid = ttwid
             row["status_code"] = status
             row.update(parse_metrics(provider if stage != "init" else "", payload, html=html))
+            if provider in {"douyin", "tiktok"} and row["platform_code"] in (2483, 1001):
+                row["diagnosis"] = "session_required"
+            if (
+                provider == "bilibili"
+                and stage == "search"
+                and status == 200
+                and row["count"] == 0
+                and not isinstance(_obj(payload.get("data")).get("numResults"), int)
+            ):
+                row["diagnosis"] = "silent_block"
         except (httpx.HTTPError, ValueError, TypeError, UnicodeError) as exc:
             row["error_type"] = type(exc).__name__
         row["elapsed_ms"] = round((time.monotonic() - started) * 1000, 1)
@@ -381,7 +391,22 @@ async def probe_candidate(
             headers={**adapter.guest.headers(), "User-Agent": BROWSER_UA},
         )
     elif provider == "bilibili":
-        nav = await sample("init", "GET", "https://api.bilibili.com/x/web-interface/nav")
+        # Guest identity remains memory-only, scoped to api.bilibili.com.
+        fingerprint = await sample("init", "GET", "https://api.bilibili.com/x/frontend/finger/spi")
+        guest = _obj(fingerprint.get("data"))
+        b3, b4 = guest.get("b_3"), guest.get("b_4")
+        safe_guest = all(
+            isinstance(v, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,128}", v) for v in (b3, b4)
+        )
+        headers = {"Referer": "https://www.bilibili.com/"}
+        if safe_guest:
+            headers["Cookie"] = f"buvid3={b3}; buvid4={b4}"
+        nav = await sample(
+            "init",
+            "GET",
+            "https://api.bilibili.com/x/web-interface/nav",
+            headers=headers,
+        )
         wbi = _obj(_obj(nav.get("data")).get("wbi_img"))
         if isinstance(wbi.get("img_url"), str) and isinstance(wbi.get("sub_url"), str):
             try:
@@ -398,7 +423,7 @@ async def probe_candidate(
                 "GET",
                 "https://api.bilibili.com/x/web-interface/wbi/search/type",
                 params=params,
-                headers={"Referer": "https://www.bilibili.com/"},
+                headers=headers,
             )
     return results
 

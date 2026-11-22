@@ -94,6 +94,7 @@ class GuestSession:
         self.session_cookie = session_cookie.strip()
         self.ttwid = ""
         self._initialized = False
+        self._init_requires_session = False
         self.used_secret = False
 
     async def initialize(self) -> None:
@@ -115,6 +116,17 @@ class GuestSession:
             if result.status_code == 429:
                 raise RateLimited("guest identity rate limited")
             if result.status_code < 400:
+                # Guest registration status 1001 was measured for TikTok
+                # from Actions. Do not interpret a later empty result as
+                # successful guest search when registration was rejected.
+                if self.platform == "tiktok":
+                    try:
+                        registration = result.json()
+                    except ValueError:
+                        registration = {}
+                    self._init_requires_session = (
+                        isinstance(registration, dict) and registration.get("status_code") == 1001
+                    )
                 self.ttwid = result.cookies.get("ttwid") or self.client.cookies.get("ttwid", "")
         except (ProviderError, ProviderTimeout):
             # A failed optional registration must not force a secret-cookie attempt.
@@ -158,6 +170,15 @@ class GuestSession:
                     headers=self.headers(use_secret=secret),
                 )
                 require_success(payload)
+                if (
+                    self.platform == "tiktok"
+                    and self._init_requires_session
+                    and not secret
+                    and not (
+                        payload.get("item_list") or payload.get("items") or payload.get("data")
+                    )
+                ):
+                    raise AuthRequired("session_required")
                 return payload
             except ProviderPayloadError as exc:
                 # Empty body, malformed JSON, or HTML challenge is an identity

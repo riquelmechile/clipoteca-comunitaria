@@ -2,7 +2,7 @@
 
 WBI algorithm reference: Evil0ctal/Douyin_TikTok_Download_API,
 Apache-2.0, commit ed4ec42534b1194f8d8c18be7b4ba493334f5321.
-Only public navigation keys are used. No cookie is required.
+Guest buvid cookies are optional and never persisted to evidence.
 """
 
 from __future__ import annotations
@@ -172,6 +172,10 @@ class Bilibili(Adapter):
         self._mixin: str | None = None
         self._keys_since = 0.0
         self._key_lock = asyncio.Lock()
+        self._guest_lock = asyncio.Lock()
+        self._guest_cookie = ""
+        self._guest_checked_at = 0.0
+        self._guest_checked = False
         self._blocked = False
 
     @property
@@ -179,6 +183,8 @@ class Bilibili(Adapter):
         headers = {"User-Agent": os.getenv("BILIBILI_USER_AGENT") or USER_AGENT, "Referer": REFERER}
         if self.cookie:
             headers["Cookie"] = self.cookie
+        elif self._guest_cookie:
+            headers["Cookie"] = self._guest_cookie
         return headers
 
     async def _request(self, endpoint: str, query: str | dict[str, object] = ()) -> dict:
@@ -216,6 +222,30 @@ class Bilibili(Adapter):
         if not isinstance(payload, dict):
             raise ProviderError("Bilibili response not object")
         return payload
+
+    async def _ensure_guest(self) -> bool:
+        """Fetch bounded guest identity once per adapter, without persisting cookies."""
+        if self.cookie:
+            return False
+        if self._guest_checked and time.monotonic() - self._guest_checked_at < 3600:
+            return bool(self._guest_cookie)
+        async with self._guest_lock:
+            if self._guest_checked and time.monotonic() - self._guest_checked_at < 3600:
+                return bool(self._guest_cookie)
+            self._guest_checked = True
+            self._guest_checked_at = time.monotonic()
+            payload = await self._request("/x/frontend/finger/spi")
+            data = payload.get("data")
+            if not isinstance(data, dict):
+                return False
+            values = (data.get("b_3"), data.get("b_4"))
+            if not all(
+                isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,128}", value)
+                for value in values
+            ):
+                return False
+            self._guest_cookie = f"buvid3={values[0]}; buvid4={values[1]}"
+            return True
 
     async def _keys(self, *, refresh: bool = False) -> str:
         if self._mixin and time.monotonic() - self._keys_since < 86400 and not refresh:
@@ -257,10 +287,16 @@ class Bilibili(Adapter):
         results = []
         seen: set[str] = set()
         for page in range(1, min(limits.max_pages, 2) + 1):
-            data = await self._signed(
-                "/x/web-interface/wbi/search/type",
-                {"search_type": "video", "keyword": term, "page": page},
-            )
+            params = {"search_type": "video", "keyword": term, "page": page}
+            data = await self._signed("/x/web-interface/wbi/search/type", params)
+            # A code=0 body with neither results nor numResults is not
+            # evidence that a search succeeded. Retry once with guest
+            # buvid cookies; keep SEARCH_ONLY until an actual clip is verified.
+            if not data.get("result") and not isinstance(data.get("numResults"), int):
+                if not self.cookie and await self._ensure_guest():
+                    data = await self._signed("/x/web-interface/wbi/search/type", params)
+                if not data.get("result") and not isinstance(data.get("numResults"), int):
+                    raise ProviderError("Bilibili silent empty search")
             for item in data.get("result") or []:
                 if not isinstance(item, dict) or item.get("is_pay") or item.get("is_charge_video"):
                     continue

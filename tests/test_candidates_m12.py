@@ -138,7 +138,10 @@ async def test_bilibili_nav_sign_wbi_then_search(monkeypatch):
     def handler(request):
         requests.append(request)
         assert request.headers["user-agent"] == USER_AGENT
+        if request.url.path.endswith("/finger/spi"):
+            return httpx.Response(200, json={"code": 0, "data": {"b_3": "guest3", "b_4": "guest4"}})
         if request.url.path.endswith("/nav"):
+            assert request.headers["cookie"] == "buvid3=guest3; buvid4=guest4"
             return httpx.Response(
                 200,
                 json={
@@ -165,9 +168,10 @@ async def test_bilibili_nav_sign_wbi_then_search(monkeypatch):
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         rows = await probe_candidate(client, "bilibili", "es", resolver=PUBLIC_RESOLVER)
-    assert len(requests) == 2
-    assert [r["operation"] for r in rows] == ["init", "search"]
-    assert rows[1]["count"] == 1 and rows[1]["platform_code"] == 0
+    assert len(requests) == 3
+    assert [r["operation"] for r in rows] == ["init", "init", "search"]
+    assert rows[2]["count"] == 1 and rows[2]["platform_code"] == 0
+    assert "cookie" not in str(rows).lower()
 
 
 @pytest.mark.asyncio
@@ -212,7 +216,7 @@ async def test_rutube_search_then_play_options_with_user_agent():
         requests.append(request)
         assert request.headers["user-agent"] == USER_AGENT
         if request.url.path == "/api/search/video/":
-            assert request.url.params["query"] == "дождь"
+            assert request.url.params["query"] == "\u0434\u043e\u0436\u0434\u044c"
             return httpx.Response(200, json={"results": [{"id": "safe_test_id"}]})
         assert request.url.path == "/api/play/options/safe_test_id/"
         assert request.headers.get("referer") == "https://rutube.ru/video/safe_test_id/"
@@ -261,7 +265,7 @@ def test_candidate_report_displays_error_type_and_search_nil_info():
     assert "search_nil_info" in markdown
     assert "TimeoutException" in markdown
     assert "NO_HTTP_RESPONSE" in markdown
-    assert " | sí | " in markdown
+    assert " | s\xed | " in markdown
 
 
 def test_smoke_no_mode_runs_both_report_families(tmp_path, monkeypatch):
