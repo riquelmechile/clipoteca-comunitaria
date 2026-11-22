@@ -24,6 +24,11 @@
 - Capacidades: download pasa a supported en library_of_congress, ok_ru
   y vk_video tras DOWNLOAD_OK real en el smoke 45041573596 sobre main
   f1489d0 (11 proveedores OK). RuTube y Dzen siguen best_effort.
+- RuTube: playlists HLS de hasta 20000 lineas (antes 1200); el smoke
+  45042490505 fallo con "HLS playlist too large" en videos largos.
+- OK.ru: busqueda y embed siguen hasta 3 redirecciones HTTPS dentro de
+  ok.ru/okcdn.ru/mycdn.me, cada salto con DNS e IP fijada; fuera de la
+  allowlist se rechaza (smoke 45042490505: "provider redirect rejected").
 - Version 2.0.2 en Python, Worker, OpenAPI, lockfiles y pruebas.
   Ninguna capacidad se promociona; requiere otro smoke en main.
 

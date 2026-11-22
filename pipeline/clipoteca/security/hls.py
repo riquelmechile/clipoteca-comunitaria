@@ -63,7 +63,7 @@ def _lines(playlist: str) -> list[str]:
     if not playlist.lstrip().startswith("#EXTM3U"):
         raise DownloadError("invalid HLS playlist")
     rows = [row.strip() for row in playlist.splitlines() if row.strip()]
-    if len(rows) > 1200:
+    if len(rows) > 20000:
         raise DownloadError("HLS playlist too large")
     if any(row.startswith("#EXT-X-KEY") or row.startswith("#EXT-X-MAP") for row in rows):
         # No AES keys or byte-range fMP4 segments are fetched implicitly.

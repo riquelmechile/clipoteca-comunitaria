@@ -18,8 +18,8 @@ from .base import (
     SupportStatus,
     detect_source_language,
 )
-from .http import fetch_json, fetch_text, provider_client
-from .m17_common import allowed_https, duration, json_attributes, walk
+from .http import fetch_json, provider_client
+from .m17_common import allowed_https, duration, fetch_text_follow, json_attributes, walk
 
 SEARCH = "https://ok.ru/video/search"
 PAGE = "https://ok.ru/web-api/v2/video/fetchSearchResult"
@@ -82,9 +82,10 @@ class OkRu(Adapter):
         self.client = client or provider_client()
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
-        document = await fetch_text(
+        document = await fetch_text_follow(
             self.client,
             SEARCH + "/" + quote(term, safe=""),
+            ROOTS,
             timeout_seconds=limits.timeout_seconds,
         )
         payloads = json_attributes(document, "data-props")
@@ -134,7 +135,9 @@ class OkRu(Adapter):
         if not ID.fullmatch(candidate.provider_id):
             return None
         referer = EMBED + candidate.provider_id
-        document = await fetch_text(self.client, referer, headers={"Referer": "https://ok.ru/"})
+        document = await fetch_text_follow(
+            self.client, referer, ROOTS, headers={"Referer": "https://ok.ru/"}
+        )
         payloads = json_attributes(document, "data-options")
         expanded = list(payloads)
         for payload in payloads:
