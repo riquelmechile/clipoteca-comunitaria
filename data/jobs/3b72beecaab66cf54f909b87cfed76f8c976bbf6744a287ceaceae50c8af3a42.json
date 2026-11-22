@@ -2,7 +2,7 @@
   "request_id": "3b72beecaab66cf54f909b87cfed76f8c976bbf6744a287ceaceae50c8af3a42",
   "status": "publishing",
   "attempt": 1,
-  "updated_at": "2026-11-22T10:51:26.819442Z",
+  "updated_at": "2026-11-22T10:52:20.282183Z",
   "language_counts": {
     "es": 23,
     "en": 23,
@@ -100,7 +100,8 @@
     "library_of_congress:2021689303": "download_error:HTTP 429",
     "library_of_congress:2021690380": "download_error:HTTP 429",
     "library_of_congress:2024697886": "download_error:HTTP 429",
-    "pexels:32693357": "translation_failed:en->es:unchanged_translation"
+    "pexels:32693357": "translation_failed:en->es:unchanged_translation",
+    "pexels:19526513": "ffmpeg_failed"
   },
   "terms": {
     "es": "volcán",
@@ -110,6 +111,7 @@
   },
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
-    "pexels:40955559": "embeddings_unavailable:m14_quality_fallback"
+    "pexels:40955559": "embeddings_unavailable:m14_quality_fallback",
+    "pexels:19526513": "embeddings_unavailable:m14_quality_fallback"
   }
 }
