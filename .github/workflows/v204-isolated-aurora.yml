@@ -1,0 +1,75 @@
+name: v204 isolated aurora translation probe
+on:
+  push:
+    branches:
+      - fix/v2.0.4-partial-translation
+permissions:
+  contents: read
+jobs:
+  aurora:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          python-version: "3.13"
+      - uses: ./.github/actions/prepare-translations
+      - run: uv sync --frozen --extra translate --extra dev
+      - run: uv run --no-sync pytest -q tests/test_ingest_partial_translation_v204.py
+        env:
+          CLIPOTECA_PERSIST_JOBS: "0"
+      - name: Probe real Argos via ingest with a nonpersisting fake provider
+        env:
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+          CLIPOTECA_PERSIST_JOBS: "0"
+        run: |
+          uv run --no-sync python - <<'PY'
+          import asyncio
+          import importlib
+          import json
+          import tempfile
+          from pathlib import Path
+          from types import SimpleNamespace
+          
+          from clipoteca.catalog import Catalog
+          from clipoteca.jobs import JobStore
+          from clipoteca.providers.base import Adapter, SupportStatus
+          mod = importlib.import_module("clipoteca.ingest")
+          mod._cached_embedding_encoder = lambda _loader: (None, "embeddings_unavailable:m14_quality_fallback")
+          
+          seen = []
+          class Probe(Adapter):
+              name = "probe"
+              support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+              async def search(self, term, lang, limits):
+                  seen.append(lang)
+                  return []
+              async def metadata(self, candidate):
+                  return {}
+              async def direct_media(self, candidate):
+                  return None
+          
+          root = Path(tempfile.mkdtemp(prefix="clipoteca-v204-")) / "jobs"
+          async def check():
+              return await mod.ingest(
+                  "aurora boreal", [Probe()],
+                  repository="testing/nonexistent", token="not-a-github-token",
+                  writer=SimpleNamespace(read_catalog=lambda: (Catalog(), None)),
+                  storage=object(), job_root=root,
+              )
+          report = asyncio.run(check())
+          job = JobStore(root).load(report.request_id)
+          warnings = {key: value for key, value in job["source_warnings"].items() if key.startswith("translation:")}
+          print("AURORA_PROBE=" + json.dumps({
+              "status": report.status,
+              "searched_languages": seen,
+              "available_terms": sorted(job["terms"]),
+              "translation_warnings": warnings,
+              "translation_error": job["source_errors"].get("translation"),
+          }, ensure_ascii=True))
+          assert report.status == "no_results", report.status
+          assert set(seen) == set(job["terms"])
+          assert "es" in seen
+          PY
