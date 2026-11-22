@@ -70,6 +70,8 @@ async def search_with_browser(
         "http_auth": 0,
         "oversize": 0,
         "largest_body_bytes": 0,
+        "status_codes": [],
+        "payload_shapes": [],
     }
 
     async def capture(response) -> None:
@@ -93,6 +95,19 @@ async def search_with_browser(
             data = json.loads(body)
             if isinstance(data, dict):
                 counts["valid_payloads"] += 1
+                if len(counts["status_codes"]) < 8:
+                    code = data.get("status_code")
+                    counts["status_codes"].append(code if isinstance(code, int) else "noninteger")
+                    raw_data = data.get("data")
+                    raw_items = data.get("item_list")
+                    counts["payload_shapes"].append(
+                        {
+                            "item_list_size": len(raw_items) if isinstance(raw_items, list) else -1,
+                            "data_list_size": len(raw_data) if isinstance(raw_data, list) else -1,
+                            "data_is_dict": isinstance(raw_data, dict),
+                            "top_items_size": len(data.get("items")) if isinstance(data.get("items"), list) else -1,
+                        }
+                    )
                 if len(payloads) < max(3, max_pages * 4):
                     payloads.append(data)
                 from .tiktok import _items

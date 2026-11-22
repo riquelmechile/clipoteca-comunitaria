@@ -29,6 +29,11 @@ jobs:
             uv pip install --python .venv/bin/python playwright==1.65.2
             uv run --no-sync python -m playwright install --with-deps chromium
           fi
+      - name: Control previous working Playwright profile, no persistence
+        env:
+          TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
+          CLIPOTECA_PERSIST_JOBS: "0"
+        run: uv run --no-sync python scripts/tiktok_probe_v205_temporal.py
       - name: Probe native signed search and bounded downloader, no persistence
         env:
           TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
