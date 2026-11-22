@@ -50,7 +50,14 @@ def _items(payload: dict) -> list[dict]:
     raw = payload.get("item_list") or payload.get("items")
     if raw is None and isinstance(data, dict):
         raw = data.get("item_list") or data.get("items")
-    return [item for item in raw if isinstance(item, dict)] if isinstance(raw, list) else []
+    if not isinstance(raw, list):
+        return []
+    # Browser API search wraps each video as {"item": {...}}.
+    return [
+        item.get("item", item)
+        for item in raw
+        if isinstance(item, dict) and isinstance(item.get("item", item), dict)
+    ]
 
 
 def _video_url(item: dict) -> str | None:

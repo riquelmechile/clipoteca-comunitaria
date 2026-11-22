@@ -60,6 +60,18 @@ jobs:
                                   report["media_download"]="error:"+type(exc).__name__
               except Exception as exc:
                   report["native"]="error:"+type(exc).__name__
+                  from clipoteca.providers.tiktok_browser import search_with_browser
+                  from clipoteca.providers.tiktok import _items
+                  diagnostics = {}
+                  try:
+                      pages = await search_with_browser(
+                          "aurora boreal", os.environ.get("TIKTOK_COOKIE",""), 2,
+                          diagnostics=diagnostics
+                      )
+                      report["browser_items"] = sum(len(_items(page)) for page in pages)
+                  except Exception as second:
+                      report["browser_status"] = type(second).__name__
+                  report["browser_diagnostics"] = diagnostics
               finally:
                   await adapter.client.aclose()
               # Only bounded enums/integers. Do not print raw URLs, model/cookie values, or exceptions.

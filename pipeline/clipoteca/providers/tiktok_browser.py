@@ -1,4 +1,4 @@
-"""Optional, bounded TikTok-only browser discovery. Cookies never leave memory."""
+"""Optional, bounded TikTok-only browser discovery. Cookies remain in memory."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from urllib.parse import quote, urlsplit
 
 from .base import AuthRequired, ProviderError
 
-# Known working search identity from the nonpersistent GitHub Actions probe.
+# Browser identity measured in a successful GitHub Actions session probe.
 _TIKTOK_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -18,24 +18,40 @@ _MAX_RESPONSE = 2 * 1024 * 1024
 
 
 def _browser_cookies(raw: str) -> list[dict[str, object]]:
-    """Accept only bounded Cookie-header pairs scoped to .tiktok.com."""
+    """Build bounded, TikTok-domain-only cookies from an HTTP Cookie header."""
+    raw = raw.strip()
+    if raw.lower().startswith("cookie:"):
+        raw = raw[7:].strip()
     if not raw or len(raw) > 16384 or any(c in raw for c in "\r\n\0"):
         return []
-    cookies: list[dict[str, object]] = []
+    result: list[dict[str, object]] = []
     for part in raw.split(";"):
         name, sep, value = part.strip().partition("=")
         if not sep or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", name):
             continue
         if not value or len(value) > 4096:
             continue
-        cookies.append(
-            {"name": name, "value": value, "domain": ".tiktok.com", "path": "/", "secure": True}
+        result.append(
+            {
+                "name": name,
+                "value": value,
+                "domain": ".tiktok.com",
+                "path": "/",
+                "secure": True,
+                "sameSite": "None",
+            }
         )
-    return cookies
+    return result
 
 
-async def search_with_browser(term: str, cookie: str, max_pages: int) -> list[dict]:
-    """Observe search API responses from a real browser; never serialize credentials."""
+async def search_with_browser(
+    term: str,
+    cookie: str,
+    max_pages: int,
+    *,
+    diagnostics: dict | None = None,
+) -> list[dict]:
+    """Capture valid /api/search/ responses; never export credentials or URLs."""
     cookies = _browser_cookies(cookie)
     if not cookies:
         raise AuthRequired("session_required")
@@ -46,17 +62,17 @@ async def search_with_browser(term: str, cookie: str, max_pages: int) -> list[di
 
     payloads: list[dict] = []
     pending: list[asyncio.Task] = []
-    auth_http = False
-    successful_responses = 0
+    ready = asyncio.Event()
+    counts = {"api_hits": 0, "valid_payloads": 0, "items": 0, "http_auth": 0}
 
     async def capture(response) -> None:
-        nonlocal auth_http, successful_responses
         try:
             url = urlsplit(response.url)
             if url.hostname != "www.tiktok.com" or not url.path.startswith("/api/search/"):
                 return
+            counts["api_hits"] += 1
             if response.status in (401, 403):
-                auth_http = True
+                counts["http_auth"] += 1
                 return
             if response.status != 200:
                 return
@@ -65,19 +81,29 @@ async def search_with_browser(term: str, cookie: str, max_pages: int) -> list[di
                 return
             data = json.loads(body)
             if isinstance(data, dict):
-                successful_responses += 1
+                counts["valid_payloads"] += 1
                 if len(payloads) < max(3, max_pages * 4):
                     payloads.append(data)
+                from .tiktok import _items
+
+                rows = _items(data)
+                counts["items"] += len(rows)
+                if rows:
+                    ready.set()
         except Exception:
-            # Browser errors and raw upstream text are not public diagnostics.
+            # No upstream exception details, URLs, headers, cookies or raw JSON.
             return
 
     try:
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=True)
+            browser = await playwright.chromium.launch(
+                headless=True, args=["--disable-blink-features=AutomationControlled"]
+            )
             try:
                 context = await browser.new_context(
-                    user_agent=_TIKTOK_UA, locale="es-ES", viewport={"width": 1365, "height": 768}
+                    user_agent=_TIKTOK_UA,
+                    locale="es-CL",
+                    viewport={"width": 1366, "height": 900},
                 )
                 await context.add_cookies(cookies)
                 page = await context.new_page()
@@ -89,23 +115,22 @@ async def search_with_browser(term: str, cookie: str, max_pages: int) -> list[di
                     await page.goto(
                         "https://www.tiktok.com/search/video?q=" + quote(term, safe=""),
                         wait_until="domcontentloaded",
-                        timeout=25000,
+                        timeout=60000,
                     )
                 except Exception:
-                    # A late navigation failure may coexist with captured API results.
+                    # Sometimes the API succeeds while the page navigation times out.
                     pass
                 for page_index in range(max(1, min(max_pages, 4))):
                     if page_index:
-                        await page.mouse.wheel(0, 4000)
-                    await page.wait_for_timeout(5500)
-                    if pending:
-                        await asyncio.gather(*pending, return_exceptions=True)
-                    if any(
-                        isinstance(payload.get("item_list") or payload.get("items"), list)
-                        and (payload.get("item_list") or payload.get("items"))
-                        for payload in payloads
-                    ):
+                        await page.mouse.wheel(0, 3000)
+                    try:
+                        await asyncio.wait_for(ready.wait(), timeout=12)
+                    except TimeoutError:
+                        pass
+                    if ready.is_set():
                         break
+                if pending:
+                    await asyncio.gather(*pending, return_exceptions=True)
                 login_modal = await page.locator(
                     '[data-e2e="login-modal"], [role="dialog"]:has-text("Log in")'
                 ).count()
@@ -118,6 +143,9 @@ async def search_with_browser(term: str, cookie: str, max_pages: int) -> list[di
         raise
     except Exception:
         raise ProviderError("tiktok_browser_unavailable") from None
-    if not payloads or (auth_http and not successful_responses):
+    finally:
+        if diagnostics is not None:
+            diagnostics.update(counts)
+    if not payloads:
         raise AuthRequired("session_required")
     return payloads
