@@ -14,8 +14,8 @@ from urllib.parse import quote, urlsplit
 import httpx
 
 from ..config import USER_AGENT
-
 from ..security.download import MAX_DOWNLOAD_BYTES
+
 from .http import provider_client
 from .base import (
     Adapter,
@@ -172,13 +172,19 @@ class Odysee(Adapter):
         return {"result": payload, **(candidate.metadata or {})}
 
     async def direct_media(self, candidate: Candidate) -> MediaRef | None:
+        """Keep normal ingest's preflight maximum size unchanged."""
+        size = int((candidate.metadata or {}).get("size_bytes") or 0)
+        if size > MAX_DOWNLOAD_BYTES:
+            return None
+        return await self.smoke_direct_media(candidate)
+
+    async def smoke_direct_media(self, candidate: Candidate) -> MediaRef | None:
+        """Resolve a public streaming URL for a prefix-only diagnostic."""
         meta = candidate.metadata or {}
         uri = str(meta.get("uri") or "")
         if not uri.startswith("lbry://"):
             return None
         size = int(meta.get("size_bytes") or 0)
-        if size > MAX_DOWNLOAD_BYTES:
-            return None
         result = await self._rpc("get", {"uri": uri, "save_file": False})
         url = str(result.get("streaming_url") or "")
         parsed = urlsplit(url)
@@ -187,4 +193,9 @@ class Odysee(Adapter):
         suffix = parsed.path.lower().rsplit(".", 1)[-1]
         if suffix not in {"mp4", "webm"}:
             return None
-        return MediaRef(url, "video/mp4" if suffix == "mp4" else "video/webm")
+        return MediaRef(
+            url,
+            "video/mp4" if suffix == "mp4" else "video/webm",
+            size_bytes=size or None,
+            allowed_hosts=("player.odycdn.com",),
+        )

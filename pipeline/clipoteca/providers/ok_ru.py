@@ -28,7 +28,9 @@ ROOTS = ("ok.ru", "okcdn.ru", "mycdn.me")
 ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 HLS = "application/vnd.apple.mpegurl"
 ID = re.compile(r"[0-9]{4,24}")
-STREAM_KEYS = frozenset({"url", "hls", "mp4", "streamurl", "downloadurl", "movieurl"})
+STREAM_KEYS = frozenset(
+    {"url", "hls", "mp4", "streamurl", "downloadurl", "movieurl", "hlsmanifesturl"}
+)
 
 
 def _rows(payloads: list[object]) -> list[dict]:
@@ -44,6 +46,7 @@ def _rows(payloads: list[object]) -> list[dict]:
 
 def _media(payloads: list[object]) -> str:
     links: list[str] = []
+    explicit_video_urls: list[str] = []
     for payload in payloads:
         for item in walk(payload):
             for key, value in item.items():
@@ -57,10 +60,14 @@ def _media(payloads: list[object]) -> str:
             if isinstance(videos, list):
                 for video in videos:
                     if isinstance(video, dict) and isinstance(video.get("url"), str):
-                        links.append(video["url"].replace("\\/", "/"))
+                        # OK.ru MP4 quality URLs are signed, often extensionless.
+                        explicit_video_urls.append(video["url"].replace("\\/", "/"))
     safe = [url for url in links if allowed_https(url, ROOTS)]
-    return next((url for url in safe if ".m3u8" in url.casefold()), None) or next(
-        (url for url in safe if ".mp4" in url.casefold()), ""
+    safe_videos = [url for url in explicit_video_urls if allowed_https(url, ROOTS)]
+    return (
+        next((url for url in safe if ".m3u8" in url.casefold()), None)
+        or next((url for url in safe if ".mp4" in url.casefold()), None)
+        or next(iter(safe_videos), "")
     )
 
 
