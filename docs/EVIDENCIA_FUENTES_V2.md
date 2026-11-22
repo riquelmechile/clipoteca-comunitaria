@@ -77,3 +77,57 @@ de busqueda, no de un clip descargado ni de un deploy Worker.
 - No se modifica data/runner-routing.json; una ruta propia exige
   comparacion controlada desde Actions y el runner aislado.
 - **Pendiente:** clip real, comparacion de runner, despliegue y demo E2E.
+
+
+## M24 r4 - diagnostico del smoke 44972077685 y correcciones
+
+**Procedencia:** [workflow live en main](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44972077685),
+SHA bf0454baa76c7aa8e2528b51f38302b30581cf0d. El artefacto
+data/reports/smoke-44972077685.json es inmutable: el codigo de esta
+rama todavia no ha sido probado en un nuevo smoke.
+
+- Internet Archive: las cuatro consultas UNAVAILABLE se atribuyeron al
+  eco cambiado en advancedsearch.php. responseHeader.params usa qin para
+  la consulta original y query para la forma normalizada, no q. El
+  adaptador acepta q o qin igual al enviado; sin eco registra un aviso
+  y conserva solo documentos con identifier y mediatype=movies.
+  Un eco explicitamente distinto sigue rechazado.
+- RuTube: cuatro consultas HTTP 200 sin resultados. El endpoint de
+  busqueda necesita client=wdp; la reproduccion play/options no se
+  modifica porque no hay evidencia nueva de que requiera ese parametro.
+- OK.ru: URL anterior responde 301. La ruta nueva es
+  /video/search/<termino-codificado>; desde el entorno de prueba se
+  obtuvo HTTP 200 y una pagina con 20 registros dentro de
+  video-search-result data-props. Fixture recortado y sin URLs/CDN;
+  esto no certifica una descarga real.
+- Library of Congress: tiempos agotados de 6 s en Actions y HTTP 429
+  en la reproduccion externa. El smoke usa 45 s, separa idiomas del
+  mismo proveedor al menos 500 ms y la API respeta Retry-After
+  de 429 con un maximo acotado.
+- Bilibili: code=0 con result vacio y sin numResults ya no cuenta
+  como busqueda exitosa. Prueba SPI invitado buvid3/buvid4 en memoria
+  y solo los envia a api.bilibili.com. Un vacio sin numResults tras
+  el reintento es silent_block; el estado queda search-only.
+- Douyin: status_code 2483 indica session_required; TikTok: registro
+  invitado 1001 junto con lista vacia indica session_required.
+  Requieren DOUYIN_COOKIE / TIKTOK_COOKIE o una prueba comparativa en
+  runner propio aislado. No se evaden verificaciones ni se activan
+  rutas nuevas por defecto.
+- VK Video: el login anonimo devuelve 429 o timeout segun la red.
+  Se comparte el token valido entre instancias y un backoff de
+  fallo entre idiomas; se reporta RATE_LIMITED para 429, respetando
+  el Retry-After acotado. No equivale a falta de credenciales.
+- Smoke r4: probe por idioma en serie dentro de cada proveedor,
+  error_type mas error_detail solo para excepciones propias con
+  mensaje ASCII limitado; estado HTTP solo si se observa en un
+  mensaje propio. No guardar URLs, headers, tokens ni cuerpos.
+
+NASA devolvio resultados en ingles; que no devuelva material para
+es, zh o ru es una limitacion del contenido y no un fallo tecnico.
+PeerTube depende de instancias permitidas y mostro material en ingles:
+la ausencia de resultados en otros idiomas tampoco es un error.
+
+**Aun pendiente:** repetir smoke en main despues del merge, verificar
+descarga de clips reales, comparar bloqueo IP en runner aislado y
+realizar demo E2E. Ninguna fuente asciende a SUPPORTED_SEARCH_DOWNLOAD
+con evidencia de solo busqueda. No se modifica .github/.

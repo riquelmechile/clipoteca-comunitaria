@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from urllib.parse import quote, urljoin, urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 
@@ -104,7 +104,7 @@ class Rutube(Adapter):
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         pages = max(1, min(limits.max_pages, 5))
         url = SEARCH_URL
-        params = {"query": term, "page": 1, "limit": 30}
+        params = {"query": term, "page": 1, "limit": 30, "client": "wdp"}
         found: list[Candidate] = []
         seen: set[str] = set()
         for _page in range(pages):
@@ -157,7 +157,9 @@ class Rutube(Adapter):
                 or split.path != "/api/search/video/"
             ):
                 raise ProviderError("RuTube pagination origin is not allowed")
-            url = resolved
+            query_parts = dict(parse_qsl(split.query, keep_blank_values=True))
+            query_parts["client"] = "wdp"
+            url = urlunsplit(split._replace(query=urlencode(query_parts)))
             params = None
         return found
 

@@ -1,0 +1,15 @@
+{
+  "response": {
+    "docs": [
+      {
+        "identifier": "movie_1",
+        "mediatype": "movies",
+        "title": "Rain"
+      },
+      {
+        "identifier": "not_a_movie",
+        "mediatype": "audio"
+      }
+    ]
+  }
+}

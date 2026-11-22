@@ -81,7 +81,7 @@ async def test_bilibili_empty_and_network_timeout():
     def handler(req):
         if req.url.path.endswith("/nav"):
             return httpx.Response(200, json=_WBI_NAV)
-        return httpx.Response(200, json={"code": 0, "data": {"result": []}})
+        return httpx.Response(200, json={"code": 0, "data": {"result": [], "numResults": 0}})
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     assert await Bilibili(client=client).search("rain", "en", SearchLimits()) == []

@@ -36,6 +36,7 @@ ROOTS = ("vkvideo.ru", "vk.com", "vkuser.net", "userapi.com", "vk-cdn.net")
 ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 HLS = "application/vnd.apple.mpegurl"
 _TOKEN: tuple[str, float] | None = None
+_TOKEN_BACKOFF_UNTIL = 0.0
 _TOKEN_LOCK = asyncio.Lock()
 
 
@@ -107,7 +108,7 @@ class VKVideo(Adapter):
         self.clock = clock
 
     async def _token(self) -> str:
-        global _TOKEN
+        global _TOKEN, _TOKEN_BACKOFF_UNTIL
         if self.token:
             return self.token
         if _TOKEN and self.clock() < _TOKEN[1] - 60:
@@ -115,14 +116,23 @@ class VKVideo(Adapter):
         async with _TOKEN_LOCK:
             if _TOKEN and self.clock() < _TOKEN[1] - 60:
                 return _TOKEN[0]
-            payload = await fetch_json(
-                self.client,
-                LOGIN,
-                method="POST",
-                params={"act": "get_anonym_token"},
-                data={"client_id": WEB_CLIENT_ID},
-                headers={"Origin": ORIGIN, "Referer": ORIGIN + "/"},
-            )
+            # One failed anonymous login must not trigger four new 429s
+            # from four language adapters in the same process.
+            if self.clock() < _TOKEN_BACKOFF_UNTIL:
+                raise RateLimited("VK anonymous login rate limited")
+            try:
+                payload = await fetch_json(
+                    self.client,
+                    LOGIN,
+                    method="POST",
+                    params={"act": "get_anonym_token"},
+                    data={"client_id": WEB_CLIENT_ID},
+                    headers={"Origin": ORIGIN, "Referer": ORIGIN + "/"},
+                    max_retry_after_seconds=5.0,
+                )
+            except RateLimited:
+                _TOKEN_BACKOFF_UNTIL = self.clock() + 15.0
+                raise RateLimited("VK anonymous login rate limited") from None
             _error(payload)
             nested = payload.get("data") if isinstance(payload.get("data"), dict) else {}
             token = str(

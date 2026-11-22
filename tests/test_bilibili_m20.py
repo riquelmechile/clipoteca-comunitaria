@@ -212,7 +212,7 @@ async def test_wbi_rekeys_on_minus_352_and_minus_403():
         calls["search"] += 1
         if calls["search"] == 1:
             return httpx.Response(200, json={"code": -352})
-        return httpx.Response(200, json={"code": 0, "data": {"result": []}})
+        return httpx.Response(200, json={"code": 0, "data": {"result": [], "numResults": 0}})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(responder)) as client:
         await Bilibili(client=client).search("rain", "en", SearchLimits(max_pages=1))
@@ -412,7 +412,7 @@ async def test_nav_keys_concurrent_requests_single_refresh():
         if req.url.path.endswith("/nav"):
             counts["nav"] += 1
             return httpx.Response(200, json=NAV)
-        return httpx.Response(200, json={"code": 0, "data": {"result": []}})
+        return httpx.Response(200, json={"code": 0, "data": {"result": [], "numResults": 0}})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(responder)) as client:
         adapter = Bilibili(client=client)

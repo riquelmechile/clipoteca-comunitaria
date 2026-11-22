@@ -6,18 +6,58 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
 
-from clipoteca.providers.base import AuthRequired, RateLimited, SearchLimits
+from clipoteca.providers.base import (
+    AuthRequired,
+    ProviderError,
+    ProviderTimeout,
+    RateLimited,
+    SearchLimits,
+)
+from clipoteca.security.download import DownloadError
 from clipoteca.sources import SOURCES
 from clipoteca.candidate_probe import candidates_smoke
 
 TERMS = {"es": "lluvia", "en": "rain", "zh": "\u4e0b\u96e8", "ru": "\u0434\u043e\u0436\u0434\u044c"}
 REPO = "riquelmechile/clipoteca-comunitaria"
+
+
+# Our own typed errors may be recorded, but only with narrow ASCII grammar.
+# No upstream exception body, URL, header or token reaches the artifact.
+_SAFE_ERROR = re.compile(r"[A-Za-z0-9 ._:()-]{1,120}\Z")
+
+
+def _diagnostic(row: dict, exc: Exception) -> None:
+    row["error_type"] = type(exc).__name__
+    if not isinstance(exc, (ProviderError, AuthRequired, RateLimited, DownloadError)):
+        return
+    message = str(exc)
+    lower = message.casefold()
+    forbidden = (
+        "http:",
+        "https:",
+        "bearer ",
+        "cookie",
+        "api_key",
+        "access_token",
+        "authorization",
+        "password",
+        "secret",
+        "signature",
+    )
+    if _SAFE_ERROR.fullmatch(message) and not any(x in lower for x in forbidden):
+        row["error_detail"] = message
+        status = re.search(r"HTTP ([1-5][0-9]{2})", message)
+        if status:
+            row["http_status"] = int(status.group(1))
+    else:
+        row["error_detail"] = "redacted"
 
 
 async def probe(spec, lang: str, *, timeout: float = 6.0) -> dict:
@@ -29,25 +69,26 @@ async def probe(spec, lang: str, *, timeout: float = 6.0) -> dict:
         return row
     adapter = None
     try:
-        # Constructors are untrusted provider boundaries too: an invalid
-        # allowlist must not abort all the other provider/language probes.
         adapter = spec.adapter()
+        effective_timeout = float(getattr(adapter, "smoke_timeout_seconds", timeout))
         result = await asyncio.wait_for(
-            adapter.search(TERMS[lang], lang, SearchLimits(1, 3, timeout)),
-            timeout=timeout,
+            adapter.search(TERMS[lang], lang, SearchLimits(1, 3, effective_timeout)),
+            timeout=effective_timeout,
         )
         row["status"] = str(adapter.support_status)
         row["count"] = len(result)
-    except RateLimited:
+    except RateLimited as exc:
         row["status"] = "RATE_LIMITED"
-    except AuthRequired:
-        row["status"] = "AUTH_REQUIRED"
-    except asyncio.TimeoutError:
+        _diagnostic(row, exc)
+    except AuthRequired as exc:
+        row["status"] = "SESSION_REQUIRED" if str(exc) == "session_required" else "AUTH_REQUIRED"
+        _diagnostic(row, exc)
+    except (ProviderTimeout, asyncio.TimeoutError) as exc:
         row["status"] = "TIMEOUT"
+        _diagnostic(row, exc)
     except Exception as exc:
-        # Exception *class* only; no provider data, source URL, or token.
         row["status"] = "UNAVAILABLE"
-        row["error_type"] = type(exc).__name__
+        _diagnostic(row, exc)
     finally:
         client = getattr(adapter, "client", None) if adapter is not None else None
         if client is not None and hasattr(client, "aclose"):
@@ -103,18 +144,20 @@ async def main_async() -> dict:
     started = time.monotonic()
     sem = asyncio.Semaphore(6)
 
-    async def bounded(spec, language: str):
+    async def bounded_provider(spec):
         async with sem:
-            return await probe(spec, language)
+            rows = []
+            languages = [lang for lang in TERMS if lang in spec.adapter.accepts_text_languages]
+            for index, language in enumerate(languages):
+                # No parallel requests to the same provider; avoid generating
+                # the 429s that the smoke is intended to diagnose.
+                if index:
+                    await asyncio.sleep(0.5)
+                rows.append(await probe(spec, language))
+            return rows
 
-    results = await asyncio.gather(
-        *(
-            bounded(spec, lang)
-            for spec in SOURCES
-            for lang in TERMS
-            if lang in spec.adapter.accepts_text_languages
-        )
-    )
+    batches = await asyncio.gather(*(bounded_provider(spec) for spec in SOURCES))
+    results = [row for batch in batches for row in batch]
     return {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "github": {
