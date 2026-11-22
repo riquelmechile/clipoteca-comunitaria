@@ -1,5 +1,24 @@
 # Historial de cambios
 
+## 2.0.3 (desbloqueos medidos desde GitHub Actions)
+
+- Dzen: sesion anonima como bolknote/0W-Tube (MIT): las redirecciones SSO
+  (sso.dzen.ru, sso.passport.yandex.ru) solo dejan cookies anonimas; nunca
+  se visitan y se repite la URL original (max 4 intentos). Pagina de video
+  hasta 8 MiB. Streams en el CDN VK/OK (vd*.okcdn.ru) permitidos; ese CDN
+  firma la URL con srcAg=CHROME y responde 400 a otro User-Agent, asi que
+  MediaRef lleva un user_agent opcional que usan HLS y MP4 (sin CR/LF).
+- Bilibili: busqueda con cabeceras de navegador (UA, Origin, Referer,
+  Accept-Language) y SIN cookies de invitado: medido en Actions, con
+  buvid3/buvid4/b_nut la busqueda vuelve vacia y sin ellas trae 20
+  resultados en es/en/zh/ru. El cid sale de /x/player/pagelist porque
+  /x/web-interface/view, wbi/view y la pagina HTML dan 412 desde Actions.
+  Espejos upos-*.akamaized.net permitidos.
+- Douyin y TikTok: medido con Chromium real en Actions, la busqueda por
+  palabra exige sesion iniciada (Douyin 2483 + captcha, TikTok 403 + login).
+  Sin cambios de codigo en esta version.
+- Version 2.0.3 en Python, Worker, OpenAPI, lockfiles y pruebas.
+
 ## 2.0.2 (correcciones de descarga, sin deploy ni tag)
 
 - Smoke downloads: archivos MP4/WebM se prueban con Range de 8 MiB y

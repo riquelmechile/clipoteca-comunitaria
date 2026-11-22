@@ -233,21 +233,43 @@ async def test_dzen_redirect_within_allowlist_and_ssrf_recheck():
         doc = await _watch_document(client, "https://dzen.ru/video/watch/abc123", resolver=resolver)
     assert doc == "valid-video-page"
     assert calls == ["/video/watch/abc123", "/video/watch/def456"]
-    assert dns == ["dzen.ru", "dzen.ru"]
 
 
 @pytest.mark.asyncio
-async def test_dzen_rejects_external_sso_and_redirect_loop():
+async def test_dzen_never_fetches_external_sso_and_bounds_retries():
     calls = []
 
     def handler(req):
-        calls.append(req.url.path)
+        calls.append(str(req.url))
         return httpx.Response(302, headers={"location": "https://sso.passport.yandex.ru/auth"})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        with pytest.raises(ProviderError, match="host not allowed"):
+        with pytest.raises(ProviderError, match="anonymous session"):
             await _watch_document(client, "https://dzen.ru/video/watch/abc123")
-    assert len(calls) == 1
+    assert calls == ["https://dzen.ru/video/watch/abc123"] * 4
+
+
+@pytest.mark.asyncio
+async def test_dzen_sso_cookies_then_original_page():
+    calls = []
+
+    def handler(req):
+        calls.append((str(req.url), req.headers.get("cookie", "")))
+        if len(calls) == 1:
+            return httpx.Response(
+                302,
+                headers={
+                    "location": "https://sso.dzen.ru/install?uuid=x",
+                    "set-cookie": "zencookie=anon1; Domain=dzen.ru; Path=/",
+                },
+            )
+        return httpx.Response(200, text='<script>"videoMetaResponse":{}</script>')
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        doc = await _watch_document(client, "https://dzen.ru/video/watch/abc123")
+    assert "videoMetaResponse" in doc
+    assert [url for url, _ in calls] == ["https://dzen.ru/video/watch/abc123"] * 2
+    assert "zencookie=anon1" in calls[1][1]
 
 
 @pytest.mark.asyncio

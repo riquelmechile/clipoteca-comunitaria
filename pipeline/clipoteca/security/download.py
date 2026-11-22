@@ -66,12 +66,17 @@ async def download_media(
     allowed_hosts: tuple[str, ...] = (),
     referer: str | None = None,
     allowed_mime_types: frozenset[str] | None = None,
+    user_agent: str | None = None,
 ) -> Path:
     if max_bytes < 1:
         raise ValueError("max_bytes must be positive")
+    if user_agent is not None and (
+        not user_agent or len(user_agent) > 256 or any(ch in user_agent for ch in "\r\n")
+    ):
+        raise ValueError("invalid media User-Agent")
     if probe_prefix_bytes is not None and not 12 <= probe_prefix_bytes <= max_bytes:
         raise ValueError("invalid media probe prefix cap")
-    headers = {"User-Agent": USER_AGENT}
+    headers = {"User-Agent": user_agent or USER_AGENT}
     if probe_prefix_bytes is not None:
         headers["Range"] = f"bytes=0-{probe_prefix_bytes - 1}"
     if referer is not None:

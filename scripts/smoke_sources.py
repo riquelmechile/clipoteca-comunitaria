@@ -113,6 +113,7 @@ async def _download_candidate(media, stage: Path) -> Path:
                 allowed_hosts=media.allowed_hosts,
                 max_duration=DOWNLOAD_CLIP_SECONDS,
                 max_bytes=DOWNLOAD_LIMIT_BYTES,
+                user_agent=getattr(media, "user_agent", None),
             ),
             timeout=DOWNLOAD_DEADLINE_SECONDS,
         )
@@ -127,6 +128,7 @@ async def _download_candidate(media, stage: Path) -> Path:
         total_seconds=DOWNLOAD_DEADLINE_SECONDS,
         allowed_hosts=media.allowed_hosts,
         referer=referer,
+        user_agent=getattr(media, "user_agent", None),
     )
 
 

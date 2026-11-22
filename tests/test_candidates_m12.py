@@ -137,11 +137,11 @@ async def test_bilibili_nav_sign_wbi_then_search(monkeypatch):
 
     def handler(request):
         requests.append(request)
-        assert request.headers["user-agent"] == USER_AGENT
-        if request.url.path.endswith("/finger/spi"):
-            return httpx.Response(200, json={"code": 0, "data": {"b_3": "guest3", "b_4": "guest4"}})
+        assert request.headers["user-agent"].startswith("Mozilla/5.0")
+        assert request.headers["origin"] == "https://www.bilibili.com"
+        assert "cookie" not in request.headers
+        assert not request.url.path.endswith("/finger/spi")
         if request.url.path.endswith("/nav"):
-            assert request.headers["cookie"] == "buvid3=guest3; buvid4=guest4"
             return httpx.Response(
                 200,
                 json={
@@ -168,9 +168,9 @@ async def test_bilibili_nav_sign_wbi_then_search(monkeypatch):
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         rows = await probe_candidate(client, "bilibili", "es", resolver=PUBLIC_RESOLVER)
-    assert len(requests) == 3
-    assert [r["operation"] for r in rows] == ["init", "init", "search"]
-    assert rows[2]["count"] == 1 and rows[2]["platform_code"] == 0
+    assert len(requests) == 2
+    assert [r["operation"] for r in rows] == ["init", "search"]
+    assert rows[1]["count"] == 1 and rows[1]["platform_code"] == 0
     assert "cookie" not in str(rows).lower()
 
 
