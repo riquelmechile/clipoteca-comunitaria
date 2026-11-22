@@ -14,23 +14,23 @@
 
 ---
 
-> **Estado v2: 2.0.0 en preparacion, M24 pendiente de evidencia live.** La version del codigo y sus contratos estan sincronizados, pero el Worker desplegado se verifico previamente con v1.0.0; este cambio NO despliega 2.0.0, ni crea tag o release. El smoke por proveedor/idioma, la matriz live y la demo E2E de cinco escenas siguen pendientes. **Evidencia historica v1:** Servicio: [clipoteca-worker.sc-plasticov.workers.dev](https://clipoteca-worker.sc-plasticov.workers.dev), con API REST `/v1/*` y MCP Streamable HTTP `/mcp`. Hay **8 clips reales publicados** en el cat&#xE1;logo, con material de Pexels, PeerTube y un aporte comunitario ([Issue #26](https://github.com/riquelmechile/clipoteca-comunitaria/issues/26), `clip-000008`). La ingesta admite consultas ES/EN/ZH/RU. Los proveedores que requieren credenciales ausentes se clasifican `AUTH_REQUIRED`; Bilibili bloquea solicitudes desde determinadas IP de centros de datos. La verificaci&#xF3;n real no equivale a disponibilidad universal de las 15 fuentes ni a costos facturados conocidos. Ver [evidencias v1](docs/INFORME_V1.md) y [operaci&#xF3;n M10](docs/OPERACION_M10.md).
+> **Estado v2: 2.0.0 en preparacion, M24 pendiente de evidencia live.** La version del codigo y sus contratos estan sincronizados, pero el Worker desplegado se verifico previamente con v1.0.0; este cambio NO despliega 2.0.0, ni crea tag o release. El smoke por proveedor/idioma, la matriz live y la demo E2E de cinco escenas siguen pendientes. **Evidencia historica v1:** Servicio: [clipoteca-worker.clipoteca.workers.dev](https://clipoteca-worker.clipoteca.workers.dev), con API REST `/v1/*` y MCP Streamable HTTP `/mcp`. Hay **8 clips reales publicados** en el cat&#xE1;logo, con material de Pexels, PeerTube y un aporte comunitario ([Issue #26](https://github.com/riquelmechile/clipoteca-comunitaria/issues/26), `clip-000008`). La ingesta admite consultas ES/EN/ZH/RU. Los proveedores que requieren credenciales ausentes se clasifican `AUTH_REQUIRED`; Bilibili bloquea solicitudes desde determinadas IP de centros de datos. La verificaci&#xF3;n real no equivale a disponibilidad universal de las 15 fuentes ni a costos facturados conocidos. Ver [evidencias v1](docs/INFORME_V1.md) y [operaci&#xF3;n M10](docs/OPERACION_M10.md).
 
 ## Uso
 
 Buscar clips p&#xFA;blicos desde la API REST (el filtro `aspect_ratio` usa URL encoding):
 
 ```bash
-curl --fail-with-body -sS 'https://clipoteca-worker.sc-plasticov.workers.dev/v1/clips?q=lluvia&aspect_ratio=9%3A16'
+curl --fail-with-body -sS 'https://clipoteca-worker.clipoteca.workers.dev/v1/clips?q=lluvia&aspect_ratio=9%3A16'
 ```
 
-Conectar un cliente MCP compatible con HTTP remoto usando la direcci&#xF3;n `https://clipoteca-worker.sc-plasticov.workers.dev/mcp`. Ejemplo de configuraci&#xF3;n para un cliente que acepta `mcpServers`:
+Conectar un cliente MCP compatible con HTTP remoto usando la direcci&#xF3;n `https://clipoteca-worker.clipoteca.workers.dev/mcp`. Ejemplo de configuraci&#xF3;n para un cliente que acepta `mcpServers`:
 
 ```json
 {
   "mcpServers": {
     "clipoteca": {
-      "url": "https://clipoteca-worker.sc-plasticov.workers.dev/mcp"
+      "url": "https://clipoteca-worker.clipoteca.workers.dev/mcp"
     }
   }
 }

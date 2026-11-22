@@ -2,7 +2,7 @@
 
 ## Estado de esta entrega
 
-**Estado verificado 21-11-2026:** Worker Cloudflare desplegado en `https://clipoteca-worker.sc-plasticov.workers.dev` con REST `/v1/*` y MCP `/mcp`; 8 clips reales publicados (Pexels, PeerTube y aporte comunitario). Los workflows reales de ingesta, importación desde Worker, PeerTube, aporte automático y smoke cuentan con evidencias enlazadas en [INFORME_V1.md](INFORME_V1.md). El CI de preparación del release debe validarse aparte; los mocks no sustituyen E2E.
+**Estado verificado 21-11-2026:** Worker Cloudflare desplegado en `https://clipoteca-worker.clipoteca.workers.dev` con REST `/v1/*` y MCP `/mcp`; 8 clips reales publicados (Pexels, PeerTube y aporte comunitario). Los workflows reales de ingesta, importación desde Worker, PeerTube, aporte automático y smoke cuentan con evidencias enlazadas en [INFORME_V1.md](INFORME_V1.md). El CI de preparación del release debe validarse aparte; los mocks no sustituyen E2E.
 
 
 ## Gates de CI sin red
@@ -31,7 +31,7 @@ Requiere Python 3.13, Node 22 o superior y FFmpeg. Para métricas y 15 proveedor
 
 ```bash
 set -euo pipefail
-CLIPOTECA_API="${CLIPOTECA_API:-https://clipoteca-worker.sc-plasticov.workers.dev}"
+CLIPOTECA_API="${CLIPOTECA_API:-https://clipoteca-worker.clipoteca.workers.dev}"
 curl --fail-with-body -sS "${CLIPOTECA_API}/v1/health"
 curl --fail-with-body -sS "${CLIPOTECA_API}/v1/clips?q=lluvia&aspect_ratio=9%3A16"
 curl --fail-with-body -sS -H 'content-type: application/json' \
