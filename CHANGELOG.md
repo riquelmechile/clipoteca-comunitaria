@@ -82,6 +82,20 @@ como run 44972077685; la demo E2E y el despliegue siguen pendientes.
   despliegue del Worker 2.0.0, consulta semantica y demo E2E MCP reales,
   tag/release solo con autorizacion posterior. M24 sigue incompleto.
 
+
+- **Segundo smoke M24 r6 (sin release):** run_id 44977121143,
+  refs/heads/main, SHA fd17e46aee3fb10a957425e5841cbe43ef572ed9,
+  artefacto clipoteca-smoke-44977121143; 92 consultas principales,
+  48 candidatas y 118 resultados principales (64 en primer smoke).
+  Internet Archive, RuTube, OK.ru y VK encontraron 3 resultados por
+  idioma en Actions; Bilibili silent_block, Douyin/TikTok session_required,
+  LoC rate_limited zh/ru. Evidencia registrada en matriz, reporte
+  y docs/EVIDENCIA_FUENTES_V2.md; sin promover descarga.
+  PROPUESTAS de runner aislado en docs/RUNNER_PROPIO.md, sin activacion.
+- **Sigue M24 [ ]:** Zana debe aprobar deploy Worker 2.0.0, aplicar YAML
+  del operador, demostrar E2E real, decidir runner propio y autorizar
+  tag/release. Este PR no hace deploy, tag ni release.
+
 ---
 
 

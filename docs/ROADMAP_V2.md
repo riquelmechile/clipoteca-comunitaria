@@ -59,3 +59,30 @@ autorizar y medir el despliegue del Worker 2.0.0, ejecutar la consulta
 semantica real y la demo E2E MCP de cinco escenas, y decidir tag/release.
 M24 **permanece [ ]** hasta esa demo E2E reproducible. Consultar
 docs/OPERACION_V2.md, docs/RUNNER_PROPIO.md y docs/DEMO_E2E_V2.md.
+
+## Evidencia M24 r6 - segundo smoke real en main
+
+Ejecucion smoke.yml por workflow_dispatch en refs/heads/main:
+run_id 44977121143, SHA fd17e46aee3fb10a957425e5841cbe43ef572ed9
+(merge de PR #65). Artefacto clipoteca-smoke-44977121143.
+**Cobertura:** 92 filas de 23 proveedores y cuatro idiomas y 48 sondas
+candidatas. Las busquedas principales observaron 118 resultados
+(64 en el run anterior 44972077685). Internet Archive, RuTube,
+OK.ru y VK Video entregaron 3 resultados por idioma desde Actions.
+Las cifras no prueban descarga de clips, CDN ni soporte en todas las redes.
+Los resultados y fallos completos constan en
+data/reports/smoke-44977121143.json, docs/MATRIZ_FUENTES_V2.md
+y docs/EVIDENCIA_FUENTES_V2.md.
+
+Bilibili permanece silent_block; Douyin y TikTok session_required;
+LoC presenta RATE_LIMITED zh/ru. Se proponen ensayos controlados en
+runner propio aislado, NO se activa data/runner-routing.json.
+
+**M24 sigue [ ] y NO se cierra con el smoke. Acciones de Zana:**
+- Decidir y autorizar el deploy real del Worker 2.0.0.
+- Aplicar manualmente el YAML del operador con controles de seguridad.
+- Ejecutar y documentar demo E2E real REST/MCP, cinco escenas y assets.
+- Decidir sobre runner propio tras comparacion de Actions y red aislada.
+- Autorizar tag/release solo una vez cerradas las verificaciones anteriores.
+
+Ningun tag, release o despliegue se realizo en M24 r6.
