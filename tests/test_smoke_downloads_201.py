@@ -110,7 +110,7 @@ async def test_download_error_does_not_store_urls_or_secrets(smoke, monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_download_hls_uses_short_cut_and_low_byte_cap(smoke, monkeypatch, tmp_path):
+async def test_download_hls_probe_uses_short_cut_and_low_byte_cap(smoke, monkeypatch, tmp_path):
     media = MediaRef(
         "https://cdn.example.com/master.m3u8",
         "application/vnd.apple.mpegurl",
@@ -125,7 +125,7 @@ async def test_download_hls_uses_short_cut_and_low_byte_cap(smoke, monkeypatch, 
         target.write_bytes(bytes.fromhex("000000186674797069736f6d"))
         return target
 
-    monkeypatch.setattr(smoke, "download_hls", fake_hls)
+    monkeypatch.setattr(smoke, "download_hls_probe", fake_hls)
     path = await smoke._download_candidate(media, tmp_path)
     assert path.exists()
     assert calls[0][2]["max_bytes"] == 8 * 1024 * 1024
@@ -134,7 +134,7 @@ async def test_download_hls_uses_short_cut_and_low_byte_cap(smoke, monkeypatch, 
 
 
 @pytest.mark.asyncio
-async def test_download_mp4_is_local_trim_and_bounded(smoke, monkeypatch, tmp_path):
+async def test_download_mp4_range_prefix_is_bounded(smoke, monkeypatch, tmp_path):
     media = MediaRef("https://cdn.example.com/file.mp4", "video/mp4")
     seen = []
 
@@ -144,15 +144,11 @@ async def test_download_mp4_is_local_trim_and_bounded(smoke, monkeypatch, tmp_pa
         path.write_bytes(bytes.fromhex("000000186674797069736f6d"))
         return path
 
-    async def fake_trim(source, destination):
-        assert source.is_file() and source.parent == destination.parent
-        destination.write_bytes(source.read_bytes())
-
     monkeypatch.setattr(smoke, "download_media", fake_download)
-    monkeypatch.setattr(smoke, "_cut_local_clip", fake_trim)
     out = await smoke._download_candidate(media, tmp_path)
-    assert out.name.endswith(".mkv")
+    assert out.name == "incoming.bin"
     assert seen[0][1]["max_bytes"] == 8 * 1024 * 1024
+    assert seen[0][1]["probe_prefix_bytes"] == 8 * 1024 * 1024
     assert seen[0][1]["total_seconds"] == 60.0
 
 
