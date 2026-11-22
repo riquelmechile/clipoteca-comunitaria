@@ -1161,5 +1161,70 @@
     },
     "status": "published",
     "created_at": "2026-11-22T22:05:29.615002Z"
+  },
+  {
+    "id": "clip-000020",
+    "title": {
+      "es": "Caída de montaña majestuosa cayendo",
+      "en": "Majestic mountain waterfall cascading down"
+    },
+    "description": {
+      "es": "Caída de montaña majestuosa cayendo",
+      "en": "Majestic mountain waterfall cascading down"
+    },
+    "tags": {
+      "es": [
+        "Caída",
+        "montaña",
+        "majestuosa",
+        "cayendo",
+        "cascada"
+      ],
+      "en": [
+        "Majestic",
+        "mountain",
+        "waterfall",
+        "cascading",
+        "down"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "31260570",
+      "source_language": "en",
+      "source_title": "majestic-mountain-waterfall-cascading-down-31260570",
+      "source_url": "https://www.pexels.com/video/majestic-mountain-waterfall-cascading-down-31260570/",
+      "source_start": 0.0,
+      "source_end": 4.266667
+    },
+    "media": {
+      "duration_seconds": 4.266667,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3893538,
+      "sha256": "992b8cc728519d288826c92239558632bf5039fc059d206633e223e7764e25af",
+      "perceptual_hash": "b3f38c989829dad1~2631.18:b3f38c98b809dad1~2644.26:b3f38c98b809dad1~2655.16:b3f28c98b809dad3~2643.01:b3f28c98b809dad3~2644.30"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000020.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000020.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000020_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000020_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000020_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000020_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000020_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000020_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T23:19:18.880984Z"
   }
 ]
