@@ -163,7 +163,7 @@ async def test_persistent_ingest_reuses_one_embedding_client_for_queries_and_sha
         assert report.status == "published", report.errors
         if mode == "single":
             assert "bilibili:deferred_to_self_hosted" in report.errors
-            job = json.loads(next((tmp_path / "jobs").glob("*.json")).read_text())
+            job = json.loads((tmp_path / "jobs" / (report.request_id + ".json")).read_text())
             assert job["source_errors"]["bilibili"] == "deferred_to_self_hosted"
         assert len(catalogue) == (2 if mode == "multiple" else 1)
     assert batch_sizes == [len(catalogue)]
