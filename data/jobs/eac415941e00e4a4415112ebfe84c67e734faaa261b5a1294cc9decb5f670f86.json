@@ -2,7 +2,7 @@
   "request_id": "eac415941e00e4a4415112ebfe84c67e734faaa261b5a1294cc9decb5f670f86",
   "status": "publishing",
   "attempt": 1,
-  "updated_at": "2026-11-22T23:59:19.099971Z",
+  "updated_at": "2026-11-22T23:59:20.464729Z",
   "language_counts": {
     "es": 23,
     "en": 23,
@@ -89,7 +89,8 @@
     "odysee:e5ba3464a5e692e315d4e0c53b26dfdd438b39d6": "translation_failed:en->es:unchanged_translation",
     "bilibili:BV1Hj4HedEph": "scene_quality_rejected",
     "ok_ru:4340516244": "search_only",
-    "vk_video:-232825745_456241001": "translation_failed:es->en:disproportionate_translation"
+    "vk_video:-232825745_456241001": "translation_failed:es->en:disproportionate_translation",
+    "dzen:6720a5588e9058340eb0a62b": "scene_quality_rejected"
   },
   "terms": {
     "es": "bosque",
@@ -100,9 +101,11 @@
   "source_warnings": {
     "semantic_query": "embeddings_unavailable:m14_quality_fallback",
     "pexels:32535366": "embeddings_unavailable:m14_quality_fallback",
-    "bilibili:BV1Hj4HedEph": "embeddings_unavailable:m14_quality_fallback"
+    "bilibili:BV1Hj4HedEph": "embeddings_unavailable:m14_quality_fallback",
+    "dzen:6720a5588e9058340eb0a62b": "embeddings_unavailable:m14_quality_fallback"
   },
   "terminal_sources": [
-    "https://bilibili.com/video/BV1Hj4HedEph"
+    "https://bilibili.com/video/BV1Hj4HedEph",
+    "https://dzen.ru/video/watch/6720a5588e9058340eb0a62b"
   ]
 }
