@@ -13,6 +13,7 @@ import math
 import re
 import threading
 import time
+import warnings
 from typing import Any
 from urllib.parse import quote
 
@@ -67,10 +68,10 @@ STOPWORDS = frozenset(
         "con",
         "por",
         "para",
-        "и",
-        "в",
-        "на",
-        "с",
+        "\u0438",
+        "\u0432",
+        "\u043d\u0430",
+        "\u0441",
     }
 )
 LUCENE_SPECIAL = re.compile(r'([+&|!(){}\[\]^"~*?:\\/\-])')
@@ -308,12 +309,33 @@ class InternetArchive(Adapter):
         payload = await self._json(SEARCH, params=params)
         response_params = payload.get("responseHeader")
         echo = response_params.get("params") if isinstance(response_params, dict) else None
-        if not isinstance(echo, dict) or echo.get("q") != query:
-            raise ProviderError("Internet Archive missing or mismatched query echo")
+        query_echo = (
+            [echo[key] for key in ("q", "qin") if isinstance(echo.get(key), str)]
+            if isinstance(echo, dict)
+            else []
+        )
+        if query_echo and query not in query_echo:
+            raise ProviderError("Internet Archive mismatched query echo")
         response = payload.get("response", {})
         docs = response.get("docs", []) if isinstance(response, dict) else []
         if not isinstance(docs, list):
             raise ProviderError("Internet Archive returned malformed search results")
+        if not query_echo:
+            # New advancedsearch responses need not echo q. Do not accept
+            # unrelated media when provenance is unavailable.
+            warnings.warn(
+                "Internet Archive query echo absent; movie-doc fallback used",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            docs = [
+                item
+                for item in docs
+                if isinstance(item, dict)
+                and isinstance(item.get("identifier"), str)
+                and item.get("identifier")
+                and item.get("mediatype") == "movies"
+            ]
         return [item for item in docs if isinstance(item, dict) and item.get("identifier")]
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:

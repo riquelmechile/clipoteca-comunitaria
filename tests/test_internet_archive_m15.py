@@ -42,7 +42,12 @@ def example_candidate(identifier: str = "documentary") -> Candidate:
 
 def test_normalize_and_lucene_query_preserves_four_languages():
     assert normalize_terms("The rain in the city and forest") == ["rain", "city", "forest"]
-    assert normalize_terms("下雨 дождь lluvia rain") == ["下雨", "дождь", "lluvia", "rain"]
+    assert normalize_terms("\u4e0b\u96e8 \u0434\u043e\u0436\u0434\u044c lluvia rain") == [
+        "\u4e0b\u96e8",
+        "\u0434\u043e\u0436\u0434\u044c",
+        "lluvia",
+        "rain",
+    ]
     terms = normalize_terms("rain: storm+")
     query = build_query(terms, all_terms=True)
     assert BASE_QUERY in query
@@ -223,7 +228,7 @@ async def test_429_retry_after_and_503_then_200(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("echo", [None, {}, {"params": {}}, {"params": {"q": "wrong"}}])
+@pytest.mark.parametrize("echo", [{"params": {"q": "wrong"}}, {"params": {"qin": "wrong"}}])
 async def test_search_rejects_missing_or_mismatched_query_echo(echo):
     def handler(_request):
         response = {"response": {"docs": [{"identifier": "spoofed"}]}}

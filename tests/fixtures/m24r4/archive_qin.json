@@ -1,0 +1,23 @@
+{
+  "responseHeader": {
+    "params": {
+      "query": "title:rain AND mediatype:movies",
+      "qin": "__MATCH_QUERY__",
+      "fields": [
+        "identifier"
+      ],
+      "wt": "json",
+      "rows": 100,
+      "start": 0
+    }
+  },
+  "response": {
+    "docs": [
+      {
+        "identifier": "verified_shape",
+        "mediatype": "movies",
+        "title": "Rain footage"
+      }
+    ]
+  }
+}

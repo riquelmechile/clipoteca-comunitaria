@@ -43,12 +43,18 @@ async def test_ok_ru_search_and_mp4_resolution_from_html_fixtures():
     adapter = OkRu(
         client=client(
             {
-                ("GET", "/video/search"): (200, fixture("ok_search.html"), "text/html"),
+                ("GET", "/video/search/\u0434\u043e\u0436\u0434\u044c"): (
+                    200,
+                    fixture("ok_search.html"),
+                    "text/html",
+                ),
                 ("GET", "/videoembed/1234567890"): (200, fixture("ok_embed.html"), "text/html"),
             }
         )
     )
-    rows = await adapter.search("дождь", "ru", SearchLimits(max_pages=1, max_candidates=3))
+    rows = await adapter.search(
+        "\u0434\u043e\u0436\u0434\u044c", "ru", SearchLimits(max_pages=1, max_candidates=3)
+    )
     assert [row.provider_id for row in rows] == ["1234567890"]
     media = await adapter.direct_media(rows[0])
     assert media and media.mime == "video/mp4" and media.url.endswith("movie.mp4")
@@ -97,7 +103,7 @@ async def test_dzen_search_and_hls_resolution_with_cookie_jar():
             }
         )
     )
-    rows = await adapter.search("дождь", "ru", SearchLimits())
+    rows = await adapter.search("\u0434\u043e\u0436\u0434\u044c", "ru", SearchLimits())
     media = await adapter.direct_media(rows[0])
     assert media and media.url.endswith("master.m3u8")
     assert media.allowed_hosts == DZEN_HOSTS
@@ -109,7 +115,7 @@ async def test_dzen_search_and_hls_resolution_with_cookie_jar():
 @pytest.mark.parametrize(
     "adapter,path",
     [
-        (OkRu, "/video/search"),
+        (OkRu, "/video/search/rain"),
         (Dzen, "/api/web/v1/zen-search"),
     ],
 )
@@ -154,14 +160,24 @@ async def test_ok_ru_search_paginates_with_bounded_post():
             )
         return httpx.Response(
             200,
-            json={"items": [{"id": "9876543210", "title": "Второй дождь", "duration": 9}]},
+            json={
+                "items": [
+                    {
+                        "id": "9876543210",
+                        "title": "\u0412\u0442\u043e\u0440\u043e\u0439 \u0434\u043e\u0436\u0434\u044c",
+                        "duration": 9,
+                    }
+                ]
+            },
         )
 
     adapter = OkRu(client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
-    rows = await adapter.search("дождь", "ru", SearchLimits(max_pages=2, max_candidates=5))
+    rows = await adapter.search(
+        "\u0434\u043e\u0436\u0434\u044c", "ru", SearchLimits(max_pages=2, max_candidates=5)
+    )
     assert [row.provider_id for row in rows] == ["1234567890", "9876543210"]
     assert seen == [
-        ("GET", "/video/search"),
+        ("GET", "/video/search/\u0434\u043e\u0436\u0434\u044c"),
         ("POST", "/web-api/v2/video/fetchSearchResult"),
     ]
 
@@ -200,7 +216,7 @@ async def test_vk_catalog_paginates_with_section_cursor(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_dzen_falls_back_to_bounded_html_search():
-    html = '<script>window.__data={"items":[{"videoId":"fallback-42","title":"Дождь","duration":8}]};</script>'
+    html = '<script>window.__data={"items":[{"videoId":"fallback-42","title":"\u0414\u043e\u0436\u0434\u044c","duration":8}]};</script>'
     adapter = Dzen(
         client=client(
             {
@@ -209,7 +225,7 @@ async def test_dzen_falls_back_to_bounded_html_search():
             }
         )
     )
-    rows = await adapter.search("дождь", "ru", SearchLimits())
+    rows = await adapter.search("\u0434\u043e\u0436\u0434\u044c", "ru", SearchLimits())
     assert [row.provider_id for row in rows] == ["fallback-42"]
 
 
@@ -502,7 +518,7 @@ async def test_m17_gzip_json_text_and_headers_are_normalized():
     from clipoteca.providers.http import fetch_json, fetch_response, fetch_text
 
     raw_json = b'{"message":"lluvia"}'
-    raw_text = "Día lluvioso".encode("utf-8")
+    raw_text = "D\xeda lluvioso".encode("utf-8")
 
     def handler(request):
         is_json = request.url.path.endswith("/json")
@@ -521,7 +537,7 @@ async def test_m17_gzip_json_text_and_headers_are_normalized():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as test_client:
         assert await fetch_json(test_client, "https://dzen.ru/json") == {"message": "lluvia"}
-        assert await fetch_text(test_client, "https://dzen.ru/text") == "Día lluvioso"
+        assert await fetch_text(test_client, "https://dzen.ru/text") == "D\xeda lluvioso"
         response = await fetch_response(test_client, "https://dzen.ru/json")
         assert response.content == raw_json
         assert "content-encoding" not in response.headers

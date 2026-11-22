@@ -77,8 +77,7 @@ class OkRu(Adapter):
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         document = await fetch_text(
             self.client,
-            SEARCH,
-            params={"st.cmd": "anonymVideo", "st.ft": "search", "st.gsq": term, "st.m": "SEARCH"},
+            SEARCH + "/" + quote(term, safe=""),
             timeout_seconds=limits.timeout_seconds,
         )
         payloads = json_attributes(document, "data-props")
