@@ -66,6 +66,7 @@ class LibraryOfCongress(Adapter):
     category = "public_archive"
     auth = "none"
     rate_limit = 120
+    smoke_timeout_seconds = 45.0
     support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
 
     def __init__(
@@ -101,7 +102,6 @@ class LibraryOfCongress(Adapter):
             page_size = min(20, limits.max_candidates - len(found))
             if page_size <= 0:
                 break
-            await self._pace()
             payload = await fetch_json(
                 self.client,
                 SEARCH_ENDPOINT,
@@ -112,6 +112,10 @@ class LibraryOfCongress(Adapter):
                     "q": term,
                     "sp": page,
                 },
+                before_request=self._pace,
+                retry_statuses=(429,),
+                max_retry_after_seconds=5.0,
+                timeout_seconds=45.0,
             )
             rows = payload.get("results", [])
             if not isinstance(rows, list):

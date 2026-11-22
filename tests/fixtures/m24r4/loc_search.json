@@ -1,0 +1,15 @@
+{
+  "results": [
+    {
+      "id": "https://www.loc.gov/item/loc1/",
+      "title": "Rain documentary",
+      "resources": [
+        {
+          "video": [
+            "https://media.loc.gov/rain.mp4"
+          ]
+        }
+      ]
+    }
+  ]
+}
