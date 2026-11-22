@@ -202,7 +202,7 @@ SOURCES: tuple[SourceSpec, ...] = (
 CAPABILITY_LEVELS = frozenset({"supported", "best_effort", "unavailable"})
 SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
     "library_of_congress": {
-        "search": "best_effort",
+        "search": "supported",
         "preview": "best_effort",
         "download": "best_effort",
     },
@@ -223,7 +223,7 @@ SOURCE_CAPABILITIES: dict[str, dict[str, str]] = {
     "bilibili": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},
     "ok_ru": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "vk_video": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
-    "dzen": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
+    "dzen": {"search": "supported", "preview": "best_effort", "download": "best_effort"},
     "douyin": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "tiktok": {"search": "best_effort", "preview": "best_effort", "download": "best_effort"},
     "instagram": {"search": "best_effort", "preview": "best_effort", "download": "unavailable"},

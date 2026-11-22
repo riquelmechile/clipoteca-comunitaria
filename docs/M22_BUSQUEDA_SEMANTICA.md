@@ -109,3 +109,14 @@ This path does not download/normalize videos or run Argos. Once deployed and val
 ## M24 r2: limite por guion
 
 El limite de maxQueryVectorFetches=3 en POST /v1/script y MCP resolve_script cuenta **vectores de consulta normalizados**, no todas las peticiones GitHub. Tras las tres consultas diferentes se resuelve lexicalmente; la escena expone semantic_reason: query_vector_budget_exceeded cuando corresponde, independiente de reason (estado de importacion/material). Los hashes/IDs de shards del corpus tienen un costo fijo adicional en un isolate frio; cache local, manifiesto y lookups no son equivalentes a vectores de consulta. Este codigo no atribuye ese motivo a una respuesta de /v1/search.
+
+
+## M24 r3: respuesta visible con semantica deshabilitada
+
+POST /v1/script y MCP resolve_script incluyen
+semantic_reason: "semantic_disabled" en cada escena cuando la
+busqueda semantica esta apagada. Es un campo visible adicional aun si
+la resolucion lexical encuentra material. Clientes que validan esquemas
+estrictos o rechazan propiedades desconocidas deben actualizar sus
+validadores; reason mantiene su significado de importacion/material.
+Este aviso no atribuye evidencia de embeddings o Worker desplegado.

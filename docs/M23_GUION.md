@@ -106,3 +106,14 @@ Run `cd worker && npm ci && npm run typecheck && npm test`, and `uv run pytest -
 ### M24: coste y estado por escena
 
 Con semantica activa, un guion consulta a lo sumo 3 vectores de consultas normalizadas distintos en GitHub; las otras escenas se resuelven lexicalmente y las queries repetidas reutilizan el resultado de la busqueda. 50 consultas distintas: <=8 fetches GitHub para semantica en el fixture offline. Los motivos non_video_material solo se devuelven cuando la busqueda completa realmente encuentra imagenes pero ningun video. Import por IP tiene ventana de 15 segundos: como maximo un lookup/dispatch efectivo por guion en la configuracion actual. Enviar el mismo guion otra vez pasados 15 segundos permite que otra escena pendiente utilice la cuota. Una medicion nueva en Node (no workerd) dio aproximadamente 33 ms con 1000 clips y 140 ms con 5000 clips; no equivale a latencia Cloudflare. Narration rechaza U+0085, U+2028 y U+2029 ademas de los otros controles prohibidos.
+
+
+## M24 r3: respuesta visible con semantica deshabilitada
+
+POST /v1/script y MCP resolve_script incluyen
+semantic_reason: "semantic_disabled" en cada escena cuando la
+busqueda semantica esta apagada. Es un campo visible adicional aun si
+la resolucion lexical encuentra material. Clientes que validan esquemas
+estrictos o rechazan propiedades desconocidas deben actualizar sus
+validadores; reason mantiene su significado de importacion/material.
+Este aviso no atribuye evidencia de embeddings o Worker desplegado.

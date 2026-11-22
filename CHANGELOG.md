@@ -4,8 +4,8 @@
 
 **Alcance:** M11-M23 fusionados en main y preparacion M24 en curso. El numero
 2.0.0 se sincroniza en la rama de preparacion, pero este cambio no crea tag,
-release de GitHub ni despliega un Worker. La matriz live, los smokes reales y
-la demostracion E2E quedan pendientes hasta su ejecucion en main.
+release de GitHub ni despliega un Worker. El smoke live en main se ejecuto
+como run 44972077685; la demo E2E y el despliegue siguen pendientes.
 
 ### M11 - Roadmap y definicion del contrato (PR #31)
 - Roadmap v2 y camino critico para motor de corte, fuentes y herramientas MCP.
@@ -68,9 +68,19 @@ la demostracion E2E quedan pendientes hasta su ejecucion en main.
 - Operacion integrada en docs/OPERACION_V2.md; procedimientos de runner en
   docs/RUNNER_PROPIO.md; matriz generada desde fuentes declaradas y
   docs/DEMO_E2E_V2.md como receta de validacion.
-- **Pendiente:** smoke live de todos los proveedores por idioma en main,
-  prueba Bilibili/routing donde corresponda, prueba semantica con embeddings
-  reales y demo MCP de cinco escenas. No se inventan resultados.
+- **Smoke live documentado:** workflow smoke.yml en main SHA
+  bf0454baa76c7aa8e2528b51f38302b30581cf0d, run_id 44972077685,
+  artefacto clipoteca-smoke-44972077685. 23 proveedores x 4 idiomas
+  (92 pruebas, 64 resultados de busqueda, 43 AUTH_REQUIRED) y 8 candidatos
+  (44 llamadas). Reporte data/reports/smoke-44972077685.json;
+  docs/MATRIZ_FUENTES_V2.md y docs/EVIDENCIA_FUENTES_V2.md.
+- Search declarativo pasa a supported solo para Dzen (12 resultados en
+  la prueba principal) y Library of Congress (20 en sonda candidata).
+  No hay descarga de clip demostrada. Bilibili sigue search-only;
+  data/runner-routing.json se mantiene sin rutas propias.
+- **Pendientes de Zana:** YAML del operador, comparacion de runner aislado,
+  despliegue del Worker 2.0.0, consulta semantica y demo E2E MCP reales,
+  tag/release solo con autorizacion posterior. M24 sigue incompleto.
 
 ---
 
