@@ -12,8 +12,8 @@ from urllib.parse import urljoin, urlsplit
 import httpx
 
 from ..config import USER_AGENT
-from .pinning import matches_validated_ip
-from .ssrf import UnsafeMediaURL, _is_public, validate_public_url
+from .pinning import PinnedPeerError, stream_pinned
+from .ssrf import UnsafeMediaURL, validate_public_url
 
 MAX_DOWNLOAD_BYTES = 350 * 1024 * 1024
 VIDEO_TYPES = {
@@ -101,23 +101,9 @@ async def download_media(
                 await validate_public_url(
                     current, resolver=resolver, validated_addresses=validated_addresses
                 )
-                async with client.stream(
-                    "GET", current, headers=headers, follow_redirects=False
+                async with stream_pinned(
+                    client, "GET", current, addresses=validated_addresses, headers=headers
                 ) as response:
-                    stream = response.extensions.get("network_stream")
-                    if stream is None:
-                        if own_client:
-                            raise DownloadError("cannot verify connected peer IP")
-                    else:
-                        try:
-                            address = stream.get_extra_info("server_addr")
-                            peer = str(address[0])
-                        except (TypeError, KeyError, AttributeError, IndexError) as exc:
-                            raise DownloadError("cannot inspect connected peer IP") from exc
-                        if not _is_public(peer) or not matches_validated_ip(
-                            peer, validated_addresses
-                        ):
-                            raise DownloadError("connected peer changed after DNS validation")
                     if response.status_code in {301, 302, 303, 307, 308}:
                         location = response.headers.get("location")
                         if not location or hop >= max_redirects:
@@ -154,6 +140,8 @@ async def download_media(
             raise DownloadError("exhausted redirect limit")
     except TimeoutError as exc:
         raise DownloadError("total media deadline exceeded") from exc
+    except PinnedPeerError as exc:
+        raise DownloadError(str(exc)) from exc
     except (httpx.HTTPError, UnsafeMediaURL) as exc:
         raise DownloadError(f"media fetch rejected: {type(exc).__name__}") from exc
     finally:

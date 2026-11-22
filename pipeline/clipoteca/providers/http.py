@@ -8,7 +8,8 @@ from collections.abc import Callable, Iterable
 import httpx
 
 from ..config import USER_AGENT
-from ..security.ssrf import UnsafeMediaURL, _is_public, validate_public_url
+from ..security.pinning import PinnedPeerError, stream_pinned
+from ..security.ssrf import UnsafeMediaURL, validate_public_url
 from .base import AuthRequired, ProviderError, ProviderTimeout, RateLimited
 
 MAX_PROVIDER_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -60,25 +61,15 @@ async def fetch_response(
                 url, resolver=resolver, validated_addresses=validated_addresses
             )
         async with asyncio.timeout(timeout_seconds):
-            async with client.stream(
+            async with stream_pinned(
+                client,
                 method,
                 url,
+                addresses=validated_addresses,
                 params=params,
                 data=data,
                 headers=request_headers,
-                follow_redirects=False,
             ) as response:
-                stream = response.extensions.get("network_stream")
-                if stream is not None and validated_addresses:
-                    try:
-                        address = stream.get_extra_info("server_addr")
-                        peer = str(address[0])
-                    except (TypeError, KeyError, AttributeError, IndexError) as exc:
-                        raise ProviderError("provider peer address unavailable") from exc
-                    if not _is_public(peer) or peer not in validated_addresses:
-                        raise ProviderError("provider peer changed after DNS validation")
-                elif not mock_transport:
-                    raise ProviderError("provider peer address unavailable")
                 length = response.headers.get("content-length")
                 if length:
                     try:
@@ -108,6 +99,8 @@ async def fetch_response(
         raise ProviderTimeout("provider timeout") from exc
     except UnsafeMediaURL as exc:
         raise ProviderError("provider URL rejected") from exc
+    except PinnedPeerError as exc:
+        raise ProviderError(str(exc).replace("connected peer", "provider peer")) from exc
     except httpx.HTTPError as exc:
         raise ProviderError("provider request failed") from exc
 
