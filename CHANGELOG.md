@@ -2,8 +2,9 @@
 
 ## 2.0.1 (preparado, sin deploy ni tag)
 
-- Worker: CATALOG_URL y CATALOG_JOBS_URL apuntan en [vars] a
-  raw.githubusercontent.com; sources.json se lee por raw en MCP.
+- Worker: defaults de CATALOG_URL y CATALOG_JOBS_URL usan
+  raw.githubusercontent.com sin alterar wrangler.toml; sus overrides
+  siguen teniendo prioridad. sources.json se lee por raw en MCP.
   El cache de origen puede retrasar clips y estados de jobs ~5 min.
 - Smoke: modo opt-in downloads (o all --include-downloads), una
   descarga real acotada por proveedor, corte temporal de hasta 20 s,

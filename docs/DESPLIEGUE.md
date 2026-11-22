@@ -16,10 +16,11 @@ npx wrangler secret put CLIPOTECA_ISSUE_TOKEN
 npx wrangler deploy
 ```
 
-El archivo worker/wrangler.toml deja fijas en [vars] CATALOG_URL y
-CATALOG_JOBS_URL con enlaces raw.githubusercontent.com al catalogo
-data/clips.json y a data/jobs/. La lista de fuentes MCP lee
-data/sources.json tambien desde raw. No colocar credenciales en [vars].
+El codigo Worker usa por defecto raw.githubusercontent.com para
+data/clips.json (catalog.ts), data/jobs/*.json (jobs.ts) y
+data/sources.json (mcp.ts). CATALOG_URL y CATALOG_JOBS_URL conservan
+prioridad cuando se configuran, pero NO es necesario pasar --var al
+desplegar ni modificar worker/wrangler.toml. No poner credenciales en [vars].
 
 raw.githubusercontent.com puede cachear aproximadamente cinco minutos:
 un clip publicado recientemente o el cambio de estado de un job

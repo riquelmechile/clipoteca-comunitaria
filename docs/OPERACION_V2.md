@@ -50,8 +50,8 @@
 | CLIPOTECA_ISSUE_TOKEN | no definido | token para aportes Issues |
 | MCP_ALLOWED_HOSTS | host de request | por defecto solo host del Worker |
 | MCP_ALLOWED_ORIGINS | lista vacia | allowlist de origins, por defecto ninguno externo |
-| CATALOG_URL | raw.githubusercontent.com/.../main/data/clips.json | variable fija [vars] para evitar cuota anonima de GitHub API |
-| CATALOG_JOBS_URL | raw.githubusercontent.com/.../main/data/jobs/ | prefijo fijo [vars] de jobs JSON |
+| CATALOG_URL | default raw.githubusercontent.com/.../main/data/clips.json | opcional; override de URL para el Worker |
+| CATALOG_JOBS_URL | default raw.githubusercontent.com/.../main/data/jobs/ | opcional; override del prefijo de jobs |
 | CATALOG_TTL_SECONDS | 10 (max 30) | cache catalogo, 0 desactiva |
 | `CLIPOTECA_PERSIST_JOBS` | apagado local | `1` en job de Actions para recibos remotos y estado del Worker |
 
@@ -208,9 +208,11 @@ No declarar satisfaccion de estos criterios a partir de tests offline ni de un P
 
 ## Operacion 2.0.1: raw GitHub y smoke de descarga sin publicacion
 
-El Worker usa las variables CATALOG_URL y CATALOG_JOBS_URL en
-worker/wrangler.toml para servir clips.json y jobs/*.json desde
-raw.githubusercontent.com. MCP list_sources usa tambien
+El Worker usa por defecto raw.githubusercontent.com para clips.json
+y jobs/*.json en worker/src/catalog.ts y worker/src/jobs.ts;
+CATALOG_URL y CATALOG_JOBS_URL, si se configuran, tienen prioridad.
+No hace falta pasar --var al desplegar ni tocar worker/wrangler.toml.
+MCP list_sources usa tambien
 raw.githubusercontent.com/.../main/data/sources.json. Esto evita
 la cuota anonima compartida de 60 requests/h de la API Contents.
 El CDN raw puede cachear alrededor de cinco minutos: un clip nuevo o
