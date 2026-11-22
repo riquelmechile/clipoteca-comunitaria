@@ -193,14 +193,13 @@ def test_download_mode_is_explicit_and_all_is_opt_in(smoke, monkeypatch, tmp_pat
         smoke.main(["--mode", "providers", "--include-downloads"])
 
 
-def test_worker_raw_catalog_configuration_and_source_url():
-    import tomllib
-
+def test_worker_raw_defaults_and_source_url_without_wrangler():
     root = Path(__file__).resolve().parents[1]
-    config = tomllib.loads((root / "worker/wrangler.toml").read_text(encoding="ascii"))
-    values = config["vars"]
-    base = "https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/data/"
-    assert values["CATALOG_URL"] == base + "clips.json"
-    assert values["CATALOG_JOBS_URL"] == base + "jobs/"
-    source_code = (root / "worker/src/mcp.ts").read_text(encoding="ascii")
-    assert '"https://raw.githubusercontent.com/" + repo + "/main/data/sources.json"' in source_code
+    catalog = (root / "worker/src/catalog.ts").read_text(encoding="ascii")
+    jobs = (root / "worker/src/jobs.ts").read_text(encoding="ascii")
+    sources = (root / "worker/src/mcp.ts").read_text(encoding="ascii")
+    assert "env.CATALOG_URL ??" in catalog
+    assert '"https://raw.githubusercontent.com/" + repo + "/main/data/clips.json"' in catalog
+    assert "const prefix = env.CATALOG_JOBS_URL" in jobs
+    assert '"https://raw.githubusercontent.com/" + repo + "/main/data/jobs/" + id + ".json"' in jobs
+    assert '"https://raw.githubusercontent.com/" + repo + "/main/data/sources.json"' in sources

@@ -87,7 +87,7 @@ describe("M10 pagination, typed GET and stale jobs", () => {
       return Response.json({encoding:"base64",content});
     });
     vi.stubGlobal("fetch", fetcher);
-    expect(await loadJob({}, id)).toMatchObject(record);
+    expect(await loadJob({ CATALOG_JOBS_URL: "https://api.github.com/repos/riquelmechile/clipoteca-comunitaria/contents/data/jobs/" }, id)).toMatchObject(record);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
