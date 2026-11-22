@@ -13,7 +13,7 @@
     "languages_semantically_verified": false,
     "scope": "public_archive",
     "capabilities": {
-      "search": "best_effort",
+      "search": "supported",
       "preview": "best_effort",
       "download": "best_effort"
     },
@@ -500,7 +500,7 @@
     "credentials_present": true,
     "notes": "cookie-aware public search; stream availability is best-effort",
     "capabilities": {
-      "search": "best_effort",
+      "search": "supported",
       "preview": "best_effort",
       "download": "best_effort"
     }
