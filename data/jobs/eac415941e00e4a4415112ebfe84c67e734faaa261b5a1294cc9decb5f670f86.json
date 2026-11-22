@@ -2,7 +2,7 @@
   "request_id": "eac415941e00e4a4415112ebfe84c67e734faaa261b5a1294cc9decb5f670f86",
   "status": "publishing",
   "attempt": 1,
-  "updated_at": "2026-11-22T23:58:04.621516Z",
+  "updated_at": "2026-11-22T23:58:06.021428Z",
   "language_counts": {
     "es": 23,
     "en": 23,
@@ -85,7 +85,8 @@
     "pixabay:189813": "translation_failed:es->en:disproportionate_translation",
     "wikimedia_commons:71429951": "translation_failed:en->es:unchanged_translation",
     "internet_archive:RedForest": "translation_failed:en->es:unchanged_translation",
-    "nasa:GSFC_20140908_Mapping_m11633_Alaska": "translation_failed:en->es:unchanged_translation"
+    "nasa:GSFC_20140908_Mapping_m11633_Alaska": "translation_failed:en->es:unchanged_translation",
+    "odysee:e5ba3464a5e692e315d4e0c53b26dfdd438b39d6": "translation_failed:en->es:unchanged_translation"
   },
   "terms": {
     "es": "bosque",
