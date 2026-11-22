@@ -895,5 +895,74 @@
     },
     "status": "published",
     "created_at": "2026-11-22T10:54:25.586361Z"
+  },
+  {
+    "id": "clip-000016",
+    "title": {
+      "es": "Vista aérea de carreteras en sao paulo brazil",
+      "en": "Aerial view of highways in sao paulo brazil"
+    },
+    "description": {
+      "es": "Vista aérea de carreteras en sao paulo brazil",
+      "en": "Aerial view of highways in sao paulo brazil"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "carreteras",
+        "sao",
+        "paulo",
+        "brazil",
+        "autopista"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "highways",
+        "sao",
+        "paulo",
+        "brazil",
+        "highway"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "33361580",
+      "source_language": "en",
+      "source_title": "aerial-view-of-highways-in-sao-paulo-brazil-33361580",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-highways-in-sao-paulo-brazil-33361580/",
+      "source_start": 38.0,
+      "source_end": 51.217833
+    },
+    "media": {
+      "duration_seconds": 13.2132,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 16575793,
+      "sha256": "27b0102a6f57b5fbf2843f31c328a97eef828257230f92d44d15038240791d5d",
+      "perceptual_hash": "c749adf0d24b09ba~1800.14:c449aef1508969bf~2063.34:c448bff14a9b6692~1903.75:c4c0bb5b59b5b223~1860.82:cda8d35ba9b71242~2026.65"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000016.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000016.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000016_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000016_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000016_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000016_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000016_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000016_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T10:55:40.299282Z"
   }
 ]
