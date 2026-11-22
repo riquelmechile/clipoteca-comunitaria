@@ -30,8 +30,8 @@ async def test_bilibili_search_real_shape(lang):
     def handler(req):
         if req.url.path.endswith("/nav"):
             return httpx.Response(200, json=_WBI_NAV)
-        if req.url.path.endswith("/view"):
-            return httpx.Response(200, json={"code": 0, "data": {}})
+        if req.url.path.endswith("/pagelist"):
+            return httpx.Response(200, json={"code": 0, "data": [{"page": 1}]})
         assert req.url.params["search_type"] == "video"
         return httpx.Response(
             200,

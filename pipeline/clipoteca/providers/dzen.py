@@ -24,7 +24,16 @@ from .m17_common import allowed_https, duration, embedded_json, json_attributes,
 SEARCH = "https://dzen.ru/api/web/v1/zen-search"
 SEARCH_PAGE = "https://dzen.ru/search"
 WATCH = "https://dzen.ru/video/watch/"
-ROOTS = ("dzen.ru", "strm.yandex.ru", "strm.yandex.net", "frontend.vh.yandex.ru")
+# Dzen video now streams from the VK/OK CDN (vd*.okcdn.ru), measured on a
+# real watch page 2026-11-22; Yandex strm hosts kept for older videos.
+ROOTS = (
+    "dzen.ru",
+    "strm.yandex.ru",
+    "strm.yandex.net",
+    "frontend.vh.yandex.ru",
+    "okcdn.ru",
+    "mycdn.me",
+)
 ALLOWED_HOSTS = tuple(value for root in ROOTS for value in (root, "." + root))
 ID = re.compile(r"[A-Za-z0-9_-]{6,160}")
 HLS = "application/vnd.apple.mpegurl"

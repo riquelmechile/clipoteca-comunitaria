@@ -103,6 +103,8 @@ MIXIN_KEY_ORDER = (
 )
 CDN_SUFFIXES = (".bilivideo.com", ".bilivideo.cn", ".hdslb.com")
 CDN_EXACT = {"upos-hz-mirrorakam.akamaized.net"}
+# Bilibili overseas mirrors on Akamai (measured upos-*-mirrorakam hosts).
+CDN_AKAMAI = re.compile(r"upos-[a-z0-9-]{1,40}\.akamaized\.net")
 
 
 def _key_stem(value: object) -> str:
@@ -151,6 +153,7 @@ def _media_host(url: str) -> str:
         or not (
             any(name == domain[1:] or name.endswith(domain) for domain in CDN_SUFFIXES)
             or name in CDN_EXACT
+            or CDN_AKAMAI.fullmatch(name)
         )
     ):
         raise ProviderError("Bilibili media CDN host rejected")
@@ -311,17 +314,25 @@ class Bilibili(Adapter):
     async def metadata(self, candidate: Candidate) -> dict[str, Any]:
         if not BVID.fullmatch(candidate.provider_id):
             return {}
-        # Evil0ctal DTK params.py: the unsigned /x/web-interface/view answers
-        # datacenter egress with an HTML 412; the signed wbi/view answers.
-        data = await self._signed("/x/web-interface/wbi/view", {"bvid": candidate.provider_id})
-        if not isinstance(data, dict):
-            raise ProviderError("Bilibili view payload invalid")
+        # Both /x/web-interface/view and the signed wbi/view (and the video
+        # HTML page) answer HTTP 412 from GitHub Actions egress (probes
+        # 45049259580, 45049635576), while /x/player/pagelist answers code 0
+        # with the cid playurl needs. Title and duration come from search.
+        response = await self._request("/x/player/pagelist", {"bvid": candidate.provider_id})
+        code = response.get("code")
+        if code not in (0, None):
+            raise ProviderError(f"Bilibili pagelist error {code}")
+        pages = response.get("data")
+        first = pages[0] if isinstance(pages, list) and pages else None
+        if not isinstance(first, dict):
+            raise ProviderError("Bilibili pagelist payload invalid")
+        meta = candidate.metadata or {}
         return {
-            "title": data.get("title") or candidate.source_title,
-            "duration_seconds": data.get("duration"),
-            "description": data.get("desc"),
-            "cid": data.get("cid"),
-            "aid": data.get("aid"),
+            "title": candidate.source_title,
+            "duration_seconds": first.get("duration") or meta.get("duration"),
+            "description": meta.get("description"),
+            "cid": first.get("cid"),
+            "aid": meta.get("aid"),
         }
 
     async def direct_media(self, candidate: Candidate) -> MediaRef | None:

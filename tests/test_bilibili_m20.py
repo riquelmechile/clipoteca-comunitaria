@@ -167,18 +167,10 @@ async def test_wbi_dash_video_audio_and_metadata_fallback():
         calls.append(req.url.path)
         if req.url.path.endswith("/nav"):
             return httpx.Response(200, json=NAV)
-        if req.url.path.endswith("/view"):
+        if req.url.path.endswith("/pagelist"):
             return httpx.Response(
                 200,
-                json={
-                    "code": 0,
-                    "data": {
-                        "cid": 987654,
-                        "aid": 12,
-                        "title": "Rain",
-                        "duration": 15,
-                    },
-                },
+                json={"code": 0, "data": [{"cid": 987654, "page": 1, "duration": 15}]},
             )
         assert req.url.path.endswith("/wbi/playurl")
         return httpx.Response(
@@ -198,7 +190,8 @@ async def test_wbi_dash_video_audio_and_metadata_fallback():
         media = await Bilibili(client=client).direct_media(candidate())
     assert media and media.audio_url == "https://b.bilivideo.com/a.m4s"
     assert media.allowed_hosts == ("a.bilivideo.com", "b.bilivideo.com")
-    assert "/x/web-interface/wbi/view" in calls
+    assert "/x/player/pagelist" in calls
+    assert not any(path.endswith("/view") for path in calls)
 
 
 @pytest.mark.asyncio
