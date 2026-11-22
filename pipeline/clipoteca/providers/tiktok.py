@@ -50,6 +50,8 @@ def _items(payload: dict) -> list[dict]:
     raw = payload.get("item_list") or payload.get("items")
     if raw is None and isinstance(data, dict):
         raw = data.get("item_list") or data.get("items")
+    elif raw is None and isinstance(data, list):
+        raw = data
     if not isinstance(raw, list):
         return []
     # Browser API search wraps each video as {"item": {...}}.
@@ -93,6 +95,11 @@ class TikTok(Adapter):
             "tiktok",
             session_cookie=cookie if cookie is not None else os.getenv("TIKTOK_COOKIE", ""),
         )
+        # The browser path is bounded but slower than native HTTP; only a
+        # configured session opts into a larger per-provider discovery budget.
+        self.search_timeout_seconds = 42.0 if self.guest.session_cookie else 0.0
+        self.smoke_timeout_seconds = 42.0 if self.guest.session_cookie else 6.0
+        self.discovery_priority = 1 if self.guest.session_cookie else 0
         self.device_id = str(secrets.randbelow(9 * 10**18) + 10**18)
         self._videos: dict[str, dict] = {}
 
