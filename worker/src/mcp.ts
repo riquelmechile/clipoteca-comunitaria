@@ -132,7 +132,7 @@ export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider:
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) throw new Error("invalid repository");
   const response = await fetch(
-    "https://api.github.com/repos/" + repo + "/contents/data/sources.json?ref=main",
+    "https://raw.githubusercontent.com/" + repo + "/main/data/sources.json",
     { headers: { accept: "application/vnd.github+json",
       "cache-control": "no-cache", "user-agent": "clipoteca-worker" } },
   );
