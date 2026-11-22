@@ -1,0 +1,56 @@
+name: Temporary v205 TikTok native, read-only probe
+on:
+  push:
+    branches:
+      - fix/v2.0.5-tiktok-cookie
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Probe native signed search and bounded downloader, no persistence
+        env:
+          TIKTOK_COOKIE: ${{ secrets.TIKTOK_COOKIE }}
+          CLIPOTECA_PERSIST_JOBS: "0"
+        run: |
+          uv run --no-sync python - <<'PY'
+          import asyncio, json, os, tempfile
+          from pathlib import Path
+          from clipoteca.providers.tiktok import TikTok
+          from clipoteca.providers.base import SearchLimits
+          from clipoteca.security.download import download_media
+          
+          async def main():
+              report={"native":"not_started","candidates":0,"media_ref":"not_tested","media_download":"not_tested"}
+              adapter=TikTok()
+              try:
+                  results=await asyncio.wait_for(adapter.search("aurora boreal", "es", SearchLimits(max_pages=2,max_candidates=12)),timeout=90)
+                  report["native"]="items" if results else "empty"
+                  report["candidates"]=len(results)
+                  if results:
+                      ref=await asyncio.wait_for(adapter.direct_media(results[0]),timeout=20)
+                      report["media_ref"]="available" if ref else "missing"
+                      if ref:
+                          with tempfile.TemporaryDirectory() as folder:
+                              try:
+                                  path=await asyncio.wait_for(download_media(ref.url,Path(folder),allowed_hosts=ref.allowed_hosts,max_bytes=1024*1024,probe_prefix_bytes=1024*1024,total_seconds=35,user_agent=ref.user_agent),timeout=45)
+                                  report["media_download"]="ok" if path.stat().st_size>12 else "empty"
+                              except Exception as exc:
+                                  report["media_download"]="error:"+type(exc).__name__
+              except Exception as exc:
+                  report["native"]="error:"+type(exc).__name__
+              finally:
+                  await adapter.client.aclose()
+              # Only bounded enums/integers. Do not print raw URLs, model/cookie values, or exceptions.
+              print("TIKTOK_NATIVE_PROBE="+json.dumps(report,sort_keys=True))
+          asyncio.run(main())
+          PY
