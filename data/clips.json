@@ -1289,5 +1289,70 @@
     },
     "status": "published",
     "created_at": "2026-11-22T23:20:06.870551Z"
+  },
+  {
+    "id": "clip-000022",
+    "title": {
+      "es": "Cascada majestuosa en paisaje natural sereno",
+      "en": "Majestic waterfall in serene natural landscape"
+    },
+    "description": {
+      "es": "Cascada majestuosa en paisaje natural sereno",
+      "en": "Majestic waterfall in serene natural landscape"
+    },
+    "tags": {
+      "es": [
+        "Cascada",
+        "majestuosa",
+        "paisaje",
+        "natural",
+        "sereno"
+      ],
+      "en": [
+        "Majestic",
+        "waterfall",
+        "serene",
+        "natural",
+        "landscape"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "36182882",
+      "source_language": "en",
+      "source_title": "majestic-waterfall-in-serene-natural-landscape-36182882",
+      "source_url": "https://www.pexels.com/video/majestic-waterfall-in-serene-natural-landscape-36182882/",
+      "source_start": 0.0,
+      "source_end": 6.740067
+    },
+    "media": {
+      "duration_seconds": 6.740067,
+      "width": 1080,
+      "height": 1920,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 8334384,
+      "sha256": "1bda40234906626d7940aa6e0513ca9164f2b6793c3f37ef57de3b0dc8a48949",
+      "perceptual_hash": "c94832f8e49adf34~5560.66:c949b2e8a69f2d26~5715.58:c919b3ef1f0b2483~5909.51:c91bff0701e0d87c~6237.53:c937e620703f3783~5676.69"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/clip_clip-000022.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/thumb_clip-000022.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000022_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000022_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000022_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000022_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000022_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-22-001/story_clip-000022_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-22T23:20:50.936805Z"
   }
 ]
