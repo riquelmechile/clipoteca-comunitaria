@@ -1,0 +1,1203 @@
+{
+  "timestamp_utc": "2026-11-22T02:41:01.046489+00:00",
+  "github": {
+    "ref": "refs/heads/main",
+    "sha": "fd17e46aee3fb10a957425e5841cbe43ef572ed9",
+    "run_id": "44977121143"
+  },
+  "mode": "live_network_and_candidate_probes",
+  "provider_languages": [
+    {
+      "provider": "library_of_congress",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 26965.0
+    },
+    {
+      "provider": "library_of_congress",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 16980.8
+    },
+    {
+      "provider": "library_of_congress",
+      "language": "zh",
+      "status": "RATE_LIMITED",
+      "count": 0,
+      "error_type": "RateLimited",
+      "error_detail": "provider rate limit",
+      "elapsed_ms": 10111.9
+    },
+    {
+      "provider": "library_of_congress",
+      "language": "ru",
+      "status": "RATE_LIMITED",
+      "count": 0,
+      "error_type": "RateLimited",
+      "error_detail": "provider rate limit",
+      "elapsed_ms": 10089.4
+    },
+    {
+      "provider": "coverr",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "coverr",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "coverr",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "coverr",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "europeana",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "nara",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "dpla",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "smithsonian",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "pexels",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 455.5
+    },
+    {
+      "provider": "pexels",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 435.4
+    },
+    {
+      "provider": "pexels",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 321.2
+    },
+    {
+      "provider": "pexels",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 227.6
+    },
+    {
+      "provider": "pixabay",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 259.6
+    },
+    {
+      "provider": "pixabay",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 350.1
+    },
+    {
+      "provider": "pixabay",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 162.6
+    },
+    {
+      "provider": "pixabay",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 208.3
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 366.3
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 372.0
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 391.3
+    },
+    {
+      "provider": "wikimedia_commons",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 502.0
+    },
+    {
+      "provider": "internet_archive",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 754.7
+    },
+    {
+      "provider": "internet_archive",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 787.4
+    },
+    {
+      "provider": "internet_archive",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 256.2
+    },
+    {
+      "provider": "internet_archive",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 533.3
+    },
+    {
+      "provider": "nasa",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 289.1
+    },
+    {
+      "provider": "nasa",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 236.0
+    },
+    {
+      "provider": "nasa",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 100.6
+    },
+    {
+      "provider": "nasa",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 96.7
+    },
+    {
+      "provider": "youtube",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "youtube",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "youtube",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "youtube",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "rutube",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1950.9
+    },
+    {
+      "provider": "rutube",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1414.8
+    },
+    {
+      "provider": "rutube",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 857.1
+    },
+    {
+      "provider": "rutube",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1205.8
+    },
+    {
+      "provider": "peertube",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 838.4
+    },
+    {
+      "provider": "peertube",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 2,
+      "elapsed_ms": 669.9
+    },
+    {
+      "provider": "peertube",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 621.9
+    },
+    {
+      "provider": "peertube",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 0,
+      "elapsed_ms": 771.4
+    },
+    {
+      "provider": "odysee",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 713.5
+    },
+    {
+      "provider": "odysee",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1164.6
+    },
+    {
+      "provider": "odysee",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 625.6
+    },
+    {
+      "provider": "odysee",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 2,
+      "elapsed_ms": 478.3
+    },
+    {
+      "provider": "bilibili",
+      "language": "es",
+      "status": "UNAVAILABLE",
+      "count": 0,
+      "error_type": "ProviderError",
+      "error_detail": "Bilibili silent empty search",
+      "elapsed_ms": 1041.5
+    },
+    {
+      "provider": "bilibili",
+      "language": "en",
+      "status": "UNAVAILABLE",
+      "count": 0,
+      "error_type": "ProviderError",
+      "error_detail": "Bilibili silent empty search",
+      "elapsed_ms": 918.9
+    },
+    {
+      "provider": "bilibili",
+      "language": "zh",
+      "status": "UNAVAILABLE",
+      "count": 0,
+      "error_type": "ProviderError",
+      "error_detail": "Bilibili silent empty search",
+      "elapsed_ms": 883.9
+    },
+    {
+      "provider": "bilibili",
+      "language": "ru",
+      "status": "UNAVAILABLE",
+      "count": 0,
+      "error_type": "ProviderError",
+      "error_detail": "Bilibili silent empty search",
+      "elapsed_ms": 606.4
+    },
+    {
+      "provider": "ok_ru",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 2488.2
+    },
+    {
+      "provider": "ok_ru",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 2600.5
+    },
+    {
+      "provider": "ok_ru",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 2179.7
+    },
+    {
+      "provider": "ok_ru",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1971.3
+    },
+    {
+      "provider": "vk_video",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 2237.3
+    },
+    {
+      "provider": "vk_video",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1244.3
+    },
+    {
+      "provider": "vk_video",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1268.7
+    },
+    {
+      "provider": "vk_video",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1167.4
+    },
+    {
+      "provider": "dzen",
+      "language": "es",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 1259.2
+    },
+    {
+      "provider": "dzen",
+      "language": "en",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 949.0
+    },
+    {
+      "provider": "dzen",
+      "language": "zh",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 825.2
+    },
+    {
+      "provider": "dzen",
+      "language": "ru",
+      "status": "SUPPORTED_SEARCH_DOWNLOAD",
+      "count": 3,
+      "elapsed_ms": 947.8
+    },
+    {
+      "provider": "douyin",
+      "language": "es",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 2809.5
+    },
+    {
+      "provider": "douyin",
+      "language": "en",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 1809.6
+    },
+    {
+      "provider": "douyin",
+      "language": "zh",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 1026.8
+    },
+    {
+      "provider": "douyin",
+      "language": "ru",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 1151.9
+    },
+    {
+      "provider": "tiktok",
+      "language": "es",
+      "status": "UNAVAILABLE",
+      "count": 0,
+      "error_type": "ProviderError",
+      "error_detail": "provider peer changed after DNS validation",
+      "elapsed_ms": 1988.6
+    },
+    {
+      "provider": "tiktok",
+      "language": "en",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 1590.9
+    },
+    {
+      "provider": "tiktok",
+      "language": "zh",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 976.7
+    },
+    {
+      "provider": "tiktok",
+      "language": "ru",
+      "status": "SESSION_REQUIRED",
+      "count": 0,
+      "error_type": "AuthRequired",
+      "error_detail": "session_required",
+      "elapsed_ms": 578.7
+    },
+    {
+      "provider": "instagram",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "instagram",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "instagram",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "instagram",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "es",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "en",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "zh",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    },
+    {
+      "provider": "snapchat",
+      "language": "ru",
+      "status": "AUTH_REQUIRED",
+      "count": 0,
+      "elapsed_ms": 0
+    }
+  ],
+  "total_probes": 92,
+  "elapsed_seconds_measured": 65.649,
+  "github_usage": {
+    "run_id": "44977121143",
+    "release_bytes_first_page": 78230775,
+    "release_assets_first_page": 16,
+    "release_bytes_scope": "up to 100 newest releases, API page 1",
+    "actions_billed_minutes": null,
+    "actions_cost_usd": null,
+    "billing_note": "Actions billing and cost cannot be inferred from job wall time"
+  },
+  "notes": [
+    "Real API search probes; successful search does not imply download rights or publication.",
+    "No release upload, FFmpeg or deployed Worker E2E is asserted by this smoke.",
+    "Unconfigured credentials are AUTH_REQUIRED, not supplier failures."
+  ],
+  "candidates": {
+    "mode": "candidates",
+    "provider_languages": [
+      {
+        "provider": "rutube",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 829.8,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "rutube",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 199.1,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "rutube",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 533.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "rutube",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 200.9,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "es",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 1119.7,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "en",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 384.3,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 314.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "ok_ru",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 301,
+        "platform_code": null,
+        "elapsed_ms": 395.3,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 729.7,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 373.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 366.3,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "vk_video",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 182.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 893.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 403.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 409.5,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "dzen",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 559.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "es",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 23.3,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "en",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 15.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 11.8,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "library_of_congress",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 429,
+        "platform_code": null,
+        "elapsed_ms": 9.5,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 1160.3,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 916.4,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "douyin",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 507.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 378.4,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "douyin",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 311.0,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 336.0,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "douyin",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 302.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "douyin",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 2483,
+        "elapsed_ms": 590.3,
+        "count": 0,
+        "has_stream": false,
+        "search_nil_info": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 586.9,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 402.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "tiktok",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 523.6,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 129.5,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "tiktok",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 476.4,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 154.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "tiktok",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 1001,
+        "elapsed_ms": 280.9,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "session_required"
+      },
+      {
+        "provider": "tiktok",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": null,
+        "elapsed_ms": 114.7,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 273.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "es",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 190.8,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "es",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 211.1,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "silent_block"
+      },
+      {
+        "provider": "bilibili",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 198.3,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "en",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 216.2,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "en",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 230.1,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "silent_block"
+      },
+      {
+        "provider": "bilibili",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 184.9,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "zh",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 189.5,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "zh",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 213.6,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "silent_block"
+      },
+      {
+        "provider": "bilibili",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 191.4,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "ru",
+        "operation": "init",
+        "status_code": 200,
+        "platform_code": -101,
+        "elapsed_ms": 184.6,
+        "count": 0,
+        "has_stream": false
+      },
+      {
+        "provider": "bilibili",
+        "language": "ru",
+        "operation": "search",
+        "status_code": 200,
+        "platform_code": 0,
+        "elapsed_ms": 390.7,
+        "count": 0,
+        "has_stream": false,
+        "diagnosis": "silent_block"
+      }
+    ],
+    "total_probes": 48,
+    "elapsed_seconds_measured": 17.825
+  },
+  "total_candidate_probes": 48
+}

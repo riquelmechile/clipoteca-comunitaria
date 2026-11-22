@@ -1,4 +1,171 @@
-# Evidencia de fuentes candidatas v2  M12
+# Evidencia de fuentes candidatas v2 - smoke M24 r6
+
+**Run:** https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/44977121143
+**Ref:** `refs/heads/main`; **SHA:** `fd17e46aee3fb10a957425e5841cbe43ef572ed9`;
+**Artefacto:** `clipoteca-smoke-44977121143` (id 14735119727);
+**Reporte:** `data/reports/smoke-44977121143.json`.
+**Fecha UTC:** 2026-11-22T02:41:01.046489+00:00.
+
+**Cobertura:** 23 proveedores x 4 idiomas (92 sondas principales) y 8
+proveedores candidatos (48 sondas).
+Resultados de busqueda principales: 64 (anterior) y 118 (actual).
+Antes: AUTH_REQUIRED:43, SUPPORTED_SEARCH_DOWNLOAD:33, SUPPORTED_SEARCH_ONLY:4, TIMEOUT:3, UNAVAILABLE:9.
+Despues: AUTH_REQUIRED:32, RATE_LIMITED:2, SESSION_REQUIRED:7, SUPPORTED_SEARCH_DOWNLOAD:46, UNAVAILABLE:5.
+El workflow verde no implica disponibilidad de todos los proveedores ni descarga de clips.
+
+**Integridad de evidencia:** artefacto y log del job smoke descargados;
+ref/SHA/run_id contrastados y 92 pares unicos proveedor/idioma revisados;
+48 sondas candidatas y campo error_detail verificados. El JSON completo
+se conserva con serializacion ASCII (ensure_ascii=True), sin eliminar filas.
+El reporte original no contenia URLs, cookies, tokens, credenciales ni
+URLs firmadas: no fue necesario redactar datos.
+
+## Busqueda principal por proveedor e idioma, segundo smoke
+
+| Proveedor | es | en | zh | ru |
+| --- | --- | --- | --- | --- |
+| bilibili | UNAVAILABLE (Bilibili silent empty search) | UNAVAILABLE (Bilibili silent empty search) | UNAVAILABLE (Bilibili silent empty search) | UNAVAILABLE (Bilibili silent empty search) |
+| coverr | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+| douyin | SESSION_REQUIRED (session_required) | SESSION_REQUIRED (session_required) | SESSION_REQUIRED (session_required) | SESSION_REQUIRED (session_required) |
+| dpla | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+| dzen | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| europeana | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+| instagram | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+| internet_archive | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| library_of_congress | 3 resultados | 3 resultados | RATE_LIMITED (provider rate limit) | RATE_LIMITED (provider rate limit) |
+| nara | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+| nasa | 0 resultados | 3 resultados | 0 resultados | 0 resultados |
+| odysee | 3 resultados | 3 resultados | 3 resultados | 2 resultados |
+| ok_ru | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| peertube | 0 resultados | 2 resultados | 0 resultados | 0 resultados |
+| pexels | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| pixabay | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| rutube | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| smithsonian | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+| snapchat | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+| tiktok | UNAVAILABLE (provider peer changed after DNS validation) | SESSION_REQUIRED (session_required) | SESSION_REQUIRED (session_required) | SESSION_REQUIRED (session_required) |
+| vk_video | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| wikimedia_commons | 3 resultados | 3 resultados | 3 resultados | 3 resultados |
+| youtube | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED | AUTH_REQUIRED |
+
+## Comparacion por proveedor e idiomas
+
+
+| Proveedor | Antes: run 44972077685 | Despues: run 44977121143 | Variacion |
+| --- | --- | --- | --- |
+| bilibili | 0 resultados; SUPPORTED_SEARCH_ONLY:4 | 0 resultados; UNAVAILABLE:4 | +0 |
+| coverr | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+| douyin | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; SESSION_REQUIRED:4 | +0 |
+| dpla | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+| dzen | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +0 |
+| europeana | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+| instagram | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+| internet_archive | 0 resultados; UNAVAILABLE:4 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +12 |
+| library_of_congress | 0 resultados; SUPPORTED_SEARCH_DOWNLOAD:1, TIMEOUT:3 | 6 resultados; RATE_LIMITED:2, SUPPORTED_SEARCH_DOWNLOAD:2 | +6 |
+| nara | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+| nasa | 3 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 3 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +0 |
+| odysee | 11 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 11 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +0 |
+| ok_ru | 0 resultados; UNAVAILABLE:4 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +12 |
+| peertube | 2 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 2 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +0 |
+| pexels | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +0 |
+| pixabay | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +0 |
+| rutube | 0 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +12 |
+| smithsonian | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+| snapchat | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+| tiktok | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; SESSION_REQUIRED:3, UNAVAILABLE:1 | +0 |
+| vk_video | 0 resultados; AUTH_REQUIRED:3, UNAVAILABLE:1 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +12 |
+| wikimedia_commons | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | 12 resultados; SUPPORTED_SEARCH_DOWNLOAD:4 | +0 |
+| youtube | 0 resultados; AUTH_REQUIRED:4 | 0 resultados; AUTH_REQUIRED:4 | +0 |
+
+Proveniencia: ref refs/heads/main, SHA fd17e46aee3fb10a957425e5841cbe43ef572ed9, run_id 44977121143.
+El numero de sondas candidatas difiere del numero de resultados principales.
+Los diagnosticos de candidato pueden no coincidir con la busqueda principal.
+
+
+## Sondas candidatas registradas (no son descargas)
+
+| Proveedor | Idioma | Operacion | HTTP | Codigo | Resultados | Diagnosis | has_stream |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| rutube | es | search | 200 | - | 0 | - | false |
+| rutube | en | search | 200 | - | 0 | - | false |
+| rutube | zh | search | 200 | - | 0 | - | false |
+| rutube | ru | search | 200 | - | 0 | - | false |
+| ok_ru | es | search | 301 | - | 0 | - | false |
+| ok_ru | en | search | 301 | - | 0 | - | false |
+| ok_ru | zh | search | 301 | - | 0 | - | false |
+| ok_ru | ru | search | 301 | - | 0 | - | false |
+| vk_video | es | init | 200 | - | 0 | - | false |
+| vk_video | en | init | 200 | - | 0 | - | false |
+| vk_video | zh | init | 200 | - | 0 | - | false |
+| vk_video | ru | init | 429 | - | 0 | - | false |
+| dzen | es | search | 200 | - | 0 | - | false |
+| dzen | en | search | 200 | - | 0 | - | false |
+| dzen | zh | search | 200 | - | 0 | - | false |
+| dzen | ru | search | 200 | - | 0 | - | false |
+| library_of_congress | es | search | 429 | - | 0 | - | false |
+| library_of_congress | en | search | 429 | - | 0 | - | false |
+| library_of_congress | zh | search | 429 | - | 0 | - | false |
+| library_of_congress | ru | search | 429 | - | 0 | - | false |
+| douyin | es | init | 200 | 0 | 0 | - | false |
+| douyin | es | search | 200 | 2483 | 0 | session_required | false |
+| douyin | en | init | 200 | 0 | 0 | - | false |
+| douyin | en | search | 200 | 2483 | 0 | session_required | false |
+| douyin | zh | init | 200 | 0 | 0 | - | false |
+| douyin | zh | search | 200 | 2483 | 0 | session_required | false |
+| douyin | ru | init | 200 | 0 | 0 | - | false |
+| douyin | ru | search | 200 | 2483 | 0 | session_required | false |
+| tiktok | es | init | 200 | 1001 | 0 | session_required | false |
+| tiktok | es | search | 200 | - | 0 | - | false |
+| tiktok | en | init | 200 | 1001 | 0 | session_required | false |
+| tiktok | en | search | 200 | - | 0 | - | false |
+| tiktok | zh | init | 200 | 1001 | 0 | session_required | false |
+| tiktok | zh | search | 200 | - | 0 | - | false |
+| tiktok | ru | init | 200 | 1001 | 0 | session_required | false |
+| tiktok | ru | search | 200 | - | 0 | - | false |
+| bilibili | es | init | 200 | 0 | 0 | - | false |
+| bilibili | es | init | 200 | -101 | 0 | - | false |
+| bilibili | es | search | 200 | 0 | 0 | silent_block | false |
+| bilibili | en | init | 200 | 0 | 0 | - | false |
+| bilibili | en | init | 200 | -101 | 0 | - | false |
+| bilibili | en | search | 200 | 0 | 0 | silent_block | false |
+| bilibili | zh | init | 200 | 0 | 0 | - | false |
+| bilibili | zh | init | 200 | -101 | 0 | - | false |
+| bilibili | zh | search | 200 | 0 | 0 | silent_block | false |
+| bilibili | ru | init | 200 | 0 | 0 | - | false |
+| bilibili | ru | init | 200 | -101 | 0 | - | false |
+| bilibili | ru | search | 200 | 0 | 0 | silent_block | false |
+
+**Discrepancias observadas:** RuTube tuvo 0 resultados candidatos frente a 3
+por idioma en busqueda principal. OK.ru tuvo redireccion 301 en candidata
+frente a 3 por idioma en principal. VK tuvo 429 al iniciar candidato ru
+pero 3 resultados por idioma en principal. Ninguna es prueba de descarga.
+
+## Bloqueos observados y limites
+
+- Bilibili: cuatro UNAVAILABLE (Bilibili silent empty search); candidato
+  silent_block en es/en/zh/ru.
+- Douyin: cuatro SESSION_REQUIRED; candidata session_required en es/en/zh/ru.
+- TikTok: tres SESSION_REQUIRED y un UNAVAILABLE por
+  provider peer changed after DNS validation; candidata init 1001
+  diagnosticada session_required en cuatro idiomas.
+- Library of Congress: tres resultados es/en, RATE_LIMITED zh/ru.
+  El 429 exige contraste de cuota/ritmo antes de imputar bloqueo IP.
+- VK Video: 3 resultados en cuatro idiomas; 429 aislado en init candidato ru.
+  No constituye bloqueo persistente de la busqueda principal.
+- NASA y PeerTube: resultados solo en ingles; limitacion de contenido.
+- AUTH_REQUIRED por falta de claves no equivale a bloqueo IP.
+
+**PROPUESTA, no activacion:** comparar Bilibili, Douyin y TikTok en runner
+aislado, y LoC solo tras aislar cuota/ritmo. No modificar
+data/runner-routing.json por una hipotesis de diferencia de redes.
+
+## Lo que aun no demuestra el smoke
+
+No verifica descarga de MP4, stream/CDN utilizable, derechos, despliegue
+de Worker 2.0.0, demo E2E ni mejora por runner propio.
+No promover capacidad SUPPORTED_SEARCH_DOWNLOAD con solo busqueda.
+
+## Registro previo preservado: smoke 44972077685
 
 **Estado:** smoke live all completado en GitHub Actions, 2026-11-22 UTC.
 Un HTTP 200 no garantiza busqueda ni descarga funcional.

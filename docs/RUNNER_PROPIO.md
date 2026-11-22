@@ -276,6 +276,46 @@ los proveedores con bloqueo confirmado en Actions con un runner propio
 aislado y registrar evidencia de la misma consulta y fecha. Ningun
 resultado acredita descarga de un video.
 
+
+## Segundo smoke Actions 44977121143 - PROPUESTAS, no activadas
+
+**Evidencia real:** workflow_dispatch smoke.yml, refs/heads/main,
+SHA fd17e46aee3fb10a957425e5841cbe43ef572ed9, run_id 44977121143, artifact clipoteca-smoke-44977121143.
+Los 92 probes principales y 48 probes candidatos estan en
+data/reports/smoke-44977121143.json. El job fue success, pero la red de
+Actions no garantiza un origen de descarga ni que un runner propio mejore el
+resultado.
+
+**PROPUESTA Bilibili:** los cuatro idiomas tuvieron UNAVAILABLE con
+Bilibili silent empty search y la sonda candidata marco silent_block.
+Comparar la misma consulta con invitado en una red aislada antes de aprobar
+la ruta. No se demostro descarga.
+
+**PROPUESTA Douyin:** cuatro SESSION_REQUIRED; las sondas candidatas
+marcaron session_required en es/en/zh/ru. Una cookie DOUYIN_COOKIE legitima
+o una comparacion controlada en runner aislado requiere autorizacion del
+operador. No tratar esta barrera como error de resultados.
+
+**PROPUESTA TikTok:** tres SESSION_REQUIRED y una falla de verificacion
+de peer DNS en es; la sonda candidata registro init 1001 y
+session_required. Comparar sin eludir sesiones ni controles.
+
+**PROPUESTA CONDICIONAL Library of Congress:** es/en dieron 3 resultados
+cada uno; zh/ru quedaron RATE_LIMITED. Medir primero Retry-After,
+pacing/cuota y repeticion del 429; solo comparar con red distinta si el
+bloqueo persiste. No se puede concluir que la IP sea la causa.
+
+**No se propone activar VK** por un 429 aislado en sonda candidata ru:
+la busqueda principal obtuvo 3 resultados por cada uno de cuatro idiomas.
+Tampoco se consideran candidatos las fuentes con AUTH_REQUIRED por
+credenciales ausentes, ni NASA/PeerTube por falta de contenido en ciertos
+idiomas.
+
+**Decision pendiente de Zana:** NO modificar data/runner-routing.json;
+self_hosted_providers sigue vacio. No instalar ni exponer un runner por
+este PR. Hacen falta comparaciones Actions vs runner propio, mismo termino,
+idioma y fecha, mediciones de salida y revision de seguridad.
+
 ## 5. Fragmento a combinar con smoke.yml
 
 **Conservar en AMBOS jobs smoke** todos los env originales:
