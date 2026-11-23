@@ -2,7 +2,7 @@
   "request_id": "eac415941e00e4a4415112ebfe84c67e734faaa261b5a1294cc9decb5f670f86",
   "status": "publishing",
   "attempt": 1,
-  "updated_at": "2026-11-23T00:00:32.161053Z",
+  "updated_at": "2026-11-23T00:00:37.185865Z",
   "language_counts": {
     "es": 23,
     "en": 23,
@@ -95,7 +95,8 @@
     "wikimedia_commons:89468552": "translation_failed:en->es:unchanged_translation",
     "internet_archive:el-bosque-animado": "search_only",
     "odysee:5815a5f67119a00bcf931d2011b4d99c6ecf8a67": "download_error:HTTP 401",
-    "bilibili:BV1LnbBzsE9e": "translation_failed:en->es:unchanged_translation"
+    "bilibili:BV1LnbBzsE9e": "translation_failed:en->es:unchanged_translation",
+    "ok_ru:4816287631961": "translation_failed:es->en:disproportionate_translation"
   },
   "terms": {
     "es": "bosque",
