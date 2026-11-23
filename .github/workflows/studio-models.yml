@@ -1,0 +1,50 @@
+name: Studio models
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-models
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - name: Download and verify the Supertonic archive
+        run: |
+          curl --fail --location --retry 3 --output sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2
+          echo "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427  sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2" | sha256sum --check -
+      - name: Export the phoneme model in a throw-away CPU venv
+        run: |
+          uv venv --python 3.12 .venv-export
+          uv pip install --python .venv-export/bin/python torch --index-url https://download.pytorch.org/whl/cpu
+          uv pip install --python .venv-export/bin/python transformers huggingface-hub onnx onnxruntime
+          .venv-export/bin/python scripts/export_phon.py --out dist/phon
+      - name: Build checksums
+        run: |
+          cp dist/phon/w2v2-phon-espeak.model.int8.onnx dist/phon/w2v2-phon-espeak.vocab.json .
+          sha256sum sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2 w2v2-phon-espeak.model.int8.onnx w2v2-phon-espeak.vocab.json > SHA256SUMS
+          {
+            echo '```'
+            cat SHA256SUMS
+            stat --format='%s %n' sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2 w2v2-phon-espeak.model.int8.onnx w2v2-phon-espeak.vocab.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish the models-v1 release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view models-v1 >/dev/null 2>&1 || gh release create models-v1 --title "Studio models v1" --notes "Pinned Studio model assets. See docs/M26_VOZ.md for sources and licenses." --latest=false
+          gh release upload models-v1 --clobber sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2 w2v2-phon-espeak.model.int8.onnx w2v2-phon-espeak.vocab.json SHA256SUMS
