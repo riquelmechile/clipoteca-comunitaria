@@ -104,7 +104,15 @@ class GitHubReleaseStorage:
                     return release
             number = (int(matching[-1]["tag_name"].rsplit("-", 1)[1]) + 1) if matching else 1
             tag = f"{prefix}{number:03d}"
-            payload = {"tag_name": tag, "name": tag, "draft": False, "prerelease": False}
+            # Clip batches are storage, not product versions: never mark them
+            # "Latest", or they replace the version release on the repo page.
+            payload = {
+                "tag_name": tag,
+                "name": tag,
+                "draft": False,
+                "prerelease": False,
+                "make_latest": "false",
+            }
             response = self.client.post(self.releases_url, json=payload)
             if response.status_code == 422 and create_attempt < 3:
                 continue

@@ -15,7 +15,8 @@
   recupera ventanas adicionales si otras fuentes no aportan clips válidos.
   Deduplicación, calidad, límites y verificación de archivos intactos.
 - Versión sincronizada en API, Worker, Python, OpenAPI y lockfiles.
-
+- Los releases de lote de clips (batch-AAAA-MM-DD-NNN) se crean con
+  make_latest=false, para no quitarle la marca Latest al release de version.
 
 ## 2.0.5 (TikTok session and bounded browser fallback)
 
