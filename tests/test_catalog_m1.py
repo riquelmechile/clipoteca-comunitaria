@@ -289,3 +289,41 @@ def test_release_name_collision_must_not_delete_existing_asset(tmp_path):
             sha256(b"new").hexdigest(),
         )
     assert not deleted
+
+
+def test_new_batch_release_is_never_marked_latest():
+    from datetime import date
+
+    created = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path.endswith("/releases"):
+            return httpx.Response(200, json=[])
+        if request.method == "POST" and request.url.path.endswith("/releases"):
+            body = json.loads(request.content)
+            created.append(body)
+            return httpx.Response(
+                201,
+                json={
+                    "id": 7,
+                    "tag_name": body["tag_name"],
+                    "upload_url": "https://uploads.example/assets{?name,label}",
+                    "assets": [],
+                },
+            )
+        raise AssertionError(f"unexpected {request.method} {request.url}")
+
+    storage = GitHubReleaseStorage(
+        "o/r", client=httpx.Client(transport=httpx.MockTransport(handler))
+    )
+    release = storage.get_or_create_batch_release(date(2026, 11, 23))
+    assert release.tag == "batch-2026-11-23-001"
+    assert created == [
+        {
+            "tag_name": "batch-2026-11-23-001",
+            "name": "batch-2026-11-23-001",
+            "draft": False,
+            "prerelease": False,
+            "make_latest": "false",
+        }
+    ]
