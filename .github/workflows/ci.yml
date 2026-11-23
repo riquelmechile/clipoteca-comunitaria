@@ -57,3 +57,18 @@ jobs:
           ARGOS_MODEL_CACHE_DIR: .cache/argos
           ARGOS_MODEL_PINS_JSON: data/argos-pins.json
         run: uv run --no-sync pytest tests/test_real_argos_issue26.py
+
+  studio:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: uv sync --frozen --extra dev --extra studio
+      - name: Studio tests with the studio extra installed (no model downloads)
+        run: uv run --no-sync pytest tests/test_voice_m26.py tests/test_studio_models_m26.py tests/test_video_script_m25.py
