@@ -100,6 +100,7 @@ La salida y errores van a render.log con rutas de proyecto/temporales
 enmascaradas. FFmpeg agrega la mezcla con las opciones:
 
     -map 0:v -map 1:a -c:v libx264 -preset slow -crf 20
+    -maxrate 10M -bufsize 20M
     -pix_fmt yuv420p -profile:v high -c:a aac -b:a 192k
     -ar 48000 -ac 2 -shortest -movflags +faststart
 
@@ -128,24 +129,20 @@ de las compuertas definitivas de QA de M31. Las mediciones reales de
 rendimiento se publican únicamente cuando existan.
 
 
-## Evidencia de render local (23 de noviembre de 2026)
+## Evidencia de render (23 de noviembre de 2026)
 
-Con HyperFrames 0.9.36, GSAP 3.15.1 y Chrome Headless ARM64
-se renderizaron tres clips móviles testsrc2, cada uno de 2 segundos,
-a 1080×1920 con una mezcla sintética PCM16 de 6 segundos.
-El navegador se seleccionó mediante HYPERFRAMES_BROWSER_PATH,
-sin introducir una ruta privada en código ni en el PR.
+Mediciones del orquestador en una máquina de 2 núcleos, con HyperFrames
+0.9.36, GSAP 3.15.1 y el HTML ya corregido (la primera evidencia de este
+documento se había medido antes de corregir la pila de fuentes y se retiró).
 
-La prueba real pasó y FFprobe midió:
+| Caso | Duración | Render HyperFrames | Mux FFmpeg | Tamaño |
+|---|---|---|---|---|
+| Guion real de 4 escenas, 9:16, clips del catálogo (sin tope de bitrate) | 18,6 s | 142 s | 18 s | 33,9 MB |
+| Prueba de carga de 4 escenas de 15 s, 9:16, mismos clips en bucle (con -maxrate 10M) | 60,0 s | 402 s | 192 s | 54,6 MB |
 
-- Video: H.264 perfil High, yuv420p, 1080×1920, 30/1 fps.
-- Audio: AAC estéreo a 48000 Hz.
-- Duración: 6.000 segundos en ambas pistas.
-- Tamaño final: 3.740.792 bytes.
-- Tiempo de HyperFrames: 28.898 segundos.
-- Tiempo del mux FFmpeg: 7.409 segundos.
-- SHA-256 de GSAP: 3d1bea374ab1b703cc5c4105358eec63c4465efdc573931dc116e34a0a190c1b.
+Ambas salidas: H.264 High, yuv420p, 1080×1920, 30 fps, AAC estéreo 48 kHz.
+El caso de 60 s es el máximo que acepta el motor (ver docs/M31_QA.md) y
+termina sin colgarse en unos 10 minutos con 2 núcleos.
 
-Son métricas del ejecutor de prueba, no mediciones de Actions.
-La ejecución real del CI debe activarse mediante un paso dedicado
-en el job studio y documentarse por separado.
+En Actions, el job studio renderiza de verdad un vídeo de tres escenas
+en cada PR (paso «Real HyperFrames render»): 35 s en la primera corrida.

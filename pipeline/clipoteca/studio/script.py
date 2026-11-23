@@ -17,6 +17,8 @@ from .textnorm import DEFAULT_LEXICON, apply_lexicon, spell_numbers
 
 SEC_PER_CHAR = 0.065
 MAX_SCRIPT_BYTES = 65_536
+# Longest video the engine produces; plan, timeline and QA all enforce this one number.
+MAX_VIDEO_SECONDS = 60.0
 _SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schemas" / "video.schema.json"
 
 Aspect = Literal["9:16", "16:9", "1:1"]

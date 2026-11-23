@@ -83,6 +83,7 @@ jobs:
           tests/test_plan_m28.py tests/test_windows_m28.py tests/test_library_m28.py
           tests/test_clipscene_m28.py tests/test_framing_m28.py tests/test_checks_m28.py
           tests/test_fit_m29.py tests/test_mix_m29.py tests/test_compose_m30.py
+          tests/test_qa_m31.py
       - name: Real music render in headless Chromium (must not be skipped)
         run: |
           uv run --no-sync python -m clipoteca.studio.music render --plan tests/fixtures/m27/plan.json --out build/music-smoke
@@ -94,3 +95,9 @@ jobs:
         run: |
           uv run --no-sync pytest -rs tests/test_compose_m30.py::test_real_three_scene_render | tee build/render-smoke.log
           grep -q "1 passed" build/render-smoke.log
+      - name: Real QA layout gate in headless Chromium (must not be skipped)
+        env:
+          CLIPOTECA_M31_REAL_LAYOUT: "1"
+        run: |
+          uv run --no-sync pytest -rs tests/test_qa_m31.py::test_real_playwright_detects_outsafe_and_overlap | tee build/layout-smoke.log
+          grep -q "1 passed" build/layout-smoke.log
