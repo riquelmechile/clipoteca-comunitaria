@@ -1,0 +1,82 @@
+{
+  "title": "Secretos de los lagos australes",
+  "aspect": "9:16",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "voice": {
+    "voice": "F1",
+    "speed": 1.2,
+    "lexicon": {}
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Agua <azul> & \"luz\"",
+      "sub": "Naturaleza & <sur>",
+      "say": "Cuidemos agua hoy",
+      "caption": "Cuidemos agua hoy",
+      "query": {
+        "es": [
+          "lago austral",
+          "agua montañas"
+        ],
+        "en": [
+          "southern lake",
+          "water mountains"
+        ]
+      },
+      "prompt": "Un lago azul entre montañas nevadas",
+      "avoid": [
+        "persona hablando"
+      ]
+    },
+    {
+      "id": "lago",
+      "type": "fact",
+      "title": "Lago & cielo",
+      "sub": "Montañas \"frías\" & nieve",
+      "say": "Cuidemos agua hoy",
+      "caption": "Cuidemos agua hoy",
+      "query": {
+        "es": [
+          "lago turquesa",
+          "agua transparente"
+        ],
+        "en": [
+          "turquoise lake",
+          "clear water"
+        ]
+      },
+      "prompt": "Lago turquesa en la cordillera",
+      "avoid": [
+        "interior"
+      ]
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "title": "Proteger <vida>",
+      "sub": "Cuidar & compartir",
+      "say": "Cuidemos agua hoy",
+      "caption": "Cuidemos agua hoy",
+      "query": {
+        "es": [
+          "paisaje natural",
+          "atardecer lago"
+        ],
+        "en": [
+          "nature landscape",
+          "lake sunset"
+        ]
+      },
+      "prompt": "Atardecer suave junto al lago",
+      "avoid": [
+        "ciudad"
+      ]
+    }
+  ]
+}
