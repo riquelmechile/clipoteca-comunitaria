@@ -87,7 +87,10 @@ def fit_plan(duration: float, length: float) -> dict[str, float | str]:
     elif factor <= 1.25 + 1e-6:
         mode, speed = "slow", min(factor, 1.25)
     elif factor <= 2.4 + 1e-6:
-        mode, speed = "pingpong", 1.2
+        # The return leg drops its first frame (the pivot is never shown twice), so the
+        # loop is two frames short of 2*D: speed up to 1.25x covers that at the 2.4x edge.
+        loop = max(2 * duration - 2 / 30, duration)
+        mode, speed = "pingpong", min(1.25, max(1.2, length / loop))
     else:
         raise FitError("too_short")
     return {"mode": mode, "factor": factor, "speed": speed}
@@ -137,8 +140,12 @@ def fit_clip(src: str | Path, dst: str | Path, length: float) -> dict[str, float
             argv.extend(
                 [
                     "-filter_complex",
-                    "[0:v]setpts=1.2*(PTS-STARTPTS),fps=30,split[a][b];"
-                    "[b]reverse[r];[a][r]concat=n=2:v=1:a=0,format=yuv420p[o]",
+                    # Forward + backward at the source frame rate, without repeating the
+                    # pivot frame, and only then slowed: the turn never holds a frame.
+                    "[0:v]setpts=PTS-STARTPTS,split[a][b];"
+                    "[b]reverse,trim=start_frame=1,setpts=PTS-STARTPTS[r];"
+                    f"[a][r]concat=n=2:v=1:a=0,setpts={float(plan['speed']):.6f}*PTS,"
+                    "fps=30,format=yuv420p[o]",
                     "-map",
                     "[o]",
                 ]

@@ -54,7 +54,7 @@ def _stream(path: Path) -> dict:
         (2.0, 2.0, "trim", 1.0),
         (2.0, 2.5, "slow", 1.25),
         (2.0, 2.50002, "pingpong", 1.2),
-        (2.0, 4.8, "pingpong", 1.2),
+        (2.0, 4.8, "pingpong", 4.8 / (2 * 2.0 - 2 / 30)),
     ],
 )
 def test_fit_plan_exact_borders(
@@ -121,7 +121,9 @@ def test_fit_clip_real_moving_video(
         "-i",
         str(result),
         "-vf",
-        "freezedetect=n=0.001:d=0.5",
+        # 0.1 s = three identical frames: catches a held frame at the ping-pong turn,
+        # while the two-frame repeats of plain slow motion stay below it.
+        "freezedetect=n=0.001:d=0.1",
         "-f",
         "null",
         "-",
