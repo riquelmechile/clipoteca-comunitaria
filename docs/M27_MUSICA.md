@@ -83,3 +83,26 @@ La caché omite el segundo render cuando coinciden la clave y los tres WAV.
 | upbeat | Pendiente de medir en Actions | Pendiente de medir en Actions |
 | chill | Pendiente de medir en Actions | Pendiente de medir en Actions |
 | epic | Pendiente de medir en Actions | Pendiente de medir en Actions |
+
+
+## Segunda vuelta A: duración y aislamiento del render
+
+El presupuesto CLIPOTECA_MUSIC_TIMEOUT (180 s por defecto)
+limita ahora todo el trabajo Chromium, incluidas las dos evaluaciones
+que sintetizan la música. Se usa la API asíncrona de Playwright
+con cancelación del render al vencer el plazo y cierre acotado
+del navegador en finally. Una evaluación que no termina genera
+MusicError en lugar de bloquear indefinidamente la ejecución.
+
+Si falta Playwright o el ejecutable de Chromium, el error indica
+instalar el extra studio y ejecutar playwright install chromium.
+La interceptación de red permite solo file:// con host vacío, ruta
+resuelta bajo studio/assets o el directorio de salida. Bloquea
+file://host, file:///etc, http(s), data y cualquier otro esquema;
+el error solo informa la cantidad de peticiones bloqueadas, sin
+exponer URL de terceros.
+
+La duración de bed_s mantiene su cálculo original por pulsos,
+con la tolerancia ceil(x - 1e-9) para evitar un pulso adicional
+cuando la división cae en un entero representado imprecisamente.
+Las salidas head.wav, hit.wav, bed.wav y music.json no cambian.
