@@ -11,7 +11,7 @@ import pytest
 from clipoteca.studio.phon import _n, per, toks
 from clipoteca.studio import models, voice
 from clipoteca.studio.script import MusicSpec, SceneSpec, VideoScript, VoiceSpec
-from clipoteca.studio.textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, wer
+from clipoteca.studio.textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, spell_numbers, wer
 from clipoteca.studio.voice import JITTER, Score, Take, line_cache_key, render_script, trim_silence
 
 
@@ -112,6 +112,7 @@ def test_wer_fallback_and_cache(tmp_path: Path) -> None:
     assert report["per_check"] == {
         "enabled": False,
         "threshold": 0.12,
+        "wer_threshold": 0.2,
         "reason": "per_model_unpinned",
     }
     assert report["lines"]["fact-1"]["status"] == "ok"
@@ -188,7 +189,7 @@ def test_sample_scores_the_spoken_text(tmp_path: Path, monkeypatch: pytest.Monke
     scored = [(spoken, caption) for kind, spoken, caption in seen if kind == "scorer"]
     assert len(engine_texts) == len(scored) == 10 * len(phrases)
     for text, (spoken, caption) in zip(engine_texts, scored, strict=True):
-        assert spoken == text == apply_lexicon(caption)
+        assert spoken == text == spell_numbers(apply_lexicon(caption))
     assert any(spoken != caption for spoken, caption in scored)
 
 
@@ -218,3 +219,213 @@ def test_optional_real_engine() -> None:
         Take(1, "F1", 1.2),
     )
     assert len(samples) > 0 and sample_rate > 0
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("1960", "mil novecientos sesenta"),
+        ("2.847", "dos mil ochocientos cuarenta y siete"),
+        ("1.500.000", "un millón quinientos mil"),
+        ("9,5", "nueve coma cinco"),
+        ("0,25", "cero coma veinticinco"),
+        ("50%", "cincuenta por ciento"),
+        ("50 %", "cincuenta por ciento"),
+        ("3 km", "tres km"),
+        ("12.5", "doce coma cinco"),
+        ("año 2026", "año dos mil veintiséis"),
+        ("el 1 de mayo", "el uno de mayo"),
+        ("100", "cien"),
+        ("101", "ciento uno"),
+        ("1.001", "mil uno"),
+        ("21", "veintiuno"),
+        ("31 personas", "treinta y uno personas"),
+        ("ñandú sin cifras", "ñandú sin cifras"),
+        (
+            "999.999.999.999",
+            "novecientos noventa y nueve mil novecientos noventa y nueve"
+            " millones novecientos noventa y nueve mil novecientos noventa y nueve",
+        ),
+        ("1.000.000.000.000", "1.000.000.000.000"),
+        ("1,2.3", "1,2.3"),
+    ],
+)
+def test_spell_numbers_table(raw: str, expected: str) -> None:
+    assert spell_numbers(raw) == expected
+    assert norm_words(raw) == norm_words(spell_numbers(raw))
+
+
+def test_spell_numbers_lang_and_preservation() -> None:
+    original = "¡En 1960, Valdivia tuvo 9,5 grados! Ñandú."
+    assert spell_numbers(original, "en") == original
+    assert spell_numbers("  Qué tal, Ñandú.  ") == "  Qué tal, Ñandú.  "
+    assert spell_numbers("1960,") == "mil novecientos sesenta,"
+    assert norm_words("3,5") == ["tres", "coma", "cinco"]
+    assert norm_words("12.34") == ["doce", "coma", "treinta", "y", "cuatro"]
+    assert norm_words("1.500") == ["mil", "quinientos"]
+    assert norm_words("50%") == ["cincuenta", "por", "ciento"]
+    assert norm_words("ñandú") == ["ñandu"]
+    assert norm_words("") == []
+
+
+def test_lexicon_case_sensitive() -> None:
+    assert apply_lexicon("Rapa rapa RAPA", {"Rapa": "Isla"}) == "Isla rapa RAPA"
+
+
+def test_render_expands_numbers_but_keeps_caption(tmp_path: Path) -> None:
+    seen: list[str] = []
+
+    class RecordingEngine(FakeEngine):
+        def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]:
+            seen.append(text)
+            return super().generate(text, take)
+
+    script = _script()
+    scene = script.scenes[0]
+    script = VideoScript(
+        title=script.title,
+        aspect=script.aspect,
+        language=script.language,
+        music=script.music,
+        voice=script.voice,
+        scenes=(
+            SceneSpec(
+                id=scene.id,
+                type=scene.type,
+                title=scene.title,
+                sub=scene.sub,
+                say="En 1960 hubo 9,5 grados",
+                caption="En 1960 hubo 9,5 grados",
+                query=scene.query,
+                prompt=scene.prompt,
+                avoid=scene.avoid,
+            ),
+        ),
+    )
+    result = render_script(script, tmp_path, RecordingEngine(), FakeScorer([0.01]))
+    spoken = "En mil novecientos sesenta hubo nueve coma cinco grados"
+    assert seen == [spoken]
+    assert result["lines"]["fact-1"]["spoken"] == spoken
+    assert result["lines"]["fact-1"]["text"] == "En 1960 hubo 9,5 grados"
+    assert result["per_check"]["wer_threshold"] == 0.2
+
+
+def test_cache_keys_separate_language_voice_and_speed() -> None:
+    original = Take(1, "F1", 1.2, lang="es")
+    keys = [
+        line_cache_key("hola", original, "a" * 64),
+        line_cache_key("hola", Take(1, "F1", 1.2, lang="en"), "a" * 64),
+        line_cache_key("hola", Take(1, "F2", 1.2, lang="es"), "a" * 64),
+        line_cache_key("hola", Take(1, "F1", 1.05, lang="es"), "a" * 64),
+    ]
+    assert len(set(keys)) == len(keys)
+
+
+def test_silent_take_retries_and_never_reports_ok(tmp_path: Path) -> None:
+    class SilentThenValid(FakeEngine):
+        def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]:
+            self.takes.append(take)
+            if len(self.takes) == 1:
+                return np.zeros(3200, dtype=np.float32), 16000
+            return np.full(3200, 0.1, dtype=np.float32), 16000
+
+    engine = SilentThenValid()
+    report = render_script(_script(), tmp_path, engine, FakeScorer([0.04]))
+    assert len(engine.takes) == 2
+    assert report["lines"]["fact-1"]["best_take"] == 2
+    assert report["lines"]["fact-1"]["status"] == "ok"
+
+    class AlwaysSilent(FakeEngine):
+        def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]:
+            self.takes.append(take)
+            return np.zeros(1600, dtype=np.float32), 16000
+
+    other = render_script(_script(), tmp_path / "all-silent", AlwaysSilent(), FakeScorer([]))
+    assert other["lines"]["fact-1"]["status"] == "invalid_audio"
+    assert other["lines"]["fact-1"]["duration_s"] == 0
+    assert other["lines"]["fact-1"]["takes"] == 3
+
+
+def test_stale_report_is_removed_before_render(tmp_path: Path) -> None:
+    (tmp_path / "voice.json").write_text("stale")
+
+    class CrashingEngine(FakeEngine):
+        def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]:
+            raise RuntimeError("failed")
+
+    with pytest.raises(RuntimeError, match="failed"):
+        render_script(_script(), tmp_path, CrashingEngine(), FakeScorer([0.05]))
+    assert not (tmp_path / "voice.json").exists()
+
+
+def test_trim_preserves_pads_and_fade() -> None:
+    audio = np.r_[np.zeros(3200), np.ones(1600) * 0.1, np.zeros(3200)].astype(np.float32)
+    trimmed = trim_silence(audio, 16000)
+    assert 4480 <= len(trimmed) <= 4800
+    assert trimmed[0] == 0
+    assert trimmed[1] >= trimmed[0]
+    assert trimmed[64] == pytest.approx(0.0)  # preserved pre-roll before voice
+    assert len(trim_silence(np.zeros(1000, dtype=np.float32), 16000)) == 0
+
+
+def test_default_scorer_ensures_pinned_phoneme_model(monkeypatch, tmp_path: Path) -> None:
+    calls: list[object] = []
+    monkeypatch.setattr(
+        models,
+        "model_spec",
+        lambda name: {"assets": [{"sha256": "a" * 64}]},
+    )
+    monkeypatch.setattr(
+        models,
+        "ensure_model",
+        lambda name: (calls.append(name), tmp_path)[1],
+    )
+
+    class FakePerScorer:
+        def __init__(self, directory: Path):
+            calls.append(directory)
+
+    monkeypatch.setattr(voice, "PerScorer", FakePerScorer)
+    result = voice._default_scorer()
+    assert isinstance(result, FakePerScorer)
+    assert calls == ["w2v2-phon", tmp_path]
+
+
+def test_default_scorer_unavailable_reason_is_truthful(monkeypatch) -> None:
+    monkeypatch.setattr(
+        models,
+        "model_spec",
+        lambda name: {"assets": [{"sha256": "a" * 64}]},
+    )
+
+    def unavailable(_name: str):
+        raise models.ModelUnavailable("model missing offline")
+
+    monkeypatch.setattr(models, "ensure_model", unavailable)
+
+    class FakeWhisper:
+        def __init__(self, lang: str, reason: str):
+            self.reason = reason
+
+    monkeypatch.setattr(voice, "WhisperScorer", FakeWhisper)
+    assert voice._default_scorer().reason == ("per_model_unavailable:model missing offline")
+
+
+def test_whisper_scorer_uses_script_language(monkeypatch) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeWhisperModel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def transcribe(self, values, **kwargs):
+            calls.append(kwargs)
+            return [], None
+
+    fake_module = types.ModuleType("faster_whisper")
+    fake_module.WhisperModel = FakeWhisperModel  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "faster_whisper", fake_module)
+    scorer = voice.WhisperScorer(lang="fr")
+    result = scorer.score("bonjour", "bonjour", np.ones(1600), 16000)
+    assert calls[0]["language"] == "fr"
+    assert result.asr == ""

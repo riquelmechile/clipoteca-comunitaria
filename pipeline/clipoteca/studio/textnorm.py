@@ -1,4 +1,4 @@
-"""Deterministic normalization for voice quality checks."""
+"""Deterministic text normalization and Spanish spoken numbers."""
 
 from __future__ import annotations
 
@@ -25,33 +25,157 @@ DEFAULT_LEXICON = {
     "km/h": "kilometros por hora",
 }
 
+_UNITS = (
+    "cero",
+    "uno",
+    "dos",
+    "tres",
+    "cuatro",
+    "cinco",
+    "seis",
+    "siete",
+    "ocho",
+    "nueve",
+    "diez",
+    "once",
+    "doce",
+    "trece",
+    "catorce",
+    "quince",
+    "dieciséis",
+    "diecisiete",
+    "dieciocho",
+    "diecinueve",
+    "veinte",
+    "veintiuno",
+    "veintidós",
+    "veintitrés",
+    "veinticuatro",
+    "veinticinco",
+    "veintiséis",
+    "veintisiete",
+    "veintiocho",
+    "veintinueve",
+)
+_TENS = ("", "", "", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa")
+_HUNDREDS = (
+    "",
+    "ciento",
+    "doscientos",
+    "trescientos",
+    "cuatrocientos",
+    "quinientos",
+    "seiscientos",
+    "setecientos",
+    "ochocientos",
+    "novecientos",
+)
+_NUMBERS = re.compile(r"(?<![\w])\d+(?:[.,]\d+)*(?: ?%)?(?![\w])")
+
 
 def apply_lexicon(text: str, lexicon: Mapping[str, str] | None = None) -> str:
-    """Replace whole spoken tokens, preferring longer lexicon keys."""
+    """Replace case-sensitive whole tokens, keeping replacements literal."""
     values = DEFAULT_LEXICON if lexicon is None else lexicon
     result = text
     for key in sorted(values, key=len, reverse=True):
         pattern = rf"(?<![\w]){re.escape(key)}(?![\w])"
         replacement = values[key]
-        # A callable keeps the replacement literal: backslashes in a script
-        # lexicon must not be read as group references.
-        result = re.sub(pattern, lambda _match: replacement, result, flags=re.IGNORECASE)
+        result = re.sub(pattern, lambda _match: replacement, result)
     return result
 
 
+def _under_thousand(value: int) -> str:
+    if value < 30:
+        return _UNITS[value]
+    if value < 100:
+        ten, unit = divmod(value, 10)
+        return _TENS[ten] + (" y " + _UNITS[unit] if unit else "")
+    if value == 100:
+        return "cien"
+    hundred, rest = divmod(value, 100)
+    return _HUNDREDS[hundred] + (" " + _under_thousand(rest) if rest else "")
+
+
+def _apocope(value: str) -> str:
+    """Use un/veintiún when a cardinal precedes mil or millones."""
+    if value.endswith("veintiuno"):
+        return value[:-9] + "veintiún"
+    if value.endswith(" y uno"):
+        return value[:-6] + " y un"
+    if value.endswith("uno"):
+        return value[:-3] + "un"
+    return value
+
+
+def _under_million(value: int) -> str:
+    if value < 1000:
+        return _under_thousand(value)
+    thousands, rest = divmod(value, 1000)
+    before = "mil" if thousands == 1 else _apocope(_under_thousand(thousands)) + " mil"
+    return before + (" " + _under_thousand(rest) if rest else "")
+
+
+def _cardinal(value: int) -> str:
+    if value < 1_000_000:
+        return _under_million(value)
+    millions, rest = divmod(value, 1_000_000)
+    if millions == 1:
+        before = "un millón"
+    else:
+        before = _apocope(_under_million(millions)) + " millones"
+    return before + (" " + _under_million(rest) if rest else "")
+
+
+def _spell_number(value: str) -> str:
+    percentage = value.endswith("%")
+    original = value[:-1].rstrip() if percentage else value
+    if original.count(",") > 1 or ("," in original and "." in original):
+        return value
+    if "," in original:
+        integer, fraction = original.split(",")
+        if not integer.isdecimal() or not fraction.isdecimal():
+            return value
+    elif "." in original:
+        groups = original.split(".")
+        if len(groups) > 2 or len(groups[-1]) == 3:
+            if not all(len(group) == 3 for group in groups[1:]):
+                return value
+            if len(groups[0]) > 3 or not all(group.isdecimal() for group in groups):
+                return value
+            integer, fraction = "".join(groups), ""
+        else:
+            integer, fraction = groups[0], groups[-1]
+    else:
+        integer, fraction = original, ""
+    if not integer.isdecimal() or (fraction and not fraction.isdecimal()):
+        return value
+    number = int(integer)
+    if number > 999_999_999_999:
+        return value
+    words = _cardinal(number)
+    if fraction:
+        fractional = int(fraction)
+        if fractional > 999_999_999_999:
+            return value
+        words += " coma " + _cardinal(fractional)
+    return words + (" por ciento" if percentage else "")
+
+
+def spell_numbers(text: str, lang: str = "es") -> str:
+    """Expand Spanish numbers to spoken words; preserve unrelated text exactly.
+
+    Dot followed by a group of three digits denotes thousands; a final dot
+    followed by one or two digits denotes decimals. Comma denotes decimals.
+    Unrecognised formats and values above 999,999,999,999 remain untouched.
+    """
+    if lang != "es":
+        return text
+    return _NUMBERS.sub(lambda match: _spell_number(match.group()), text)
+
+
 def norm_words(value: str, lang: str = "es") -> list[str]:
-    """Return accent-insensitive words suitable for WER."""
-    value = value.lower().replace("%", " por ciento ")
-    previous = None
-    while previous != value:
-        previous = value
-        value = re.sub(r"(?<=\d)[.,](?=\d{3}(?:\D|$))", "", value)
-    try:
-        from num2words import num2words
-    except ImportError:
-        num2words = None
-    if num2words is not None:
-        value = re.sub(r"\d+", lambda m: str(num2words(int(m.group()), lang=lang)), value)
+    """Accent-insensitive WER tokens, using the same numeric expansion as TTS."""
+    value = spell_numbers(value, lang).lower().replace("%", " por ciento ")
     value = value.replace("ñ", "\0")
     value = "".join(
         char for char in unicodedata.normalize("NFD", value) if unicodedata.category(char) != "Mn"
