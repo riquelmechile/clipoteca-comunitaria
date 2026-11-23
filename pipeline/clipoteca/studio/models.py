@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import os
 import shutil
@@ -15,6 +16,8 @@ from pathlib import Path
 from typing import Any
 
 MANIFEST_PATH = Path(__file__).with_name("models.json")
+MAX_TAR_MEMBERS = 4096
+MAX_TAR_BYTES = 4 * 1024**3
 ALLOWED_HOSTS = frozenset(
     {
         "github.com",
@@ -60,6 +63,12 @@ def validate_url(url: str) -> None:
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != "https" or parsed.username or parsed.password:
         raise ModelError("model URLs must use HTTPS without credentials")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ModelError("invalid model URL port") from exc
+    if port not in (None, 443):
+        raise ModelError("model URL must use the default HTTPS port")
     if (parsed.hostname or "").lower() not in ALLOWED_HOSTS:
         raise ModelError(f"model host is not allowed: {parsed.hostname or '<missing>'}")
 
@@ -145,8 +154,15 @@ def download_asset(asset: dict[str, Any], destination: str | Path) -> Path:
                 raise ModelError("model sha256 mismatch")
             os.replace(temporary_path, destination)
             return destination
-        except (OSError, ValueError, urllib.error.URLError, ModelError) as exc:
+        except (
+            OSError,
+            ValueError,
+            urllib.error.URLError,
+            http.client.HTTPException,
+            ModelError,
+        ) as exc:
             last_error = exc
+        finally:
             temporary_path.unlink(missing_ok=True)
     raise ModelError(f"all model URLs failed: {last_error}")
 
@@ -159,8 +175,22 @@ def safe_extract_tar(archive: str | Path, destination: str | Path) -> Path:
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}.", dir=destination.parent))
     try:
         with tarfile.open(archive, mode="r:*") as source:
-            members = source.getmembers()
-            for member in members:
+            members = []
+            total_size = 0
+            max_size = min(MAX_TAR_BYTES, archive.stat().st_size * 4)
+            seen = set()
+            for member in source:
+                members.append(member)
+                if len(members) > MAX_TAR_MEMBERS:
+                    raise ModelError("model archive member count exceeds limit")
+                if member.size < 0:
+                    raise ModelError("unsafe member size in model archive")
+                total_size += member.size
+                if total_size > max_size:
+                    raise ModelError("model archive uncompressed size exceeds limit")
+                if member.name in seen:
+                    raise ModelError("duplicate member in model archive")
+                seen.add(member.name)
                 parts = Path(member.name).parts
                 if Path(member.name).is_absolute() or ".." in parts or not parts:
                     raise ModelError("unsafe path in model archive")
@@ -203,18 +233,28 @@ def ensure_model(name: str, root: str | Path | None = None) -> Path:
                 return target
         except (OSError, ValueError):
             pass
-        raise ModelError("existing model cache is not verified")
+        if target.is_symlink():
+            target.unlink()
+        elif target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink()
     downloads = base / ".downloads"
-    paths = [download_asset(asset, downloads / asset["name"]) for asset in assets]
-    if spec.get("archive"):
-        safe_extract_tar(paths[0], target)
+    paths: list[Path] = []
+    try:
+        for asset in assets:
+            paths.append(download_asset(asset, downloads / asset["name"]))
+        if spec.get("archive"):
+            safe_extract_tar(paths[0], target)
+        else:
+            target.mkdir(parents=True, exist_ok=True)
+            for path in paths:
+                os.replace(path, target / path.name)
         _atomic_json(marker, {asset["name"]: asset["sha256"] for asset in assets})
         return target
-    target.mkdir(parents=True, exist_ok=True)
-    for path in paths:
-        os.replace(path, target / path.name)
-    _atomic_json(marker, {asset["name"]: asset["sha256"] for asset in assets})
-    return target
+    finally:
+        for path in paths:
+            path.unlink(missing_ok=True)
 
 
 def per_model_status(root: str | Path | None = None) -> tuple[bool, str]:

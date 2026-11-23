@@ -17,7 +17,7 @@ import numpy as np
 
 from . import models
 from .script import VideoScript, parse_video_script
-from .textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, wer
+from .textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, spell_numbers, wer
 
 VOICES = ["M1", "M2", "M3", "M4", "M5", "F1", "F2", "F3", "F4", "F5"]
 JITTER = [1.0, 0.96, 1.04, 0.93]
@@ -46,7 +46,7 @@ class Score:
 
 
 class Engine(Protocol):
-    model_sha: str
+    model_sha: str | None
 
     def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]: ...
 
@@ -74,13 +74,20 @@ def _find_model_file(root: Path, name: str) -> Path:
 class SupertonicEngine:
     """Lazy sherpa-onnx Supertonic adapter."""
 
-    model_sha = "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427"
+    model_sha: str | None = None
 
     def __init__(self, model_dir: str | Path | None = None):
         import sherpa_onnx as so
 
         self._so = so
-        root = models.ensure_model("supertonic3") if model_dir is None else Path(model_dir)
+        if model_dir is None:
+            spec = models.model_spec("supertonic3")
+            assets = spec.get("assets", [])
+            self.model_sha = assets[0].get("sha256") if len(assets) == 1 else None
+            root = models.ensure_model("supertonic3")
+        else:
+            self.model_sha = None
+            root = Path(model_dir)
         supertonic = so.OfflineTtsSupertonicModelConfig(
             duration_predictor=str(_find_model_file(root, "duration_predictor.int8.onnx")),
             text_encoder=str(_find_model_file(root, "text_encoder.int8.onnx")),
@@ -113,8 +120,11 @@ class WhisperScorer:
     per_enabled = False
     reason = "per_model_unpinned"
 
-    def __init__(self):
+    def __init__(self, lang: str = "es", reason: str = "per_model_unpinned"):
         from faster_whisper import WhisperModel
+
+        self.lang = lang
+        self.reason = reason
 
         spec = models.model_spec("whisper")
         compute = os.environ.get("CLIPOTECA_WHISPER_COMPUTE", spec["compute_type"])
@@ -129,13 +139,16 @@ class WhisperScorer:
             samples = _resample(samples, sample_rate, 16000)
         segments, _ = self._model.transcribe(
             samples,
-            language="es",
+            language=self.lang,
             beam_size=5,
             vad_filter=False,
             condition_on_previous_text=False,
         )
         transcript = " ".join(segment.text.strip() for segment in segments).strip()
-        return Score(wer=wer(norm_words(caption), norm_words(transcript)), asr=transcript)
+        return Score(
+            wer=wer(norm_words(caption, self.lang), norm_words(transcript, self.lang)),
+            asr=transcript,
+        )
 
 
 class PerScorer:
@@ -240,10 +253,11 @@ def _atomic_text(path: Path, value: str) -> None:
         Path(temporary).unlink(missing_ok=True)
 
 
-def line_cache_key(text: str, take: Take, model_sha: str) -> str:
+def line_cache_key(text: str, take: Take, model_sha: str | None) -> str:
     payload = {
         "text": text,
         "voice": take.voice,
+        "lang": take.lang,
         "speed": take.speed,
         "steps": take.num_steps,
         "model_sha": model_sha,
@@ -258,11 +272,14 @@ def _metric(score: Score) -> tuple[float, float]:
     return score.wer if score.wer is not None else float("inf"), LINE_WER_MAX
 
 
-def _default_scorer() -> Scorer:
-    enabled, _ = models.per_model_status()
-    if enabled:
-        return PerScorer(models.cache_dir() / "w2v2-phon")
-    return WhisperScorer()
+def _default_scorer(lang: str = "es") -> Scorer:
+    try:
+        spec = models.model_spec("w2v2-phon")
+        if not spec.get("assets") or any(asset.get("sha256") is None for asset in spec["assets"]):
+            return WhisperScorer(lang=lang, reason="per_model_unpinned")
+        return PerScorer(models.ensure_model("w2v2-phon"))
+    except (models.ModelError, OSError, ValueError) as exc:
+        return WhisperScorer(lang=lang, reason=f"per_model_unavailable:{exc}")
 
 
 def render_script(
@@ -278,13 +295,16 @@ def render_script(
     audio_dir = output / "audio"
     cache = output / ".line-cache"
     cache.mkdir(parents=True, exist_ok=True)
+    (output / "voice.json").unlink(missing_ok=True)
     started = time.monotonic()
+    if isinstance(scorer, WhisperScorer):
+        scorer.lang = script.language
     lines: dict[str, dict[str, Any]] = {}
     durations: dict[str, float] = {}
     # Script entries extend (and may override) the built-in spoken-form lexicon.
     lexicon = {**DEFAULT_LEXICON, **dict(script.voice.lexicon)}
     for scene in script.scenes:
-        spoken = apply_lexicon(scene.say, lexicon)
+        spoken = spell_numbers(apply_lexicon(scene.say, lexicon), script.language)
         best: tuple[float, np.ndarray, int, Score, int] | None = None
         take_scores: list[dict[str, Any]] = []
         for index in range(max_tries):
@@ -302,7 +322,10 @@ def render_script(
                 samples, sample_rate = engine.generate(spoken, take)
                 samples = trim_silence(samples, sample_rate)
                 _write_wav(cached, samples, sample_rate)
-            score = scorer.score(spoken, scene.caption, samples, sample_rate)
+            if sample_rate <= 0 or not len(samples):
+                score = Score(per=999.0) if scorer.per_enabled else Score(wer=999.0)
+            else:
+                score = scorer.score(spoken, scene.caption, samples, sample_rate)
             metric, threshold = _metric(score)
             take_scores.append({"take": index + 1, **asdict(score)})
             if best is None or metric < best[0]:
@@ -314,7 +337,7 @@ def render_script(
         _, threshold = _metric(score)
         wav_path = audio_dir / f"{scene.id}.wav"
         _write_wav(wav_path, samples, sample_rate)
-        duration = len(samples) / sample_rate
+        duration = len(samples) / sample_rate if sample_rate > 0 else 0.0
         durations[scene.id] = duration
         lines[scene.id] = {
             "text": scene.say,
@@ -326,7 +349,13 @@ def render_script(
             "best_take": best_take,
             "asr": score.asr,
             "duration_s": round(duration, 6),
-            "status": "ok" if metric <= threshold else "below_threshold",
+            "status": (
+                "invalid_audio"
+                if duration == 0
+                else "ok"
+                if metric <= threshold
+                else "below_threshold"
+            ),
         }
     total = sum(durations.values())
     elapsed = time.monotonic() - started
@@ -343,6 +372,7 @@ def render_script(
         "per_check": {
             "enabled": scorer.per_enabled,
             "threshold": PER_MAX,
+            "wer_threshold": LINE_WER_MAX,
             "reason": scorer.reason,
         },
     }
@@ -362,7 +392,7 @@ def _sample(out: Path) -> None:
         for index, phrase in enumerate(phrases, 1):
             take = Take(index=1, voice=voice_name, speed=DEFAULT_SPEED)
             started = time.monotonic()
-            spoken = apply_lexicon(phrase)
+            spoken = spell_numbers(apply_lexicon(phrase), "es")
             samples, rate = engine.generate(spoken, take)
             samples = trim_silence(samples, rate)
             score = scorer.score(spoken, phrase, samples, rate)
@@ -372,7 +402,7 @@ def _sample(out: Path) -> None:
                 {
                     "phrase": index,
                     **asdict(score),
-                    "rtf": elapsed / (len(samples) / rate),
+                    "rtf": elapsed / (len(samples) / rate) if len(samples) and rate else 0.0,
                 }
             )
         result["voices"][voice_name] = records
@@ -406,7 +436,8 @@ def main(argv: list[str] | None = None) -> int:
         _sample(args.out)
     else:
         data = json.loads(args.script.read_text(encoding="utf-8"))
-        render_script(parse_video_script(data), args.out, SupertonicEngine(), _default_scorer())
+        script = parse_video_script(data)
+        render_script(script, args.out, SupertonicEngine(), _default_scorer(script.language))
     return 0
 
 
