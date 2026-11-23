@@ -24,7 +24,8 @@ HYPERFRAMES_VERSION = "0.9.36"
 GSAP_TARBALL_SHA = "c70a3bcf656015f32b4f6456e686034564c90d64280db535cfbd84de4497d988"
 GSAP_FILE_SHA = "3d1bea374ab1b703cc5c4105358eec63c4465efdc573931dc116e34a0a190c1b"
 GSAP_FILE_SIZE = 73357
-FONT = '"Nunito","DejaVu Sans",system-ui,sans-serif'
+# Single quotes only: the stack is written inside double-quoted style attributes.
+FONT = "Nunito,'DejaVu Sans',system-ui,sans-serif"
 SHADOW = "0 4px 0 rgba(0,0,0,0.45),0 0 26px rgba(0,0,0,0.55)"
 _SAFE_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
 HYPERFRAMES_CONFIG = {

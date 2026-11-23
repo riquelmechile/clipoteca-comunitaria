@@ -344,3 +344,50 @@ def test_cli_build_with_injected_gsap(tmp_path: Path, sources, capsys) -> None:
     assert reply["scenes"] == ["intro", "lago", "outro"]
     assert reply["total"] == 6
     assert (root / "hf" / "index.html").exists()
+
+
+def test_every_style_attribute_survives_html_parsing(tmp_path: Path, sources) -> None:
+    """A double quote inside a style value would cut it short and drop font, colour and shadow."""
+    from html.parser import HTMLParser
+
+    clips, music, gsap = sources
+    build_composition(_script(), _timeline(), clips, music, tmp_path / "build", gsap)
+    markup = (tmp_path / "build" / "hf" / "index.html").read_text(encoding="utf-8")
+    known = {
+        "id",
+        "class",
+        "style",
+        "src",
+        "lang",
+        "charset",
+        "name",
+        "content",
+        "muted",
+        "playsinline",
+        "data-start",
+        "data-duration",
+        "data-track-index",
+        "data-volume",
+        "data-track-kind",
+        "data-composition-id",
+        "data-width",
+        "data-height",
+        "data-fps",
+        "data-layout-allow-occlusion",
+    }
+    styles: dict[str, str] = {}
+
+    class Collector(HTMLParser):
+        def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+            names = {name for name, _ in attrs}
+            assert names <= known, f"<{tag}> has stray attributes: {sorted(names - known)}"
+            values = dict(attrs)
+            for css_class in (values.get("class") or "").split():
+                styles.setdefault(css_class, values.get("style") or "")
+
+    Collector().feed(markup)
+    for css_class in ("title", "sub", "pill"):
+        assert "DejaVu Sans" in styles[css_class], css_class
+        assert "color:#" in styles[css_class], css_class
+    assert "text-shadow:" in styles["title"] and "text-shadow:" in styles["sub"]
+    assert '"' not in compose.FONT
