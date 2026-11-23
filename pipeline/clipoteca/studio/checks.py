@@ -1,0 +1,228 @@
+"""M28 frame quality, optional OCR and deterministic cross-scene deduplication."""
+
+from __future__ import annotations
+
+import math
+import re
+import subprocess
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+
+class CheckError(ValueError):
+    """Cannot inspect a candidate or verify its quality."""
+
+
+def _run(args: list[str], timeout: int = 120) -> subprocess.CompletedProcess[bytes]:
+    try:
+        result = subprocess.run(args, capture_output=True, timeout=timeout, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise CheckError(f"media inspection failed: {type(exc).__name__}") from exc
+    if result.returncode:
+        raise CheckError("media inspection failed: ffmpeg exit " + str(result.returncode))
+    return result
+
+
+def probe_video(path: str | Path) -> tuple[int, int, float]:
+    """Read actual first video stream width, height and duration via ffprobe."""
+    import json
+
+    result = _run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height,duration,nb_frames,avg_frame_rate",
+            "-of",
+            "json",
+            str(path),
+        ]
+    )
+    try:
+        stream = json.loads(result.stdout)["streams"][0]
+        width, height = int(stream["width"]), int(stream["height"])
+        duration = float(stream.get("duration", "nan"))
+        if not math.isfinite(duration) or duration <= 0:
+            numerator, denominator = map(int, stream["avg_frame_rate"].split("/"))
+            duration = int(stream["nb_frames"]) * denominator / numerator
+        if min(width, height) <= 0 or not math.isfinite(duration) or duration <= 0:
+            raise ValueError
+        return width, height, duration
+    except (KeyError, TypeError, ValueError, IndexError, ZeroDivisionError) as exc:
+        raise CheckError("ffprobe invalid video stream") from exc
+
+
+def black_frozen(path: str | Path) -> tuple[list[float], list[float]]:
+    """Reject black sections >=0.3 s and frozen stretches >=1.5 s."""
+    result = _run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-i",
+            str(path),
+            "-vf",
+            "blackdetect=d=0.3:pix_th=0.08,freezedetect=n=0.002:d=1.5",
+            "-an",
+            "-f",
+            "null",
+            "-",
+        ]
+    )
+    stderr = result.stderr.decode("utf-8", "replace")
+    black = [float(x) for x in re.findall(r"black_start:\s*([\d.]+)", stderr)]
+    frozen = [float(x) for x in re.findall(r"freeze_start:\s*([\d.]+)", stderr)]
+    return black, frozen
+
+
+def sample_frames(
+    path: str | Path,
+    fractions: list[float] | tuple[float, ...],
+    width: int = 720,
+) -> list[np.ndarray]:
+    """Extract BGR frames at fractional positions; no decode models or network."""
+    if width < 2 or width > 4096:
+        raise CheckError("frame sample width out of range")
+    source_w, source_h, duration = probe_video(path)
+    height = max(2, int(round((source_h * width / source_w) / 2)) * 2)
+    frames = []
+    for fraction in fractions:
+        if not math.isfinite(float(fraction)) or not 0 <= float(fraction) <= 1:
+            raise CheckError("frame sample position out of range")
+        offset = min(max(0.0, duration - 0.05), float(fraction) * duration)
+        result = _run(
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-nostdin",
+                "-loglevel",
+                "error",
+                "-ss",
+                f"{offset:.5f}",
+                "-i",
+                str(path),
+                "-frames:v",
+                "1",
+                "-vf",
+                f"scale={width}:{height}",
+                "-pix_fmt",
+                "bgr24",
+                "-f",
+                "rawvideo",
+                "pipe:1",
+            ]
+        )
+        size = width * height * 3
+        if len(result.stdout) != size:
+            raise CheckError("frame decode returned incomplete data")
+        frames.append(np.frombuffer(result.stdout, dtype=np.uint8).reshape(height, width, 3).copy())
+    return frames
+
+
+def _ocr_result(result: Any) -> list[tuple[str, float]]:
+    """Handle RapidOCR's (detections, elapsed) and injected fake formats."""
+    if isinstance(result, tuple) and len(result) == 2 and isinstance(result[1], (int, float)):
+        result = result[0]
+    if result is None:
+        return []
+    hits: list[tuple[str, float]] = []
+    for entry in result:
+        if not isinstance(entry, (tuple, list)):
+            continue
+        if len(entry) >= 3 and isinstance(entry[1], str):
+            word, confidence = entry[1], entry[2]
+        elif len(entry) >= 2 and isinstance(entry[0], str):
+            word, confidence = entry[0], entry[1]
+        else:
+            continue
+        try:
+            value = float(confidence)
+        except (ValueError, TypeError):
+            continue
+        if value >= 0.75 and sum(char.isalnum() for char in word) >= 3:
+            hits.append((word, round(value, 2)))
+    return hits
+
+
+_OCR: Any = None
+
+
+def screen_text(frames: list[np.ndarray], ocr: Any = None) -> list[tuple[str, float]]:
+    """Read overlay-like text with injectable OCR, importing RapidOCR only on use."""
+    global _OCR
+    if not frames:
+        return []
+    if ocr is None:
+        if _OCR is None:
+            from rapidocr_onnxruntime import RapidOCR
+
+            _OCR = RapidOCR()
+        ocr = _OCR
+    found: list[tuple[str, float]] = []
+    for frame in frames:
+        found.extend(_ocr_result(ocr(frame)))
+    return found
+
+
+def mid_phash(path: str | Path) -> str:
+    """Perceptual hash of the central decoded frame."""
+    import imagehash
+    from PIL import Image
+
+    frame = sample_frames(path, [0.5], width=720)[0]
+    image = Image.fromarray(frame[:, :, ::-1].copy())
+    return str(imagehash.phash(image))
+
+
+def _clip_info(entry: dict[str, Any]) -> dict[str, Any] | None:
+    if entry.get("status") == "ok" and isinstance(entry.get("clip"), dict):
+        return entry["clip"]
+    return None
+
+
+def check_global(
+    results: list[dict[str, Any]] | dict[str, dict[str, Any]],
+) -> dict[str, str]:
+    """Resolve cross-scene duplicate IDs/ranges and pHash <=6 by quality score."""
+    import imagehash
+
+    if isinstance(results, dict):
+        rows = [dict(value, id=value.get("id", key)) for key, value in results.items()]
+    else:
+        rows = list(results)
+    rows = [row for row in rows if isinstance(row, dict) and _clip_info(row)]
+    rows.sort(key=lambda row: (-float(row["clip"].get("score", 0)), str(row["id"])))
+    kept: list[dict[str, Any]] = []
+    losers: dict[str, str] = {}
+    for row in rows:
+        clip = row["clip"]
+        reason = None
+        for survivor in kept:
+            other = survivor["clip"]
+            if clip.get("clip_id") == other.get("clip_id"):
+                try:
+                    a, b = float(clip["start"]), float(other["start"])
+                    length = max(float(clip["len"]), float(other["len"]))
+                    if abs(a - b) < length:
+                        reason = "duplicate_clip"
+                except (ValueError, KeyError, TypeError):
+                    reason = "duplicate_clip"
+            try:
+                first = imagehash.hex_to_hash(str(clip["phash"]))
+                second = imagehash.hex_to_hash(str(other["phash"]))
+                if first - second <= 6 and reason is None:
+                    reason = "duplicate_phash"
+            except (KeyError, TypeError, ValueError):
+                pass
+            if reason is not None:
+                break
+        if reason:
+            losers[str(row["id"])] = reason
+        else:
+            kept.append(row)
+    return losers
