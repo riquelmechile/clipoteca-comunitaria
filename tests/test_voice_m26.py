@@ -21,9 +21,15 @@ def _script() -> VideoScript:
         voice=VoiceSpec(voice="F1", speed=1.2, lexicon={}),
         scenes=(
             SceneSpec(
-                id="fact-1", type="fact", title="T", sub="S", say="Motor V6",
-                caption="Motor V6", query={"es": ["motor"], "en": ["engine"]},
-                prompt="motor", avoid=(),
+                id="fact-1",
+                type="fact",
+                title="T",
+                sub="S",
+                say="Motor V6",
+                caption="Motor V6",
+                query={"es": ["motor"], "en": ["engine"]},
+                prompt="motor",
+                avoid=(),
             ),
         ),
     )
@@ -37,7 +43,9 @@ class FakeEngine:
 
     def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]:
         self.takes.append(take)
-        audio = np.r_[np.zeros(1600), np.full(3200, 0.1), np.zeros(1600)].astype(np.float32)
+        audio = np.r_[np.zeros(1600), np.full(3200, 0.1), np.zeros(1600)].astype(
+            np.float32
+        )
         return audio, 16000
 
 
@@ -98,7 +106,11 @@ def test_take_loop_keeps_best_and_respects_jitter(tmp_path: Path) -> None:
 def test_wer_fallback_and_cache(tmp_path: Path) -> None:
     first = FakeEngine()
     report = render_script(_script(), tmp_path, first, WerScorer())
-    assert report["per_check"] == {"enabled": False, "threshold": 0.12, "reason": "per_model_unpinned"}
+    assert report["per_check"] == {
+        "enabled": False,
+        "threshold": 0.12,
+        "reason": "per_model_unpinned",
+    }
     assert report["lines"]["fact-1"]["status"] == "ok"
     second = FakeEngine()
     render_script(_script(), tmp_path, second, WerScorer())
@@ -113,7 +125,9 @@ def test_trim_silence_and_cache_key() -> None:
     assert 1600 + 1600 + 1280 <= len(trimmed) <= 1600 + 1600 + 1280 + 320
     assert trimmed[0] == 0
     take = Take(1, "F1", 1.2)
-    assert line_cache_key("hola", take, "a" * 64) == line_cache_key("hola", take, "a" * 64)
+    assert line_cache_key("hola", take, "a" * 64) == line_cache_key(
+        "hola", take, "a" * 64
+    )
 
 
 def test_optional_real_engine() -> None:

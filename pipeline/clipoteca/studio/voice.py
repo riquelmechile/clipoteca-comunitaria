@@ -163,7 +163,10 @@ def trim_silence(
     if not len(values):
         return values
     window = max(1, round(sample_rate * 0.01))
-    rms = [float(np.sqrt(np.mean(values[i : i + window] ** 2))) for i in range(0, len(values), window)]
+    rms = [
+        float(np.sqrt(np.mean(values[i : i + window] ** 2)))
+        for i in range(0, len(values), window)
+    ]
     active = [index for index, value in enumerate(rms) if value >= threshold]
     if not active:
         return values[:0]
@@ -231,8 +234,12 @@ def _atomic_text(path: Path, value: str) -> None:
 
 def line_cache_key(text: str, take: Take, model_sha: str) -> str:
     payload = {
-        "text": text, "voice": take.voice, "speed": take.speed,
-        "steps": take.num_steps, "model_sha": model_sha, "algorithm": ALGORITHM_VERSION,
+        "text": text,
+        "voice": take.voice,
+        "speed": take.speed,
+        "steps": take.num_steps,
+        "model_sha": model_sha,
+        "algorithm": ALGORITHM_VERSION,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -350,15 +357,28 @@ def _sample(out: Path) -> None:
             score = scorer.score(phrase, phrase, samples, rate)
             elapsed = time.monotonic() - started
             _write_wav(out / "audio" / f"{voice_name}-{index:02}.wav", samples, rate)
-            records.append({"phrase": index, **asdict(score), "rtf": elapsed / (len(samples) / rate)})
+            records.append(
+                {
+                    "phrase": index,
+                    **asdict(score),
+                    "rtf": elapsed / (len(samples) / rate),
+                }
+            )
         result["voices"][voice_name] = records
         pers = [record["per"] for record in records if record["per"] is not None]
         wers = [record["wer"] for record in records if record["wer"] is not None]
-        worst = max(records, key=lambda record: record["per"] if record["per"] is not None else record["wer"] or 0)
+        worst = max(
+            records,
+            key=lambda record: record["per"]
+            if record["per"] is not None
+            else record["wer"] or 0,
+        )
         mean_per = f"{sum(pers) / len(pers):.3f}" if pers else "n/a"
         mean_wer = f"{sum(wers) / len(wers):.3f}" if wers else "n/a"
         mean_rtf = sum(record["rtf"] for record in records) / len(records)
-        rows.append(f"| {voice_name} | {mean_per} | {mean_wer} | {worst['phrase']} | {mean_rtf:.3f} |")
+        rows.append(
+            f"| {voice_name} | {mean_per} | {mean_wer} | {worst['phrase']} | {mean_rtf:.3f} |"
+        )
     result["table_markdown"] = "\n".join(rows) + "\n"
     _atomic_json(out / "sample.json", result)
     _atomic_text(out / "sample.md", result["table_markdown"])

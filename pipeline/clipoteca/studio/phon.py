@@ -12,9 +12,22 @@ from typing import Any
 from .textnorm import _distance, norm_words
 
 NORM = {
-    "β": "b", "ð": "d", "ɣ": "ɡ", "g": "ɡ", "ɾ": "r", "ʝ": "j",
-    "ɪ": "i", "ʊ": "u", "ɛ": "e", "ɔ": "o", "ɐ": "a", "ə": "e",
-    "θ": "s", "ʃ": "s", "x": "h", "ɲ": "nj",
+    "β": "b",
+    "ð": "d",
+    "ɣ": "ɡ",
+    "g": "ɡ",
+    "ɾ": "r",
+    "ʝ": "j",
+    "ɪ": "i",
+    "ʊ": "u",
+    "ɛ": "e",
+    "ɔ": "o",
+    "ɐ": "a",
+    "ə": "e",
+    "θ": "s",
+    "ʃ": "s",
+    "x": "h",
+    "ɲ": "nj",
 }
 _SESSION: Any = None
 _VOCAB: dict[int, str] = {}
@@ -44,14 +57,18 @@ def per(ref_ipa: str, hyp_ipa: str) -> float:
 
 def ipa_ref(text: str, lang: str = "es-419") -> str:
     from espeakng_loader import get_data_path, get_library_path
-    from phonemizer.backend.espeak.wrapper import EspeakWrapper
     from phonemizer import phonemize
+    from phonemizer.backend.espeak.wrapper import EspeakWrapper
 
     EspeakWrapper.set_library(get_library_path())
     EspeakWrapper.set_data_path(get_data_path())
     words = norm_words(text, "es")
     result = phonemize(
-        words, language=lang, backend="espeak", strip=True, with_stress=False,
+        words,
+        language=lang,
+        backend="espeak",
+        strip=True,
+        with_stress=False,
         njobs=1,
     )
     return "".join(part.replace(" ", "") for part in result)

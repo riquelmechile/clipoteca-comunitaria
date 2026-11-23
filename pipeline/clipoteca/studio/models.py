@@ -15,19 +15,21 @@ from pathlib import Path
 from typing import Any
 
 MANIFEST_PATH = Path(__file__).with_name("models.json")
-ALLOWED_HOSTS = frozenset({
-    "github.com",
-    "objects.githubusercontent.com",
-    "release-assets.githubusercontent.com",
-    "github-releases.githubusercontent.com",
-    "huggingface.co",
-    "cdn-lfs.hf.co",
-    "cdn-lfs.huggingface.co",
-    "cdn-lfs-eu-1.hf.co",
-    "cdn-lfs-us-1.huggingface.co",
-    "cdn-lfs-us-1.hf.co",
-    "cas-bridge.xethub.hf.co",
-})
+ALLOWED_HOSTS = frozenset(
+    {
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+        "github-releases.githubusercontent.com",
+        "huggingface.co",
+        "cdn-lfs.hf.co",
+        "cdn-lfs.huggingface.co",
+        "cdn-lfs-eu-1.hf.co",
+        "cdn-lfs-us-1.huggingface.co",
+        "cdn-lfs-us-1.hf.co",
+        "cas-bridge.xethub.hf.co",
+    }
+)
 
 
 class ModelError(RuntimeError):
@@ -63,7 +65,9 @@ def validate_url(url: str) -> None:
 
 
 class _RestrictedRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> Any:
+    def redirect_request(
+        self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str
+    ) -> Any:
         validate_url(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -215,4 +219,7 @@ def per_model_status(root: str | Path | None = None) -> tuple[bool, str]:
     if any(asset.get("sha256") is None for asset in spec.get("assets", [])):
         return False, "per_model_unpinned"
     base = cache_dir() if root is None else Path(root)
-    return ((base / "w2v2-phon").exists(), "available" if (base / "w2v2-phon").exists() else "missing")
+    return (
+        (base / "w2v2-phon").exists(),
+        "available" if (base / "w2v2-phon").exists() else "missing",
+    )

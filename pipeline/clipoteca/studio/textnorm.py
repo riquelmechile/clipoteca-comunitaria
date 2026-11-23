@@ -6,7 +6,16 @@ import re
 import unicodedata
 from collections.abc import Mapping, Sequence
 
-_NUMBER_WORDS = {3: "tres", 4: "cuatro", 5: "cinco", 6: "seis", 7: "siete", 8: "ocho", 10: "diez", 12: "doce"}
+_NUMBER_WORDS = {
+    3: "tres",
+    4: "cuatro",
+    5: "cinco",
+    6: "seis",
+    7: "siete",
+    8: "ocho",
+    10: "diez",
+    12: "doce",
+}
 DEFAULT_LEXICON = {
     **{f"RS{i}": f"erre ese {_NUMBER_WORDS[i]}" for i in range(3, 8)},
     **{f"V{i}": f"ve {_NUMBER_WORDS[i]}" for i in (6, 8, 10, 12)},
