@@ -1,0 +1,89 @@
+{
+  "title": "La historia del agua",
+  "aspect": "16:9",
+  "language": "es",
+  "music": {
+    "mood": "epic",
+    "bpm": 100
+  },
+  "voice": {
+    "voice": "M3",
+    "speed": 1,
+    "lexicon": {
+      "H2O": "agua",
+      "CLIP": "clip"
+    }
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "El ciclo",
+      "say": "El agua está en todas partes.\nComenzamos.",
+      "query": {
+        "es": [
+          "agua",
+          "ciclo del agua"
+        ],
+        "en": [
+          "water",
+          "water cycle"
+        ]
+      },
+      "prompt": "Aerial footage of clouds over water",
+      "sub": "Una historia natural",
+      "caption": "El ciclo del agua",
+      "avoid": [
+        "text overlays",
+        "logos"
+      ]
+    },
+    {
+      "id": "fact-1",
+      "type": "fact",
+      "title": "Lluvia",
+      "say": "La lluvia cae.",
+      "query": {
+        "es": [
+          "lluvia"
+        ],
+        "en": [
+          "rain"
+        ]
+      },
+      "prompt": "Natural rain in a green forest",
+      "caption": "La lluvia cae.",
+      "avoid": []
+    },
+    {
+      "id": "fact-2",
+      "type": "fact",
+      "title": "Río",
+      "say": "El río continúa.",
+      "query": {
+        "es": [
+          "rio"
+        ],
+        "en": [
+          "river"
+        ]
+      },
+      "prompt": "Wide shot of a flowing river"
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "title": "Fin",
+      "say": "Y el ciclo vuelve a empezar.",
+      "query": {
+        "es": [
+          "océano"
+        ],
+        "en": [
+          "ocean"
+        ]
+      },
+      "prompt": "Ocean waves at sunset"
+    }
+  ]
+}

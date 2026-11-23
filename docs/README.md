@@ -30,6 +30,7 @@ Empieza por el [README del repositorio](../README.md). Esta página ordena el re
 | [FUENTES_IDIOMAS.md](FUENTES_IDIOMAS.md) | Por qué cuatro idiomas obligatorios y qué fuentes se eligieron |
 | [ROADMAP.md](ROADMAP.md) | Hitos M0–M10 (v1) |
 | [ROADMAP_V2.md](ROADMAP_V2.md) | Hitos M11–M24 (v2) y su cierre |
+| [ROADMAP_V3.md](ROADMAP_V3.md) | Hitos M25–M34 (v3): producción de videos |
 | [adr/](adr/) | Registros de decisiones de arquitectura |
 
 ## Histórico por hito

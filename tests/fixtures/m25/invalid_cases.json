@@ -1,0 +1,1141 @@
+[
+  {
+    "name": "unknown_root",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ],
+      "extra": true
+    },
+    "error_contains": "extra"
+  },
+  {
+    "name": "unknown_scene",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street",
+          "extra": true
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "scenes[0].extra"
+  },
+  {
+    "name": "unknown_music",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ],
+      "music": {
+        "volume": 2
+      }
+    },
+    "error_contains": "music.volume"
+  },
+  {
+    "name": "unknown_voice",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ],
+      "voice": {
+        "volume": 2
+      }
+    },
+    "error_contains": "voice.volume"
+  },
+  {
+    "name": "invalid_aspect",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "4:3",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "aspect"
+  },
+  {
+    "name": "two_scenes",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        }
+      ]
+    },
+    "error_contains": "scenes"
+  },
+  {
+    "name": "thirteen_scenes",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-0",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-4",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-5",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-6",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-7",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-8",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-9",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-10",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-11",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-12",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        }
+      ]
+    },
+    "error_contains": "scenes"
+  },
+  {
+    "name": "duplicate_id",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "id"
+  },
+  {
+    "name": "intro_not_first",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "intro",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "intro"
+  },
+  {
+    "name": "two_outros",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "outro",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "outro",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "outro"
+  },
+  {
+    "name": "no_fact",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "intro",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "outro",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "outro",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "fact"
+  },
+  {
+    "name": "empty_say",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "say"
+  },
+  {
+    "name": "say_401",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "say"
+  },
+  {
+    "name": "missing_en",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "query.en"
+  },
+  {
+    "name": "unknown_voice_name",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ],
+      "voice": {
+        "voice": "X9"
+      }
+    },
+    "error_contains": "voice"
+  },
+  {
+    "name": "invalid_speed",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ],
+      "voice": {
+        "speed": 2
+      }
+    },
+    "error_contains": "speed"
+  },
+  {
+    "name": "invalid_bpm",
+    "script": {
+      "title": "Lluvia y viento",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ],
+      "music": {
+        "bpm": 30
+      }
+    },
+    "error_contains": "bpm"
+  },
+  {
+    "name": "control_title",
+    "script": {
+      "title": "a\u0007b",
+      "aspect": "9:16",
+      "scenes": [
+        {
+          "id": "fact-1",
+          "type": "fact",
+          "title": "Lluvia",
+          "say": "Lluvia.",
+          "query": {
+            "es": [
+              "lluvia"
+            ],
+            "en": [
+              "rain"
+            ]
+          },
+          "prompt": "Rain falling on a wet street"
+        },
+        {
+          "id": "fact-2",
+          "type": "fact",
+          "title": "Viento",
+          "say": "El viento mueve las hojas.",
+          "query": {
+            "es": [
+              "viento"
+            ],
+            "en": [
+              "wind"
+            ]
+          },
+          "prompt": "Leaves moving in the wind"
+        },
+        {
+          "id": "fact-3",
+          "type": "fact",
+          "title": "Agua",
+          "say": "El agua regresa al río.",
+          "query": {
+            "es": [
+              "rio"
+            ],
+            "en": [
+              "river"
+            ]
+          },
+          "prompt": "Flowing river outdoors"
+        }
+      ]
+    },
+    "error_contains": "title"
+  }
+]

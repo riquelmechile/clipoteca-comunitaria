@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipoteca.example/schemas/video.schema.json",
+  "title": "Clipoteca v3 video script (M25)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "aspect",
+    "scenes"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "aspect": {
+      "enum": [
+        "9:16",
+        "16:9",
+        "1:1"
+      ]
+    },
+    "language": {
+      "enum": [
+        "es"
+      ],
+      "default": "es"
+    },
+    "music": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mood": {
+          "enum": [
+            "upbeat",
+            "chill",
+            "epic"
+          ],
+          "default": "upbeat"
+        },
+        "bpm": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 180,
+          "default": 120
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "voice": {
+          "enum": [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "F1",
+            "F2",
+            "F3",
+            "F4",
+            "F5"
+          ],
+          "default": "F1"
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.8,
+          "maximum": 1.5,
+          "default": 1.2
+        },
+        "lexicon": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "patternProperties": {
+            "^.*$": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/scene"
+      }
+    }
+  },
+  "$defs": {
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "title",
+        "say",
+        "query",
+        "prompt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+        },
+        "type": {
+          "enum": [
+            "intro",
+            "fact",
+            "outro"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 60
+        },
+        "sub": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80
+        },
+        "say": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "es",
+            "en"
+          ],
+          "properties": {
+            "es": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            },
+            "en": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            }
+          }
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "avoid": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        }
+      }
+    }
+  }
+}
