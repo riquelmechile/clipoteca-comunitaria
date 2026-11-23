@@ -95,9 +95,7 @@ def _schema_error(exc: ValidationError) -> ScriptError:
 def _reject_controls(value: object, path: list[object] | None = None) -> None:
     path = [] if path is None else path
     if isinstance(value, str):
-        allow_newline = len(path) >= 3 and path[0] == "scenes" and path[-1] in {
-            "say", "caption"
-        }
+        allow_newline = len(path) >= 3 and path[0] == "scenes" and path[-1] in {"say", "caption"}
         if any(
             unicodedata.category(char) == "Cc" and not (allow_newline and char == "\n")
             for char in value
