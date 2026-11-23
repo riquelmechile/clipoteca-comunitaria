@@ -1418,5 +1418,67 @@
     },
     "status": "published",
     "created_at": "2026-11-22T23:57:39.807607Z"
+  },
+  {
+    "id": "clip-000024",
+    "title": {
+      "es": "25 años de dinámica forestal",
+      "en": "25 Years of Forest Dynamics"
+    },
+    "description": {
+      "es": "Los bosques viven, siempre cambian los ecosistemas, afectados por el envejecimiento, los desastres naturales y las intervenciones humanas. Los mapas anuales de los Estados Unidos inferiores a 48 producidos a partir de datos satelitales ilustran cómo estos sistemas dinámicos cambiaron de 1986 a 2010. Los bombardeos y los huracanes juegan un papel importante en el sureste, y los incendios y la invasión de insectos dañan a los bosques en Occidente. Los árboles son uno de los mejores absorbentes del mundo del dióxido de carbono atmosférico, un gas de efecto invernadero. Comprender cómo los árboles y los bosques cambian a lo largo del tiempo es uno de los primeros pasos para comprender qué tan activos están al sacar el dióxido de carbono de la atmósfera, que es de profundo interés para los científicos que vigilan el cambio climático. Desarrollado para el estudio de North American Forest Dynamics, científicos combinaron 25 años de datos satelitales del programa conjunto de satélites U.S. Geological Survey/NASA Landsat con información del Servicio Forestal de EE.UU. para resaltar dónde se interrumpió el canopy forestal.",
+      "en": "Forests are living, ever changing ecosystems, affected by aging, natural disasters and human interventions.   Annual maps of the lower-48 United States produced from satellite data illustrate how these dynamic systems changed from 1986-2010. Logging and hurricanes play a significant role in the Southeast, and fires and insect invasion damage forest canopy in the West.   Trees are one of the world's best absorbers of atmospheric carbon dioxide, a greenhouse gas. Understanding how trees and forests change through time is one of the first steps to understanding how active they are in pulling carbon dioxide out of the atmosphere, which is of profound interest to scientists monitoring climate change.   Developed for the North American Forest Dynamics study, scientists combined 25 years of satellite data from the joint U.S. Geological Survey/NASA Landsat satellite program with information from the U.S. Forest Service to highlight where forest canopy was disturbed."
+    },
+    "tags": {
+      "es": [
+        "años",
+        "dinámica",
+        "forestal",
+        "bosque"
+      ],
+      "en": [
+        "Years",
+        "Forest",
+        "Dynamics"
+      ]
+    },
+    "source": {
+      "provider": "nasa",
+      "provider_id": "GSFC_20180427_Landsat_m12051_Forest_Dynamics",
+      "source_language": "en",
+      "source_title": "25 Years of Forest Dynamics",
+      "source_url": "https://images.nasa.gov/details/GSFC_20180427_Landsat_m12051_Forest_Dynamics",
+      "source_start": 38.0,
+      "source_end": 58.0
+    },
+    "media": {
+      "duration_seconds": 20.0,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 8221781,
+      "sha256": "0fef17df94c5d5cfe59e4fbf733be1cdf0851a1ac3f1d0aec47e4a690c141f31",
+      "perceptual_hash": "a40ddf386a6b6626~489.30:e46ddb302c2b666a~538.40:a46ddb046ea3e466~485.50:a47e993874617a27~482.76:e07e1b3876723923~662.17"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/clip_clip-000024.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/thumb_clip-000024.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/story_clip-000024_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/story_clip-000024_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/story_clip-000024_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/story_clip-000024_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/story_clip-000024_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-23-001/story_clip-000024_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-23T00:00:16.519633Z"
   }
 ]
