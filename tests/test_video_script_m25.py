@@ -105,6 +105,37 @@ def test_duration_exact_minimum_and_speed() -> None:
     }
 
 
+def test_duration_counts_the_spoken_text_not_the_digits() -> None:
+    digits = read_fixture("valid_min.json")
+    words = read_fixture("valid_min.json")
+    said = [
+        (
+            "Mide 4.300 kilómetros de norte a sur.",
+            "Mide cuatro mil trescientos kilómetros de norte a sur.",
+        ),
+        (
+            "En 1960 hubo un terremoto de 9,5 grados.",
+            "En mil novecientos sesenta hubo un terremoto de nueve coma cinco grados.",
+        ),
+        (
+            "El 50% es montaña y va a 80 km/h.",
+            "El cincuenta por ciento es montaña y va a ochenta kilometros por hora.",
+        ),
+    ]
+    for index, (raw, spoken) in enumerate(said):
+        digits["scenes"][index]["say"] = raw
+        words["scenes"][index]["say"] = spoken
+    measured = estimate_durations(parse_video_script(digits))
+    assert measured == estimate_durations(parse_video_script(words))
+    assert measured["scenes"]["fact-1"] == round(len(said[0][1]) * 0.065 / 1.2, 2)
+    # a lexicon entry of the script changes what is spoken, so it changes the estimate too
+    digits["voice"] = {"lexicon": {"kilómetros": "kilómetros lineales exactos"}}
+    assert (
+        estimate_durations(parse_video_script(digits))["scenes"]["fact-1"]
+        > measured["scenes"]["fact-1"]
+    )
+
+
 def test_canonical_id_and_default_equivalence() -> None:
     data = read_fixture("valid_min.json")
     original = script_id(parse_video_script(data))
@@ -210,3 +241,19 @@ def test_parsed_collections_immutable_and_ids_backward_compatible() -> None:
             parsed.scenes[0].query["es"] = ("otra",)  # type: ignore[index]
         raw["scenes"][0]["query"]["es"][0] = "otra"
         assert script_id(parsed) == before
+
+
+def test_parsed_script_survives_asdict_and_deepcopy() -> None:
+    import copy
+    from dataclasses import asdict
+
+    script = parse_video_script(read_fixture("valid_full.json"))
+    plain = asdict(script)
+    assert dict(plain["voice"]["lexicon"]) == dict(script.voice.lexicon)
+    assert list(plain["scenes"][0]["query"]["es"]) == list(script.scenes[0].query["es"])
+    clone = copy.deepcopy(script)
+    assert clone == script and script_id(clone) == script_id(script)
+    with pytest.raises(TypeError):
+        script.voice.lexicon["nuevo"] = "valor"  # type: ignore[index]
+    with pytest.raises(AttributeError):
+        script.voice.lexicon._data = {}  # type: ignore[misc]

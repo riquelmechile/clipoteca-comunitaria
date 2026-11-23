@@ -77,6 +77,7 @@ jobs:
           uv run --no-sync pytest -rs
           tests/test_voice_m26.py tests/test_studio_models_m26.py tests/test_timeline_m26.py
           tests/test_music_m27.py tests/test_video_script_m25.py
+          tests/test_plan_m28.py tests/test_windows_m28.py tests/test_library_m28.py
       - name: Real music render in headless Chromium (must not be skipped)
         run: |
           uv run --no-sync python -m clipoteca.studio.music render --plan tests/fixtures/m27/plan.json --out build/music-smoke

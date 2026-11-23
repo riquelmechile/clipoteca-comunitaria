@@ -7,12 +7,13 @@ import json
 import unicodedata
 from dataclasses import dataclass, fields, is_dataclass
 from collections.abc import Mapping
-from types import MappingProxyType
 from pathlib import Path
 from typing import Literal, TypedDict
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
+
+from .textnorm import DEFAULT_LEXICON, apply_lexicon, spell_numbers
 
 SEC_PER_CHAR = 0.065
 MAX_SCRIPT_BYTES = 65_536
@@ -28,6 +29,36 @@ class ScriptError(ValueError):
     """Invalid script; messages refer to fields, never supplied script text."""
 
 
+class _FrozenMap(Mapping):
+    """Read-only mapping that, unlike MappingProxyType, survives copy, deepcopy and asdict."""
+
+    __slots__ = ("_data",)
+
+    def __init__(self, data: Mapping) -> None:
+        object.__setattr__(self, "_data", dict(data))
+
+    def __getitem__(self, key: object) -> object:
+        return self._data[key]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self._data!r})"
+
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError("immutable mapping")
+
+    def __copy__(self) -> _FrozenMap:
+        return self
+
+    def __deepcopy__(self, memo: dict) -> _FrozenMap:
+        return self
+
+
 @dataclass(frozen=True, slots=True)
 class MusicSpec:
     mood: Mood
@@ -41,7 +72,7 @@ class VoiceSpec:
     lexicon: Mapping[str, str]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "lexicon", MappingProxyType(dict(self.lexicon)))
+        object.__setattr__(self, "lexicon", _FrozenMap(dict(self.lexicon)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +91,7 @@ class SceneSpec:
         object.__setattr__(
             self,
             "query",
-            MappingProxyType({key: tuple(words) for key, words in self.query.items()}),
+            _FrozenMap({key: tuple(words) for key, words in self.query.items()}),
         )
 
 
@@ -205,10 +236,13 @@ def estimate_durations(script: VideoScript) -> DurationEstimate:
     SEC_PER_CHAR=0.065 is provisional, inherited from the original engine;
     M26 recalibrates it against real generated speech measurements.
     """
-    durations = {
-        scene.id: round(max(1.5, len(scene.say) * SEC_PER_CHAR / script.voice.speed), 2)
-        for scene in script.scenes
-    }
+    # Measure the text the engine will actually speak: digits and lexicon entries expand
+    # ("4.300" is five characters but four spoken words), exactly as voice.py renders them.
+    lexicon = {**DEFAULT_LEXICON, **dict(script.voice.lexicon)}
+    durations = {}
+    for scene in script.scenes:
+        spoken = spell_numbers(apply_lexicon(scene.say, lexicon), script.language)
+        durations[scene.id] = round(max(1.5, len(spoken) * SEC_PER_CHAR / script.voice.speed), 2)
     return {"scenes": durations, "total": round(sum(durations.values()), 2)}
 
 
