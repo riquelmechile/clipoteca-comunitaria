@@ -81,8 +81,9 @@ def fake_runner(
 
 
 class FakePage:
-    def __init__(self, problems=None):
+    def __init__(self, problems=None, measured=3):
         self.problems = problems or []
+        self.measured = measured
 
     def route(self, *_args):
         return None
@@ -93,23 +94,25 @@ class FakePage:
     def evaluate(self, code, args=None):
         if "document.fonts.ready" in code:
             return None
-        return {"checked": len(args[0]), "problems": self.problems}
+        return {"checked": len(args[0]), "measured": self.measured, "problems": self.problems}
 
 
 class FakeBrowser:
-    def __init__(self, problems=None):
+    def __init__(self, problems=None, measured=3):
         self.problems = problems or []
+        self.measured = measured
 
     def new_page(self, **_kwargs):
-        return FakePage(self.problems)
+        return FakePage(self.problems, self.measured)
 
     def close(self):
         return None
 
 
 class FakePlaywright:
-    def __init__(self, problems=None):
+    def __init__(self, problems=None, measured=3):
         self.problems = problems or []
+        self.measured = measured
         self.chromium = self
 
     def __enter__(self):
@@ -119,11 +122,11 @@ class FakePlaywright:
         return False
 
     def launch(self, **_kwargs):
-        return FakeBrowser(self.problems)
+        return FakeBrowser(self.problems, self.measured)
 
 
-def browser_factory(problems=None):
-    return lambda: FakePlaywright(problems)
+def browser_factory(problems=None, measured=3):
+    return lambda: FakePlaywright(problems, measured)
 
 
 @pytest.fixture
@@ -282,7 +285,7 @@ def test_exactly_one_gate_fails_with_bad_input(job: Path, name: str):
         results["lago"]["clip"]["phash"] = results["intro"]["clip"]["phash"]
         result_file = job / "scenes" / "lago" / "result.json"
         result_file.write_text(json.dumps(results["lago"]))
-        assert not qa.clips_unique(results)["pass"]
+        assert not qa.clips_unique(timeline, results)["pass"]
     elif name == "clips_resolution":
         results["intro"]["clip"]["src_w"] = 100
         results["intro"]["clip"]["src_h"] = 200
@@ -479,3 +482,114 @@ def test_real_playwright_detects_outsafe_and_overlap(tmp_path: Path):
     assert not result["pass"]
     assert any(p.get("outSafe") for p in result["problems"])
     assert any(p.get("overlap") for p in result["problems"])
+
+
+def test_clips_unique_fails_closed_without_results_or_phash():
+    """Orchestrator review: an empty or hash-less result set was never deduplicated."""
+    timeline, results = data("timeline.json"), data("results.json")
+    assert qa.clips_unique(timeline, results)["pass"]
+    assert not qa.clips_unique(timeline, {})["pass"]
+    for broken in ({}, {"phash": "no-hex"}, {"phash": None}):
+        rows = json.loads(json.dumps(results))
+        rows["lago"]["clip"].pop("phash")
+        rows["lago"]["clip"].update(broken)
+        report = qa.clips_unique(timeline, rows)
+        assert not report["pass"] and report["invalid"] == ["lago"]
+    rows = json.loads(json.dumps(results))
+    rows["intro"]["status"] = "fail"
+    assert qa.clips_unique(timeline, rows)["invalid"] == ["intro"]
+
+
+def test_layout_fails_when_no_text_was_measured(job: Path):
+    timeline, chunks = data("timeline.json"), data("chunks.json")
+    good = qa.layout_playwright(
+        job / "hf", timeline, chunks, "9:16", browser_factory=browser_factory()
+    )
+    empty = qa.layout_playwright(
+        job / "hf", timeline, chunks, "9:16", browser_factory=browser_factory(measured=0)
+    )
+    assert good["pass"] and good["measured"] == 3
+    assert not empty["pass"] and empty["problems"] == []
+
+
+def test_stale_report_never_survives_a_failed_start(job: Path):
+    assert run_good(job)["pass"]
+    assert (job / "qa_report.json").is_file()
+    (job / "video.mp4").unlink()
+    with pytest.raises(qa.QAInputError):
+        run_good(job)
+    assert not (job / "qa_report.json").exists()
+
+
+def test_report_binds_the_verdict_to_the_video_bytes(job: Path):
+    import hashlib
+
+    report = run_good(job)
+    raw = (job / "video.mp4").read_bytes()
+    assert report["video"] == {"sha256": hashlib.sha256(raw).hexdigest(), "size_bytes": len(raw)}
+
+
+def test_file_probe_allows_one_minute_and_100_mb_but_not_more(job: Path):
+    def runner_for(duration):
+        def runner(argv, **kwargs):
+            if argv[0] == "ffprobe":
+                probe = json.dumps(fake_probe(duration=duration))
+                return subprocess.CompletedProcess(argv, 0, probe, "")
+            return fake_runner(argv, **kwargs)
+
+        return runner
+
+    video = job / "video.mp4"
+    assert qa.file_probe(video, 60.0, (1080, 1920), runner=runner_for(60.0))["pass"]
+    assert not qa.file_probe(video, 75.0, (1080, 1920), runner=runner_for(75.0))["pass"]
+    assert qa.MAX_SIZE_MB == 100 and qa.MAX_DURATION_S == 60.0
+    with video.open("r+b") as stream:
+        stream.truncate(101_000_000)  # sparse: no real disk use
+    assert not qa.file_probe(video, 60.0, (1080, 1920), runner=runner_for(60.0))["pass"]
+    with video.open("r+b") as stream:
+        stream.truncate(99_000_000)
+    assert qa.file_probe(video, 60.0, (1080, 1920), runner=runner_for(60.0))["pass"]
+
+
+def test_silence_before_the_first_sample_is_not_ignored(job: Path):
+    def runner(argv, **kwargs):
+        if any("silencedetect" in arg for arg in argv):
+            return subprocess.CompletedProcess(argv, 0, "", "silence_start: -0.05\n")
+        return fake_runner(argv, **kwargs)
+
+    report = qa.silencedetect(job / "video.mp4", 6.0, runner=runner)
+    assert not report["pass"] and report["early_starts"] == [-0.05]
+
+
+def test_wer_accepts_the_spoken_form_of_lexicon_entries():
+    """The voice says "kilometros por hora"; Whisper may write that or "km/h"."""
+    timeline = {"scenes": [{"caption": "El auto alcanza 200 km/h en la recta final"}]}
+
+    def heard(text):
+        return [qa.HeardWord(word, i * 0.3, i * 0.3 + 0.2) for i, word in enumerate(text.split())]
+
+    spoken = heard("El auto alcanza doscientos kilometros por hora en la recta final")
+    written = heard("El auto alcanza 200 km/h en la recta final")
+    assert qa.whisper_wer(timeline, "es", spoken)["wer"] == 0
+    assert qa.whisper_wer(timeline, "es", written)["wer"] == 0
+    own = {"scenes": [{"caption": "La sigla ZQX manda"}]}
+    said = heard("La sigla zeta cu equis manda")
+    assert not qa.whisper_wer(own, "es", said)["pass"]
+    assert qa.whisper_wer(own, "es", said, {"ZQX": "zeta cu equis"})["wer"] == 0
+
+
+def test_one_minute_is_the_single_limit_for_plan_timeline_and_qa():
+    from clipoteca.studio import plan, script, timeline
+
+    assert script.MAX_VIDEO_SECONDS == 60.0 == qa.MAX_DURATION_S
+    assert plan.MAX_VIDEO_SECONDS is script.MAX_VIDEO_SECONDS is timeline.MAX_VIDEO_SECONDS
+    raw = data("guion.json")
+    assert plan.build_plan(parse_video_script(raw))["total_est"] <= 60
+    long = json.loads(json.dumps(raw))
+    first, middle, last = long["scenes"]
+    extra = [dict(middle, id=f"extra{i}") for i in range(9)]
+    long["scenes"] = [first, middle, *extra, last]  # twelve scenes: the schema maximum
+    for scene in long["scenes"]:
+        scene["say"] = scene["caption"] = "Los glaciares retroceden cada verano un poco más. " * 3
+    with pytest.raises(script.ScriptError, match="máximo es 60 s"):
+        plan.build_plan(parse_video_script(long))

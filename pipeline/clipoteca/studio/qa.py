@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import difflib
 import json
 import math
@@ -14,14 +15,15 @@ import time
 import wave
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any, Callable
 
 import numpy as np
 
 from . import checks
 from .compose import CONFIG, _atomic, _json_bytes
-from .script import parse_video_script, script_id
-from .textnorm import norm_words, wer
+from .script import MAX_VIDEO_SECONDS, parse_video_script, script_id
+from .textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, wer
 
 MAX_WER = 0.12
 SYNC_MEAN_MS = 120
@@ -29,7 +31,8 @@ SYNC_P95_MS = 350
 TARGET_LUFS = -14.0
 LUFS_TOL = 1.0
 MAX_TRUE_PEAK_DBFS = -0.9
-MAX_SIZE_MB = 50
+MAX_SIZE_MB = 100
+MAX_DURATION_S = MAX_VIDEO_SECONDS
 DURATION_TOL = 0.35
 MIN_SHORT_SIDE = 720
 DEFAULT_TIMEOUT = 180
@@ -115,7 +118,7 @@ def hyperframes_check(hf: Path, *, runner: Runner = _run) -> dict[str, Any]:
 
 
 _LAYOUT_JS = r"""([times,safe])=>{
-  const tl=window.__timelines.main, R=[];
+  const tl=window.__timelines.main, R=[]; let M=0;
   const vis=(el,t)=>{let c=el.closest('.clip');while(c){const s=+c.dataset.start,d=+c.dataset.duration;if(t<s||t>=s+d)return false;c=c.parentElement&&c.parentElement.closest('.clip');}return true};
   const box=e=>{const rg=document.createRange(); rg.selectNodeContents(e); return rg.getBoundingClientRect();};
   const ov=(a,b,m=2)=>!(a.right<=b.left+m||b.right<=a.left+m||a.bottom<=b.top+m||b.bottom<=a.top+m);
@@ -126,10 +129,10 @@ _LAYOUT_JS = r"""([times,safe])=>{
     for(const el of els){ if(!settled(el)) continue; const r=el.getBoundingClientRect(); let over=el.scrollWidth>el.clientWidth+1;
       el.querySelectorAll('span').forEach(sp=>{const q=sp.getBoundingClientRect(); if(q.width>0&&(q.left<r.left-2||q.right>r.right+2)) over=true;});
       const ri=box(el); const outSafe=ri.left<safe[0]-1||ri.right>safe[2]+1||ri.top<safe[1]-1||ri.bottom>safe[3]+1;
-      if(over||outSafe) R.push({t:+t.toFixed(2),text:el.innerText.slice(0,40),overflow:over,outSafe,box:[ri.left,ri.top,ri.right,ri.bottom].map(Math.round)});}
+      M++; if(over||outSafe) R.push({t:+t.toFixed(2),text:el.innerText.slice(0,40),overflow:over,outSafe,box:[ri.left,ri.top,ri.right,ri.bottom].map(Math.round)});}
     for(let i=0;i<els.length;i++)for(let j=i+1;j<els.length;j++){ if(els[i].contains(els[j])||els[j].contains(els[i]))continue;
       if(ov(els[i].getBoundingClientRect(),els[j].getBoundingClientRect(),2)) R.push({t:+t.toFixed(2),text:els[i].innerText.slice(0,20)+' / '+els[j].innerText.slice(0,20),overlap:true});}
-  } return {checked:times.length,problems:R};}"""
+  } return {checked:times.length,measured:M,problems:R};}"""
 
 
 def layout_playwright(
@@ -174,7 +177,13 @@ def layout_playwright(
             page.evaluate("() => document.fonts.ready")
             measured = page.evaluate(_LAYOUT_JS, [times, safe])
             problems = measured["problems"]
-            return _gate(not problems, checked=int(measured["checked"]), problems=problems[:25])
+            texts = int(measured.get("measured", 0))
+            return _gate(
+                not problems and texts > 0,
+                checked=int(measured["checked"]),
+                measured=texts,
+                problems=problems[:25],
+            )
         finally:
             browser.close()
 
@@ -209,6 +218,7 @@ def file_probe(
         and (int(v["width"]), int(v["height"])) == size
         and math.isfinite(duration)
         and abs(duration - total) < DURATION_TOL
+        and duration <= MAX_DURATION_S + DURATION_TOL
         and size_mb < MAX_SIZE_MB
     )
     return _gate(
@@ -303,7 +313,7 @@ def silencedetect(
         ),
         "ffmpeg",
     )
-    starts = [float(x) for x in re.findall(r"silence_start:\s*([\d.]+)", output)]
+    starts = [float(x) for x in re.findall(r"silence_start:\s*(-?[\d.]+)", output)]
     illegal = [round(start, 3) for start in starts if start < total - 1.3]
     return _gate(not illegal, starts=starts[:20], early_starts=illegal[:20])
 
@@ -432,10 +442,18 @@ def whisper_wer(
     timeline: dict[str, Any],
     lang: str,
     heard: list[HeardWord],
+    lexicon: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
+    """Compare what was heard with the caption as written and as the voice speaks it.
+
+    The voice reads the caption after the lexicon ("km/h" -> "kilómetros por hora"), while
+    Whisper may transcribe either form, so the lower of both error rates decides.
+    """
     reference = " ".join(str(scene["caption"]) for scene in timeline["scenes"])
-    actual = " ".join(x.word for x in heard)
-    error = wer(norm_words(reference, lang), norm_words(actual, lang))
+    spoken = apply_lexicon(reference, {**DEFAULT_LEXICON, **dict(lexicon or {})})
+    actual = " ".join(x.word.strip() for x in heard)
+    got = norm_words(actual, lang)
+    error = min(wer(norm_words(reference, lang), got), wer(norm_words(spoken, lang), got))
     return _gate(error <= MAX_WER, wer=round(error, 6), text=actual[:400])
 
 
@@ -538,9 +556,26 @@ def clips_all_scenes(
     )
 
 
-def clips_unique(results: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def clips_unique(timeline: dict[str, Any], results: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Fail closed: a scene without a usable result or pHash was never deduplicated."""
+    import imagehash
+
+    invalid: list[str] = []
+    for scene in timeline["scenes"]:
+        ident = str(scene["id"])
+        row = results.get(ident)
+        clip = row.get("clip") if isinstance(row, dict) else None
+        usable = isinstance(row, dict) and row.get("status") == "ok" and isinstance(clip, dict)
+        if usable:
+            try:
+                imagehash.hex_to_hash(str(clip["phash"]))
+                usable = isinstance(clip.get("clip_id"), str) and bool(clip["clip_id"])
+            except (KeyError, TypeError, ValueError):
+                usable = False
+        if not usable:
+            invalid.append(ident)
     conflicts = checks.check_global(results)
-    return _gate(not conflicts, conflicts=conflicts)
+    return _gate(not conflicts and not invalid, conflicts=conflicts, invalid=invalid)
 
 
 def clips_resolution(
@@ -598,6 +633,14 @@ def _read_json(path: Path, label: str) -> Any:
         if isinstance(exc, QAInputError):
             raise
         raise QAInputError(f"invalid {label}") from exc
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _check_inputs(
@@ -667,6 +710,9 @@ def run_qa(
 ) -> dict[str, Any]:
     """Always run all gates independently, write report atomically, never publish on fail."""
     work = Path(work_dir)
+    report_file = Path(report_path) if report_path else work / "qa_report.json"
+    # A report from an earlier run must never vouch for this one.
+    report_file.unlink(missing_ok=True)
     paths = _check_inputs(
         work,
         video_path=Path(video_path) if video_path else None,
@@ -719,7 +765,10 @@ def run_qa(
             transcriber=transcriber,
             runner=runner,
         )
-        execute("whisper_wer", lambda: whisper_wer(timeline, script.language, words))
+        execute(
+            "whisper_wer",
+            lambda: whisper_wer(timeline, script.language, words, script.voice.lexicon),
+        )
         execute("subtitle_sync", lambda: subtitle_sync(timeline, script.language, words))
     except Exception as exc:
         error = _safe_error(exc)
@@ -739,7 +788,7 @@ def run_qa(
             paths["html"],
         ),
     )
-    execute("clips_unique", lambda: clips_unique(results))
+    execute("clips_unique", lambda: clips_unique(timeline, results))
     execute("clips_resolution", lambda: clips_resolution(timeline, results, size))
     inspector = black_frozen_fn or checks.black_frozen
     execute(
@@ -755,12 +804,13 @@ def run_qa(
     report = {
         "version": 1,
         "script_id": script_id(script),
+        "video": {"sha256": _sha256(video), "size_bytes": video.stat().st_size},
         "pass": not failed,
         "failed": failed,
         "checks": report_checks,
         "time_s": round(time.monotonic() - started, 3),
     }
-    _atomic(Path(report_path) if report_path else work / "qa_report.json", _json_bytes(report))
+    _atomic(report_file, _json_bytes(report))
     return report
 
 

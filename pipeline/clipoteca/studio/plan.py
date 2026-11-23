@@ -13,6 +13,7 @@ from typing import Any
 
 from .script import (
     SceneSpec,
+    MAX_VIDEO_SECONDS,
     ScriptError,
     VideoScript,
     estimate_durations,
@@ -72,6 +73,12 @@ def estimate_scenes(script: VideoScript) -> list[dict[str, Any]]:
 def build_plan(script: VideoScript) -> dict[str, Any]:
     """M27-compatible plan schema, with no network or file access."""
     scenes = estimate_scenes(script)
+    total = round(sum(scene["len_est"] for scene in scenes), 2)
+    if total > MAX_VIDEO_SECONDS:
+        raise ScriptError(
+            f"scenes: el guion dura unos {total:g} s y el máximo es {MAX_VIDEO_SECONDS:g} s; "
+            "acorta el texto o quita escenas"
+        )
     return {
         "version": 1,
         "script_id": script_id(script),
@@ -82,7 +89,7 @@ def build_plan(script: VideoScript) -> dict[str, Any]:
         "voice": {"voice": script.voice.voice, "speed": script.voice.speed},
         "bpm": float(script.music.bpm),
         "beat": 60 / float(script.music.bpm),
-        "total_est": round(sum(scene["len_est"] for scene in scenes), 2),
+        "total_est": total,
         "scenes": scenes,
     }
 

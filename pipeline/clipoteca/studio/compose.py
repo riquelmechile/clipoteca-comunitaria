@@ -590,6 +590,11 @@ def render_video(
                     "slow",
                     "-crf",
                     "20",
+                    # Quality stays CRF-driven; the ceiling keeps a one-minute video near 75 MB.
+                    "-maxrate",
+                    "10M",
+                    "-bufsize",
+                    "20M",
                     "-pix_fmt",
                     "yuv420p",
                     "-profile:v",

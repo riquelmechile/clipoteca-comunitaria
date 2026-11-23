@@ -30,17 +30,17 @@ se escribe el informe.
 | Compuerta | Fuente | Aceptación |
 |---|---|---|
 | hyperframes_check | npx --yes hyperframes@0.9.36 check en hf | código cero, Check passed, suma de N error(s) cero; cuenta los avisos de contraste need 3:1 |
-| layout_playwright | Chromium headless, HTML, instantes 35% y 65% de cada escena y +0,16 s de cada chunk | ningún desborde, ninguna zona segura violada ni solapamientos de qa-text asentados |
-| file_probe | ffprobe JSON, vídeo y audio | un H.264 del tamaño M30, un AAC; duración con diferencia menor a 0,35 s y tamaño menor a 50 MB |
+| layout_playwright | Chromium headless, HTML, instantes 35% y 65% de cada escena y +0,16 s de cada chunk | al menos un texto qa-text asentado medido; ningún desborde, ninguna zona segura violada ni solapamientos |
+| file_probe | ffprobe JSON, vídeo y audio | un H.264 del tamaño M30, un AAC; duración con diferencia menor a 0,35 s, máximo 60 s y tamaño menor a 100 MB |
 | decode_clean | FFmpeg decodifica video.mp4 a null | stderr vacío, código cero |
 | blackdetect | FFmpeg blackdetect=d=0.1:pix_th=0.10 | sin black_start |
 | freezedetect | FFmpeg freezedetect=n=0.001:d=1.0 | sin freeze_start |
 | silencedetect | FFmpeg silencedetect=n=-45dB:d=0.8 | silencio únicamente durante últimos 1,3 segundos |
 | loudness_ebur128 | FFmpeg ebur128=peak=true y bloque Summary | integrado -14 ±1 LUFS y true peak <= -0,9 dBFS |
-| whisper_wer | audio PCM 16 kHz mono y ASR faster-whisper small int8 | WER normalizado <=0,12; guarda primeras 400 letras |
+| whisper_wer | audio PCM 16 kHz mono y ASR faster-whisper small int8 | WER normalizado <=0,12 contra el texto escrito o contra el hablado (léxico aplicado), el menor de los dos; guarda primeras 400 letras |
 | subtitle_sync | palabras del timeline, inicio absoluto vo+a, vs ASR | >=70% emparejadas, diferencia media <=120 ms y percentil 95 <=350 ms |
 | clips_all_scenes | result.json, fit/ID.mp4 y HTML | todas las escenas status=ok, un video por escena, ningún img |
-| clips_unique | checks.check_global M28 | sin conflictos por clips/rangos ni pHash con distancia <=6 |
+| clips_unique | result.json de cada escena y checks.check_global M28 | cada escena con status=ok, clip_id y pHash hexadecimal válido; sin conflictos por clips/rangos ni pHash con distancia <=6 |
 | clips_resolution | dimensiones de result.json y compose.CONFIG | fuente corta >=720 o misma orientación con lado largo >=0,53 del destino; salida exacta |
 | clips_black_freeze | checks.black_frozen M28 sobre cada fit | sin negro >=0,3 s ni congelación >=1,5 s |
 
@@ -74,6 +74,7 @@ Ejemplo ilustrativo del reporte (la salida real contiene los 14 checks):
     {
       "version": 1,
       "script_id": "sha256-del-guion",
+      "video": {"sha256": "sha256-de-video.mp4", "size_bytes": 12345678},
       "pass": false,
       "failed": ["blackdetect", "clips_unique"],
       "checks": {
@@ -84,6 +85,10 @@ Ejemplo ilustrativo del reporte (la salida real contiene los 14 checks):
     }
 
 El archivo qa_report.json se escribe por temporal y reemplazo atómico.
+Al empezar se borra el reporte de una corrida anterior: si esta corrida
+termina con código 2 no queda ningún reporte, y un pass=true viejo nunca
+respalda a otro vídeo. El campo video ata el veredicto a los bytes exactos
+de video.mp4 (M32 debe comparar ese sha256 antes de publicar).
 La salida es reproducible con iguales datos y ejecutores, excepto time_s.
 Códigos: 0 si todas aprueban, 1 si alguna rechaza, 2 si faltan
 entradas principales. Los errores por compuerta son acotados y
@@ -104,3 +109,23 @@ porque no pertenece al contrato de las 14 compuertas de Clipoteca v3.
 En un PR posterior el orquestador deberá agregar el test M31 al
 job studio de GitHub Actions. Este trabajo no puede editar .github/.
 M32 deberá exigir qa_report.json.pass=true antes de publicar.
+
+## Límite de un minuto
+
+El motor produce vídeos de hasta 60 segundos. El número vive en un solo
+lugar (studio/script.py, MAX_VIDEO_SECONDS) y lo aplican tres etapas:
+plan rechaza un guion cuya duración estimada lo supera, timeline rechaza
+la voz real que lo supera (antes de gastar render) y file_probe rechaza
+el vídeo final. El tope de tamaño es 100 MB: el mux de M30 limita el
+vídeo a 10 Mbps (-maxrate 10M -bufsize 20M sobre -crf 20), así que un
+minuto ocupa como máximo unos 77 MB con el audio.
+
+## Correcciones de la revisión del orquestador
+
+- clips_unique pasaba en vacío y cuando faltaba el pHash: ahora exige
+  resultado y pHash válido por escena.
+- layout_playwright pasaba si la página no tenía ningún texto medible.
+- whisper_wer comparaba solo contra el texto escrito, aunque la voz lee
+  el texto con el léxico aplicado ("km/h" suena "kilometros por hora").
+- silencedetect ignoraba un silence_start negativo.
+- Un qa_report.json viejo sobrevivía a una corrida que fallaba al empezar.

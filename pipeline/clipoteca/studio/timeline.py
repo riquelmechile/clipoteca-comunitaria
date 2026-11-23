@@ -15,7 +15,7 @@ from typing import Any
 
 import numpy as np
 
-from .script import VideoScript, parse_video_script, script_id
+from .script import MAX_VIDEO_SECONDS, VideoScript, parse_video_script, script_id
 from .textnorm import norm_words, wer
 
 
@@ -223,6 +223,10 @@ def build_timeline(script: VideoScript, voice_dir: str | Path, transcriber: Any)
             }
         )
         current += length
+    if current > MAX_VIDEO_SECONDS + 1e-6:
+        raise ValueError(
+            f"the voiced script lasts {current:.1f} s; the maximum is {MAX_VIDEO_SECONDS:g} s"
+        )
     result = {
         "script_id": script_id(script),
         "bpm": script.music.bpm,
