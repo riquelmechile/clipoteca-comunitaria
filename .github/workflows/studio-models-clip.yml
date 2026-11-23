@@ -1,0 +1,42 @@
+name: studio-models-clip
+
+# Publishes the pinned CLIP ViT-B/32 (ONNX int8) files to the models-v1 release.
+# It only adds assets: it never rebuilds or overwrites the ones already published.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-models
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download the pinned revision and verify every file
+        env:
+          BASE: https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/6b7c523703ae26e39be4b03774966f8571c7f523
+        run: |
+          curl --fail --location --retry 3 --output clip-vit-b32.vision_model_quantized.onnx "$BASE/onnx/vision_model_quantized.onnx"
+          curl --fail --location --retry 3 --output clip-vit-b32.text_model_quantized.onnx "$BASE/onnx/text_model_quantized.onnx"
+          curl --fail --location --retry 3 --output clip-vit-b32.tokenizer.json "$BASE/tokenizer.json"
+          sha256sum --check - <<'SUMS'
+          583fd1110a514667812fee7d684952aaf82a99b959760c8d7dca7e0ab9839299  clip-vit-b32.vision_model_quantized.onnx
+          73baab855d406190da9faa498cfedf65f15cf309f4cc7385b7b032e6d08e5c3a  clip-vit-b32.text_model_quantized.onnx
+          f7f3b7af117d467b58374797691a6438d3e6b9e9cef800dfd5dced7f697a90cd  clip-vit-b32.tokenizer.json
+          SUMS
+          stat --format='%s %n' clip-vit-b32.* >> "$GITHUB_STEP_SUMMARY"
+      - name: Add the files to the models-v1 release (never overwrites)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view models-v1 >/dev/null
+          gh release upload models-v1 clip-vit-b32.vision_model_quantized.onnx clip-vit-b32.text_model_quantized.onnx clip-vit-b32.tokenizer.json

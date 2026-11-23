@@ -21,6 +21,15 @@
         {"name": "w2v2-phon-espeak.vocab.json", "size": 4637, "sha256": "d732ab2456c0c017930001dc9af0b41b3b93d25b2eb9740bf9d925508d7d87d0", "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/w2v2-phon-espeak.vocab.json"]}
       ]
     },
+    "clip-vit-b32": {
+      "license": "MIT",
+      "source": "Xenova/clip-vit-base-patch32@6b7c523703ae26e39be4b03774966f8571c7f523",
+      "assets": [
+        {"name": "vision_model_quantized.onnx", "size": 89117001, "sha256": "583fd1110a514667812fee7d684952aaf82a99b959760c8d7dca7e0ab9839299", "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/clip-vit-b32.vision_model_quantized.onnx"]},
+        {"name": "text_model_quantized.onnx", "size": 64504507, "sha256": "73baab855d406190da9faa498cfedf65f15cf309f4cc7385b7b032e6d08e5c3a", "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/clip-vit-b32.text_model_quantized.onnx"]},
+        {"name": "tokenizer.json", "size": 2224119, "sha256": "f7f3b7af117d467b58374797691a6438d3e6b9e9cef800dfd5dced7f697a90cd", "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/clip-vit-b32.tokenizer.json"]}
+      ]
+    },
     "whisper": {
       "license": "MIT",
       "repo": "Systran/faster-whisper-small",
