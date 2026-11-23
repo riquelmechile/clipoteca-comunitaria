@@ -10,7 +10,7 @@ Esta página es la referencia de estado del proyecto. Todo lo que afirma tiene u
 | | |
 |---|---|
 | Servicio | https://clipoteca-worker.clipoteca.workers.dev (`/v1/*` y `/mcp`), responde versión 2.0.5 |
-| Catálogo | 22 clips publicados |
+| Catálogo | 25 clips publicados tras el run 45085865562 |
 | Fuentes con búsqueda y descarga comprobadas | 13 de 23 |
 | Fuentes que esperan una API key | 8 |
 | Fuentes que exigen sesión iniciada | 2 (TikTok y Douyin), apagadas |
@@ -38,9 +38,10 @@ retiró antes del PR. Los registros históricos 2.0.5 se mantienen debajo.
 | Descubrimiento real «bosque» (4 idiomas) | 24,02 s; 11 búsquedas OK, 1 timeout propio, 10 AUTH_REQUIRED y 1 estado distinto por idioma; **0 discovery_deadline** en los cuatro idiomas; 10 fuentes aportaron candidatos | [run 45084878519](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45084878519) |
 | Planificación de 23 proveedores x 4 idiomas (falsos) | 92 intentos; las 22 fuentes sanas llegan a ruso; el proveedor lento agota su timeout individual | tests/test_engine_v206.py |
 | Selección y publicación entre fuentes (falsas, controles de calidad reales) | Con 3 fuentes válidas publica 3 clips de varias fuentes; si solo una es válida puede publicar 3 | tests/test_ingest_m4c.py |
-| CI Python, Worker, Argos real | Se añadirá la evidencia del PR integrado | Pendiente |
-| Smoke en main (all y downloads) | Se añadirá evidencia posterior al merge | Pendiente |
-| Ingesta real de consulta nueva en main | Se añadirá evidencia posterior al merge | Pendiente |
+| CI Python, Worker, Argos real | 678 Python aprobadas, 4 omitidas; 133 Worker aprobadas; 3 de 3 jobs verdes | [run 45085652824](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45085652824) |
+| Smoke en main, modo all | 92 sondas/23 fuentes/4 idiomas; 37,18 s, búsqueda operativa de 13 fuentes | [run 45085855870](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45085855870) |
+| Smoke en main, modo downloads | 13 de 23 fuentes descargaron video; 53,12 s; 8 AUTH_REQUIRED y 2 SESSION_REQUIRED | [run 45085860846](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45085860846) |
+| Ingesta real «bosque» en main | 23 consultas por idioma, **0 discovery_deadline** (es/en/zh/ru), 10 fuentes con candidatos, 3 clips publicados de Pexels/NASA/Wikimedia Commons; discovery 18,09 s, proceso 6 min 23 s, job Actions 7 min 12 s | [run 45085865562](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45085865562) · data/jobs/eac415941e00e4a4415112ebfe84c67e734faaa261b5a1294cc9decb5f670f86.json |
 
 ## Verificación de la versión 2.0.5
 
@@ -100,7 +101,7 @@ Lectura de la tabla:
 
 1. **Descubrimiento: corregida la cancelación por cola.** En v2.0.5 la importación «cascada» (run 45082441011) dejó 23 consultas con discovery_deadline, principalmente ruso, por el tope fijo 15 s. En v2.0.6 cada proveedor procesa sus idiomas en serie, hasta 16 proveedores concurren, y cada petición tiene su timeout propio. El límite global se calcula para cubrir todas las oleadas con máximo 180 s. La prueba real no persistente de «bosque» duró 24,02 s y marcó **0 discovery_deadline en es/en/zh/ru**; aún puede haber timeout propio, límites de proveedor o fuentes sin credencial.
 2. **RuTube** respondió bien en la prueba de búsqueda y con error en esa misma importación. Su disponibilidad desde GitHub Actions es irregular.
-3. **Reparto de publicaciones: corregido el sesgo del primer proveedor.** En v2.0.5 «cascada» publicó sus 3 clips desde Pexels. V2.0.6 intercala resultados de distintas fuentes antes del límite de candidatos y reserva la primera ronda de publicación a una ventana por fuente; solo si no bastan los clips válidos ejecuta una segunda ronda para completar cupo. La prueba de tres fuentes y la prueba de una sola fuente válida publicaron 3 clips sin cambiar filtros, deduplicación ni calidad. El reparto real se validará en la ingesta posmerge.
+3. **Reparto de publicaciones: corregido el sesgo del primer proveedor.** En v2.0.5 «cascada» publicó sus 3 clips desde Pexels. V2.0.6 intercala resultados de distintas fuentes antes del límite de candidatos y reserva la primera ronda de publicación a una ventana por fuente; solo si no bastan los clips válidos ejecuta una segunda ronda para completar cupo. La prueba de tres fuentes y la prueba de una sola fuente válida publicaron 3 clips sin cambiar filtros, deduplicación ni calidad. El reparto real se validó en «bosque»: clip-000023 de Pexels, clip-000024 de NASA y clip-000025 de Wikimedia Commons, todos publicados y verificados en el catálogo.
 4. **Traducción.** Si el traductor entrega un resultado inválido para un idioma, la ingesta sigue con los demás y deja un aviso. Una consulta poco común puede terminar buscándose en un solo idioma.
 5. **Caché.** El catálogo se sirve desde `raw.githubusercontent.com`, que guarda copia unos 5 minutos: un clip recién publicado puede tardar ese tiempo en aparecer.
 6. **Costos.** No hay cifras de facturación medidas de GitHub Actions ni de Cloudflare; el proyecto usa los planes gratuitos.
