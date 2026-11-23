@@ -1,0 +1,36 @@
+{
+  "bpm": 120,
+  "beat": 0.5,
+  "total": 35,
+  "cuts": [
+    4,
+    14,
+    27
+  ],
+  "scenes": [
+    {
+      "id": "scene-intro",
+      "type": "intro",
+      "start": 0,
+      "len": 4
+    },
+    {
+      "id": "scene-fact-1",
+      "type": "fact",
+      "start": 4,
+      "len": 10
+    },
+    {
+      "id": "scene-fact-2",
+      "type": "fact",
+      "start": 14,
+      "len": 13
+    },
+    {
+      "id": "scene-outro",
+      "type": "outro",
+      "start": 27,
+      "len": 8
+    }
+  ]
+}

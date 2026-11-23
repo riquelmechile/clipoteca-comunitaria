@@ -1,0 +1,61 @@
+<html><body><script src="vendor/Tone.js"></script><script>
+// Offline composer. T = timeline (bpm, beat, total, cuts, scenes). M = {mood, transpose}
+async function render(T, M){
+  const total=T.total, beat=T.beat, tr=M.transpose||0, mood=M.mood||"upbeat";
+  const X=n=>Tone.Frequency(n).transpose(tr).toNote();
+  const introEnd=T.scenes.length>1?T.scenes[1].start:beat*4, outroStart=T.scenes[T.scenes.length-1].start;
+  const P={upbeat:{kick:1,clap:1,hat:0.06,bass:0.35,lead:0.07,keys:0.18,prog:[["C3","E3","G3","C4"],["G2","B2","D3","G3"],["A2","C3","E3","A3"],["F2","A2","C3","F3"]],roots:["C2","G1","A1","F1"],mel:["E5","G5","A5","G5","E5","D5","C5","D5"]},
+           chill:{kick:0.6,clap:0,hat:0.035,bass:0.28,lead:0.0,keys:0.24,prog:[["A2","C3","E3","G3"],["F2","A2","C3","E3"],["C3","E3","G3","B3"],["G2","B2","D3","F#3"]],roots:["A1","F1","C2","G1"],mel:["E5","C5","D5","B4","C5","A4","B4","G4"]},
+           epic:{kick:1,clap:1,hat:0.05,bass:0.4,lead:0.05,keys:0.22,prog:[["D3","F3","A3","D4"],["A#2","D3","F3","A#3"],["F2","A2","C3","F3"],["C3","E3","G3","C4"]],roots:["D2","A#1","F1","C2"],mel:["A4","D5","F5","E5","D5","C5","A4","C5"]}}[mood]||null;
+  const C=P||{};
+  const buf = await Tone.Offline(({transport})=>{
+    transport.bpm.value=T.bpm;
+    const master=new Tone.Gain(0.8).toDestination();
+    const kick=new Tone.MembraneSynth({pitchDecay:0.03,octaves:6,envelope:{attack:0.001,decay:0.3,sustain:0}}).connect(new Tone.Gain(C.kick).connect(master));
+    const clap=new Tone.NoiseSynth({noise:{type:"white"},envelope:{attack:0.001,decay:0.12,sustain:0}});
+    clap.connect(new Tone.Filter(1800,"bandpass").connect(new Tone.Gain(0.35*C.clap).connect(master)));
+    const hat=new Tone.MetalSynth({envelope:{attack:0.001,decay:0.05,release:0.01},harmonicity:5.1,modulationIndex:32,resonance:6000,octaves:1.5}); hat.connect(new Tone.Gain(C.hat).connect(master));
+    const bass=new Tone.MonoSynth({oscillator:{type:mood=="chill"?"triangle":"square"},filter:{Q:2,type:"lowpass"},filterEnvelope:{attack:0.005,decay:0.15,sustain:0.2,baseFrequency:120,octaves:2.5},envelope:{attack:0.005,decay:0.2,sustain:0.4,release:0.1}});
+    bass.connect(new Tone.Gain(C.bass).connect(master));
+    const rev=new Tone.Reverb({decay:mood=="chill"?2.8:1.6,wet:0.25}).connect(master);
+    const keys=new Tone.PolySynth(Tone.Synth,{oscillator:{type:"triangle"},envelope:{attack:mood=="chill"?0.05:0.005,decay:0.25,sustain:0.15,release:0.3}}); keys.connect(new Tone.Gain(C.keys).connect(rev));
+    const lead=new Tone.Synth({oscillator:{type:"square"},envelope:{attack:0.005,decay:0.12,sustain:0.1,release:0.1}}); lead.connect(new Tone.Gain(C.lead).connect(rev));
+    const whoosh=new Tone.NoiseSynth({noise:{type:"pink"},envelope:{attack:0.35,decay:0.05,sustain:0,release:0.05}});
+    const wf=new Tone.AutoFilter({frequency:2,baseFrequency:400,octaves:4}).start(); whoosh.connect(wf); wf.connect(new Tone.Gain(0.12).connect(master));
+    const crash=new Tone.MetalSynth({envelope:{attack:0.001,decay:0.6,release:0.2},harmonicity:3.1,modulationIndex:20,resonance:4000,octaves:1}); crash.connect(new Tone.Gain(0.05).connect(master));
+    const nb=Math.round(total/beat);
+    for(let b=0;b<nb;b++){
+      const t=b*beat, ch=Math.floor(b/4)%4, intro=t<introEnd, outro=t>=outroStart;
+      if(!intro && (mood!="chill" || b%2==0)) kick.triggerAttackRelease(X("C1"),"8n",t);
+      if(b%2==1 && !intro && C.clap) clap.triggerAttackRelease("16n",t);
+      hat.triggerAttackRelease("C6","32n",t+beat/2,0.8);
+      if(!intro) bass.triggerAttackRelease(X(C.roots[ch]),beat*0.45,t+beat/2);
+      if(b%4==0) keys.triggerAttackRelease(C.prog[ch].map(X),beat*3.5,t,0.7);
+      if(mood=="chill" && b%2==1) keys.triggerAttackRelease(X(C.mel[(b>>1)%8]),beat*0.9,t,0.35);
+      if(C.lead && b%2==0 && !outro && !intro) lead.triggerAttackRelease(X(C.mel[(b/2)%8]),beat*0.4,t+(b%4==0?0:beat*0.5));
+    }
+    keys.triggerAttackRelease(C.prog[0].map(n=>X(Tone.Frequency(n).transpose(12).toNote())),1.9,Math.max(0,total-2.1),0.8);
+    for(const c of T.cuts){ whoosh.triggerAttackRelease(0.4,Math.max(0,c-0.4)); crash.triggerAttackRelease("C4",0.6,c,0.6); }
+  }, total+0.5, 2, 44100);
+  return wav(buf);
+}
+// one-shot scene-cut accent (whoosh ending at 0.4 s + crash at 0.4 s); the orchestrated render places it on the real cuts
+async function renderHit(M){
+  const buf = await Tone.Offline(()=>{
+    const master=new Tone.Gain(0.8).toDestination();
+    const whoosh=new Tone.NoiseSynth({noise:{type:"pink"},envelope:{attack:0.35,decay:0.05,sustain:0,release:0.05}});
+    const wf=new Tone.AutoFilter({frequency:2,baseFrequency:400,octaves:4}).start(); whoosh.connect(wf); wf.connect(new Tone.Gain(0.12).connect(master));
+    const crash=new Tone.MetalSynth({envelope:{attack:0.001,decay:0.6,release:0.2},harmonicity:3.1,modulationIndex:20,resonance:4000,octaves:1}); crash.connect(new Tone.Gain(0.05).connect(master));
+    whoosh.triggerAttackRelease(0.4,0); crash.triggerAttackRelease("C4",0.6,0.4,0.6);
+  }, 1.6, 2, 44100);
+  return wav(buf);
+}
+function wav(buf){
+  const ch=[buf.getChannelData(0),buf.getChannelData(1)], n=ch[0].length;
+  const ab=new ArrayBuffer(44+n*4), v=new DataView(ab); const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  ws(0,"RIFF");v.setUint32(4,36+n*4,true);ws(8,"WAVEfmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,2,true);v.setUint32(24,44100,true);v.setUint32(28,44100*4,true);v.setUint16(32,4,true);v.setUint16(34,16,true);ws(36,"data");v.setUint32(40,n*4,true);
+  let o=44; for(let i=0;i<n;i++){for(let c=0;c<2;c++){let s=Math.max(-1,Math.min(1,ch[c][i]));v.setInt16(o,s*32767,true);o+=2;}}
+  let bin="",u=new Uint8Array(ab); for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
+  return btoa(bin);
+}
+</script></body></html>

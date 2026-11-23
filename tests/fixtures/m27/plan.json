@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "script_id": "fixture-m27",
+  "aspect": "9:16",
+  "music": {
+    "mood": "upbeat",
+    "bpm": 120
+  },
+  "bpm": 120,
+  "beat": 0.5,
+  "total_est": 36,
+  "scenes": [
+    {
+      "id": "scene-intro",
+      "type": "intro",
+      "voice_est": 2,
+      "len_est": 4,
+      "len_fetch": 5,
+      "start_est": 0
+    },
+    {
+      "id": "scene-fact-1",
+      "type": "fact",
+      "voice_est": 7,
+      "len_est": 10,
+      "len_fetch": 12,
+      "start_est": 4
+    },
+    {
+      "id": "scene-fact-2",
+      "type": "fact",
+      "voice_est": 8,
+      "len_est": 13,
+      "len_fetch": 15,
+      "start_est": 14
+    },
+    {
+      "id": "scene-outro",
+      "type": "outro",
+      "voice_est": 3,
+      "len_est": 9,
+      "len_fetch": 10,
+      "start_est": 27
+    }
+  ]
+}
