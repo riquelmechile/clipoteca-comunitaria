@@ -66,7 +66,13 @@ def validate_url(url: str) -> None:
 
 class _RestrictedRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(
-        self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str
+        self,
+        req: Any,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
     ) -> Any:
         validate_url(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)

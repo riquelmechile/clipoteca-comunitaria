@@ -44,7 +44,7 @@ class FakeEngine:
     def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]:
         self.takes.append(take)
         audio = np.r_[np.zeros(1600), np.full(3200, 0.1), np.zeros(1600)].astype(
-            np.float32
+            np.float32,
         )
         return audio, 16000
 
@@ -126,7 +126,9 @@ def test_trim_silence_and_cache_key() -> None:
     assert trimmed[0] == 0
     take = Take(1, "F1", 1.2)
     assert line_cache_key("hola", take, "a" * 64) == line_cache_key(
-        "hola", take, "a" * 64
+        "hola",
+        take,
+        "a" * 64,
     )
 
 
@@ -139,6 +141,7 @@ def test_optional_real_engine() -> None:
     from clipoteca.studio.voice import SupertonicEngine
 
     samples, sample_rate = SupertonicEngine(cache_dir() / "supertonic3").generate(
-        "Hola", Take(1, "F1", 1.2)
+        "Hola",
+        Take(1, "F1", 1.2),
     )
     assert len(samples) > 0 and sample_rate > 0

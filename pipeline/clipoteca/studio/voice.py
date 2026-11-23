@@ -56,7 +56,11 @@ class Scorer(Protocol):
     reason: str
 
     def score(
-        self, spoken: str, caption: str, samples: np.ndarray, sample_rate: int
+        self,
+        spoken: str,
+        caption: str,
+        samples: np.ndarray,
+        sample_rate: int,
     ) -> Score: ...
 
 
@@ -88,7 +92,8 @@ class SupertonicEngine:
         )
         config = so.OfflineTtsConfig(
             model=so.OfflineTtsModelConfig(
-                supertonic=supertonic, num_threads=os.cpu_count() or 4
+                supertonic=supertonic,
+                num_threads=os.cpu_count() or 4,
             ),
             max_num_sentences=1,
         )
@@ -369,15 +374,15 @@ def _sample(out: Path) -> None:
         wers = [record["wer"] for record in records if record["wer"] is not None]
         worst = max(
             records,
-            key=lambda record: record["per"]
-            if record["per"] is not None
-            else record["wer"] or 0,
+            key=lambda record: (
+                record["per"] if record["per"] is not None else record["wer"] or 0
+            ),
         )
         mean_per = f"{sum(pers) / len(pers):.3f}" if pers else "n/a"
         mean_wer = f"{sum(wers) / len(wers):.3f}" if wers else "n/a"
         mean_rtf = sum(record["rtf"] for record in records) / len(records)
         rows.append(
-            f"| {voice_name} | {mean_per} | {mean_wer} | {worst['phrase']} | {mean_rtf:.3f} |"
+            f"| {voice_name} | {mean_per} | {mean_wer} | {worst['phrase']} | {mean_rtf:.3f} |",
         )
     result["table_markdown"] = "\n".join(rows) + "\n"
     _atomic_json(out / "sample.json", result)
