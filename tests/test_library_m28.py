@@ -180,3 +180,76 @@ def test_frame_metrics_on_synthetic_shifted_checkerboard() -> None:
     assert shift[0] == 0 and diff[0] == 0
     assert np.isfinite(shift[1]) and np.isfinite(diff[1])
     assert ClipScorer.frame_metrics([])[0].size == 0
+
+
+def test_duplicate_clip_id_keeps_first_and_counts_invalid(tmp_path: Path) -> None:
+    import json
+
+    raw = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    original = next(c for c in raw if c.get("id") == "clip-100001")
+    duplicate = json.loads(json.dumps(original))
+    duplicate["storage"]["asset_url"] = "https://example.invalid/modified.mp4"
+    raw.append(duplicate)
+    destination = tmp_path / "duplicates.json"
+    destination.write_text(json.dumps(raw))
+    indexed = load_catalog(destination)
+    assert indexed["invalid"] == 2
+    assert indexed["unpublished"] == 1
+    assert len(indexed["clips"]) == 13
+    clips = [c for c in indexed["clips"] if c["id"] == "clip-100001"]
+    assert len(clips) == 1
+    assert clips[0]["storage"]["asset_url"] == original["storage"]["asset_url"]
+    ranked = candidates(_job("lago", "lake"), indexed)
+    assert len({c["clip_id"] for c in ranked}) == len(ranked)
+    assert all(isinstance(c["size_bytes"], int) and len(c["sha256"]) == 64 for c in ranked)
+
+
+def test_long_clip_and_high_fps_allowed_without_unused_media_fields(tmp_path: Path) -> None:
+    import json
+
+    original = next(c for c in _index()["clips"] if c["id"] == "clip-100001")
+    simplified = {
+        "id": "clip-25s",
+        "status": "published",
+        "storage": {"asset_url": "https://example.invalid/long.mp4"},
+        "media": {
+            "duration_seconds": 25.0,
+            "width": 1920,
+            "height": 1080,
+            "size_bytes": 1024,
+            "sha256": "a" * 64,
+            "fps": 120,
+        },
+        "title": original["title"],
+        "description": original["description"],
+        "tags": original["tags"],
+        "source": original["source"],
+    }
+    path = tmp_path / "simplified.json"
+    path.write_text(json.dumps([simplified]))
+    catalog = load_catalog(path)
+    assert catalog["invalid"] == 0 and len(catalog["clips"]) == 1
+    selected = candidates(_job("lago", "lake", length=10), catalog)
+    assert len(selected) == 1
+    assert selected[0]["clip_id"] == "clip-25s"
+    assert selected[0]["duration"] == 25
+    assert selected[0]["size_bytes"] == 1024
+    assert selected[0]["sha256"] == "a" * 64
+
+
+def test_candidate_resolution_exception_for_same_orientation(tmp_path: Path) -> None:
+    import json
+
+    original = next(c for c in _index()["clips"] if c["id"] == "clip-100001")
+    other = json.loads(json.dumps(original))
+    other["id"] = "clip-narrow"
+    other["media"]["width"] = 1200
+    other["media"]["height"] = 700
+    path = tmp_path / "orientation.json"
+    path.write_text(json.dumps([other]))
+    catalog = load_catalog(path)
+    horizontal = _job("lago", "lake")
+    horizontal["aspect"] = "16:9"
+    assert len(candidates(horizontal, catalog)) == 1
+    vertical = {**horizontal, "aspect": "9:16"}
+    assert candidates(vertical, catalog) == []

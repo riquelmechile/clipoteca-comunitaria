@@ -1,0 +1,326 @@
+{
+  "version": 1,
+  "script_id": "2b77aa13ea822cb6a004aa0d3d3b91a0b9aa6e469d0ab1772c0f85d2cb24ae57",
+  "scenes": {
+    "intro": {
+      "status": "catalog",
+      "primary": {
+        "clip_id": "clip-100001",
+        "score": 2.5,
+        "matched": [
+          "agua",
+          "austral",
+          "lago",
+          "lake",
+          "water"
+        ],
+        "duration": 18.0,
+        "width": 1920,
+        "height": 1080,
+        "asset_url": "https://example.invalid/media/clip-100001.mp4",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 100000,
+        "source_url": "https://example.invalid/video/clip-100001",
+        "fit": "window"
+      },
+      "backups": [
+        {
+          "clip_id": "clip-100002",
+          "score": 1.0,
+          "matched": [
+            "lago",
+            "lake"
+          ],
+          "duration": 15.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100002.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100002",
+          "fit": "window"
+        },
+        {
+          "clip_id": "clip-100008",
+          "score": 0.5,
+          "matched": [
+            "agua"
+          ],
+          "duration": 2.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100008.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100008",
+          "fit": "whole"
+        }
+      ]
+    },
+    "lago": {
+      "status": "catalog",
+      "primary": {
+        "clip_id": "clip-100006",
+        "score": 2.0,
+        "matched": [
+          "agua",
+          "clear",
+          "transparente",
+          "water"
+        ],
+        "duration": 13.0,
+        "width": 1920,
+        "height": 1080,
+        "asset_url": "https://example.invalid/media/clip-100006.mp4",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 100000,
+        "source_url": "https://example.invalid/video/clip-100006",
+        "fit": "window"
+      },
+      "backups": [
+        {
+          "clip_id": "clip-100002",
+          "score": 1.0,
+          "matched": [
+            "lago",
+            "lake"
+          ],
+          "duration": 15.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100002.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100002",
+          "fit": "window"
+        },
+        {
+          "clip_id": "clip-100008",
+          "score": 0.5,
+          "matched": [
+            "agua"
+          ],
+          "duration": 2.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100008.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100008",
+          "fit": "whole"
+        }
+      ]
+    },
+    "bosque": {
+      "status": "catalog",
+      "primary": {
+        "clip_id": "clip-100003",
+        "score": 3.0,
+        "matched": [
+          "bosque",
+          "forest",
+          "green",
+          "native",
+          "nativo",
+          "trees"
+        ],
+        "duration": 20.0,
+        "width": 1920,
+        "height": 1080,
+        "asset_url": "https://example.invalid/media/clip-100003.mp4",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 100000,
+        "source_url": "https://example.invalid/video/clip-100003",
+        "fit": "window"
+      },
+      "backups": [
+        {
+          "clip_id": "clip-100014",
+          "score": 2.5,
+          "matched": [
+            "arboles",
+            "bosque",
+            "forest",
+            "green",
+            "trees"
+          ],
+          "duration": 18.0,
+          "width": 1280,
+          "height": 720,
+          "asset_url": "https://example.invalid/media/clip-100014.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100014",
+          "fit": "window"
+        },
+        {
+          "clip_id": "clip-100011",
+          "score": 1.0,
+          "matched": [
+            "bosque",
+            "forest"
+          ],
+          "duration": 20.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100011.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100011",
+          "fit": "window"
+        }
+      ]
+    },
+    "cascada": {
+      "status": "catalog",
+      "primary": {
+        "clip_id": "clip-100004",
+        "score": 3.0,
+        "matched": [
+          "agua",
+          "cascada",
+          "rocas",
+          "rocks",
+          "water",
+          "waterfall"
+        ],
+        "duration": 20.0,
+        "width": 1920,
+        "height": 1080,
+        "asset_url": "https://example.invalid/media/clip-100004.mp4",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 100000,
+        "source_url": "https://example.invalid/video/clip-100004",
+        "fit": "window"
+      },
+      "backups": [
+        {
+          "clip_id": "clip-100008",
+          "score": 2.0,
+          "matched": [
+            "agua",
+            "cascada",
+            "rocas",
+            "waterfall"
+          ],
+          "duration": 2.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100008.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100008",
+          "fit": "whole"
+        },
+        {
+          "clip_id": "clip-100002",
+          "score": 1.0,
+          "matched": [
+            "rocas",
+            "rocks"
+          ],
+          "duration": 15.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100002.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100002",
+          "fit": "window"
+        },
+        {
+          "clip_id": "clip-100013",
+          "score": 1.0,
+          "matched": [
+            "rocas",
+            "rocks"
+          ],
+          "duration": 20.0,
+          "width": 1280,
+          "height": 720,
+          "asset_url": "https://example.invalid/media/clip-100013.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100013",
+          "fit": "window"
+        }
+      ]
+    },
+    "outro": {
+      "status": "catalog",
+      "primary": {
+        "clip_id": "clip-100005",
+        "score": 3.0,
+        "matched": [
+          "atardecer",
+          "lago",
+          "lake",
+          "landscape",
+          "paisaje",
+          "sunset"
+        ],
+        "duration": 16.0,
+        "width": 1920,
+        "height": 1080,
+        "asset_url": "https://example.invalid/media/clip-100005.mp4",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "size_bytes": 100000,
+        "source_url": "https://example.invalid/video/clip-100005",
+        "fit": "window"
+      },
+      "backups": [
+        {
+          "clip_id": "clip-100002",
+          "score": 2.0,
+          "matched": [
+            "lago",
+            "lake",
+            "landscape",
+            "paisaje"
+          ],
+          "duration": 15.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100002.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100002",
+          "fit": "window"
+        },
+        {
+          "clip_id": "clip-100007",
+          "score": 1.5,
+          "matched": [
+            "landscape",
+            "nature",
+            "paisaje"
+          ],
+          "duration": 20.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100007.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100007",
+          "fit": "window"
+        },
+        {
+          "clip_id": "clip-100011",
+          "score": 1.0,
+          "matched": [
+            "landscape",
+            "paisaje"
+          ],
+          "duration": 20.0,
+          "width": 1920,
+          "height": 1080,
+          "asset_url": "https://example.invalid/media/clip-100011.mp4",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size_bytes": 100000,
+          "source_url": "https://example.invalid/video/clip-100011",
+          "fit": "window"
+        }
+      ]
+    }
+  }
+}

@@ -139,3 +139,43 @@ def test_write_plan_rejects_unsafe_scene_id_before_writing(
     with pytest.raises(ScriptError, match="scenes.id"):
         write_plan(unsafe, tmp_path)
     assert not list(tmp_path.iterdir())
+
+
+def test_optional_catalog_writes_exact_deterministic_scene_assignments(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    catalog = FIXTURE_DIR / "catalogo.json"
+    expected = _fixture("asignacion_esperada.json")
+    result = write_plan(_script(), tmp_path, catalog)
+    assert result == _fixture("plan_esperado.json")
+    output = tmp_path / "assignments.json"
+    assert json.loads(output.read_text(encoding="utf-8")) == expected
+    assert list(expected) == ["version", "script_id", "scenes"]
+    saved_bytes = output.read_bytes()
+    for scene in _script().scenes:
+        local = json.loads((tmp_path / "scenes" / scene.id / "assignment.json").read_text())
+        assert local == expected["scenes"][scene.id]
+    write_plan(_script(), tmp_path, catalog)
+    assert output.read_bytes() == saved_bytes
+    assert (
+        main(
+            [
+                "--script",
+                str(FIXTURE_DIR / "guion.json"),
+                "--out",
+                str(tmp_path),
+                "--catalog",
+                str(catalog),
+            ]
+        )
+        == 0
+    )
+    assert len(capsys.readouterr().out.splitlines()) == 1
+    assert json.loads(output.read_text()) == expected
+
+
+def test_without_catalog_has_no_assignment_side_effect(tmp_path: Path) -> None:
+    write_plan(_script(), tmp_path)
+    assert not (tmp_path / "assignments.json").exists()
+    assert not list(tmp_path.glob("scenes/*/assignment.json"))

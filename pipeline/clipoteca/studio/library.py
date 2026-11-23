@@ -39,51 +39,24 @@ def _valid_clip(clip: object) -> bool:
     media, storage = clip.get("media"), clip.get("storage")
     if not isinstance(media, dict) or not isinstance(storage, dict):
         return False
-    required_media = {
-        "duration_seconds",
-        "width",
-        "height",
-        "fps",
-        "aspect_ratio",
-        "orientation",
-        "codec",
-        "container",
-        "has_audio",
-        "size_bytes",
-        "sha256",
-        "perceptual_hash",
-    }
+    required_media = {"duration_seconds", "width", "height", "sha256", "size_bytes"}
     if not required_media.issubset(media):
         return False
     if not isinstance(storage.get("asset_url"), str) or not storage["asset_url"]:
         return False
-    for name in ("duration_seconds", "width", "height"):
-        number = media.get(name)
+    for key in ("duration_seconds", "width", "height"):
+        number = media.get(key)
         if isinstance(number, bool) or not isinstance(number, (int, float)):
             return False
         if not math.isfinite(float(number)) or number <= 0:
             return False
-    if media["duration_seconds"] > 20:
+    if not isinstance(media["width"], int) or not isinstance(media["height"], int):
         return False
-    if not all(
-        isinstance(media[key], str) and media[key]
-        for key in (
-            "aspect_ratio",
-            "orientation",
-            "codec",
-            "container",
-            "sha256",
-            "perceptual_hash",
-        )
-    ):
+    size = media["size_bytes"]
+    digest = media["sha256"]
+    if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
         return False
-    if isinstance(media["fps"], bool) or not isinstance(media["fps"], (int, float)):
-        return False
-    if not math.isfinite(float(media["fps"])) or not 0 < media["fps"] <= 60:
-        return False
-    if not isinstance(media["has_audio"], bool):
-        return False
-    if not isinstance(media["size_bytes"], int) or media["size_bytes"] <= 0:
+    if not isinstance(digest, str) or re.fullmatch(r"[a-fA-F0-9]{64}", digest) is None:
         return False
     return True
 
@@ -101,15 +74,17 @@ def load_catalog(path: str | Path) -> dict[str, Any]:
     clips: list[dict[str, Any]] = []
     invalid = 0
     unpublished = 0
+    seen: set[str] = set()
     for clip in source:
         if not isinstance(clip, dict):
             invalid += 1
         elif clip.get("status") != "published":
             unpublished += 1
-        elif not _valid_clip(clip):
+        elif not _valid_clip(clip) or clip["id"] in seen:
             invalid += 1
         else:
             clips.append(clip)
+            seen.add(clip["id"])
     clips.sort(key=lambda item: item["id"])
     return {"clips": clips, "invalid": invalid, "unpublished": unpublished}
 
@@ -167,7 +142,20 @@ def candidates(
         if duration < 0.42 * length:
             continue
         width, height = int(media["width"]), int(media["height"])
-        if min(width, height) < minimum_side:
+        aspect = job.get("aspect")
+        if aspect in {"9:16", "16:9", "1:1"}:
+            from .framing import resolution_ok, target_size
+
+            target_width, target_height = target_size(aspect)
+            if not resolution_ok(
+                width,
+                height,
+                target_width,
+                target_height,
+                minimum_side,
+            ):
+                continue
+        elif min(width, height) < minimum_side:
             continue
         score, matched = text_score(
             clip,
@@ -190,6 +178,8 @@ def candidates(
                 "width": width,
                 "height": height,
                 "asset_url": clip["storage"]["asset_url"],
+                "sha256": media["sha256"],
+                "size_bytes": media["size_bytes"],
                 "source_url": source.get("source_url") if isinstance(source, dict) else None,
                 "fit": fit,
             }

@@ -36,6 +36,18 @@ _LAZY_EXPORTS = {
     "text_score": ".library",
     "candidates": ".library",
     "assign_scenes": ".library",
+    "clip_scene": ".clipscene",
+    "target_size": ".framing",
+    "saliency_focus": ".framing",
+    "cover_crop": ".framing",
+    "clip_positions": ".framing",
+    "crop_filter": ".framing",
+    "resolution_ok": ".framing",
+    "black_frozen": ".checks",
+    "screen_text": ".checks",
+    "sample_frames": ".checks",
+    "mid_phash": ".checks",
+    "check_global": ".checks",
 }
 
 

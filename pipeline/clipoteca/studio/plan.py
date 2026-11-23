@@ -128,14 +128,44 @@ def _atomic_json(path: Path, obj: dict[str, Any]) -> None:
         Path(name).unlink(missing_ok=True)
 
 
-def write_plan(script: VideoScript, out_dir: str | Path) -> dict[str, Any]:
+def write_plan(
+    script: VideoScript,
+    out_dir: str | Path,
+    catalog_path: str | Path | None = None,
+) -> dict[str, Any]:
     """Write plan and one job per scene, rejecting unsafe IDs before any write."""
     for scene in script.scenes:
         _safe_scene_id(scene.id)
     plan = build_plan(script)
     root = Path(out_dir)
+    assignments = None
+    if catalog_path is not None:
+        from .library import assign_scenes, load_catalog
+
+        jobs = [
+            scene_job(script, scene, est)
+            for scene, est in zip(script.scenes, plan["scenes"], strict=True)
+        ]
+        listed = assign_scenes(jobs, load_catalog(catalog_path))
+        assignments = {
+            "version": 1,
+            "script_id": plan["script_id"],
+            "scenes": {
+                item["id"]: {
+                    "status": item["status"],
+                    "primary": item.get("primary"),
+                    "backups": item.get("backups", []),
+                }
+                for item in listed
+            },
+        }
     for scene, est in zip(script.scenes, plan["scenes"], strict=True):
-        _atomic_json(root / "scenes" / scene.id / "job.json", scene_job(script, scene, est))
+        folder = root / "scenes" / scene.id
+        _atomic_json(folder / "job.json", scene_job(script, scene, est))
+        if assignments is not None:
+            _atomic_json(folder / "assignment.json", assignments["scenes"][scene.id])
+    if assignments is not None:
+        _atomic_json(root / "assignments.json", assignments)
     _atomic_json(root / "plan.json", plan)
     return plan
 
@@ -144,10 +174,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m clipoteca.studio.plan")
     parser.add_argument("--script", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--catalog", type=Path)
     args = parser.parse_args(argv)
     try:
         script = parse_video_script(json.loads(args.script.read_text(encoding="utf-8")))
-        plan = write_plan(script, args.out)
+        plan = write_plan(script, args.out, args.catalog)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         parser.exit(2, f"plan: {exc}\n")
     print(
