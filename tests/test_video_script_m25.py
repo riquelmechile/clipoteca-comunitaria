@@ -105,6 +105,37 @@ def test_duration_exact_minimum_and_speed() -> None:
     }
 
 
+def test_duration_counts_the_spoken_text_not_the_digits() -> None:
+    digits = read_fixture("valid_min.json")
+    words = read_fixture("valid_min.json")
+    said = [
+        (
+            "Mide 4.300 kilómetros de norte a sur.",
+            "Mide cuatro mil trescientos kilómetros de norte a sur.",
+        ),
+        (
+            "En 1960 hubo un terremoto de 9,5 grados.",
+            "En mil novecientos sesenta hubo un terremoto de nueve coma cinco grados.",
+        ),
+        (
+            "El 50% es montaña y va a 80 km/h.",
+            "El cincuenta por ciento es montaña y va a ochenta kilometros por hora.",
+        ),
+    ]
+    for index, (raw, spoken) in enumerate(said):
+        digits["scenes"][index]["say"] = raw
+        words["scenes"][index]["say"] = spoken
+    measured = estimate_durations(parse_video_script(digits))
+    assert measured == estimate_durations(parse_video_script(words))
+    assert measured["scenes"]["fact-1"] == round(len(said[0][1]) * 0.065 / 1.2, 2)
+    # a lexicon entry of the script changes what is spoken, so it changes the estimate too
+    digits["voice"] = {"lexicon": {"kilómetros": "kilómetros lineales exactos"}}
+    assert (
+        estimate_durations(parse_video_script(digits))["scenes"]["fact-1"]
+        > measured["scenes"]["fact-1"]
+    )
+
+
 def test_canonical_id_and_default_equivalence() -> None:
     data = read_fixture("valid_min.json")
     original = script_id(parse_video_script(data))
@@ -146,3 +177,83 @@ def test_schema_objects_are_closed() -> None:
                 walk(child)
 
     walk(schema)
+
+
+def test_unpaired_surrogates_raise_field_specific_script_error() -> None:
+    for field, path in [
+        ("title", "script.title"),
+        ("say", "script.scenes[0].say"),
+        ("caption", "script.scenes[0].caption"),
+    ]:
+        data = read_fixture("valid_min.json")
+        if field == "title":
+            data["title"] = "broken\\ud800".encode("utf-8").decode("unicode_escape")
+        else:
+            data["scenes"][0][field] = "broken\\udfff".encode("utf-8").decode("unicode_escape")
+        with pytest.raises(ScriptError) as exc:
+            parse_video_script(data)
+        assert path in str(exc.value)
+
+
+def test_nonstring_keys_are_rejected_at_every_level() -> None:
+    cases = [
+        (lambda d: d.update({99: "invalid"}), "script.key"),
+        (lambda d: d["scenes"][0].update({99: "invalid"}), "script.scenes[0].key"),
+        (lambda d: d["scenes"][0]["query"].update({99: ["x"]}), "script.scenes[0].query.key"),
+        (lambda d: d.setdefault("music", {}).update({99: 120}), "script.music.key"),
+    ]
+    for mutate, path in cases:
+        data = read_fixture("valid_min.json")
+        mutate(data)
+        with pytest.raises(ScriptError) as exc:
+            parse_video_script(data)
+        assert path in str(exc.value)
+
+
+def test_integral_float_bpm_matches_int_and_fraction_is_invalid() -> None:
+    raw = read_fixture("valid_min.json")
+    int_script = parse_video_script(raw)
+    raw["music"] = {"bpm": 120.0}
+    float_script = parse_video_script(raw)
+    assert float_script.music.bpm == 120
+    assert isinstance(float_script.music.bpm, int)
+    assert script_id(float_script) == script_id(int_script)
+    raw["music"]["bpm"] = 120.5
+    with pytest.raises(ScriptError, match="music.bpm"):
+        parse_video_script(raw)
+
+
+def test_parsed_collections_immutable_and_ids_backward_compatible() -> None:
+    expected = {
+        "valid_full.json": "52f43627b0ec989f9de45e84cd8fc9be50e84cc0deff760298a2f9b16e1d4af5",
+        "valid_min.json": "041fde1b30a75bd9b63fdc57447034f480102482f9eb76b60882835fd611f6d7",
+    }
+    for name, old_sha in expected.items():
+        raw = read_fixture(name)
+        parsed = parse_video_script(raw)
+        assert script_id(parsed) == old_sha
+        before = script_id(parsed)
+        assert isinstance(dict(parsed.voice.lexicon), dict)
+        assert isinstance(parsed.scenes[0].query["es"], tuple)
+        with pytest.raises(TypeError):
+            parsed.voice.lexicon["X"] = "otra"  # type: ignore[index]
+        with pytest.raises(TypeError):
+            parsed.scenes[0].query["es"] = ("otra",)  # type: ignore[index]
+        raw["scenes"][0]["query"]["es"][0] = "otra"
+        assert script_id(parsed) == before
+
+
+def test_parsed_script_survives_asdict_and_deepcopy() -> None:
+    import copy
+    from dataclasses import asdict
+
+    script = parse_video_script(read_fixture("valid_full.json"))
+    plain = asdict(script)
+    assert dict(plain["voice"]["lexicon"]) == dict(script.voice.lexicon)
+    assert list(plain["scenes"][0]["query"]["es"]) == list(script.scenes[0].query["es"])
+    clone = copy.deepcopy(script)
+    assert clone == script and script_id(clone) == script_id(script)
+    with pytest.raises(TypeError):
+        script.voice.lexicon["nuevo"] = "valor"  # type: ignore[index]
+    with pytest.raises(AttributeError):
+        script.voice.lexicon._data = {}  # type: ignore[misc]

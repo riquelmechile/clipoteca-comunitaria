@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "script_id": "2b77aa13ea822cb6a004aa0d3d3b91a0b9aa6e469d0ab1772c0f85d2cb24ae57",
+  "title": "Secretos de los lagos australes",
+  "aspect": "9:16",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "voice": {
+    "voice": "F1",
+    "speed": 1.2
+  },
+  "bpm": 120.0,
+  "beat": 0.5,
+  "total_est": 21.0,
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "voice_est": 2.27,
+      "len_est": 3.0,
+      "len_fetch": 4.0,
+      "start_est": 0.0
+    },
+    {
+      "id": "lago",
+      "type": "fact",
+      "voice_est": 3.2,
+      "len_est": 4.0,
+      "len_fetch": 5.0,
+      "start_est": 3.0
+    },
+    {
+      "id": "bosque",
+      "type": "fact",
+      "voice_est": 3.85,
+      "len_est": 4.5,
+      "len_fetch": 5.5,
+      "start_est": 7.0
+    },
+    {
+      "id": "cascada",
+      "type": "fact",
+      "voice_est": 3.58,
+      "len_est": 4.5,
+      "len_fetch": 5.5,
+      "start_est": 11.5
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "voice_est": 3.63,
+      "len_est": 5.0,
+      "len_fetch": 6.0,
+      "start_est": 16.0
+    }
+  ]
+}

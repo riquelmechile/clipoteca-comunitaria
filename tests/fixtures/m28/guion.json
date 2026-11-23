@@ -1,0 +1,126 @@
+{
+  "title": "Secretos de los lagos australes",
+  "aspect": "9:16",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "voice": {
+    "voice": "F1",
+    "speed": 1.2,
+    "lexicon": {}
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Lagos australes",
+      "sub": "Agua y montañas",
+      "say": "¿Conoces el silencio de los lagos del sur?",
+      "caption": "¿Conoces el silencio de los lagos del sur?",
+      "query": {
+        "es": [
+          "lago austral",
+          "agua montañas"
+        ],
+        "en": [
+          "southern lake",
+          "water mountains"
+        ]
+      },
+      "prompt": "Un lago azul entre montañas nevadas",
+      "avoid": [
+        "persona hablando"
+      ]
+    },
+    {
+      "id": "lago",
+      "type": "fact",
+      "title": "El lago",
+      "sub": "Agua turquesa",
+      "say": "El agua turquesa refleja la luz entre las montañas nevadas.",
+      "caption": "El agua turquesa refleja la luz entre las montañas nevadas.",
+      "query": {
+        "es": [
+          "lago turquesa",
+          "agua transparente"
+        ],
+        "en": [
+          "turquoise lake",
+          "clear water"
+        ]
+      },
+      "prompt": "Lago turquesa en la cordillera",
+      "avoid": [
+        "interior"
+      ]
+    },
+    {
+      "id": "bosque",
+      "type": "fact",
+      "title": "Bosques",
+      "sub": "Vegetación nativa",
+      "say": "Los bosques rodean las orillas y conservan una gran diversidad natural.",
+      "caption": "Los bosques rodean las orillas y conservan una gran diversidad natural.",
+      "query": {
+        "es": [
+          "bosque nativo",
+          "árboles húmedos"
+        ],
+        "en": [
+          "native forest",
+          "green trees"
+        ]
+      },
+      "prompt": "Bosque húmedo junto a un lago",
+      "avoid": [
+        "carreteras"
+      ]
+    },
+    {
+      "id": "cascada",
+      "type": "fact",
+      "title": "Cascadas",
+      "sub": "Ríos de montaña",
+      "say": "Desde las rocas caen cascadas que alimentan los ríos de la región.",
+      "caption": "Desde las rocas caen cascadas que alimentan los ríos de la región.",
+      "query": {
+        "es": [
+          "cascada rocas",
+          "agua corriendo"
+        ],
+        "en": [
+          "waterfall rocks",
+          "flowing water"
+        ]
+      },
+      "prompt": "Cascada entre piedras y vegetación",
+      "avoid": [
+        "edificios"
+      ]
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "title": "Protejamos",
+      "sub": "Naturaleza viva",
+      "say": "Cuidemos cada lago, bosque y cascada para las generaciones futuras.",
+      "caption": "Cuidemos cada lago, bosque y cascada para las generaciones futuras.",
+      "query": {
+        "es": [
+          "paisaje natural",
+          "atardecer lago"
+        ],
+        "en": [
+          "nature landscape",
+          "lake sunset"
+        ]
+      },
+      "prompt": "Atardecer suave junto al lago",
+      "avoid": [
+        "ciudad"
+      ]
+    }
+  ]
+}
