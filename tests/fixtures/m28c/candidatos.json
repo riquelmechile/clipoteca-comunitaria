@@ -1,0 +1,14 @@
+[
+  {
+    "provider": "pexels",
+    "provider_id": "rain1",
+    "source_title": "rain movement",
+    "source_url": "https://pexels.example.org/source/rain1"
+  },
+  {
+    "provider": "pixabay",
+    "provider_id": "rain2",
+    "source_title": "rain clouds",
+    "source_url": "https://pixabay.example.org/source/rain2"
+  }
+]

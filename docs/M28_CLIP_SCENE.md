@@ -185,3 +185,34 @@ de tiempo ni coste: evidencia de Actions pendiente de medir.
 Las pruebas generan vídeos FFmpeg testsrc2, y utilizan descargador,
 CLIP y OCR inyectados; no descargan modelos ni abren red. FFmpeg
 y OpenCV se omiten limpiamente cuando no están disponibles.
+
+
+## M28 PR3: material importado y candidatos locales
+
+El importador sin persistencia studio.importer.import_scene, documentado
+en docs/M28_IMPORT.md, se ejecuta cuando una asignacion de catalogo
+resulta needs_import o clip_scene devuelve no_candidate. Reutiliza
+ingest v2 con LocalWriter y LocalStorage sin escribir en GitHub.
+
+El assignment.json alternativo tiene status=imported, primary y backups
+con identificadores imp-<12 hex SHA256>, un local_path relativo al
+directorio del importador y los campos score, matched, duration,
+width, height, fit, sha256, size_bytes y source_url. No incluye
+asset_url. Un clip local con errores de ruta registra bad_local_path,
+y uno alterado registra hash_mismatch, para probar respaldos
+sin descargar de la red.
+
+Para consumirlo:
+
+    python -m clipoteca.studio.importer scene --job job.json \
+      --catalog data/clips.json --out import
+    python -m clipoteca.studio.clipscene --job job.json \
+      --assignment import/assignment.json --local-root import --out escena
+
+Se permite exactamente uno de asset_url y local_path por candidato;
+ambos o ninguno quedan rechazados. El runner comprueba SHA256 y
+tamano y rechaza symlinks y escapes del directorio local antes de
+aplicar la misma seleccion CLIP, OCR, calidad y recorte del catalogo.
+En result.json, el clip elegido desde disco agrega imported=true
+y local_path; conserva source_url y omite asset_url. No se considera
+publicado ni se reutiliza un ID definitivo del catalogo hasta M32.

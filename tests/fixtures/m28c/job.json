@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "scene-1",
+  "script_id": "fixture",
+  "aspect": "9:16",
+  "len_est": 3.0,
+  "len_fetch": 4.0,
+  "queries": {
+    "en": [
+      "rain movement"
+    ],
+    "es": [
+      "lluvia movimiento"
+    ]
+  },
+  "prompt": "moving rain",
+  "min_short_side": 720,
+  "avoid": [],
+  "negatives": [],
+  "min_sim": 0.22,
+  "min_prob": 0.5
+}
