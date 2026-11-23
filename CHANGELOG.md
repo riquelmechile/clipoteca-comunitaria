@@ -4,6 +4,7 @@
 
 - M25: roadmap v3 y contrato del guion para producción futura de videos; esquema JSON estricto, validación offline, defaults, estimación de duración e ID determinista. Sin render ni cambio de versión.
 - M26 (PR1): voz con Supertonic 3 en `studio/voice.py`: motor sherpa-onnx, control PER con reintentos y respaldo WER, léxico, caché por línea y manifiesto de modelos con descarga verificada. Extra `studio` en `pyproject.toml`. Workflows manuales `studio-models` y `voice-sample`, y job `studio` en CI. Sin cambio de versión.
+- M26: modelo fonético (wav2vec2 int8) publicado en el Release `models-v1` y fijado por tamaño y sha256 en `studio/models.json`; verificado con voces reales (PER 0,05–0,08 con cifras escritas en palabras).
 
 ## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
 

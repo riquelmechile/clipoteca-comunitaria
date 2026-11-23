@@ -17,8 +17,8 @@
     "w2v2-phon": {
       "license": "Apache-2.0",
       "assets": [
-        {"name": "w2v2-phon-espeak.model.int8.onnx", "size": null, "sha256": null, "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/w2v2-phon-espeak.model.int8.onnx"]},
-        {"name": "w2v2-phon-espeak.vocab.json", "size": null, "sha256": null, "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/w2v2-phon-espeak.vocab.json"]}
+        {"name": "w2v2-phon-espeak.model.int8.onnx", "size": 356662205, "sha256": "9b7f003075c00406203ab993d8bde0e8b1010c5d7f776223b72fa7502552c38b", "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/w2v2-phon-espeak.model.int8.onnx"]},
+        {"name": "w2v2-phon-espeak.vocab.json", "size": 4637, "sha256": "d732ab2456c0c017930001dc9af0b41b3b93d25b2eb9740bf9d925508d7d87d0", "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/w2v2-phon-espeak.vocab.json"]}
       ]
     },
     "whisper": {

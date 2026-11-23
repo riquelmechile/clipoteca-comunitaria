@@ -84,5 +84,14 @@ def test_null_sha_is_unavailable(tmp_path: Path) -> None:
             {"name": "x", "size": None, "sha256": None, "urls": ["https://github.com/x"]},
             tmp_path / "x",
         )
-    manifest = models.load_manifest()
-    assert all(asset["sha256"] is None for asset in manifest["models"]["w2v2-phon"]["assets"])
+
+
+def test_manifest_pins_the_phoneme_model() -> None:
+    assets = models.load_manifest()["models"]["w2v2-phon"]["assets"]
+    assert [asset["name"] for asset in assets] == [
+        "w2v2-phon-espeak.model.int8.onnx",
+        "w2v2-phon-espeak.vocab.json",
+    ]
+    for asset in assets:
+        assert isinstance(asset["size"], int) and asset["size"] > 0
+        assert len(asset["sha256"]) == 64 and int(asset["sha256"], 16) >= 0
