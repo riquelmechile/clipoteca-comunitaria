@@ -17,6 +17,9 @@ tiktok = ["playwright==1.65.2"]
 embeddings = ["sentence-transformers>=5.1,<6", "torch>=2.8,<3"]
 studio = [
   "sherpa-onnx==1.13.8",
+  # sherpa-onnx declares this only in its wheel metadata, which the lock resolver does not see;
+  # without it `import sherpa_onnx` fails with a missing libonnxruntime.so.
+  "sherpa-onnx-core==1.13.8",
   "faster-whisper==1.2.1",
   "ctranslate2==4.9.0",
   "onnxruntime==1.31.1",
