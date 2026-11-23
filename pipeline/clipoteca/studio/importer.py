@@ -278,6 +278,41 @@ def _adapters(providers: Sequence[str] | str | None):
     return built
 
 
+# Candidates the engine looked at and turned down: the search worked, there was just nothing
+# usable. They never make a run an "error"; only real failures do.
+_SOFT_REJECTIONS = (
+    "duplicate",
+    "search_only",
+    "aspect_filter",
+    "media_filter",
+    "language_filter",
+    "scene_quality_rejected",
+    "identity_collision",
+)
+_QUIET_STATUSES = frozenset({"published", "duplicate", "no_results"})
+
+
+def _classify(errors: Sequence[str], rejections: dict[str, int]) -> list[str]:
+    """Count soft rejections and return the class names of real failures.
+
+    Upstream entries look like "origin:code[:detail]" and may carry candidate URLs, so only
+    a known soft code or a bare identifier-like last segment is ever kept.
+    """
+    hard: list[str] = []
+    for error in errors:
+        parts = str(error).split(":")
+        soft = next((code for code in _SOFT_REJECTIONS if code in parts), None)
+        if soft:
+            rejections[soft] = rejections.get(soft, 0) + 1
+            continue
+        name = parts[-1]
+        if re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]{0,70}", name):
+            hard.append(name)
+        else:
+            hard.append("ingest_error")
+    return hard
+
+
 async def _close_adapters(adapters: Sequence[Any]) -> None:
     for adapter in adapters:
         client = getattr(adapter, "client", None)
@@ -421,10 +456,10 @@ def import_scene(
     storage = LocalStorage(stage / "assets")
     tried: list[str] = []
     failures: list[str] = []
+    rejections: dict[str, int] = {}
     own_adapters = adapters is None
     selected = _adapters(providers) if own_adapters else adapters
     duration_cap = min(20, max(8, math.ceil(fetch) + 4))
-    aspect = job["aspect"]
 
     async def execute() -> None:
         try:
@@ -449,7 +484,9 @@ def import_scene(
                             max_results=max_results - len(writer.imported),
                             max_clips_per_source=max_clips_per_source,
                             concurrency=concurrency,
-                            filters={"max_duration": duration_cap, "aspect_ratio": aspect},
+                            # No aspect filter: clip-scene reframes any orientation to the
+                            # target, and filtering here would discard most horizontal stock.
+                            filters={"max_duration": duration_cap},
                             horizon=f"studio-v1-{index}",
                             writer=writer,
                             storage=storage,
@@ -459,13 +496,11 @@ def import_scene(
                         ),
                         timeout=remaining,
                     )
-                    if report.status not in {"published", "duplicate", "no_results"}:
+                    hard = _classify(report.errors, rejections)
+                    failures.extend(hard)
+                    soft_only = bool(report.errors) and not hard
+                    if report.status not in _QUIET_STATUSES and not soft_only:
                         failures.append("ingest_" + report.status)
-                    for error in report.errors:
-                        # The upstream error payload may contain candidate URLs. Keep only classes.
-                        name = error.rsplit(":", 1)[-1]
-                        if re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]{0,70}", name):
-                            failures.append(name)
                 except TimeoutError:
                     failures.append("timeout")
                     break
@@ -495,6 +530,7 @@ def import_scene(
         "queries_tried": tried,
         "clips": imported,
         "errors": sorted(set(failures)),
+        "rejections": dict(sorted(rejections.items())),
         "time_s": round(time.monotonic() - started, 3),
     }
     _atomic_json(out / "imported.json", report)

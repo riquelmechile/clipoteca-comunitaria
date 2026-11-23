@@ -435,4 +435,88 @@ def test_query_order_english_spanish_and_casefold_dedup(tmp_path, monkeypatch):
     assert [row[0] for row in invoked] == result["queries_tried"]
     assert [row[1] for row in invoked] == ["studio-v1-0", "studio-v1-1"]
     assert all(row[2]["max_duration"] == 8 for row in invoked)
-    assert all(row[2]["aspect_ratio"] == "9:16" for row in invoked)
+    # Orchestrator review: clip-scene reframes any orientation, so the engine must not be asked
+    # to discard horizontal sources for a vertical video (that left real runs with nothing).
+    assert all("aspect_ratio" not in row[2] for row in invoked)
+
+
+def _run_with_reports(tmp_path, monkeypatch, capsys, name, reports):
+    """Drive import_scene and the CLI with canned engine reports (no media, no network)."""
+    job = load("job.json")
+    job["queries"] = {"en": ["rain"], "es": ["lluvia"]}
+    queue = list(reports)
+
+    async def canned(query, adapters, **kwargs):
+        return queue.pop(0) if queue else IngestReport("fixture", "no_results", (), ())
+
+    monkeypatch.setattr(importer, "ingest", canned)
+    monkeypatch.setattr(importer, "_adapters", lambda providers: [FakeAdapter("pexels")])
+    result = import_scene(
+        job,
+        tmp_path / name,
+        catalog_path=_catalog(tmp_path),
+        adapters=[FakeAdapter("pexels")],
+        translator=translate,
+    )
+    queue[:] = list(reports)
+    job_path = tmp_path / f"{name}.json"
+    job_path.write_text(json.dumps(job), encoding="utf-8")
+    argv = ["scene", "--job", str(job_path), "--catalog", str(_catalog(tmp_path))]
+    code = importer.main([*argv, "--out", str(tmp_path / f"{name}-cli")])
+    capsys.readouterr()
+    return result, code
+
+
+def test_soft_rejections_are_no_results_not_errors(tmp_path, monkeypatch, capsys):
+    """Sonnet review: filtered or duplicate candidates made the run an "error" (exit 1)."""
+    reports = [
+        IngestReport(
+            "a",
+            "unavailable",
+            (),
+            ("pexels:1:aspect_filter", "pexels:2:search_only", "pexels:3:media_filter"),
+        ),
+        IngestReport(
+            "b",
+            "duplicate",
+            ("clip-000001",),
+            ("pexels:4:duplicate:clip-000001:sha256", "pexels:5:scene_quality_rejected"),
+        ),
+    ]
+    result, code = _run_with_reports(tmp_path, monkeypatch, capsys, "soft", reports)
+    assert result["status"] == "no_results" and code == 3
+    assert result["errors"] == []
+    assert result["rejections"] == {
+        "aspect_filter": 1,
+        "duplicate": 1,
+        "media_filter": 1,
+        "scene_quality_rejected": 1,
+        "search_only": 1,
+    }
+    assignment = json.loads((tmp_path / "soft" / "assignment.json").read_text())
+    assert assignment["status"] == "needs_import"
+
+
+@pytest.mark.parametrize(
+    ("report", "expected"),
+    [
+        (IngestReport("a", "failed", (), ("pexels:1:download_error",)), "download_error"),
+        (IngestReport("a", "unavailable", (), ()), "ingest_unavailable"),
+        (IngestReport("a", "rate_limited", (), ("pexels:1:rate_limited",)), "rate_limited"),
+        (
+            IngestReport("a", "failed", (), ("pexels:1:aspect_filter", "pexels:2:ffmpeg_failed")),
+            "ffmpeg_failed",
+        ),
+        (
+            IngestReport("a", "failed", (), ("pexels:1:https://example.org/secret?token=x",)),
+            "ingest_error",
+        ),
+    ],
+)
+def test_real_failures_stay_errors_without_leaking_payloads(
+    tmp_path, monkeypatch, capsys, report, expected
+):
+    result, code = _run_with_reports(tmp_path, monkeypatch, capsys, "hard", [report])
+    assert result["status"] == "error" and code == 1
+    assert expected in result["errors"]
+    assert "example.org" not in json.dumps(result)

@@ -15,9 +15,9 @@ len_fetch, prompt, queries.es y queries.en, min_short_side opcional.
 Las consultas se realizan en orden ingles primero, espanol segundo, sin
 repetir por casefold. Cada consulta usa el mismo clipoteca.ingest.ingest,
 con horizon studio-v1-N, max_results restante, y filtro de duracion
-min(20, max(8, ceil(len_fetch)+4)). El filtro de aspecto utiliza
-aspect_ratio de ingest y los valores 9:16, 16:9 y 1:1 que soporta
-classify_orientation; si la fuente no cumple el aspecto se descarta.
+min(20, max(8, ceil(len_fetch)+4)). No se pasa filtro de aspecto: clip-scene
+reencuadra cualquier orientacion al formato del video, y filtrar aqui
+descartaba casi todo el material horizontal para un video vertical.
 
 El CLI reutiliza los SourceSpec de SOURCES, los stubs de credenciales
 faltantes de cli.py y runner.selected_providers(actions) para impedir
@@ -29,6 +29,21 @@ que se seleccionen fuentes reservadas a un runner autohospedado.
 
 Una linea JSON del CLI incluye id, status e imported. Codigo 0: >=1 clip;
 3: sin resultados; 2: entrada invalida; 1: error sin importaciones.
+
+Sin resultados y error no son lo mismo. Los candidatos que el motor miro
+y descarto (duplicate, search_only, aspect_filter, media_filter,
+language_filter, scene_quality_rejected, identity_collision) cuentan
+como rechazos: la busqueda funciono y no habia material util, asi que
+el estado es no_results (codigo 3) y el conteo queda en rejections.
+Solo son error (codigo 1) las fallas reales: excepcion, timeout, fuentes
+caidas, limite de peticiones, descarga o ffmpeg fallidos.
+
+Para correrlo de verdad hacen falta, ademas del extra studio, el extra
+translate y los recursos de traduccion verificados (accion
+.github/actions/prepare-translations, variables ARGOS_MODEL_PINS_JSON y
+ARGOS_MODEL_CACHE_DIR), igual que el workflow de importacion. Esa accion
+ejecuta uv sync solo con el extra translate: despues hay que volver a
+sincronizar con los dos extras.
 
 ## Auditoria de efectos remotos de ingest.py
 
@@ -63,7 +78,8 @@ Todas las salidas finales usan temporal y os.replace:
 - clips/imp-<12 caracteres SHA>.mp4: original normalizado por ingest.
 - thumbs/imp-<12 caracteres SHA>.webp y storyboards/imp-...webp.
 - imported.json: version=1, id, status (ok, no_results, error),
-  queries_tried, clips, errors y time_s.
+  queries_tried, clips, errors (solo fallas reales), rejections
+  (conteo de descartes por motivo) y time_s.
 - Cada clip incluye imp_id, sha256, size_bytes, duration, width, height,
   local_path (relativa con separador /), source_url, provider, record
   completo de esquema v2, assets con video, thumbnail y storyboard.

@@ -472,8 +472,8 @@ def clip_scene(
             tmp = Path(folder)
             downloaded = tmp / "download.mp4"
             rendered = tmp / "render.mp4"
-            local = "local_path" in candidate
-            remote = "asset_url" in candidate
+            local = candidate.get("local_path") is not None
+            remote = candidate.get("asset_url") is not None
             if local == remote:
                 attempts.append({"clip_id": cid, "reason": "invalid_candidate"})
                 continue
