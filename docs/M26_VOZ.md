@@ -86,3 +86,46 @@ se limpian tras uso, incluso en fallos.
 - «En 1960 … 9,5 grados» pronunciada con digitos dio PER 0,21–0,22;
   al expandir a «mil novecientos sesenta … nueve coma cinco» dio PER 0,02–0,05.
   Mediciones con voz F1, velocidades 1,2 y 1,05. El umbral PER_MAX es 0,12.
+
+
+## Segunda vuelta A: lectura natural de cifras
+
+El léxico predeterminado queda deliberadamente neutro: solamente 4x4
+y km/h tienen pronunciación predefinida. Las siglas de vehículos
+(RS3–RS7, V6–V12, DTM y TDI) se deben declarar explícitamente en
+script.voice.lexicon. Los subtítulos siguen intactos: la normalización
+se aplica únicamente al texto hablado.
+
+Para español, los cardinales terminados en uno se apocopan antes de
+un sustantivo: 21 años -> veintiún años, 31 perros -> treinta y un
+perros, 1 kilo -> un kilo. Ante un sustantivo femenino de lista
+cerrada se usa una/veintiuna/treinta y una/ciento una. La lista de
+personas, horas, veces, semanas, toneladas, millas, hectáreas,
+especies, libras, calorías, páginas, ciudades, mujeres, niñas,
+casas, cosas, partes, vidas, islas, lenguas, estrellas, galaxias
+y noches cubre singular y plural. Aislado, ante puntuación o
+ante un conector como de, conserva uno. Mil y millones conservan
+la apócope tradicional.
+
+Decimales con una o dos cifras mantienen la lectura cardinal:
+1,5 -> uno coma cinco; 2,50 -> dos coma cincuenta. Desde
+tres cifras se leen dígito a dígito: 3,14159 -> tres coma uno
+cuatro uno cinco nueve. Los ceros decimales iniciales se pronuncian:
+0,05 -> cero coma cero cinco. Una hora válida HH:MM se pronuncia
+como catorce treinta (14:30), catorce en punto (14:00) o
+catorce cero cinco (14:05).
+
+Las fechas válidas dd/mm/aaaa incluyen el mes en palabras;
+12/02/1995 se pronuncia doce de febrero de mil novecientos noventa
+y cinco. Las fracciones usuales 1/2, 1/3, 1/4 y 3/4 tienen
+lectura un medio, un tercio, un cuarto y tres cuartos; las demás
+son numerador sobre denominador. Se pronuncia menos ante cifras
+negativas al inicio o después de espacio.
+
+Convención monetaria del guion: $1.500 -> mil quinientos pesos
+(CLP en el uso local), US$20 y USD 20 -> veinte dólares, €20
+y 20 € -> veinte euros. Ordinales abreviados entre 1 y 10
+usan primer (1er), primero (1º), primera (1ª), segundo,
+tercero y hasta décimo. La normalización se aplica de forma
+idempotente y evita alterar identificadores como clip-000023,
+H264 y v2.0.6. Otros idiomas conservan el texto original.
