@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## No publicado
+
+- M25: roadmap v3 y contrato del guion para producción futura de videos; esquema JSON estricto, validación offline, defaults, estimación de duración e ID determinista. Sin render ni cambio de versión.
+
 ## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
 
 - Descubrimiento por proveedor: idiomas secuenciales para evitar ráfagas 429,
