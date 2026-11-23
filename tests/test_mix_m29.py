@@ -200,3 +200,166 @@ def test_mix_real_loudness_true_peak_ducking_and_cli(tmp_path: Path) -> None:
 def test_mix_out_of_range_target_errors_cleanly(tmp_path: Path) -> None:
     with pytest.raises(MixError, match="loudness targets"):
         mix(_timeline(), tmp_path, tmp_path / "missing.wav", tmp_path / "out.wav", lufs=0.0)
+
+
+def _fake_mix_runtime(monkeypatch, *, loudness=-14.0):
+    """Fake the expensive audio pipeline while preserving WAV validation/publication."""
+    import clipoteca.studio.mix as module
+
+    def fake_run(argv):
+        destination = Path(argv[-1])
+        if destination.suffix == ".wav":
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with wave.open(str(destination), "wb") as stream:
+                stream.setnchannels(2)
+                stream.setframerate(48000)
+                stream.setsampwidth(2)
+                stream.writeframes(bytes(48000 * 2 * 2))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr(module, "_run", fake_run)
+    monkeypatch.setattr(module, "build_voice_stem", lambda *args: 1)
+    monkeypatch.setattr(
+        module,
+        "_measure",
+        lambda *args: {
+            "input_i": -14.0,
+            "input_tp": -1.4,
+            "input_lra": 1.0,
+            "input_thresh": -24.0,
+            "target_offset": 0.0,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "measure_loudness",
+        lambda *args: {"lufs": loudness, "true_peak": -1.4, "lra": 1.0},
+    )
+
+
+def test_mix_failed_loudness_gate_creates_no_pair_or_temp(tmp_path, monkeypatch):
+    _fake_mix_runtime(monkeypatch, loudness=-18.0)
+    music_path = tmp_path / "music.wav"
+    music_path.write_bytes(b"fake")
+    destination = tmp_path / "mix.wav"
+    with pytest.raises(MixError, match="loudness gate"):
+        mix(
+            {"total": 1.0, "scenes": [{"id": "x", "dur": 0.4, "vo": 0.1}]},
+            tmp_path / "voice",
+            music_path,
+            destination,
+        )
+    assert not destination.exists()
+    assert not (tmp_path / "mix.json").exists()
+    assert not any(p.name.startswith(".mix-") for p in tmp_path.iterdir())
+
+
+def test_mix_second_replace_failure_rolls_back_wave(tmp_path, monkeypatch):
+    import clipoteca.studio.mix as module
+
+    _fake_mix_runtime(monkeypatch)
+    music_path = tmp_path / "music.wav"
+    music_path.write_bytes(b"fake")
+    destination = tmp_path / "mix.wav"
+    destination.write_bytes(b"prior verified mix bytes")
+    (tmp_path / "mix.json").write_text('{"previous":true}')
+    original = module.os.replace
+
+    def fail_json_only(src, dst):
+        if Path(dst) == tmp_path / "mix.json":
+            raise OSError("injected between two replaces")
+        return original(src, dst)
+
+    monkeypatch.setattr(module.os, "replace", fail_json_only)
+    with pytest.raises(OSError, match="between two"):
+        mix(
+            {"total": 1.0, "scenes": [{"id": "x", "dur": 0.4, "vo": 0.1}]},
+            tmp_path / "voice",
+            music_path,
+            destination,
+        )
+    assert destination.read_bytes() == b"prior verified mix bytes"
+    assert not (tmp_path / "mix.json").exists()
+    assert not any(p.name.startswith(".mix-") for p in tmp_path.iterdir())
+
+
+def test_mix_stderr_redacted_and_dash_prefixed_music_path(tmp_path, monkeypatch, capsys):
+    import clipoteca.studio.mix as module
+
+    folder = tmp_path / "-x"
+    folder.mkdir()
+    path = folder / "music.wav"
+    path.write_bytes(b"fake")
+
+    def fail_subprocess(argv, **kwargs):
+        return subprocess.CompletedProcess(argv, 1, "", f"failed at {path}")
+
+    monkeypatch.setattr(module.subprocess, "run", fail_subprocess)
+    with pytest.raises(MixError) as error:
+        module._run(["ffmpeg", "-i", str(path.resolve()), "-f", "null", "-"])
+    assert str(tmp_path) not in str(error.value)
+
+    _fake_mix_runtime(monkeypatch)
+    fake = module._run
+    seen_inputs = []
+
+    def inspect_run(argv):
+        for index, value in enumerate(argv[:-1]):
+            if value == "-i":
+                seen_inputs.append(argv[index + 1])
+        return fake(argv)
+
+    monkeypatch.setattr(module, "_run", inspect_run)
+    monkeypatch.chdir(tmp_path)
+    info = module.mix(
+        {"total": 1.0, "scenes": [{"id": "x", "dur": 0.4, "vo": 0.1}]},
+        Path("-x"),
+        Path("-x/music.wav"),
+        Path("-x/actual.wav"),
+    )
+    assert info["duration_s"] == 1.0
+    assert str(path.resolve()) in seen_inputs
+    assert all(not value.startswith("-x/") for value in seen_inputs)
+
+    monkeypatch.setattr(module, "mix", lambda *args: {"lufs": -14, "voice_lines": 3})
+    timeline_path = tmp_path / "timeline.json"
+    timeline_path.write_text(json.dumps({"total": 1.0, "scenes": []}))
+    assert (
+        main(
+            [
+                "--timeline",
+                str(timeline_path),
+                "--voice",
+                str(tmp_path),
+                "--music",
+                str(path),
+                "--out",
+                str(tmp_path / "mix.wav"),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out) == {"lufs": -14, "voice_lines": 3}
+
+    def bad_mix(*args):
+        raise MixError("failed")
+
+    monkeypatch.setattr(module, "mix", bad_mix)
+    with pytest.raises(SystemExit) as status:
+        main(
+            [
+                "--timeline",
+                str(timeline_path),
+                "--voice",
+                str(tmp_path),
+                "--music",
+                str(path),
+                "--out",
+                str(tmp_path / "mix.wav"),
+            ]
+        )
+    assert status.value.code == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "error",
+        "error": "MixError",
+    }

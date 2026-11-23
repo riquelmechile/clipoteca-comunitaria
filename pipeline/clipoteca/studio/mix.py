@@ -7,6 +7,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import wave
@@ -55,6 +56,12 @@ def _timeline(timeline: dict[str, Any]) -> tuple[float, list[dict[str, Any]]]:
     return total, scenes
 
 
+def _safe_stderr(value: str) -> str:
+    result = value.replace(str(Path.cwd().resolve()), "<project>")
+    result = result.replace(str(Path(tempfile.gettempdir()).resolve()), "<temporary>")
+    return re.sub(r"(?<![A-Za-z0-9])/[^ ]+", "<path>", result)[-350:]
+
+
 def _run(argv: list[str]) -> subprocess.CompletedProcess[str]:
     try:
         process = subprocess.run(
@@ -67,7 +74,7 @@ def _run(argv: list[str]) -> subprocess.CompletedProcess[str]:
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as exc:
         raise MixError(f"ffmpeg failed: {type(exc).__name__}") from exc
     if process.returncode:
-        raise MixError(f"ffmpeg failed: {process.stderr[-350:]}")
+        raise MixError(f"ffmpeg failed: {_safe_stderr(process.stderr)}")
     return process
 
 
@@ -174,14 +181,14 @@ def build_voice_stem(
                         "error",
                         "-y",
                         "-i",
-                        str(path),
+                        str(path.resolve()),
                         "-ar",
                         str(RATE),
                         "-ac",
                         "1",
                         "-c:a",
                         "pcm_s16le",
-                        str(converted),
+                        str(converted.resolve()),
                     ]
                 )
                 data, converted_rate = _read_wav(converted)
@@ -212,7 +219,7 @@ def _measure(path: Path, lufs: float, tp: float) -> dict[str, float]:
             "-hide_banner",
             "-nostdin",
             "-i",
-            str(path),
+            str(path.resolve()),
             "-af",
             f"loudnorm=I={lufs}:TP={tp}:LRA=11:print_format=json",
             "-f",
@@ -264,6 +271,9 @@ def mix(
         raise MixError("loudness targets outside supported range")
     destination = Path(out_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
+    metadata = destination.with_name("mix.json")
+    # An old report must never describe the result of a new, failed attempt.
+    metadata.unlink(missing_ok=True)
     if not Path(music_path).is_file():
         raise MixError("missing music.wav")
     with tempfile.TemporaryDirectory(prefix=".mix-", dir=destination.parent) as tmp:
@@ -289,9 +299,9 @@ def mix(
                 "error",
                 "-y",
                 "-i",
-                str(music_path),
+                str(Path(music_path).resolve()),
                 "-i",
-                str(voice),
+                str(voice.resolve()),
                 "-filter_complex",
                 graph,
                 "-map",
@@ -304,7 +314,7 @@ def mix(
                 "pcm_s16le",
                 "-t",
                 f"{total:.6f}",
-                str(premix),
+                str(premix.resolve()),
             ]
         )
         measured = _measure(premix, target, peak_limit)
@@ -325,7 +335,7 @@ def mix(
                 "error",
                 "-y",
                 "-i",
-                str(premix),
+                str(premix.resolve()),
                 "-af",
                 normalized,
                 "-t",
@@ -336,7 +346,7 @@ def mix(
                 "2",
                 "-c:a",
                 "pcm_s16le",
-                str(final),
+                str(final.resolve()),
             ]
         )
         stats = measure_loudness(final)
@@ -363,8 +373,24 @@ def mix(
             "target_tp": peak_limit,
             "voice_lines": count,
         }
+        staged_json = folder / "mix.json"
+        _atomic_json(staged_json, report)
+        previous = folder / "old-mix.wav"
+        if destination.is_file():
+            shutil.copyfile(destination, previous)
         os.replace(final, destination)
-        _atomic_json(destination.with_name("mix.json"), report)
+        try:
+            os.replace(staged_json, metadata)
+        except Exception:
+            # Do not expose a fresh WAV with no matching JSON after an interruption.
+            try:
+                if previous.is_file():
+                    os.replace(previous, destination)
+                else:
+                    destination.unlink(missing_ok=True)
+            except OSError:
+                destination.unlink(missing_ok=True)
+            raise
         return report
 
 
@@ -376,14 +402,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        mix(
+        report = mix(
             json.loads(args.timeline.read_text(encoding="utf-8")),
             args.voice,
             args.music,
             args.out,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        parser.exit(2, f"mix: {exc}\n")
+        print(json.dumps({"status": "error", "error": type(exc).__name__}))
+        parser.exit(2, f"mix: {type(exc).__name__}: invalid input\n")
+    print(json.dumps(report, ensure_ascii=False))
     return 0
 
 
