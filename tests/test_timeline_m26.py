@@ -136,3 +136,107 @@ def test_missing_wav_or_voice_line_fails_clearly(tmp_path: Path) -> None:
     )
     with pytest.raises(FileNotFoundError, match="missing WAV"):
         build_timeline(script, tmp_path, FakeTranscriber([]))
+
+
+@pytest.mark.parametrize(
+    "bpm,duration,expected",
+    [
+        (100, 3.6, 4.2),
+        (120, 2.9, 3.5),
+    ],
+)
+def test_exact_beat_not_rounded_up(tmp_path: Path, bpm, duration, expected):
+    script = _script()
+    from dataclasses import replace
+
+    script = replace(script, music=MusicSpec(mood="upbeat", bpm=bpm))
+    (tmp_path / "voice.json").write_text(
+        json.dumps({"lines": {scene.id: {"status": "ok"} for scene in script.scenes}})
+    )
+    for scene in script.scenes:
+        _wav(tmp_path / "audio" / f"{scene.id}.wav", duration)
+    report = build_timeline(script, tmp_path, FakeTranscriber([]))
+    assert report["scenes"][1]["len"] == pytest.approx(expected)
+
+
+def test_rejects_voice_report_from_other_script(tmp_path: Path):
+    from clipoteca.studio.script import script_id
+
+    script = _script()
+    (tmp_path / "voice.json").write_text(
+        json.dumps(
+            {
+                "script_id": "unrelated",
+                "lines": {scene.id: {"status": "ok"} for scene in script.scenes},
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="script_id"):
+        build_timeline(script, tmp_path, FakeTranscriber([]))
+    assert not (tmp_path / "timeline.json").exists()
+    assert script_id(script) != "unrelated"
+
+
+def test_cli_writes_once_and_downloads_exact_whisper_revision(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    import sys
+    from types import SimpleNamespace
+    from clipoteca.studio import timeline as module
+
+    script = _script()
+    (tmp_path / "script.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "voice.json").write_text(
+        json.dumps({"lines": {scene.id: {"status": "ok"} for scene in script.scenes}})
+    )
+    for scene in script.scenes:
+        _wav(tmp_path / "audio" / f"{scene.id}.wav", 1.0)
+    snapshot_calls = []
+    whisper_calls = []
+
+    def snapshot_download(**kwargs):
+        snapshot_calls.append(kwargs)
+        return "/tmp/verified-whisper-revision"
+
+    def whisper_model(path, **kwargs):
+        whisper_calls.append((path, kwargs))
+        return FakeTranscriber([["Hola", 0.0, 0.8]])
+
+    monkeypatch.setitem(
+        sys.modules, "huggingface_hub", SimpleNamespace(snapshot_download=snapshot_download)
+    )
+    monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=whisper_model))
+    monkeypatch.setattr(module, "parse_video_script", lambda _raw: script)
+    written = []
+    original = module._atomic_json
+
+    def record_write(path, obj):
+        written.append(Path(path))
+        original(path, obj)
+
+    monkeypatch.setattr(module, "_atomic_json", record_write)
+    destination = tmp_path / "custom-timeline.json"
+    assert (
+        module.main(
+            [
+                "--script",
+                str(tmp_path / "script.json"),
+                "--voice",
+                str(tmp_path),
+                "--out",
+                str(destination),
+            ]
+        )
+        == 0
+    )
+    assert written == [destination]
+    assert destination.is_file()
+    assert not (tmp_path / "timeline.json").exists()
+    from clipoteca.studio import models
+
+    spec = models.model_spec("whisper")
+    assert snapshot_calls == [{"repo_id": spec["repo"], "revision": spec["revision"]}]
+    assert whisper_calls == [
+        ("/tmp/verified-whisper-revision", {"compute_type": spec["compute_type"]})
+    ]
