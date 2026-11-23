@@ -1,0 +1,82 @@
+{
+  "title": "Secretos de los lagos australes",
+  "aspect": "9:16",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "voice": {
+    "voice": "F1",
+    "speed": 1.2,
+    "lexicon": {}
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Agua <azul> & \"luz\"",
+      "sub": "Naturaleza & <sur>",
+      "say": "¿Conoces el silencio de los lagos del sur?",
+      "caption": "¿Conoces el silencio de los lagos del sur?",
+      "query": {
+        "es": [
+          "lago austral",
+          "agua montañas"
+        ],
+        "en": [
+          "southern lake",
+          "water mountains"
+        ]
+      },
+      "prompt": "Un lago azul entre montañas nevadas",
+      "avoid": [
+        "persona hablando"
+      ]
+    },
+    {
+      "id": "lago",
+      "type": "fact",
+      "title": "Lago & cielo",
+      "sub": "Montañas \"frías\" & nieve",
+      "say": "El agua turquesa refleja la luz entre las montañas nevadas.",
+      "caption": "El agua turquesa refleja la luz entre las montañas nevadas.",
+      "query": {
+        "es": [
+          "lago turquesa",
+          "agua transparente"
+        ],
+        "en": [
+          "turquoise lake",
+          "clear water"
+        ]
+      },
+      "prompt": "Lago turquesa en la cordillera",
+      "avoid": [
+        "interior"
+      ]
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "title": "Proteger <vida>",
+      "sub": "Cuidar & compartir",
+      "say": "Cuidemos cada lago, bosque y cascada para las generaciones futuras.",
+      "caption": "Cuidemos cada lago, bosque y cascada para las generaciones futuras.",
+      "query": {
+        "es": [
+          "paisaje natural",
+          "atardecer lago"
+        ],
+        "en": [
+          "nature landscape",
+          "lake sunset"
+        ]
+      },
+      "prompt": "Atardecer suave junto al lago",
+      "avoid": [
+        "ciudad"
+      ]
+    }
+  ]
+}

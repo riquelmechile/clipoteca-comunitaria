@@ -1,0 +1,86 @@
+{
+  "bpm": 120,
+  "beat": 0.5,
+  "total": 6,
+  "cuts": [
+    2,
+    4
+  ],
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "start": 0,
+      "len": 2,
+      "vo": 0.3,
+      "dur": 1.2,
+      "words": [
+        [
+          "Cuidemos",
+          0,
+          0.3
+        ],
+        [
+          "agua",
+          0.4,
+          0.7
+        ],
+        [
+          "hoy",
+          0.75,
+          1.1
+        ]
+      ]
+    },
+    {
+      "id": "lago",
+      "type": "fact",
+      "start": 2,
+      "len": 2,
+      "vo": 2.3,
+      "dur": 1.2,
+      "words": [
+        [
+          "Cuidemos",
+          0,
+          0.3
+        ],
+        [
+          "agua",
+          0.4,
+          0.7
+        ],
+        [
+          "hoy",
+          0.75,
+          1.1
+        ]
+      ]
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "start": 4,
+      "len": 2,
+      "vo": 4.3,
+      "dur": 1.2,
+      "words": [
+        [
+          "Cuidemos",
+          0,
+          0.3
+        ],
+        [
+          "agua",
+          0.4,
+          0.7
+        ],
+        [
+          "hoy",
+          0.75,
+          1.1
+        ]
+      ]
+    }
+  ]
+}
