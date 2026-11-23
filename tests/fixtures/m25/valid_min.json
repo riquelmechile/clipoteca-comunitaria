@@ -1,0 +1,51 @@
+{
+  "title": "Lluvia y viento",
+  "aspect": "9:16",
+  "scenes": [
+    {
+      "id": "fact-1",
+      "type": "fact",
+      "title": "Lluvia",
+      "say": "Lluvia.",
+      "query": {
+        "es": [
+          "lluvia"
+        ],
+        "en": [
+          "rain"
+        ]
+      },
+      "prompt": "Rain falling on a wet street"
+    },
+    {
+      "id": "fact-2",
+      "type": "fact",
+      "title": "Viento",
+      "say": "El viento mueve las hojas.",
+      "query": {
+        "es": [
+          "viento"
+        ],
+        "en": [
+          "wind"
+        ]
+      },
+      "prompt": "Leaves moving in the wind"
+    },
+    {
+      "id": "fact-3",
+      "type": "fact",
+      "title": "Agua",
+      "say": "El agua regresa al río.",
+      "query": {
+        "es": [
+          "rio"
+        ],
+        "en": [
+          "river"
+        ]
+      },
+      "prompt": "Flowing river outdoors"
+    }
+  ]
+}
