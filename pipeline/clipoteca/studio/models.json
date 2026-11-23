@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "models": {
+    "supertonic3": {
+      "license": "OpenRAIL-M",
+      "archive": true,
+      "assets": [{
+        "name": "sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2",
+        "size": 128774318,
+        "sha256": "82fa96f91c4ef8abaae3a14a3f4153facf88bed821d1f7331cec2700f432c427",
+        "urls": [
+          "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2",
+          "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-supertonic-3-tts-int8-2026-05-11.tar.bz2"
+        ]
+      }]
+    },
+    "w2v2-phon": {
+      "license": "Apache-2.0",
+      "assets": [
+        {"name": "w2v2-phon-espeak.model.int8.onnx", "size": null, "sha256": null, "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/w2v2-phon-espeak.model.int8.onnx"]},
+        {"name": "w2v2-phon-espeak.vocab.json", "size": null, "sha256": null, "urls": ["https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/models-v1/w2v2-phon-espeak.vocab.json"]}
+      ]
+    },
+    "whisper": {
+      "license": "MIT",
+      "repo": "Systran/faster-whisper-small",
+      "revision": "536b0662742c02347bc0e980a01041f333bce120",
+      "compute_type": "int8"
+    }
+  }
+}
