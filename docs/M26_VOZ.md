@@ -28,6 +28,12 @@ rutas peligrosas, enlaces o dispositivos.
 - wav2vec2 espeak: Apache-2.0. Los dos hashes quedan pendientes del workflow de exportacion.
 - faster-whisper small: MIT, revision de Hugging Face fijada en el manifiesto.
 
+Punto abierto del lock: `rapidocr-onnxruntime==1.2.3` incorpora
+`opencv-python==5.1.0.95` ademas del pin directo
+`opencv-python-headless==5.0.0.93`; ambos distribuyen el modulo `cv2`. El
+orquestador agregara el `uv.lock` regenerado para el extra `studio` y resolvera
+esa duplicacion en una integracion posterior, sin cambiar pins en este PR.
+
 ## Uso
 
 ```bash
