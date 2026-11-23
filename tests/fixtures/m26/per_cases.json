@@ -1,0 +1,8 @@
+[
+  {"ref": "βa", "hyp": "ba", "expected": 0.0},
+  {"ref": "ðedo", "hyp": "dedo", "expected": 0.0},
+  {"ref": "kaɾo", "hyp": "karo", "expected": 0.0},
+  {"ref": "θena", "hyp": "sena", "expected": 0.0},
+  {"ref": "kasa", "hyp": "kaza", "expected": 0.25},
+  {"ref": "ˈauto", "hyp": "auto", "expected": 0.0}
+]
