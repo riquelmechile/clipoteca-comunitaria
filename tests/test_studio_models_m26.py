@@ -246,3 +246,16 @@ def test_ensure_model_unpinned_manifest_does_not_download(monkeypatch, tmp_path:
     with pytest.raises(models.ModelUnavailable, match="per_model_unpinned"):
         models.ensure_model("w2v2-phon", tmp_path)
     assert not list(tmp_path.iterdir())
+
+
+def test_manifest_pins_the_clip_model_with_the_names_clipscore_expects() -> None:
+    from clipoteca.studio.clipscore import MODEL_FILES
+
+    assets = models.load_manifest()["models"]["clip-vit-b32"]["assets"]
+    assert tuple(asset["name"] for asset in assets) == MODEL_FILES
+    for asset in assets:
+        assert isinstance(asset["size"], int) and asset["size"] > 0
+        assert len(asset["sha256"]) == 64 and int(asset["sha256"], 16) >= 0
+        assert all("/releases/download/models-v1/clip-vit-b32." in url for url in asset["urls"])
+        for url in asset["urls"]:
+            models.validate_url(url)

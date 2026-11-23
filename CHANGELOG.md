@@ -8,6 +8,7 @@
 - M26 (PR2): tiempos por palabra con Whisper y `timeline.json` cuantizado al compás (`studio/timeline.py`); cifras a palabras antes de la síntesis (`spell_numbers`); control fonético activo por defecto con descarga verificada del modelo; endurecimiento de descarga, extracción y caché. Sin cambio de versión.
 - M27: música con Tone.js offline en Chromium headless (`studio/music.py` + `assets/music.html`): `head.wav`, `bed.wav` en bucle a compás, `hit.wav` en cada corte y pista final con fundidos; render sin red. El job `studio` de CI instala Chromium y renderiza de verdad. Sin cambio de versión.
 - M28 (PR1): plan por escena (`studio/plan.py`: `plan.json` y un `job.json` por escena, largos al compás), puntaje CLIP y elección de ventana (`clipscore.py`, `windows.py`) y selección sobre el catálogo sin red ni repetir clip (`library.py`). El guion parseado pasa a ser inmutable. La duración estimada se calcula sobre el texto hablado (cifras y léxico ya expandidos). Sin cambio de versión.
+- M28: modelo CLIP ViT-B/32 (ONNX int8, `Xenova/clip-vit-base-patch32`, MIT) fijado por tamaño y sha256 en `studio/models.json`; workflow manual `studio-models-clip` que lo agrega al Release `models-v1` sin sobrescribir nada.
 
 ## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
 
