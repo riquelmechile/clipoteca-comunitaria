@@ -9,6 +9,10 @@
 - M27: música con Tone.js offline en Chromium headless (`studio/music.py` + `assets/music.html`): `head.wav`, `bed.wav` en bucle a compás, `hit.wav` en cada corte y pista final con fundidos; render sin red. El job `studio` de CI instala Chromium y renderiza de verdad. Sin cambio de versión.
 - M28 (PR1): plan por escena (`studio/plan.py`: `plan.json` y un `job.json` por escena, largos al compás), puntaje CLIP y elección de ventana (`clipscore.py`, `windows.py`) y selección sobre el catálogo sin red ni repetir clip (`library.py`). El guion parseado pasa a ser inmutable. La duración estimada se calcula sobre el texto hablado (cifras y léxico ya expandidos). Sin cambio de versión.
 - M28: modelo CLIP ViT-B/32 (ONNX int8, `Xenova/clip-vit-base-patch32`, MIT) fijado por tamaño y sha256 en `studio/models.json`; workflow manual `studio-models-clip` que lo agrega al Release `models-v1` sin sobrescribir nada.
+- M29: ajuste de cada clip al largo real de su escena (`studio/fit.py`: recorte, cámara lenta hasta 1,25× o ida y vuelta sin cuadro repetido; nunca imagen congelada) y mezcla final (`studio/mix.py`: voz + música con atenuación bajo la voz, −14 LUFS y pico −1 dBTP medidos). Sin cambio de versión.
+- M28 (PR2): `clip-scene` (`studio/clipscene.py`, `framing.py`, `checks.py`): por escena descarga candidatos verificados por sha256, elige ventana con CLIP, descarta texto incrustado con OCR, encuadra al formato y deja `result.json` + `clip.mp4`; sin candidato válido falla con `needs_import`. Sin cambio de versión.
+- M30: composición y render (`studio/compose.py`): HTML con HyperFrames 0.9.36 + GSAP 3.15.1 (no se incluye en el repositorio; se baja de npm y se verifica por sha256), títulos, subtítulos con palabra resaltada, render en Chrome headless y mux H.264 + AAC con compuertas de `ffprobe`. Sin cambio de versión.
+- CI: el job `studio` corre también los tests de M28 (PR2), M29 y M30 con el extra instalado y renderiza de verdad un video de tres escenas con HyperFrames.
 
 ## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
 
