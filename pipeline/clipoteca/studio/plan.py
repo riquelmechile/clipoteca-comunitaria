@@ -1,0 +1,167 @@
+"""Deterministic M28 scene budgets and offline job files."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import re
+import tempfile
+from pathlib import Path
+from typing import Any
+
+from .script import (
+    SceneSpec,
+    ScriptError,
+    VideoScript,
+    estimate_durations,
+    parse_video_script,
+    script_id,
+)
+
+NEG = [
+    "a photo of a person talking",
+    "a photo of a woman",
+    "a photo of a man",
+    "a photo of food",
+    "a photo of a room interior",
+    "a screenshot with text",
+    "a photo of a street with cars",
+    "a photo of a cat",
+    "a video game screenshot",
+    "a cartoon",
+]
+_SAFE_ID = re.compile(r"[a-zA-Z0-9_-]{1,64}\Z")
+
+
+def _safe_scene_id(scene_id: str) -> None:
+    if not isinstance(scene_id, str) or not _SAFE_ID.fullmatch(scene_id):
+        raise ScriptError("scenes.id: identificador de carpeta inseguro")
+    if ".." in scene_id or "/" in scene_id or "\\" in scene_id:
+        raise ScriptError("scenes.id: identificador de carpeta inseguro")
+
+
+def estimate_scenes(script: VideoScript) -> list[dict[str, Any]]:
+    """Quantize M25 speech estimates to the beat before any clip fetching."""
+    bpm = float(script.music.bpm)
+    beat = 60 / bpm
+    durations = estimate_durations(script)["scenes"]
+    result: list[dict[str, Any]] = []
+    started = 0.0
+    for scene in script.scenes:
+        duration = durations[scene.id]
+        extra = 1.2 if scene.type == "outro" else 0.5
+        length = math.ceil((duration + extra) / beat - 1e-9) * beat
+        length = max(3.5 if scene.type == "outro" else 4 * beat, length)
+        rounded = round(length, 3)
+        result.append(
+            {
+                "id": scene.id,
+                "type": scene.type,
+                "voice_est": duration,
+                "len_est": rounded,
+                "len_fetch": round(rounded + max(1.0, 0.12 * rounded), 2),
+                "start_est": round(started, 3),
+            }
+        )
+        started += rounded
+    return result
+
+
+def build_plan(script: VideoScript) -> dict[str, Any]:
+    """M27-compatible plan schema, with no network or file access."""
+    scenes = estimate_scenes(script)
+    return {
+        "version": 1,
+        "script_id": script_id(script),
+        "title": script.title,
+        "aspect": script.aspect,
+        "language": script.language,
+        "music": {"mood": script.music.mood, "bpm": script.music.bpm},
+        "voice": {"voice": script.voice.voice, "speed": script.voice.speed},
+        "bpm": float(script.music.bpm),
+        "beat": 60 / float(script.music.bpm),
+        "total_est": round(sum(scene["len_est"] for scene in scenes), 2),
+        "scenes": scenes,
+    }
+
+
+def scene_job(script: VideoScript, scene: SceneSpec, est: dict[str, Any]) -> dict[str, Any]:
+    """Materialize a single scene's immutable search and matching contract."""
+    _safe_scene_id(scene.id)
+    return {
+        "version": 1,
+        "script_id": script_id(script),
+        "id": scene.id,
+        "type": scene.type,
+        "title": scene.title,
+        "sub": scene.sub,
+        "say": scene.say,
+        "caption": scene.caption,
+        "aspect": script.aspect,
+        "len_est": est["len_est"],
+        "len_fetch": est["len_fetch"],
+        "start_est": est["start_est"],
+        "queries": {lang: list(scene.query[lang]) for lang in ("es", "en")},
+        "prompt": scene.prompt,
+        "avoid": list(scene.avoid),
+        "negatives": NEG.copy(),
+        "min_sim": 0.22,
+        "min_prob": 0.5,
+        "top_n": 4,
+        "min_short_side": 720,
+    }
+
+
+def _atomic_json(path: Path, obj: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(obj, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)
+
+
+def write_plan(script: VideoScript, out_dir: str | Path) -> dict[str, Any]:
+    """Write plan and one job per scene, rejecting unsafe IDs before any write."""
+    for scene in script.scenes:
+        _safe_scene_id(scene.id)
+    plan = build_plan(script)
+    root = Path(out_dir)
+    for scene, est in zip(script.scenes, plan["scenes"], strict=True):
+        _atomic_json(root / "scenes" / scene.id / "job.json", scene_job(script, scene, est))
+    _atomic_json(root / "plan.json", plan)
+    return plan
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="python -m clipoteca.studio.plan")
+    parser.add_argument("--script", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args(argv)
+    try:
+        script = parse_video_script(json.loads(args.script.read_text(encoding="utf-8")))
+        plan = write_plan(script, args.out)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        parser.exit(2, f"plan: {exc}\n")
+    print(
+        json.dumps(
+            {
+                "script_id": plan["script_id"],
+                "scenes": [scene["id"] for scene in plan["scenes"]],
+                "total_est": plan["total_est"],
+            },
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

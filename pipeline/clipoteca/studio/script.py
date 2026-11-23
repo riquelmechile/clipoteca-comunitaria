@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import unicodedata
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, fields, is_dataclass
+from collections.abc import Mapping
+from types import MappingProxyType
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -36,7 +38,10 @@ class MusicSpec:
 class VoiceSpec:
     voice: VoiceName
     speed: float
-    lexicon: dict[str, str]
+    lexicon: Mapping[str, str]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "lexicon", MappingProxyType(dict(self.lexicon)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,9 +52,16 @@ class SceneSpec:
     sub: str
     say: str
     caption: str
-    query: dict[str, list[str]]
+    query: Mapping[str, tuple[str, ...]]
     prompt: str
     avoid: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "query",
+            MappingProxyType({key: tuple(words) for key, words in self.query.items()}),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +107,8 @@ def _schema_error(exc: ValidationError) -> ScriptError:
 def _reject_controls(value: object, path: list[object] | None = None) -> None:
     path = [] if path is None else path
     if isinstance(value, str):
+        if any(unicodedata.category(char) == "Cs" for char in value):
+            raise ScriptError(f"{_path(path)}: surrogate Unicode no permitido")
         allow_newline = len(path) >= 3 and path[0] == "scenes" and path[-1] in {"say", "caption"}
         if any(
             unicodedata.category(char) == "Cc" and not (allow_newline and char == "\n")
@@ -103,6 +117,8 @@ def _reject_controls(value: object, path: list[object] | None = None) -> None:
             raise ScriptError(f"{_path(path)}: caracter de control no permitido")
     elif isinstance(value, dict):
         for key, item in value.items():
+            if not isinstance(key, str):
+                raise ScriptError(f"{_path([*path, 'key'])}: clave debe ser string")
             _reject_controls(key, [*path, "key"])
             _reject_controls(item, [*path, key])
     elif isinstance(value, list):
@@ -116,10 +132,14 @@ def parse_video_script(data: object) -> VideoScript:
     Errors always name a field or path but never echo script contents.
     """
     try:
+        _reject_controls(data)
         raw = json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
-    except (TypeError, ValueError, RecursionError) as exc:
+        encoded = raw.encode("utf-8")
+    except ScriptError:
+        raise
+    except (TypeError, ValueError, RecursionError, UnicodeError) as exc:
         raise ScriptError("script: JSON invalido") from exc
-    if len(raw.encode("utf-8")) > MAX_SCRIPT_BYTES:
+    if len(encoded) > MAX_SCRIPT_BYTES:
         raise ScriptError("script: tamano maximo 65536 bytes")
 
     schema = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -128,8 +148,6 @@ def parse_video_script(data: object) -> VideoScript:
     if error is not None:
         raise _schema_error(error)
     assert isinstance(data, dict)  # guaranteed by the schema
-    _reject_controls(data)
-
     input_scenes = data["scenes"]
     ids: set[str] = set()
     intro_seen = False
@@ -171,7 +189,7 @@ def parse_video_script(data: object) -> VideoScript:
         title=data["title"],
         aspect=data["aspect"],
         language=data.get("language", "es"),
-        music=MusicSpec(mood=music.get("mood", "upbeat"), bpm=music.get("bpm", 120)),
+        music=MusicSpec(mood=music.get("mood", "upbeat"), bpm=int(music.get("bpm", 120))),
         voice=VoiceSpec(
             voice=voice.get("voice", "F1"),
             speed=float(voice.get("speed", 1.2)),
@@ -194,9 +212,20 @@ def estimate_durations(script: VideoScript) -> DurationEstimate:
     return {"scenes": durations, "total": round(sum(durations.values()), 2)}
 
 
+def _plain(value: object) -> object:
+    """JSON-compatible snapshot of dataclasses with immutable mapping fields."""
+    if is_dataclass(value) and not isinstance(value, type):
+        return {field.name: _plain(getattr(value, field.name)) for field in fields(value)}
+    if isinstance(value, Mapping):
+        return {key: _plain(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_plain(item) for item in value]
+    return value
+
+
 def script_id(script: VideoScript) -> str:
     """SHA-256 of canonical, default-expanded UTF-8 JSON for a parsed script."""
     canonical = json.dumps(
-        asdict(script), sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False
+        _plain(script), sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()

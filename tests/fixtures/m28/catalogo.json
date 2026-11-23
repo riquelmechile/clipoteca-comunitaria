@@ -1,0 +1,696 @@
+[
+  {
+    "id": "clip-100001",
+    "title": {
+      "es": "Lago turquesa de montaña",
+      "en": "Turquoise mountain lake"
+    },
+    "description": {
+      "es": "Paisaje lago turquesa de montaña",
+      "en": "Landscape turquoise mountain lake"
+    },
+    "tags": {
+      "es": [
+        "lago",
+        "turquesa",
+        "agua"
+      ],
+      "en": [
+        "lake",
+        "clear",
+        "water"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100001",
+      "source_language": "es",
+      "source_title": "Lago azul austral",
+      "source_url": "https://example.invalid/video/clip-100001"
+    },
+    "media": {
+      "duration_seconds": 18,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100001.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100001.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100002",
+    "title": {
+      "es": "Lago tranquilo entre rocas",
+      "en": "Quiet lake among rocks"
+    },
+    "description": {
+      "es": "Paisaje lago tranquilo entre rocas",
+      "en": "Landscape quiet lake among rocks"
+    },
+    "tags": {
+      "es": [
+        "lago",
+        "rocas"
+      ],
+      "en": [
+        "lake",
+        "rocks"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100002",
+      "source_language": "es",
+      "source_title": "Orilla del lago",
+      "source_url": "https://example.invalid/video/clip-100002"
+    },
+    "media": {
+      "duration_seconds": 15,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100002.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100002.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100003",
+    "title": {
+      "es": "Bosque nativo y hojas verdes",
+      "en": "Native green forest"
+    },
+    "description": {
+      "es": "Paisaje bosque nativo y hojas verdes",
+      "en": "Landscape native green forest"
+    },
+    "tags": {
+      "es": [
+        "bosque",
+        "verde"
+      ],
+      "en": [
+        "forest",
+        "trees"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100003",
+      "source_language": "es",
+      "source_title": "Bosque del sur",
+      "source_url": "https://example.invalid/video/clip-100003"
+    },
+    "media": {
+      "duration_seconds": 20,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100003.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100003.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100004",
+    "title": {
+      "es": "Cascada sobre piedras",
+      "en": "Waterfall on rocks"
+    },
+    "description": {
+      "es": "Paisaje cascada sobre piedras",
+      "en": "Landscape waterfall on rocks"
+    },
+    "tags": {
+      "es": [
+        "cascada",
+        "rocas",
+        "agua"
+      ],
+      "en": [
+        "waterfall",
+        "rocks",
+        "water"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100004",
+      "source_language": "es",
+      "source_title": "Río con cascada",
+      "source_url": "https://example.invalid/video/clip-100004"
+    },
+    "media": {
+      "duration_seconds": 20,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100004.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100004.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100005",
+    "title": {
+      "es": "Atardecer sobre el lago",
+      "en": "Sunset on the lake"
+    },
+    "description": {
+      "es": "Paisaje atardecer sobre el lago",
+      "en": "Landscape sunset on the lake"
+    },
+    "tags": {
+      "es": [
+        "atardecer",
+        "lago"
+      ],
+      "en": [
+        "sunset",
+        "lake"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100005",
+      "source_language": "es",
+      "source_title": "Lago al atardecer",
+      "source_url": "https://example.invalid/video/clip-100005"
+    },
+    "media": {
+      "duration_seconds": 16,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100005.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100005.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100006",
+    "title": {
+      "es": "Agua transparente y montaña",
+      "en": "Transparent water and mountain"
+    },
+    "description": {
+      "es": "Paisaje agua transparente y montaña",
+      "en": "Landscape transparent water and mountain"
+    },
+    "tags": {
+      "es": [
+        "agua",
+        "transparente"
+      ],
+      "en": [
+        "water",
+        "clear",
+        "mountain"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100006",
+      "source_language": "es",
+      "source_title": "Agua cristalina",
+      "source_url": "https://example.invalid/video/clip-100006"
+    },
+    "media": {
+      "duration_seconds": 13,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100006.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100006.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100007",
+    "title": {
+      "es": "Naturaleza y paisaje amplio",
+      "en": "Wide nature landscape"
+    },
+    "description": {
+      "es": "Paisaje naturaleza y paisaje amplio",
+      "en": "Landscape wide nature landscape"
+    },
+    "tags": {
+      "es": [
+        "naturaleza",
+        "paisaje"
+      ],
+      "en": [
+        "nature",
+        "landscape"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100007",
+      "source_language": "es",
+      "source_title": "Vista panorámica",
+      "source_url": "https://example.invalid/video/clip-100007"
+    },
+    "media": {
+      "duration_seconds": 20,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100007.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100007.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100008",
+    "title": {
+      "es": "Cascada corta entre rocas",
+      "en": "Short waterfall"
+    },
+    "description": {
+      "es": "Paisaje cascada corta entre rocas",
+      "en": "Landscape short waterfall"
+    },
+    "tags": {
+      "es": [
+        "cascada",
+        "agua"
+      ],
+      "en": [
+        "waterfall"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100008",
+      "source_language": "es",
+      "source_title": "Cascada corta",
+      "source_url": "https://example.invalid/video/clip-100008"
+    },
+    "media": {
+      "duration_seconds": 2,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100008.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100008.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100009",
+    "title": {
+      "es": "Lago borroso pequeño",
+      "en": "Small lake"
+    },
+    "description": {
+      "es": "Paisaje lago borroso pequeño",
+      "en": "Landscape small lake"
+    },
+    "tags": {
+      "es": [
+        "lago"
+      ],
+      "en": [
+        "lake"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100009",
+      "source_language": "es",
+      "source_title": "Lago pequeño",
+      "source_url": "https://example.invalid/video/clip-100009"
+    },
+    "media": {
+      "duration_seconds": 20,
+      "width": 640,
+      "height": 360,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100009.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100009.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100010",
+    "title": {
+      "es": "Cascada sin publicar",
+      "en": "Unpublished waterfall"
+    },
+    "description": {
+      "es": "Paisaje cascada sin publicar",
+      "en": "Landscape unpublished waterfall"
+    },
+    "tags": {
+      "es": [
+        "cascada"
+      ],
+      "en": [
+        "waterfall"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100010",
+      "source_language": "es",
+      "source_title": "Cascada privada",
+      "source_url": "https://example.invalid/video/clip-100010"
+    },
+    "media": {
+      "duration_seconds": 20,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100010.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100010.webp"
+    },
+    "status": "draft",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100011",
+    "title": {
+      "es": "Bosque interior de casa",
+      "en": "Indoor forest mural"
+    },
+    "description": {
+      "es": "Paisaje bosque interior de casa",
+      "en": "Landscape indoor forest mural"
+    },
+    "tags": {
+      "es": [
+        "bosque",
+        "interior"
+      ],
+      "en": [
+        "forest",
+        "interior"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100011",
+      "source_language": "es",
+      "source_title": "Habitación con mural",
+      "source_url": "https://example.invalid/video/clip-100011"
+    },
+    "media": {
+      "duration_seconds": 20,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100011.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100011.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100012",
+    "title": {
+      "es": "Lago de baja duración",
+      "en": "Very short lake"
+    },
+    "description": {
+      "es": "Paisaje lago de baja duración",
+      "en": "Landscape very short lake"
+    },
+    "tags": {
+      "es": [
+        "lago"
+      ],
+      "en": [
+        "lake"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100012",
+      "source_language": "es",
+      "source_title": "Segundo corto",
+      "source_url": "https://example.invalid/video/clip-100012"
+    },
+    "media": {
+      "duration_seconds": 0.5,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100012.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100012.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100013",
+    "title": {
+      "es": "Rocas de río",
+      "en": "River rocks"
+    },
+    "description": {
+      "es": "Paisaje rocas de río",
+      "en": "Landscape river rocks"
+    },
+    "tags": {
+      "es": [
+        "rocas",
+        "río"
+      ],
+      "en": [
+        "rocks",
+        "river"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100013",
+      "source_language": "es",
+      "source_title": "Rocas en el río",
+      "source_url": "https://example.invalid/video/clip-100013"
+    },
+    "media": {
+      "duration_seconds": 20,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100013.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100013.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-100014",
+    "title": {
+      "es": "Bosque luminoso",
+      "en": "Sunlit green forest"
+    },
+    "description": {
+      "es": "Paisaje bosque luminoso",
+      "en": "Landscape sunlit green forest"
+    },
+    "tags": {
+      "es": [
+        "bosque",
+        "árboles"
+      ],
+      "en": [
+        "forest",
+        "trees"
+      ]
+    },
+    "source": {
+      "provider": "fixture",
+      "provider_id": "clip-100014",
+      "source_language": "es",
+      "source_title": "Árboles al sol",
+      "source_url": "https://example.invalid/video/clip-100014"
+    },
+    "media": {
+      "duration_seconds": 18,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 100000,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "perceptual_hash": "0000000000000000"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://example.invalid/media/clip-100014.mp4",
+      "thumbnail_url": "https://example.invalid/media/clip-100014.webp"
+    },
+    "status": "published",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  {
+    "id": "clip-malformed",
+    "status": "published",
+    "media": {
+      "duration_seconds": 12,
+      "width": 1920,
+      "height": 1080
+    },
+    "storage": {}
+  }
+]

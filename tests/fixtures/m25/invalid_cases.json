@@ -53,7 +53,7 @@
       ],
       "extra": true
     },
-    "error_contains": "extra"
+    "error_contains": "script.extra"
   },
   {
     "name": "unknown_scene",
@@ -109,7 +109,7 @@
         }
       ]
     },
-    "error_contains": "scenes[0].extra"
+    "error_contains": "script.scenes[0].extra"
   },
   {
     "name": "unknown_music",
@@ -167,7 +167,7 @@
         "volume": 2
       }
     },
-    "error_contains": "music.volume"
+    "error_contains": "script.music.volume"
   },
   {
     "name": "unknown_voice",
@@ -225,7 +225,7 @@
         "volume": 2
       }
     },
-    "error_contains": "voice.volume"
+    "error_contains": "script.voice.volume"
   },
   {
     "name": "invalid_aspect",
@@ -280,7 +280,7 @@
         }
       ]
     },
-    "error_contains": "aspect"
+    "error_contains": "script.aspect"
   },
   {
     "name": "two_scenes",
@@ -320,7 +320,7 @@
         }
       ]
     },
-    "error_contains": "scenes"
+    "error_contains": "script.scenes"
   },
   {
     "name": "thirteen_scenes",
@@ -525,7 +525,7 @@
         }
       ]
     },
-    "error_contains": "scenes"
+    "error_contains": "script.scenes"
   },
   {
     "name": "duplicate_id",
@@ -580,7 +580,7 @@
         }
       ]
     },
-    "error_contains": "id"
+    "error_contains": "scenes[1].id"
   },
   {
     "name": "intro_not_first",
@@ -635,7 +635,7 @@
         }
       ]
     },
-    "error_contains": "intro"
+    "error_contains": "scenes[1].type"
   },
   {
     "name": "two_outros",
@@ -690,7 +690,7 @@
         }
       ]
     },
-    "error_contains": "outro"
+    "error_contains": "scenes[1].type"
   },
   {
     "name": "no_fact",
@@ -745,7 +745,7 @@
         }
       ]
     },
-    "error_contains": "fact"
+    "error_contains": "scenes.type"
   },
   {
     "name": "empty_say",
@@ -800,7 +800,7 @@
         }
       ]
     },
-    "error_contains": "say"
+    "error_contains": "script.scenes[0].say"
   },
   {
     "name": "say_401",
@@ -855,7 +855,7 @@
         }
       ]
     },
-    "error_contains": "say"
+    "error_contains": "script.scenes[0].say"
   },
   {
     "name": "missing_en",
@@ -907,7 +907,7 @@
         }
       ]
     },
-    "error_contains": "query.en"
+    "error_contains": "script.scenes[0].query.en"
   },
   {
     "name": "unknown_voice_name",
@@ -965,7 +965,7 @@
         "voice": "X9"
       }
     },
-    "error_contains": "voice"
+    "error_contains": "script.voice.voice"
   },
   {
     "name": "invalid_speed",
@@ -1023,7 +1023,7 @@
         "speed": 2
       }
     },
-    "error_contains": "speed"
+    "error_contains": "script.voice.speed"
   },
   {
     "name": "invalid_bpm",
@@ -1081,7 +1081,7 @@
         "bpm": 30
       }
     },
-    "error_contains": "bpm"
+    "error_contains": "script.music.bpm"
   },
   {
     "name": "control_title",
@@ -1136,6 +1136,6 @@
         }
       ]
     },
-    "error_contains": "title"
+    "error_contains": "script.title"
   }
 ]
