@@ -5,6 +5,8 @@
 - M25: roadmap v3 y contrato del guion para producción futura de videos; esquema JSON estricto, validación offline, defaults, estimación de duración e ID determinista. Sin render ni cambio de versión.
 - M26 (PR1): voz con Supertonic 3 en `studio/voice.py`: motor sherpa-onnx, control PER con reintentos y respaldo WER, léxico, caché por línea y manifiesto de modelos con descarga verificada. Extra `studio` en `pyproject.toml`. Workflows manuales `studio-models` y `voice-sample`, y job `studio` en CI. Sin cambio de versión.
 - M26: modelo fonético (wav2vec2 int8) publicado en el Release `models-v1` y fijado por tamaño y sha256 en `studio/models.json`; verificado con voces reales (PER 0,05–0,08 con cifras escritas en palabras).
+- M26 (PR2): tiempos por palabra con Whisper y `timeline.json` cuantizado al compás (`studio/timeline.py`); cifras a palabras antes de la síntesis (`spell_numbers`); control fonético activo por defecto con descarga verificada del modelo; endurecimiento de descarga, extracción y caché. Sin cambio de versión.
+- M27: música con Tone.js offline en Chromium headless (`studio/music.py` + `assets/music.html`): `head.wav`, `bed.wav` en bucle a compás, `hit.wav` en cada corte y pista final con fundidos; render sin red. El job `studio` de CI instala Chromium y renderiza de verdad. Sin cambio de versión.
 
 ## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
 

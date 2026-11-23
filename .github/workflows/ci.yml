@@ -70,5 +70,15 @@ jobs:
           python-version: "3.13"
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: uv sync --frozen --extra dev --extra studio
+      - name: Install Chromium for the offline music render
+        run: uv run --no-sync playwright install --with-deps chromium
       - name: Studio tests with the studio extra installed (no model downloads)
-        run: uv run --no-sync pytest tests/test_voice_m26.py tests/test_studio_models_m26.py tests/test_video_script_m25.py
+        run: >-
+          uv run --no-sync pytest -rs
+          tests/test_voice_m26.py tests/test_studio_models_m26.py tests/test_timeline_m26.py
+          tests/test_music_m27.py tests/test_video_script_m25.py
+      - name: Real music render in headless Chromium (must not be skipped)
+        run: |
+          uv run --no-sync python -m clipoteca.studio.music render --plan tests/fixtures/m27/plan.json --out build/music-smoke
+          test -s build/music-smoke/head.wav && test -s build/music-smoke/bed.wav && test -s build/music-smoke/hit.wav
+          cat build/music-smoke/music.json
