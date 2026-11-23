@@ -48,7 +48,7 @@ def _pcm_mix(path: Path, total: float = 6.0) -> None:
 
 
 @pytest.fixture
-def sources(tmp_path: Path) -> tuple[Path, Path, Path]:
+def sources(tmp_path: Path, monkeypatch) -> tuple[Path, Path, Path]:
     clips = tmp_path / "clips"
     clips.mkdir()
     for key in ("intro", "lago", "outro"):
@@ -57,6 +57,8 @@ def sources(tmp_path: Path) -> tuple[Path, Path, Path]:
     _pcm_mix(music)
     gsap = tmp_path / "gsap.min.js"
     gsap.write_bytes(b"/* injected GSAP */")
+    monkeypatch.setattr(compose, "GSAP_FILE_SIZE", gsap.stat().st_size)
+    monkeypatch.setattr(compose, "GSAP_FILE_SHA", hashlib.sha256(gsap.read_bytes()).hexdigest())
     return clips, music, gsap
 
 
@@ -391,3 +393,180 @@ def test_every_style_attribute_survives_html_parsing(tmp_path: Path, sources) ->
         assert "color:#" in styles[css_class], css_class
     assert "text-shadow:" in styles["title"] and "text-shadow:" in styles["sub"]
     assert '"' not in compose.FONT
+
+
+def test_build_rejects_clip_or_parent_symlink_before_writes(
+    tmp_path: Path,
+    sources,
+):
+    clips, music, gsap = sources
+    target = tmp_path / "original-lago.mp4"
+    target.write_bytes((clips / "lago.mp4").read_bytes())
+    (clips / "lago.mp4").unlink()
+    (clips / "lago.mp4").symlink_to(target)
+    with pytest.raises(ComposeError, match="symlink"):
+        build_composition(_script(), _timeline(), clips, music, tmp_path / "bad", gsap)
+    assert not (tmp_path / "bad").exists()
+    (clips / "lago.mp4").unlink()
+    (clips / "lago.mp4").write_bytes(b"restored")
+    linked_directory = tmp_path / "linked-clips"
+    linked_directory.symlink_to(clips, target_is_directory=True)
+    with pytest.raises(ComposeError, match="symlink"):
+        build_composition(
+            _script(), _timeline(), linked_directory, music, tmp_path / "bad-dir", gsap
+        )
+    assert not (tmp_path / "bad-dir").exists()
+
+
+def test_build_rollback_preserves_previous_complete_hf_and_no_staging_left(
+    tmp_path: Path,
+    sources,
+    monkeypatch,
+):
+    clips, music, gsap = sources
+    root = tmp_path / "out"
+    build_composition(_script(), _timeline(), clips, music, root, gsap)
+    prior_markup = (root / "hf" / "index.html").read_bytes()
+    prior_chunks = (root / "chunks.json").read_bytes()
+    original = compose._atomic
+
+    def fail_middle(path, data):
+        if Path(path).name == "lago.mp4":
+            raise OSError("injected clip-stage failure")
+        return original(path, data)
+
+    monkeypatch.setattr(compose, "_atomic", fail_middle)
+    with pytest.raises(OSError, match="injected clip-stage failure"):
+        build_composition(_script(), _timeline(), clips, music, root, gsap)
+    assert (root / "hf" / "index.html").read_bytes() == prior_markup
+    assert (root / "chunks.json").read_bytes() == prior_chunks
+    assert not any(p.name.startswith(".hf-build-") for p in tmp_path.iterdir())
+
+    with pytest.raises(OSError, match="injected"):
+        build_composition(_script(), _timeline(), clips, music, tmp_path / "new", gsap)
+    assert not (tmp_path / "new").exists()
+    assert not any(p.name.startswith(".hf-build-") for p in tmp_path.iterdir())
+
+
+def test_build_bad_gsap_pin_preserves_old_hf(tmp_path: Path, sources):
+    clips, music, gsap = sources
+    root = tmp_path / "out"
+    build_composition(_script(), _timeline(), clips, music, root, gsap)
+    prior = (root / "hf" / "index.html").read_bytes()
+    gsap.write_bytes(b"tampered GSAP bytes")
+    with pytest.raises(ComposeError, match="GSAP SHA-256"):
+        build_composition(_script(), _timeline(), clips, music, root, gsap)
+    assert (root / "hf" / "index.html").read_bytes() == prior
+
+
+def test_render_fake_hyperframes_and_exact_mux_args_and_stale_report(
+    tmp_path: Path,
+    sources,
+    monkeypatch,
+):
+    clips, mix, gsap = sources
+    root = tmp_path / "out"
+    build_composition(_script(), _timeline(), clips, mix, root, gsap)
+    hf = root / "hf"
+    mux_commands = []
+    npx_commands = []
+    fail_npx = [False]
+
+    def fake_run(argv, **kwargs):
+        if argv[0] == "npx":
+            npx_commands.append((argv, kwargs))
+            if fail_npx[0]:
+                return subprocess.CompletedProcess(argv, 3, "", "intentionally failed")
+            Path(argv[-1]).write_bytes(b"simulated headless frames")
+            return subprocess.CompletedProcess(argv, 0, "frames ready", "")
+        if argv[0] == "ffmpeg":
+            mux_commands.append((argv, kwargs))
+            Path(argv[-1]).write_bytes(b"simulated mux MP4")
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        if argv[0] == "ffprobe":
+            output = {
+                "streams": [
+                    {
+                        "codec_type": "video",
+                        "codec_name": "h264",
+                        "profile": "High",
+                        "pix_fmt": "yuv420p",
+                        "width": 1080,
+                        "height": 1920,
+                        "r_frame_rate": "30/1",
+                    },
+                    {
+                        "codec_type": "audio",
+                        "codec_name": "aac",
+                        "sample_rate": "48000",
+                        "channels": 2,
+                    },
+                ],
+                "format": {"duration": "6.0"},
+            }
+            return subprocess.CompletedProcess(argv, 0, json.dumps(output), "")
+        raise AssertionError("unexpected command")
+
+    monkeypatch.setattr(compose.subprocess, "run", fake_run)
+    output = root / "video.mp4"
+    report = render_video(hf, output)
+    assert report["duration_s"] == 6
+    assert report["gsap_sha256"] == hashlib.sha256(gsap.read_bytes()).hexdigest()
+    assert report["hyperframes"] == compose.HYPERFRAMES_VERSION
+    assert report["size_bytes"] == len(b"simulated mux MP4")
+    assert json.loads((root / "render.json").read_text()) == report
+    assert output.read_bytes() == b"simulated mux MP4"
+    assert len(npx_commands) == len(mux_commands) == 1
+    npx_args, npx_kwargs = npx_commands[0]
+    assert npx_args[:5] == ["npx", "--yes", "hyperframes@0.9.36", "render", "-o"]
+    assert npx_kwargs["cwd"] == hf
+
+    mux_args, mux_kwargs = mux_commands[0]
+    raw = npx_args[-1]
+    assert mux_args == [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        str(raw),
+        "-i",
+        str(hf / "assets" / "mix.wav"),
+        "-map",
+        "0:v",
+        "-map",
+        "1:a",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "20",
+        "-maxrate",
+        "10M",
+        "-bufsize",
+        "20M",
+        "-pix_fmt",
+        "yuv420p",
+        "-profile:v",
+        "high",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        "-shortest",
+        "-movflags",
+        "+faststart",
+        str(mux_args[-1]),
+    ]
+    assert mux_kwargs["timeout"] == 1500
+    fail_npx[0] = True
+    with pytest.raises(ComposeError, match="HyperFrames render failed"):
+        render_video(hf, output)
+    assert not (root / "render.json").exists()
+    assert not output.exists()
