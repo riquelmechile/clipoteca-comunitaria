@@ -41,8 +41,8 @@ def _valid_job(job: Any, assignment: Any) -> tuple[str, float]:
     if not math.isfinite(length) or length <= 0:
         raise ClipSceneError("job.len_fetch must be positive")
     status = assignment.get("status")
-    if status not in {"catalog", "needs_import"}:
-        raise ClipSceneError("assignment.status must be catalog or needs_import")
+    if status not in {"catalog", "needs_import", "imported"}:
+        raise ClipSceneError("assignment.status must be catalog, imported or needs_import")
     for field in ("backups",):
         if field in assignment and not isinstance(assignment[field], list):
             raise ClipSceneError(f"assignment.{field} must be an array")
@@ -104,6 +104,43 @@ def _download(candidate: dict[str, Any], path: Path, fetch: Any) -> None:
         )
     if not path.is_file() or not _verify(path, candidate):
         raise ClipSceneError("asset checksum or size mismatch")
+
+
+def _local_source(candidate: dict[str, Any], root: Path | None, destination: Path) -> None:
+    """Reject absolute, traversal, symlink and out-of-root paths before verifying bytes."""
+    value = candidate.get("local_path")
+    if root is None or not isinstance(value, str) or not value:
+        raise ClipSceneError("bad_local_path")
+    if chr(92) in value or chr(0) in value or ":" in value:
+        raise ClipSceneError("bad_local_path")
+    relative = Path(value)
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        raise ClipSceneError("bad_local_path")
+    if root.is_symlink() or any(parent.is_symlink() for parent in root.parents):
+        raise ClipSceneError("bad_local_path")
+    try:
+        base = root.resolve(strict=True)
+        source = base / relative
+        current = base
+        for part in relative.parts:
+            current = current / part
+            if current.is_symlink():
+                raise ClipSceneError("bad_local_path")
+        resolved = source.resolve(strict=True)
+        if not resolved.is_relative_to(base) or not resolved.is_file():
+            raise ClipSceneError("bad_local_path")
+        if not _verify(resolved, candidate):
+            raise ClipSceneError("hash_mismatch")
+        # Copy only verified bytes, then verify the copy to close any source race.
+        with resolved.open("rb") as input_file, destination.open("wb") as output:
+            for block in iter(lambda: input_file.read(1024 * 1024), b""):
+                output.write(block)
+        if not _verify(destination, candidate):
+            raise ClipSceneError("hash_mismatch")
+    except (OSError, ValueError) as exc:
+        if isinstance(exc, ClipSceneError):
+            raise
+        raise ClipSceneError("bad_local_path") from exc
 
 
 def _run(args: list[str], deadline: float) -> subprocess.CompletedProcess[str]:
@@ -357,7 +394,11 @@ def _attempt(
         return {
             "clip_id": candidate["clip_id"],
             "source_url": candidate.get("source_url"),
-            "asset_url": candidate["asset_url"],
+            **(
+                {"imported": True, "local_path": candidate["local_path"]}
+                if "local_path" in candidate
+                else {"asset_url": candidate["asset_url"]}
+            ),
             "start": begin,
             "len": length,
             "out_dur": round(output_dur, 3),
@@ -387,6 +428,7 @@ def clip_scene(
     scorer: Any = None,
     ocr: Any = None,
     exclude: tuple[str, ...] | list[str] = (),
+    local_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """One isolated scene runner: first verified primary/backup wins, or explicit fail."""
     scene_id, _ = _valid_job(job, assignment)
@@ -430,12 +472,32 @@ def clip_scene(
             tmp = Path(folder)
             downloaded = tmp / "download.mp4"
             rendered = tmp / "render.mp4"
+            local = candidate.get("local_path") is not None
+            remote = candidate.get("asset_url") is not None
+            if local == remote:
+                attempts.append({"clip_id": cid, "reason": "invalid_candidate"})
+                continue
             try:
-                _download(candidate, downloaded, fetch)
-            except (Exception,) as exc:
-                if isinstance(exc, TimeoutError):
-                    attempts.append({"clip_id": cid, "reason": "timeout"})
-                    break
+                if local:
+                    _local_source(
+                        candidate,
+                        Path(local_root) if local_root is not None else None,
+                        downloaded,
+                    )
+                else:
+                    _download(candidate, downloaded, fetch)
+            except TimeoutError:
+                attempts.append({"clip_id": cid, "reason": "timeout"})
+                break
+            except ClipSceneError as exc:
+                reason = (
+                    str(exc)
+                    if local and str(exc) in {"bad_local_path", "hash_mismatch"}
+                    else "download_failed"
+                )
+                attempts.append({"clip_id": cid, "reason": reason})
+                continue
+            except Exception:
                 attempts.append({"clip_id": cid, "reason": "download_failed"})
                 continue
             if scorer is None:
@@ -486,11 +548,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--assignment", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--exclude", action="append", default=[])
+    parser.add_argument("--local-root", type=Path)
     args = parser.parse_args(argv)
     try:
         job = json.loads(args.job.read_text(encoding="utf-8"))
         assignment = json.loads(args.assignment.read_text(encoding="utf-8"))
-        report = clip_scene(job, assignment, args.out, exclude=args.exclude)
+        report = clip_scene(
+            job,
+            assignment,
+            args.out,
+            exclude=args.exclude,
+            local_root=args.local_root,
+        )
     except (OSError, ValueError, KeyError, TypeError) as exc:
         parser.exit(2, f"clipscene: {type(exc).__name__}: invalid input or scene\n")
     return 0 if report["status"] == "ok" else 3

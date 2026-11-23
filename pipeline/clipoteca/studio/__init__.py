@@ -37,6 +37,7 @@ _LAZY_EXPORTS = {
     "candidates": ".library",
     "assign_scenes": ".library",
     "clip_scene": ".clipscene",
+    "import_scene": ".importer",
     "target_size": ".framing",
     "saliency_focus": ".framing",
     "cover_crop": ".framing",

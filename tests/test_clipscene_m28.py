@@ -304,3 +304,111 @@ def test_cli_needs_import_code_3_and_invalid_json_code_2(tmp_path: Path):
             ]
         )
     assert exc.value.code == 2
+
+
+@pytest.mark.skipif(not FFMPEG, reason="ffmpeg/ffprobe unavailable")
+def test_local_verified_clip_uses_same_scene_gates(source_clip: Path, tmp_path: Path):
+    root = tmp_path / "local-root"
+    (root / "clips").mkdir(parents=True)
+    shutil.copyfile(source_clip, root / "clips" / "imported.mp4")
+    candidate = _candidate(source_clip, "imp-0123456789ab")
+    candidate.pop("asset_url")
+    candidate["local_path"] = "clips/imported.mp4"
+    report = clip_scene(
+        _job(),
+        {"status": "imported", "primary": candidate, "backups": []},
+        tmp_path / "processed",
+        local_root=root,
+        scorer=FakeScorer(),
+        ocr=lambda _: ([], 0.1),
+    )
+    assert report["status"] == "ok", report
+    assert report["clip"]["imported"] is True
+    assert report["clip"]["local_path"] == "clips/imported.mp4"
+    assert "asset_url" not in report["clip"]
+    assert (tmp_path / "processed" / "clip.mp4").is_file()
+
+
+@pytest.mark.skipif(not FFMPEG, reason="ffmpeg/ffprobe unavailable")
+def test_local_hash_mismatch_falls_back_to_catalog(source_clip: Path, tmp_path: Path):
+    root = tmp_path / "local"
+    root.mkdir()
+    shutil.copyfile(source_clip, root / "asset.mp4")
+    candidate = _candidate(source_clip, "imp-bad", sha256="a" * 64)
+    candidate.pop("asset_url")
+    candidate["local_path"] = "asset.mp4"
+    backup = _candidate(source_clip, "clip-good")
+    report = clip_scene(
+        _job(),
+        {"status": "imported", "primary": candidate, "backups": [backup]},
+        tmp_path / "result",
+        local_root=root,
+        fetch=_fetch(source_clip),
+        scorer=FakeScorer(),
+        ocr=lambda _: ([], 0.01),
+    )
+    assert report["status"] == "ok", report
+    assert report["used"] == "backup"
+    assert report["tried"][0]["reason"] == "hash_mismatch"
+    assert "imported" not in report["clip"]
+
+
+@pytest.mark.parametrize(
+    "relative",
+    [
+        "../escaped.mp4",
+        "/tmp/escaped.mp4",
+        "clips/../escaped.mp4",
+        "clips\\bad.mp4",
+        "C:\\escaped.mp4",
+    ],
+)
+def test_local_path_traversal_is_explicitly_rejected(
+    tmp_path: Path,
+    relative: str,
+):
+    root = tmp_path / "local"
+    root.mkdir()
+    candidate = {
+        "clip_id": "imp-bad",
+        "local_path": relative,
+        "size_bytes": 1,
+        "sha256": "0" * 64,
+    }
+    report = clip_scene(
+        _job(),
+        {"status": "imported", "primary": candidate, "backups": []},
+        tmp_path / "out",
+        local_root=root,
+    )
+    assert report["status"] == "fail"
+    assert report["tried"] == [{"clip_id": "imp-bad", "reason": "bad_local_path"}]
+
+
+def test_local_symlink_and_duplicate_asset_selectors_rejected(tmp_path: Path):
+    root = tmp_path / "local"
+    root.mkdir()
+    (root / "target.mp4").write_bytes(b"x")
+    (root / "link.mp4").symlink_to(root / "target.mp4")
+    for candidate, reason in (
+        (
+            {"clip_id": "imp-link", "local_path": "link.mp4", "sha256": "0" * 64, "size_bytes": 1},
+            "bad_local_path",
+        ),
+        (
+            {
+                "clip_id": "imp-both",
+                "local_path": "target.mp4",
+                "asset_url": "https://example.org/a.mp4",
+            },
+            "invalid_candidate",
+        ),
+        ({"clip_id": "imp-neither"}, "invalid_candidate"),
+    ):
+        report = clip_scene(
+            _job(),
+            {"status": "imported", "primary": candidate, "backups": []},
+            tmp_path / ("out-" + candidate["clip_id"]),
+            local_root=root,
+        )
+        assert report["tried"] == [{"clip_id": candidate["clip_id"], "reason": reason}]

@@ -14,6 +14,7 @@
 - M30: composición y render (`studio/compose.py`): HTML con HyperFrames 0.9.36 + GSAP 3.15.1 (no se incluye en el repositorio; se baja de npm y se verifica por sha256), títulos, subtítulos con palabra resaltada, render en Chrome headless y mux H.264 + AAC con compuertas de `ffprobe`. Sin cambio de versión.
 - CI: el job `studio` corre también los tests de M28 (PR2), M29 y M30 con el extra instalado y renderiza de verdad un video de tres escenas con HyperFrames.
 - M31: control de calidad de publicación (`studio/qa.py`) con 14 compuertas que fallan cerradas (estructura HyperFrames, layout en Chromium, archivo, decodificación, negro, congelado, silencio, sonoridad, WER, sincronía de subtítulos y cuatro de clips) y `qa_report.json` atado al sha256 del video. Límite único de 60 s por video (plan, línea de tiempo y QA), tope de 100 MB y mux limitado a 10 Mbps. El job `studio` corre sus tests y la compuerta de layout real. Sin cambio de versión.
+- M28 (PR3): importación sin persistencia (`studio/importer.py`): cuando la biblioteca no tiene material para una escena, busca y baja con el motor de la v2 usando escritor y almacenamiento locales (nada se publica), deja `imported.json` como manifiesto y candidatos `local_path` que `clip-scene` evalúa con las mismas compuertas (`--local-root`). Sin filtro de aspecto; los descartes del motor cuentan como «sin resultados», no como error. Sin cambio de versión.
 
 ## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
 
