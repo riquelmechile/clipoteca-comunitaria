@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from clipoteca.studio.phon import _n, per, toks
+from clipoteca.studio import models, voice
 from clipoteca.studio.script import MusicSpec, SceneSpec, VideoScript, VoiceSpec
 from clipoteca.studio.textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, wer
 from clipoteca.studio.voice import JITTER, Score, Take, line_cache_key, render_script, trim_silence
@@ -117,6 +120,76 @@ def test_wer_fallback_and_cache(tmp_path: Path) -> None:
     assert not second.takes
     saved = json.loads((tmp_path / "voice.json").read_text(encoding="utf-8"))
     assert set(saved) >= {"engine", "model", "lines", "durations", "total_voice_s", "rtf"}
+
+
+def test_lexicon_replacement_is_literal() -> None:
+    value = "\\1 a\\g<0>"
+    assert apply_lexicon("ruta A", {"A": value}) == "ruta " + value
+
+
+def test_render_merges_default_and_script_lexicon(tmp_path: Path) -> None:
+    script = _script()
+    report = render_script(script, tmp_path / "default", FakeEngine(), FakeScorer([0.05]))
+    assert report["lines"]["fact-1"]["spoken"] == "Motor ve seis"
+    custom = VideoScript(
+        title=script.title,
+        aspect=script.aspect,
+        language=script.language,
+        music=script.music,
+        voice=VoiceSpec(voice="F1", speed=1.2, lexicon={"Motor": "Propulsor"}),
+        scenes=script.scenes,
+    )
+    report = render_script(custom, tmp_path / "custom", FakeEngine(), FakeScorer([0.05]))
+    assert report["lines"]["fact-1"]["spoken"] == "Propulsor ve seis"
+
+
+def test_whisper_scorer_pins_manifest_revision(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    class FakeWhisperModel:
+        def __init__(self, repo: str, **kwargs: object) -> None:
+            calls.append((repo, kwargs))
+
+    fake_module = types.ModuleType("faster_whisper")
+    fake_module.WhisperModel = FakeWhisperModel  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "faster_whisper", fake_module)
+    monkeypatch.delenv("CLIPOTECA_WHISPER_COMPUTE", raising=False)
+    voice.WhisperScorer()
+    spec = models.model_spec("whisper")
+    assert calls == [
+        (spec["repo"], {"compute_type": spec["compute_type"], "revision": spec["revision"]}),
+    ]
+    assert len(spec["revision"]) == 40
+
+
+def test_sample_scores_the_spoken_text(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[tuple[str, str, str]] = []
+
+    class RecordingEngine(FakeEngine):
+        def generate(self, text: str, take: Take) -> tuple[np.ndarray, int]:
+            seen.append(("engine", text, take.voice))
+            return super().generate(text, take)
+
+    class RecordingScorer:
+        per_enabled = True
+        reason = "available"
+
+        def score(self, spoken: str, caption: str, samples: np.ndarray, sample_rate: int) -> Score:
+            seen.append(("scorer", spoken, caption))
+            return Score(per=0.05)
+
+    monkeypatch.setattr(voice, "SupertonicEngine", RecordingEngine)
+    monkeypatch.setattr(voice, "_default_scorer", RecordingScorer)
+    voice._sample(tmp_path)
+    phrases = json.loads(
+        (Path(__file__).parent / "fixtures/m26/frases.json").read_text(encoding="utf-8"),
+    )
+    engine_texts = [text for kind, text, _ in seen if kind == "engine"]
+    scored = [(spoken, caption) for kind, spoken, caption in seen if kind == "scorer"]
+    assert len(engine_texts) == len(scored) == 10 * len(phrases)
+    for text, (spoken, caption) in zip(engine_texts, scored, strict=True):
+        assert spoken == text == apply_lexicon(caption)
+    assert any(spoken != caption for spoken, caption in scored)
 
 
 def test_trim_silence_and_cache_key() -> None:

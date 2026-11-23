@@ -17,7 +17,7 @@ import numpy as np
 
 from . import models
 from .script import VideoScript, parse_video_script
-from .textnorm import apply_lexicon, norm_words, wer
+from .textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, wer
 
 VOICES = ["M1", "M2", "M3", "M4", "M5", "F1", "F2", "F3", "F4", "F5"]
 JITTER = [1.0, 0.96, 1.04, 0.93]
@@ -118,7 +118,11 @@ class WhisperScorer:
 
         spec = models.model_spec("whisper")
         compute = os.environ.get("CLIPOTECA_WHISPER_COMPUTE", spec["compute_type"])
-        self._model = WhisperModel(spec["repo"], compute_type=compute)
+        self._model = WhisperModel(
+            spec["repo"],
+            compute_type=compute,
+            revision=spec["revision"],
+        )
 
     def score(self, spoken: str, caption: str, samples: np.ndarray, sample_rate: int) -> Score:
         if sample_rate != 16000:
@@ -169,8 +173,7 @@ def trim_silence(
         return values
     window = max(1, round(sample_rate * 0.01))
     rms = [
-        float(np.sqrt(np.mean(values[i : i + window] ** 2)))
-        for i in range(0, len(values), window)
+        float(np.sqrt(np.mean(values[i : i + window] ** 2))) for i in range(0, len(values), window)
     ]
     active = [index for index, value in enumerate(rms) if value >= threshold]
     if not active:
@@ -278,8 +281,10 @@ def render_script(
     started = time.monotonic()
     lines: dict[str, dict[str, Any]] = {}
     durations: dict[str, float] = {}
+    # Script entries extend (and may override) the built-in spoken-form lexicon.
+    lexicon = {**DEFAULT_LEXICON, **dict(script.voice.lexicon)}
     for scene in script.scenes:
-        spoken = apply_lexicon(scene.say, script.voice.lexicon)
+        spoken = apply_lexicon(scene.say, lexicon)
         best: tuple[float, np.ndarray, int, Score, int] | None = None
         take_scores: list[dict[str, Any]] = []
         for index in range(max_tries):
@@ -357,9 +362,10 @@ def _sample(out: Path) -> None:
         for index, phrase in enumerate(phrases, 1):
             take = Take(index=1, voice=voice_name, speed=DEFAULT_SPEED)
             started = time.monotonic()
-            samples, rate = engine.generate(apply_lexicon(phrase), take)
+            spoken = apply_lexicon(phrase)
+            samples, rate = engine.generate(spoken, take)
             samples = trim_silence(samples, rate)
-            score = scorer.score(phrase, phrase, samples, rate)
+            score = scorer.score(spoken, phrase, samples, rate)
             elapsed = time.monotonic() - started
             _write_wav(out / "audio" / f"{voice_name}-{index:02}.wav", samples, rate)
             records.append(
@@ -374,9 +380,7 @@ def _sample(out: Path) -> None:
         wers = [record["wer"] for record in records if record["wer"] is not None]
         worst = max(
             records,
-            key=lambda record: (
-                record["per"] if record["per"] is not None else record["wer"] or 0
-            ),
+            key=lambda record: (record["per"] if record["per"] is not None else record["wer"] or 0),
         )
         mean_per = f"{sum(pers) / len(pers):.3f}" if pers else "n/a"
         mean_wer = f"{sum(wers) / len(wers):.3f}" if wers else "n/a"

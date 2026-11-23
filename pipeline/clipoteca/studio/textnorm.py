@@ -32,7 +32,10 @@ def apply_lexicon(text: str, lexicon: Mapping[str, str] | None = None) -> str:
     result = text
     for key in sorted(values, key=len, reverse=True):
         pattern = rf"(?<![\w]){re.escape(key)}(?![\w])"
-        result = re.sub(pattern, values[key], result, flags=re.IGNORECASE)
+        replacement = values[key]
+        # A callable keeps the replacement literal: backslashes in a script
+        # lexicon must not be read as group references.
+        result = re.sub(pattern, lambda _match: replacement, result, flags=re.IGNORECASE)
     return result
 
 
@@ -51,9 +54,7 @@ def norm_words(value: str, lang: str = "es") -> list[str]:
         value = re.sub(r"\d+", lambda m: str(num2words(int(m.group()), lang=lang)), value)
     value = value.replace("ñ", "\0")
     value = "".join(
-        char
-        for char in unicodedata.normalize("NFD", value)
-        if unicodedata.category(char) != "Mn"
+        char for char in unicodedata.normalize("NFD", value) if unicodedata.category(char) != "Mn"
     ).replace("\0", "ñ")
     return re.sub(r"[^a-z0-9ñ ]+", " ", value).split()
 
