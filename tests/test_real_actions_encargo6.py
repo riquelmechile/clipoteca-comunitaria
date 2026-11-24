@@ -19,7 +19,7 @@ import pytest
 from clipoteca import cli
 from clipoteca.engine import SearchEngine
 from clipoteca.ingest import IngestReport
-from clipoteca.metadata import MetadataTranslationError, localize_candidate
+from clipoteca.metadata import localize_candidate
 from clipoteca.providers.base import Candidate, SupportStatus
 from clipoteca.providers.peertube import PeerTube
 from clipoteca.relocalize import relocalize_catalog
@@ -229,17 +229,15 @@ def test_relocalize_clip_000003_keeps_english_source_and_correct_spanish_directi
     assert after[2]["storage"] == before[2]["storage"]
 
 
-def test_reject_unknown_tag_garbage_instead_of_inventing_text():
+def test_ignore_unknown_discovery_terms_instead_of_inventing_text():
     candidate = Candidate(
         "pexels", "4", "palabra desconocida", "es", "https://example.org/v", "Autopistas", "es"
     )
-    with pytest.raises(MetadataTranslationError):
-        localize_candidate(
-            candidate,
-            translator=lambda text, src, dst: (
-                "mainstre" * 70 if text == "palabra" else "Highways"
-            ),
-        )
+    translated = localize_candidate(
+        candidate,
+        translator=lambda text, src, dst: "mainstre" * 70 if text == "palabra" else "Highways",
+    )
+    assert translated.tags == {"es": ["Autopistas"], "en": ["Highways"]}
 
 
 def _git(*args: str, cwd: Path | None = None) -> str:
