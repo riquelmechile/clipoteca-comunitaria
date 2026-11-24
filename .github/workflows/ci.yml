@@ -8,12 +8,13 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           python-version: "3.13"
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - uses: ./.github/actions/install-ffmpeg
       - run: uv sync --extra dev
       - run: uv run ruff check .
       - run: uv run ruff format --diff .
@@ -71,7 +72,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - uses: ./.github/actions/install-ffmpeg
       - run: uv sync --frozen --extra dev --extra studio
       - name: Install Chromium for the offline music render
         run: uv run --no-sync playwright install --with-deps chromium
@@ -84,6 +85,7 @@ jobs:
           tests/test_clipscene_m28.py tests/test_framing_m28.py tests/test_checks_m28.py
           tests/test_fit_m29.py tests/test_mix_m29.py tests/test_compose_m30.py
           tests/test_qa_m31.py tests/test_import_m28.py tests/test_textnorm_r2.py
+          tests/test_publish_m32.py
       - name: Real music render in headless Chromium (must not be skipped)
         run: |
           uv run --no-sync python -m clipoteca.studio.music render --plan tests/fixtures/m27/plan.json --out build/music-smoke
