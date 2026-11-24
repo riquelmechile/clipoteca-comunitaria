@@ -96,7 +96,7 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
         (not expansion.terms.get(lang) or lang in expansion.errors)
         and (
             expansion.terms.get(lang)
-            or public_translation_error(expansion.errors.get(lang, "")).rsplit(":", 1)[-1]
+            or (public_translation_error(expansion.errors.get(lang, "")) or "").rsplit(":", 1)[-1]
             not in QUALITY_TRANSLATION_REASONS
         )
         for lang in _LANGUAGES
@@ -153,6 +153,8 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
                     if scene_budget.reason():
                         break
                     result = await task
+                    if scene_budget.reason():
+                        break
                     unique = [c for c in result.candidates if c.origin_id not in seen]
                     seen.update(c.origin_id for c in unique)
                     result = replace(result, candidates=unique)

@@ -12,9 +12,10 @@ translator=None, embedding_encoder=None, timeout_s=None) recibe job.json
 de studio.plan. Requiere id seguro, aspect 9:16, 16:9 o 1:1, len_est,
 len_fetch, prompt, queries.es y queries.en, min_short_side opcional.
 
-Las consultas se realizan en orden ingles primero, espanol segundo, sin
-repetir por casefold. Cada consulta usa el mismo clipoteca.ingest.ingest,
-con horizon studio-v1-N, max_results restante, y filtro de duracion
+Las consultas unicas se ordenan por numero de palabras especificas (sin
+calificativos comunes), conservando ingles antes de espanol en empates.
+Cada consulta reutiliza clipoteca.ingest.ingest en lotes progresivos,
+con horizon studio-v1-N-batch-M, max_results restante y filtro de duracion
 min(20, max(8, ceil(len_fetch)+4)). No se pasa filtro de aspecto: clip-scene
 reencuadra cualquier orientacion al formato del video, y filtrar aqui
 descartaba casi todo el material horizontal para un video vertical.
@@ -64,7 +65,8 @@ Los siguientes efectos quedan interceptados o deshabilitados:
 Las variables de entorno se restauran con finally exactamente como
 estaban, incluidas las ausentes; no hay tokens de Github.
 Se entrega repository local/local y token vacio. El writer y el
-storage siempre se inyectan, por lo que no se modifico ingest.py.
+storage siempre se inyectan. La ingesta normal conserva su descubrimiento
+y filtros; solo el importador proporciona lotes y un presupuesto de escena.
 
 LocalStorage implementa get_or_create_batch_release, reserved_ids,
 upload_asset, verify_asset, find_existing_asset, delete_asset y close.
@@ -136,13 +138,34 @@ No se cambian dependencias, workflows ni datos persistentes.
 
 ## Política de búsqueda para entrega v3
 
-El workflow activa --spread-queries, que reparte el presupuesto de candidatos
-entre las consultas únicas en inglés y español en su orden original, hasta
-el tope de ocho candidatos o 600 segundos. Si no pasa la evaluación de
-escena ningún importado, --simple deriva hasta dos consultas breves del
-título y prompt sin calificativos comunes; se prueban hasta dos candidatos
-en 180 segundos. Los manifiestos de ambas rondas se conservan para indexado.
-Los defaults históricos del CLI permanecen compatibles.
+El workflow conserva --spread-queries como flag compatible, sin reservar
+cupos para consultas futuras. El limite es ocho candidatos validos o 600 s.
+Se corta antes con --enough 3 (default; 0 desactiva esta salida), si tres
+clips ya verificados cumplen len_fetch, lado corto minimo y coincidencia
+lexica positiva con los titulos reales. Los tags sintetizados a partir de
+la consulta no se usan como evidencia independiente de relevancia.
+El tope de cantidad cuenta solo clips que cumplen el filtro de asignacion.
+El puntaje final y las pruebas de clip-scene no cambian.
+
+En cada consulta se priorizan en, es, zh y ru; dentro de cada idioma,
+proveedores con descarga, Pexels primero, prioridad de discovery y orden
+estable. No se excluye ninguna fuente elegible; se ejecutan lotes de hasta
+concurrency proveedores en paralelo y se consumen en orden de prioridad.
+Al alcanzar el objetivo se cancelan y esperan las busquedas pendientes;
+no se programa otro lote. La segunda ronda --simple conserva la misma
+logica con dos candidatos o 180 s. Los manifiestos de ambas rondas se
+conservan para indexado.
+
+imported.json agrega termination_reason (enough, max_results, timeout,
+exhausted), searches_started, searches_avoided, searches_cancelled,
+downloads_started y downloads_avoided. Las busquedas evitadas son el
+maximo teorico de pares consulta/idioma/proveedor elegibles no iniciados;
+las descargas evitadas cuentan IDs de origen descubiertos pero no
+descargados, no candidatos de consultas que nunca se ejecutaron.
+time_s mide el tiempo total; la meta, aun sin medir, es 1-2 min por escena
+con material disponible, en lugar de aproximadamente 10 min.
+En Actions (POSIX, hilo principal) el plazo tambien interrumpe trabajo
+sincrono; en otros contextos se conserva el plazo cooperativo.
 
 La prueba de reejecución compara metadatos semánticos y valida los hashes y
 tamaños reales de cada MP4 por separado. No exige que FFmpeg produzca bytes

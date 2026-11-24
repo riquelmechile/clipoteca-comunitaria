@@ -406,15 +406,9 @@ async def download_hls(
                     str(output),
                 ]
                 try:
-                    await asyncio.to_thread(
-                        subprocess.run,
-                        command,
-                        capture_output=True,
-                        text=True,
-                        check=True,
-                        timeout=180,
-                        env=safe_media_env(),
-                    )
+                    # Use a child process, not a thread running subprocess.run:
+                    # cancellation must reap ffmpeg before the temporary directory goes away.
+                    await _run_remux(command)
                 except (subprocess.CalledProcessError, OSError) as exc:
                     if "allowed_segment_extensions" in str(getattr(exc, "stderr", "")):
                         raise DownloadError(
@@ -427,6 +421,7 @@ async def download_hls(
                     raise DownloadError("HLS output violated byte cap")
                 return output
     except TimeoutError as exc:
+        output.unlink(missing_ok=True)
         raise DownloadError("HLS deadline exceeded") from exc
     except BaseException:
         output.unlink(missing_ok=True)
@@ -434,6 +429,26 @@ async def download_hls(
     finally:
         if own:
             await connection.aclose()
+
+
+async def _run_remux(command):
+    proc = await asyncio.create_subprocess_exec(
+        *command,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        env=safe_media_env(),
+    )
+    try:
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=180)
+    except BaseException:
+        if proc.returncode is None:
+            proc.kill()
+        await proc.communicate()
+        raise
+    if proc.returncode:
+        raise subprocess.CalledProcessError(
+            proc.returncode, command, stderr=stderr.decode(errors="replace")
+        )
 
 
 def _hls_probe_magic(data: bytes) -> bool:

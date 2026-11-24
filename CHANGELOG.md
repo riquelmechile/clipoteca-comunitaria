@@ -2,6 +2,8 @@
 
 ## 3.0.0 (pendiente de promoción y corrida real)
 
+- Búsqueda de escenas progresiva: corte por cantidad o suficiencia, plazo global, cancelación de descubrimiento y diagnóstico por ronda; conserva el ranking final.
+
 - Entrega de MP4 por artefacto temporal de siete días, sin publicación del video ni ficha persistente.
 - Selección fuerte del catálogo (sim ≥ 0,27 provisional), búsqueda de respaldo en fuentes y selección por pertinencia.
 - Indexado de todos los clips importados válidos, independiente de selección final y QA; un commit de catálogo.

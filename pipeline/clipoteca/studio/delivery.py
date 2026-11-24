@@ -23,7 +23,6 @@ def _timings(work):
                 continue
             report = _read(manifest)
             for key in (
-                "termination_reason",
                 "time_s",
                 "searches_started",
                 "searches_avoided",
@@ -33,6 +32,9 @@ def _timings(work):
             ):
                 if key in report:
                     timings[f"scene.{folder.name}.{stage}.{key}"] = report[key]
+            reason = report.get("termination_reason")
+            if reason in {"enough", "max_results", "timeout", "exhausted"}:
+                timings[f"scene.{folder.name}.{stage}.termination_reason.{reason}"] = 1
     for stage in ("voz", "musica"):
         path = work / stage / "timing.json"
         if path.is_file():

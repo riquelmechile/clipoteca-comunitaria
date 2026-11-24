@@ -10,7 +10,9 @@ import math
 import os
 import re
 import shutil
+import signal
 import tempfile
+import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -104,6 +106,34 @@ def _atomic_copy(source: Path, destination: Path) -> None:
         os.replace(name, destination)
     finally:
         Path(name).unlink(missing_ok=True)
+
+
+class _SceneDeadline(BaseException):
+    """Interrupt synchronous media work as well as asynchronous discovery."""
+
+
+@contextmanager
+def _wall_deadline(seconds):
+    # Actions invokes this on the POSIX main thread. Do not replace a caller's
+    # existing alarm or install signal handlers in a non-main thread.
+    if (
+        not hasattr(signal, "setitimer")
+        or threading.current_thread() is not threading.main_thread()
+        or signal.getitimer(signal.ITIMER_REAL)[0]
+    ):
+        yield
+        return
+
+    def expire(_signum, _frame):
+        raise _SceneDeadline()
+
+    previous = signal.signal(signal.SIGALRM, expire)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, max(0.001, seconds))
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 @contextmanager
@@ -559,7 +589,11 @@ def import_scene(
                 await _close_adapters(selected)
 
     with _no_remote_writes():
-        asyncio.run(execute())
+        try:
+            with _wall_deadline(timeout - (time.monotonic() - started)):
+                asyncio.run(execute())
+        except _SceneDeadline:
+            failures.append("timeout")
 
     imported: list[dict[str, Any]] = []
     seen_digests: set[str] = set()
@@ -580,8 +614,9 @@ def import_scene(
         "errors": sorted(set(failures)),
         "rejections": dict(sorted(rejections.items())),
         "time_s": round(time.monotonic() - started, 3),
-        "termination_reason": budget.reason()
-        or ("timeout" if "timeout" in failures else "exhausted"),
+        "termination_reason": (
+            "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
+        ),
         "searches_started": budget.searches_started,
         "searches_avoided": max(0, budget.searches_planned - budget.searches_started),
         "searches_cancelled": budget.searches_cancelled,
