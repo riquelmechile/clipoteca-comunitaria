@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import re
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -15,18 +16,34 @@ class CheckError(ValueError):
     """Cannot inspect a candidate or verify its quality."""
 
 
-def _run(args: list[str], timeout: int = 120) -> subprocess.CompletedProcess[bytes]:
+class DecodeError(CheckError):
+    """FFmpeg or FFprobe could not decode the media."""
+
+
+class InspectionTimeout(CheckError, TimeoutError):
+    """Media inspection exceeded its own or the scene deadline."""
+
+
+def _run(
+    args: list[str], timeout: float = 120, *, deadline: float | None = None
+) -> subprocess.CompletedProcess[bytes]:
+    if deadline is not None:
+        timeout = min(timeout, deadline - time.monotonic())
+    if timeout <= 0:
+        raise InspectionTimeout("media inspection timed out")
     try:
         result = subprocess.run(args, capture_output=True, timeout=timeout, check=False)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise CheckError(f"media inspection failed: {type(exc).__name__}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise InspectionTimeout("media inspection timed out") from exc
+    except OSError as exc:
+        raise DecodeError("media inspection unavailable") from exc
     if result.returncode:
-        raise CheckError("media inspection failed: ffmpeg exit " + str(result.returncode))
+        raise DecodeError("media inspection failed: ffmpeg exit " + str(result.returncode))
     return result
 
 
-def probe_video(path: str | Path) -> tuple[int, int, float]:
-    """Read actual first video stream width, height and duration via ffprobe."""
+def probe_video(path: str | Path, *, deadline: float | None = None) -> tuple[int, int, float]:
+    """Read effective display dimensions and duration of the first video stream."""
     import json
 
     result = _run(
@@ -37,15 +54,24 @@ def probe_video(path: str | Path) -> tuple[int, int, float]:
             "-select_streams",
             "v:0",
             "-show_entries",
-            "stream=width,height,duration,nb_frames,avg_frame_rate",
+            "stream=width,height,duration,nb_frames,avg_frame_rate:"
+            "stream_side_data=rotation:stream_tags=rotate",
             "-of",
             "json",
             str(path),
-        ]
+        ],
+        deadline=deadline,
     )
     try:
         stream = json.loads(result.stdout)["streams"][0]
         width, height = int(stream["width"]), int(stream["height"])
+        rotation = next(
+            (item["rotation"] for item in stream.get("side_data_list", []) if "rotation" in item),
+            stream.get("tags", {}).get("rotate", 0),
+        )
+        angle = float(rotation) % 360
+        if math.isclose(angle, 90, abs_tol=0.1) or math.isclose(angle, 270, abs_tol=0.1):
+            width, height = height, width
         duration = float(stream.get("duration", "nan"))
         if not math.isfinite(duration) or duration <= 0:
             numerator, denominator = map(int, stream["avg_frame_rate"].split("/"))
@@ -54,10 +80,12 @@ def probe_video(path: str | Path) -> tuple[int, int, float]:
             raise ValueError
         return width, height, duration
     except (KeyError, TypeError, ValueError, IndexError, ZeroDivisionError) as exc:
-        raise CheckError("ffprobe invalid video stream") from exc
+        raise DecodeError("ffprobe invalid video stream") from exc
 
 
-def black_frozen(path: str | Path) -> tuple[list[float], list[float]]:
+def black_frozen(
+    path: str | Path, *, deadline: float | None = None
+) -> tuple[list[float], list[float]]:
     """Reject black sections >=0.3 s and frozen stretches >=1.5 s."""
     result = _run(
         [
@@ -72,7 +100,8 @@ def black_frozen(path: str | Path) -> tuple[list[float], list[float]]:
             "-f",
             "null",
             "-",
-        ]
+        ],
+        deadline=deadline,
     )
     stderr = result.stderr.decode("utf-8", "replace")
     black = [float(x) for x in re.findall(r"black_start:\s*([\d.]+)", stderr)]
@@ -84,11 +113,13 @@ def sample_frames(
     path: str | Path,
     fractions: list[float] | tuple[float, ...],
     width: int = 720,
+    *,
+    deadline: float | None = None,
 ) -> list[np.ndarray]:
     """Extract BGR frames at fractional positions; no decode models or network."""
     if width < 2 or width > 4096:
         raise CheckError("frame sample width out of range")
-    source_w, source_h, duration = probe_video(path)
+    source_w, source_h, duration = probe_video(path, deadline=deadline)
     height = max(2, int(round((source_h * width / source_w) / 2)) * 2)
     frames = []
     for fraction in fractions:
@@ -115,11 +146,12 @@ def sample_frames(
                 "-f",
                 "rawvideo",
                 "pipe:1",
-            ]
+            ],
+            deadline=deadline,
         )
         size = width * height * 3
         if len(result.stdout) != size:
-            raise CheckError("frame decode returned incomplete data")
+            raise DecodeError("frame decode returned incomplete data")
         frames.append(np.frombuffer(result.stdout, dtype=np.uint8).reshape(height, width, 3).copy())
     return frames
 
@@ -152,29 +184,34 @@ def _ocr_result(result: Any) -> list[tuple[str, float]]:
 _OCR: Any = None
 
 
+def get_ocr() -> Any:
+    """Initialize the default OCR engine once, before evaluating candidates."""
+    global _OCR
+    if _OCR is None:
+        from rapidocr_onnxruntime import RapidOCR
+
+        _OCR = RapidOCR()
+    return _OCR
+
+
 def screen_text(frames: list[np.ndarray], ocr: Any = None) -> list[tuple[str, float]]:
     """Read overlay-like text with injectable OCR, importing RapidOCR only on use."""
-    global _OCR
     if not frames:
         return []
     if ocr is None:
-        if _OCR is None:
-            from rapidocr_onnxruntime import RapidOCR
-
-            _OCR = RapidOCR()
-        ocr = _OCR
+        ocr = get_ocr()
     found: list[tuple[str, float]] = []
     for frame in frames:
         found.extend(_ocr_result(ocr(frame)))
     return found
 
 
-def mid_phash(path: str | Path) -> str:
+def mid_phash(path: str | Path, *, deadline: float | None = None) -> str:
     """Perceptual hash of the central decoded frame."""
     import imagehash
     from PIL import Image
 
-    frame = sample_frames(path, [0.5], width=720)[0]
+    frame = sample_frames(path, [0.5], width=720, deadline=deadline)[0]
     image = Image.fromarray(frame[:, :, ::-1].copy())
     return str(imagehash.phash(image))
 

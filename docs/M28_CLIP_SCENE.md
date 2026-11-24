@@ -130,7 +130,7 @@ local se decodifica vídeo a 2 fps y 384 píxeles de ancho en BGR,
 se calculan métricas y embeddings por fotograma, y se detectan
 cortes internos usando FFmpeg (select scene > 0,3). Las ventanas
 se ordenan con el puntaje existente y se filtran por
-min_sim=0,22 y min_prob=0,5. Una fuente de al menos 0,42 veces
+min_sim=0,22, min_prob=0,5 y min_score=0,0. Una fuente de al menos 0,42 veces
 la longitud se puede usar entera, sin relleno fijo aquí.
 
 La vista previa pasa OCR en dos fotogramas (25 % y 75 % de la ventana)
@@ -164,7 +164,7 @@ El fallo no deja clip.mp4. Se borran los temporales. El límite
 CLIPOTECA_SCENE_TIMEOUT (predeterminado 600 s) evita trabajo infinito.
 
 CLI: código 0 si ok, 3 en fallo con result.json, 2 para entrada
-inválida. No filtra rutas absolutas del runner en los mensajes.
+inválida. Los errores propios de evaluación usan mensajes seguros sin rutas absolutas.
 
 ## Unicidad global posterior
 
@@ -178,8 +178,7 @@ duplicate_phash. No usa estado compartido.
 
 ## Límites y evidencia
 
-La importación de nuevo material cuando no haya candidatos queda
-para un PR posterior, sin persistencia durante render. M30 incorpora
+La importación temporal de material ya existe (M28 PR3), sin persistencia durante render. M30 incorpora
 franja de título, composición y render. No se inventan mediciones
 de tiempo ni coste: evidencia de Actions pendiente de medir.
 Las pruebas generan vídeos FFmpeg testsrc2, y utilizan descargador,
@@ -216,3 +215,68 @@ aplicar la misma seleccion CLIP, OCR, calidad y recorte del catalogo.
 En result.json, el clip elegido desde disco agrega imported=true
 y local_path; conserva source_url y omite asset_url. No se considera
 publicado ni se reutiliza un ID definitivo del catalogo hasta M32.
+
+## M28 PR4: calidad, diagnóstico y orientación efectiva
+
+Cada job incluye min_score=0.0; los jobs antiguos sin ese campo tienen
+el mismo piso. Se aplica después de min_sim y min_prob, antes de OCR
+y encuadre. Un valor negativo permite aceptar ventanas con puntaje
+negativo; los umbrales deben ser números finitos, no cadenas ni booleanos.
+El cálculo de windows.py no cambia.
+
+CLIP (incluidas las sesiones ONNX y tokenizer) y OCR se inicializan
+una sola vez, después de obtener y verificar el primer archivo candidato
+y antes de evaluarlo. Si todos se rechazan al obtenerlos, no se cargan
+modelos y se conservan sus motivos reales. Si los evaluadores no están
+disponibles para un archivo verificado, se lanza
+ClipSceneError y la CLI sale 2, con un mensaje que indica el componente,
+los archivos CLIP cuando corresponda, CLIPOTECA_STUDIO_MODELS (directorio
+de caché con subcarpeta clip-vit-b32) y el extra studio. No queda un
+result.json viejo ni un falso no_candidate. Los dobles inyectados
+no cargan modelos reales. El campo opcional detail se omite deliberadamente:
+los motivos categóricos bastan y no se exponen excepciones internas.
+
+| tried.reason | Significado / acción |
+|---|---|
+| excluded | ID excluido; probar respaldo |
+| invalid_candidate | Falta selector único (asset_url o local_path); probar respaldo |
+| bad_local_path | Ruta inválida o escape/symlink interno; probar respaldo |
+| hash_mismatch | Archivo local no coincide; probar respaldo |
+| download_failed | Descarga o verificación remota fallida; probar respaldo |
+| low_resolution | Fuente de resolución insuficiente; probar respaldo |
+| too_short | Fuente demasiado corta; probar respaldo |
+| no_window | No hay ventana utilizable; probar respaldo |
+| low_sim | Similitud insuficiente; probar respaldo |
+| low_prob | Probabilidad insuficiente; probar respaldo |
+| low_score | Puntaje bajo el piso; probar respaldo |
+| text_in_preview | Texto incrustado en vista previa; probar respaldo |
+| bad_resolution | Resolución de salida incorrecta; probar respaldo |
+| short_output | Salida demasiado corta; probar respaldo |
+| black | Negro detectado; probar respaldo |
+| frozen | Congelación detectada; probar respaldo |
+| on_screen_text | OCR rechaza la salida; probar respaldo |
+| decode_failed | FFmpeg/FFprobe no pueden leer/procesar el medio; probar respaldo |
+| processing_failed | Otro error de procesamiento; probar respaldo |
+| timeout | Plazo propio o de escena vencido; probar respaldo si queda tiempo |
+
+| reason de escena fallida | Acción |
+|---|---|
+| needs_import | No hay asignación de catálogo; intentar importación temporal |
+| no_candidate | Candidatos agotados; intentar importación temporal |
+| Sin result.json, CLI 2 | Error de evaluación o entrada; corregir antes de reintentar |
+
+FFprobe informa dimensiones efectivas: una matriz o tag de rotación
+de 90/270 grados intercambia ancho y alto. FFmpeg autorota de forma
+predeterminada, sin rotación manual adicional. Las vistas previas,
+resolución y encuadre usan esas dimensiones; src_w y src_h en result.json
+son efectivos, no los codificados.
+
+El análisis visual y de cortes se acota a MAX_ANALYZED_SECONDS
+(120 s); si la fuente aceptada es más larga, result.json contiene
+analyzed_s con la duración analizada. Las ventanas no buscan fuera
+de esa región. El plazo global sigue siendo CLIPOTECA_SCENE_TIMEOUT.
+
+local_root se resuelve una vez; puede estar debajo de un enlace.
+Desde el root resuelto hacia abajo se rechazan enlaces simbólicos,
+rutas absolutas, segmentos .., separadores de Windows y escapes.
+Se mantiene la verificación de tamaño y hash antes y después de copiar.

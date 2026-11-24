@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -13,6 +14,7 @@ from clipoteca.studio.checks import (
     black_frozen,
     check_global,
     mid_phash,
+    probe_video,
     sample_frames,
     screen_text,
 )
@@ -139,3 +141,102 @@ def test_global_accepts_id_keyed_result_map() -> None:
         "b": _result("b", "b", 0, 2, 3, "0" * 16),
     }
     assert check_global(results) == {"b": "duplicate_phash"}
+
+
+@pytest.mark.skipif(not FFMPEG, reason="ffmpeg/ffprobe unavailable")
+def test_rotated_video_preserves_square(tmp_path):
+    from clipoteca.studio.framing import crop_filter
+
+    original = tmp_path / "original.mp4"
+    rotated = tmp_path / "rotated.mp4"
+    output = tmp_path / "vertical.mp4"
+    _lavfi(original, "color=blue:size=1280x720:rate=30,drawbox=540:260:200:200:white:t=fill", 1)
+    # Try the current FFmpeg input option, then the older MP4 remux syntax.
+    for options, after in (
+        (["-display_rotation", "90"], []),
+        ([], ["-metadata:s:v:0", "rotate=90"]),
+    ):
+        process = subprocess.run(
+            [
+                "ffmpeg",
+                "-v",
+                "error",
+                "-y",
+                *options,
+                "-i",
+                str(original),
+                "-c",
+                "copy",
+                *after,
+                str(rotated),
+            ],
+            capture_output=True,
+            timeout=30,
+        )
+        if process.returncode:
+            continue
+        metadata = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(rotated)],
+            check=True,
+            capture_output=True,
+            timeout=30,
+        )
+        stream = json.loads(metadata.stdout)["streams"][0]
+        angle = next(
+            (item["rotation"] for item in stream.get("side_data_list", []) if "rotation" in item),
+            stream.get("tags", {}).get("rotate", 0),
+        )
+        if float(angle) % 360 in (90, 270):
+            break
+    else:
+        pytest.skip("FFmpeg cannot write a 90-degree rotation matrix")
+    width, height, _ = probe_video(rotated)
+    assert (width, height) == (720, 1280)
+    preview = sample_frames(rotated, [0.5], width=360)[0]
+    assert preview.shape == (640, 360, 3)
+    vf, _ = crop_filter(width, height, "9:16")
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-i",
+            str(rotated),
+            "-vf",
+            vf,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=60,
+    )
+    assert probe_video(output)[:2] == (1080, 1920)
+    frame = sample_frames(output, [0.5], width=540)[0]
+    ys, xs = np.where(np.all(frame > 220, axis=2))
+    assert len(xs) > 1000
+    assert (xs.max() - xs.min() + 1) == pytest.approx(ys.max() - ys.min() + 1, abs=3)
+
+
+@pytest.mark.parametrize(
+    "metadata, expected",
+    [
+        ({"side_data_list": [{"rotation": -90}]}, (720, 1280)),
+        ({"tags": {"rotate": "270"}}, (720, 1280)),
+        ({"side_data_list": [{"rotation": 180}]}, (1280, 720)),
+        ({"side_data_list": [{"rotation": 0}], "tags": {"rotate": "90"}}, (1280, 720)),
+    ],
+)
+def test_probe_rotation_metadata(monkeypatch, metadata, expected):
+    from clipoteca.studio import checks
+
+    stream = {"width": 1280, "height": 720, "duration": "3", **metadata}
+    payload = json.dumps({"streams": [stream]}).encode()
+    monkeypatch.setattr(
+        checks, "_run", lambda *args, **kwargs: subprocess.CompletedProcess([], 0, payload, b"")
+    )
+    assert probe_video("unused.mp4") == (*expected, 3.0)

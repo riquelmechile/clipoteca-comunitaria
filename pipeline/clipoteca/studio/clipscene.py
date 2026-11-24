@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import math
 import os
@@ -25,6 +26,45 @@ class ClipSceneError(ValueError):
 
 
 _SAFE_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
+MAX_ANALYZED_SECONDS = 120.0
+
+
+def _threshold(job: dict[str, Any], key: str, default: float) -> float:
+    value = job.get(key, default)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ClipSceneError(f"job.{key} must be a finite number")
+    return float(value)
+
+
+def _initialize_evaluators(scorer: Any, ocr: Any) -> tuple[Any, Any]:
+    """Fail before scoring verified media if a required evaluator cannot initialize."""
+    hint = "set CLIPOTECA_STUDIO_MODELS; install with uv sync --extra studio"
+    if scorer is None or ocr is None:
+        try:
+            importlib.import_module("cv2")
+        except Exception:
+            raise ClipSceneError(f"cannot initialize cv2; {hint}") from None
+    if scorer is None:
+        from . import models
+        from .clipscore import MODEL_FILES, ClipScorer
+
+        try:
+            scorer = ClipScorer(models.cache_dir() / "clip-vit-b32")
+            # The real scorer lazily initializes its inference sessions and tokenizer.
+            scorer._sess()
+        except ImportError as exc:
+            package = exc.name if exc.name in {"onnxruntime", "tokenizers", "cv2"} else None
+            label = package or "onnxruntime/tokenizers"
+            raise ClipSceneError(f"cannot import {label}; {hint}") from None
+        except Exception:
+            files = ", ".join(MODEL_FILES)
+            raise ClipSceneError(f"cannot initialize CLIP; check {files}; {hint}") from None
+    if ocr is None:
+        try:
+            ocr = checks.get_ocr()
+        except Exception:
+            raise ClipSceneError(f"cannot initialize rapidocr_onnxruntime; {hint}") from None
+    return scorer, ocr
 
 
 def _valid_job(job: Any, assignment: Any) -> tuple[str, float]:
@@ -40,6 +80,8 @@ def _valid_job(job: Any, assignment: Any) -> tuple[str, float]:
         raise ClipSceneError("job.len_fetch or job.aspect is invalid") from exc
     if not math.isfinite(length) or length <= 0:
         raise ClipSceneError("job.len_fetch must be positive")
+    for key, default in (("min_sim", 0.22), ("min_prob", 0.5), ("min_score", 0.0)):
+        _threshold(job, key, default)
     status = assignment.get("status")
     if status not in {"catalog", "needs_import", "imported"}:
         raise ClipSceneError("assignment.status must be catalog, imported or needs_import")
@@ -116,10 +158,8 @@ def _local_source(candidate: dict[str, Any], root: Path | None, destination: Pat
     relative = Path(value)
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise ClipSceneError("bad_local_path")
-    if root.is_symlink() or any(parent.is_symlink() for parent in root.parents):
-        raise ClipSceneError("bad_local_path")
     try:
-        base = root.resolve(strict=True)
+        base = root
         source = base / relative
         current = base
         for part in relative.parts:
@@ -158,9 +198,9 @@ def _run(args: list[str], deadline: float) -> subprocess.CompletedProcess[str]:
     except subprocess.TimeoutExpired as exc:
         raise TimeoutError("scene timeout") from exc
     except OSError as exc:
-        raise ClipSceneError(f"media process unavailable: {type(exc).__name__}") from exc
+        raise checks.DecodeError("media process unavailable") from exc
     if process.returncode:
-        raise ClipSceneError("media process failed: " + process.stderr[-180:])
+        raise checks.DecodeError("media process failed")
     return process
 
 
@@ -174,7 +214,7 @@ def _preview_frames(
     """Bounded binary 2 fps frame decode; never a model or network request."""
     width = 384
     height = max(2, round((sh / sw * width) / 2) * 2)
-    seconds = min(duration, 120.0)
+    seconds = min(duration, MAX_ANALYZED_SECONDS)
     timeout = min(120.0, deadline - time.monotonic())
     if timeout <= 0:
         raise TimeoutError("scene timeout")
@@ -204,12 +244,12 @@ def _preview_frames(
     except subprocess.TimeoutExpired as exc:
         raise TimeoutError("scene timeout") from exc
     except OSError as exc:
-        raise ClipSceneError("preview ffmpeg missing") from exc
+        raise checks.DecodeError("preview ffmpeg missing") from exc
     if result.returncode:
-        raise ClipSceneError("preview ffmpeg failed")
+        raise checks.DecodeError("preview ffmpeg failed")
     frame_bytes = width * height * 3
     if not result.stdout or len(result.stdout) % frame_bytes:
-        raise ClipSceneError("preview frame stream incomplete")
+        raise checks.DecodeError("preview frame stream incomplete")
     count = len(result.stdout) // frame_bytes
     frames = [
         frame.copy()
@@ -218,12 +258,14 @@ def _preview_frames(
     return frames, np.arange(count, dtype=np.float32) / 2
 
 
-def _cuts(path: Path, deadline: float) -> list[float]:
+def _cuts(path: Path, deadline: float, duration: float) -> list[float]:
     process = _run(
         [
             "ffmpeg",
             "-hide_banner",
             "-nostdin",
+            "-t",
+            str(duration),
             "-i",
             str(path),
             "-vf",
@@ -245,11 +287,12 @@ def _ocr_positions(
     duration: float,
     fractions: tuple[float, ...],
     ocr: Any,
+    deadline: float,
 ) -> bool:
     import cv2
 
     values = [min(0.99, max(0.0, (start + ratio * length) / duration)) for ratio in fractions]
-    frames = checks.sample_frames(path, values, width=720)
+    frames = checks.sample_frames(path, values, width=720, deadline=deadline)
     doubled = [
         cv2.resize(frame, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_LINEAR) for frame in frames
     ]
@@ -294,7 +337,7 @@ def _attempt(
 ) -> tuple[dict[str, Any] | None, str]:
     length = float(job["len_fetch"])
     try:
-        sw, sh, duration = checks.probe_video(downloaded)
+        sw, sh, duration = checks.probe_video(downloaded, deadline=deadline)
         width, height = framing.target_size(job["aspect"])
         if not framing.resolution_ok(
             sw,
@@ -304,7 +347,8 @@ def _attempt(
             int(job.get("min_short_side", 720)),
         ):
             return None, "low_resolution"
-        mode = fit_mode(duration, length)
+        analyzed_duration = min(duration, MAX_ANALYZED_SECONDS)
+        mode = fit_mode(analyzed_duration, length)
         if mode is None:
             return None, "too_short"
         frames, stamps = _preview_frames(downloaded, sw, sh, duration, deadline)
@@ -317,12 +361,12 @@ def _attempt(
         analyzed = {
             "emb": embedding,
             "ts": stamps,
-            "dur": duration,
+            "dur": analyzed_duration,
             "sharp": sharp,
             "bright": bright,
             "shift": shift,
             "diff": diff,
-            "cuts": _cuts(downloaded, deadline),
+            "cuts": _cuts(downloaded, deadline, analyzed_duration),
         }
         proposals = windows(analyzed, prompt, length, nemb=negatives)
         chosen, reason = choose_window(
@@ -330,9 +374,11 @@ def _attempt(
         )
         if chosen is None:
             return None, reason
+        if chosen["score"] < job.get("min_score", 0.0):
+            return None, "low_score"
         begin = chosen["start"]
-        actual_span = duration if mode == "whole" else length
-        if _ocr_positions(downloaded, begin, actual_span, duration, (0.25, 0.75), ocr):
+        actual_span = analyzed_duration if mode == "whole" else length
+        if _ocr_positions(downloaded, begin, actual_span, duration, (0.25, 0.75), ocr, deadline):
             return None, "text_in_preview"
         focus = _make_focus(frames, stamps, begin, actual_span)
         local_frames = [
@@ -379,18 +425,21 @@ def _attempt(
             ],
             deadline,
         )
-        rw, rh, output_dur = checks.probe_video(rendered)
+        rw, rh, output_dur = checks.probe_video(rendered, deadline=deadline)
         if rw != width or rh != height:
             return None, "bad_resolution"
         if output_dur < max(2.0, 0.42 * length):
             return None, "short_output"
-        black, frozen = checks.black_frozen(rendered)
+        black, frozen = checks.black_frozen(rendered, deadline=deadline)
         if black:
             return None, "black"
         if frozen:
             return None, "frozen"
-        if _ocr_positions(rendered, 0.0, output_dur, output_dur, (0.2, 0.5, 0.8), ocr):
+        if _ocr_positions(rendered, 0.0, output_dur, output_dur, (0.2, 0.5, 0.8), ocr, deadline):
             return None, "on_screen_text"
+        phash = checks.mid_phash(rendered, deadline=deadline)
+        if time.monotonic() >= deadline:
+            raise TimeoutError("scene timeout")
         return {
             "clip_id": candidate["clip_id"],
             "source_url": candidate.get("source_url"),
@@ -411,11 +460,14 @@ def _attempt(
             "src_h": sh,
             "out_w": rw,
             "out_h": rh,
-            "phash": checks.mid_phash(rendered),
+            "phash": phash,
+            **({"_analyzed_s": analyzed_duration} if analyzed_duration < duration else {}),
         }, "ok"
-    except (checks.CheckError, ClipSceneError, ValueError, KeyError, OSError) as exc:
-        if isinstance(exc, TimeoutError):
-            return None, "timeout"
+    except (TimeoutError, subprocess.TimeoutExpired):
+        return None, "timeout"
+    except checks.DecodeError:
+        return None, "decode_failed"
+    except (checks.CheckError, ClipSceneError, ValueError, KeyError, OSError, RuntimeError):
         return None, "processing_failed"
 
 
@@ -436,6 +488,7 @@ def clip_scene(
     root.mkdir(parents=True, exist_ok=True)
     final_clip = root / "clip.mp4"
     final_clip.unlink(missing_ok=True)
+    (root / "result.json").unlink(missing_ok=True)
     started = time.monotonic()
     try:
         timeout = float(os.environ.get("CLIPOTECA_SCENE_TIMEOUT", "600"))
@@ -458,6 +511,11 @@ def clip_scene(
     source = [assignment.get("primary")] if assignment.get("primary") else []
     source += list(assignment.get("backups", []))
     skipped = set(exclude)
+    evaluators_ready = False
+    try:
+        resolved_root = Path(local_root).resolve() if local_root is not None else None
+    except (OSError, RuntimeError):
+        resolved_root = None
     for index, candidate in enumerate(source):
         if not isinstance(candidate, dict) or not isinstance(candidate.get("clip_id"), str):
             raise ClipSceneError("assignment candidate missing clip_id")
@@ -481,14 +539,16 @@ def clip_scene(
                 if local:
                     _local_source(
                         candidate,
-                        Path(local_root) if local_root is not None else None,
+                        resolved_root,
                         downloaded,
                     )
                 else:
                     _download(candidate, downloaded, fetch)
-            except TimeoutError:
+            except (TimeoutError, subprocess.TimeoutExpired):
                 attempts.append({"clip_id": cid, "reason": "timeout"})
-                break
+                if time.monotonic() >= deadline:
+                    break
+                continue
             except ClipSceneError as exc:
                 reason = (
                     str(exc)
@@ -500,15 +560,9 @@ def clip_scene(
             except Exception:
                 attempts.append({"clip_id": cid, "reason": "download_failed"})
                 continue
-            if scorer is None:
-                try:
-                    from . import models
-                    from .clipscore import ClipScorer
-
-                    scorer = ClipScorer(models.cache_dir() / "clip-vit-b32")
-                except (OSError, RuntimeError, ValueError):
-                    attempts.append({"clip_id": cid, "reason": "processing_failed"})
-                    continue
+            if not evaluators_ready:
+                scorer, ocr = _initialize_evaluators(scorer, ocr)
+                evaluators_ready = True
             try:
                 result, reason = _attempt(
                     job, candidate, downloaded, rendered, scorer, ocr, deadline
@@ -516,6 +570,7 @@ def clip_scene(
             except TimeoutError:
                 result, reason = None, "timeout"
             if result is not None:
+                analyzed_s = result.pop("_analyzed_s", None)
                 os.replace(rendered, final_clip)
                 report = {
                     "version": 1,
@@ -525,11 +580,12 @@ def clip_scene(
                     "used": "primary" if index == 0 else "backup",
                     "tried": attempts,
                     "time_s": round(time.monotonic() - started, 3),
+                    **({"analyzed_s": analyzed_s} if analyzed_s is not None else {}),
                 }
                 _atomic_json(root / "result.json", report)
                 return report
             attempts.append({"clip_id": cid, "reason": reason})
-            if reason == "timeout":
+            if reason == "timeout" and time.monotonic() >= deadline:
                 break
     report = {
         "version": 1,
@@ -560,6 +616,8 @@ def main(argv: list[str] | None = None) -> int:
             exclude=args.exclude,
             local_root=args.local_root,
         )
+    except ClipSceneError as exc:
+        parser.exit(2, f"clipscene: {exc}\n")
     except (OSError, ValueError, KeyError, TypeError) as exc:
         parser.exit(2, f"clipscene: {type(exc).__name__}: invalid input or scene\n")
     return 0 if report["status"] == "ok" else 3
