@@ -10058,5 +10058,73 @@
     },
     "status": "published",
     "created_at": "2026-11-24T19:29:41.510760Z"
+  },
+  {
+    "id": "clip-000155",
+    "title": {
+      "es": "Vista seca de la carretera del desierto de atacama en Chile",
+      "en": "Drone view of atacama desert road in chile"
+    },
+    "description": {
+      "es": "Vista seca de la carretera del desierto de atacama en Chile",
+      "en": "Drone view of atacama desert road in chile"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "seca",
+        "carretera",
+        "desierto",
+        "atacama",
+        "Chile"
+      ],
+      "en": [
+        "Drone",
+        "view",
+        "atacama",
+        "desert",
+        "road",
+        "chile"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "33532411",
+      "source_language": "en",
+      "source_title": "drone-view-of-atacama-desert-road-in-chile-33532411",
+      "source_url": "https://www.pexels.com/video/drone-view-of-atacama-desert-road-in-chile-33532411/",
+      "source_start": 0.0,
+      "source_end": 13.0,
+      "found_by_query": "Atacama desert Chile"
+    },
+    "media": {
+      "duration_seconds": 12.996317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 17067047,
+      "sha256": "dedae7f44c8524c610209d528ebf54ec12f17bc59f2d9899ddd9888d4febf286",
+      "perceptual_hash": "df36a39289c462ad~2564.05:dc35a03e95c84ab7~2513.81:d526bf3881d7d821~2388.38:cc3ae3388c92ecb5~2137.65:d516c9769dd2d122~1900.88"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000155.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000155.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000155_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000155_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000155_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000155_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000155_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000155_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T19:29:41.510760Z"
   }
 ]
