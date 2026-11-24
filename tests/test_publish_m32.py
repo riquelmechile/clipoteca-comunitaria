@@ -318,6 +318,7 @@ class FakeGitHub:
     def writes(self, since=0):
         return [call for call in self.calls[since:] if call[0] in {"POST", "PUT", "DELETE"}]
 
+
 def test_real_clients_index_once_and_never_publish_video(setup):
     work, _, entries, _, _ = setup
     github = FakeGitHub([catalogue_record(1), catalogue_record(2)])
@@ -356,21 +357,23 @@ def test_delivery_records_failed_qa_and_all_indexed_clips(setup):
     }
     put(work / "guion.json", script)
     for name, entry in (("a", entries[0]), ("b", entries[2])):
-        put(work / "scenes" / name / "result.json", {
-            "status": "ok", "clip": {"clip_id": entry["imp_id"], "imported": True}
-        })
-    put(work / "scenes/c/result.json", {
-        "status": "ok", "clip": {"clip_id": "clip-000001"}
-    })
+        put(
+            work / "scenes" / name / "result.json",
+            {"status": "ok", "clip": {"clip_id": entry["imp_id"], "imported": True}},
+        )
+    put(work / "scenes/c/result.json", {"status": "ok", "clip": {"clip_id": "clip-000001"}})
     video = b"synthetic video"
     (work / "video.mp4").write_bytes(video)
     put(work / "render.json", {"duration_s": 8, "size_bytes": len(video)})
-    put(work / "qa_report.json", {
-        "script_id": script_id(parse_video_script(script)),
-        "video": {"size_bytes": len(video), "sha256": hashlib.sha256(video).hexdigest()},
-        "pass": False,
-        "failed": ["audio"],
-    })
+    put(
+        work / "qa_report.json",
+        {
+            "script_id": script_id(parse_video_script(script)),
+            "video": {"size_bytes": len(video), "sha256": hashlib.sha256(video).hexdigest()},
+            "pass": False,
+            "failed": ["audio"],
+        },
+    )
     put(work / "timings.json", {"render": 2})
     manifest = delivery.build_delivery(work, writer.path)
     assert manifest["qa"] == {"pass": False, "failed": ["audio"]}

@@ -422,7 +422,8 @@ def simple_queries(job, original):
     result = []
     for text in (job.get("title", ""), job["prompt"]):
         words = [
-            word for word in re.findall(r"[^\W\d_]+", text.casefold())
+            word
+            for word in re.findall(r"[^\W\d_]+", text.casefold())
             if word not in _QUERY_STOP and len(word) > 1
         ]
         for term in (" ".join(words[:3]), " ".join(words[:1])):
@@ -518,7 +519,9 @@ def import_scene(
                             # No aspect filter: clip-scene reframes any orientation to the
                             # target, and filtering here would discard most horizontal stock.
                             filters={"max_duration": duration_cap},
-                            horizon=f"studio-v1-{index}" if not simple else f"studio-simple-{index}",
+                            horizon=f"studio-v1-{index}"
+                            if not simple
+                            else f"studio-simple-{index}",
                             writer=writer,
                             storage=storage,
                             downloader=downloader,

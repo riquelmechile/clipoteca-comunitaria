@@ -594,7 +594,8 @@ def clip_scene(
                         result["sim"] >= job["catalog_min_sim"]
                     )
                     if best is None or (result["sim"], result["score"]) > (
-                        best["clip"]["sim"], best["clip"]["score"]
+                        best["clip"]["sim"],
+                        best["clip"]["score"],
                     ):
                         os.replace(rendered, final_clip)
                         best = report

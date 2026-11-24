@@ -302,7 +302,6 @@ class DryStorage:
         self._ids[asset_id].unlink(missing_ok=True)
 
 
-
 def _collect(work, created):
     imports = {}
     paths = [
