@@ -527,6 +527,12 @@ async def ingest(
             with tempfile.TemporaryDirectory(prefix="clipoteca-ingest-") as work:
                 temp = Path(work)
                 try:
+                    # Studio text gate uses source metadata, never the search terms.
+                    # Do it before resolving media or starting any download.
+                    if scene_budget:
+                        localized = localize_candidate(candidate, translator=translator)
+                        if not scene_budget.candidate_text_good(candidate, localized):
+                            continue
                     advance("fetching")
                     ref = await adapter.direct_media(candidate)
                     if ref is None:
@@ -535,7 +541,8 @@ async def ingest(
                         continue
 
                     # Search terms are not evidence of the video's contents.
-                    localized = localize_candidate(candidate, translator=translator)
+                    if not scene_budget:
+                        localized = localize_candidate(candidate, translator=translator)
                     if scene_budget:
                         if scene_budget.reason():
                             break
@@ -570,6 +577,8 @@ async def ingest(
                             user_agent=ref.user_agent,
                         )
                     downloaded_count += 1
+                    if scene_budget:
+                        scene_budget.downloads_completed += 1
                     advance("processing")
                     windows = _candidate_windows(
                         raw,

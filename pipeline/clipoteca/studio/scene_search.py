@@ -33,6 +33,8 @@ class SceneBudget:
     searches_started: int = 0
     searches_cancelled: int = 0
     downloads_started: int = 0
+    downloads_completed: int = 0
+    text_checked: dict[str, bool] = field(default_factory=dict)
     discovered: set[str] = field(default_factory=set)
     attempted: set[str] = field(default_factory=set)
     visual_match: Callable[[dict], bool] | None = None
@@ -79,18 +81,7 @@ class SceneBudget:
             self.rejected.add(key)
             self.rejections[reason] = self.rejections.get(reason, 0) + 1
 
-    def good(self, record):
-        media = record["media"]
-        length = float(self.job["len_est"])
-        if (
-            media["duration_seconds"] < 0.42 * length
-            or fit_mode(media["duration_seconds"], length) is None
-        ):
-            self._reject(record, "too_short")
-            return False
-        if min(media["width"], media["height"]) < self.job.get("min_short_side", 720):
-            self._reject(record, "low_resolution")
-            return False
+    def text_good(self, record):
         # Searchable query terms are never evidence; check actual source/title.
         queries = self.job["queries"]
         relevant = library.sufficient_query_match(record, queries["es"] + queries["en"])
@@ -106,7 +97,40 @@ class SceneBudget:
             queries["en"],
             [],
         )
-        if not (relevant and (score > 0 or score == unpenalized)):
+        return relevant and (score > 0 or score == unpenalized)
+
+    def candidate_text_good(self, candidate, localized):
+        key = candidate.origin_id
+        if key not in self.text_checked:
+            source = {"source_title": localized.original_title}
+            if candidate.provider == "wikimedia_commons":
+                source.update(
+                    {
+                        name: candidate.metadata[name]
+                        for name in ("commons_category", "commons_place_aliases")
+                        if candidate.metadata and name in candidate.metadata
+                    }
+                )
+            self.text_checked[key] = self.text_good(
+                {"title": localized.title, "source": source}
+            )
+            if not self.text_checked[key]:
+                self._reject({"id": key}, "text_gate")
+        return self.text_checked[key]
+
+    def good(self, record):
+        media = record["media"]
+        length = float(self.job["len_est"])
+        if (
+            media["duration_seconds"] < 0.42 * length
+            or fit_mode(media["duration_seconds"], length) is None
+        ):
+            self._reject(record, "too_short")
+            return False
+        if min(media["width"], media["height"]) < self.job.get("min_short_side", 720):
+            self._reject(record, "low_resolution")
+            return False
+        if not self.text_good(record):
             self._reject(record, "text_gate")
             return False
         digest = str(media.get("sha256") or id(record)).lower()
@@ -232,6 +256,13 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
                 if scene_budget.reason():
                     break
                 result = await task
+                # Discovery has completed; media processing may still time out.
+                if (
+                    scene_budget.place
+                    and adapter.name == "wikimedia_commons"
+                    and adapter.support_status in _SEARCHABLE
+                ):
+                    scene_budget.commons_consulted = True
                 if scene_budget.reason():
                     break
                 unique = [c for c in result.candidates if c.origin_id not in seen]
@@ -248,12 +279,6 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
                 )
                 # Evaluate the final candidate too, even if no other wave follows.
                 scene_budget.relevant_count()
-                if (
-                    scene_budget.place
-                    and adapter.name == "wikimedia_commons"
-                    and adapter.support_status in _SEARCHABLE
-                ):
-                    scene_budget.commons_consulted = True
                 index += 1
                 last = report.request_id
                 errors.extend(report.errors)
