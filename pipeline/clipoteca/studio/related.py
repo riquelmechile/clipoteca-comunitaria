@@ -5,6 +5,9 @@ from __future__ import annotations
 import asyncio
 import re
 from contextvars import ContextVar
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -13,11 +16,16 @@ from ..place_names import _words, aliases, query_names
 MAX_RELATED = 8
 LOOKUP_SECONDS = 6
 SEED_CONCURRENCY = 4
+BATCH_SECONDS = 25
+HOST_CONCURRENCY = 3
 _REQUEST_SECONDS = 1.8
+_HOSTS = ContextVar("related_hosts", default=None)
+_RESPONSE_CACHE = ContextVar("related_response_cache", default=None)
+_DEADLINE = ContextVar("related_deadline", default=None)
 _ERRORS = ContextVar("related_errors", default=None)
 WIKIDATA = "https://www.wikidata.org/w/api.php"
 COMMONS = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "Clipoteca/3.0 (https://github.com/riquelmechile/clipoteca-comunitaria)"
+USER_AGENT = "Clipoteca/3.0 related-place discovery (https://github.com/riquelmechile/clipoteca-comunitaria)"
 
 
 def _key(term):
@@ -252,32 +260,92 @@ def _place_hint(queries, seed):
     return False
 
 
+def _retry_delay(value):
+    if value:
+        try:
+            return max(0.0, float(value))
+        except ValueError:
+            try:
+                date = parsedate_to_datetime(value)
+                if date.tzinfo is None:
+                    date = date.replace(tzinfo=timezone.utc)
+                return max(0.0, (date - datetime.now(timezone.utc)).total_seconds())
+            except (TypeError, ValueError, OverflowError):
+                pass
+    return 0.5
+
+
+def _record_error(params, exc, *, status=None, retry=False, delay=None):
+    errors = _ERRORS.get()
+    if errors is not None:
+        row = {
+            "action": params.get("list") or params.get("action"),
+            "query": params.get("srsearch") or params.get("search") or params.get("cmtitle"),
+            "error": type(exc).__name__,
+            "detail": str(exc)[:160],
+            "http_status": status,
+            "retry": retry,
+        }
+        if delay is not None:
+            row["retry_after_s"] = round(delay, 3)
+        errors.append(row)
+
+
 async def _json(client, url, **params):
-    async with asyncio.timeout(_REQUEST_SECONDS):
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        payload = response.json()
-        if "error" in payload:
-            raise ValueError(str(payload["error"].get("code", "api_error")))
-        return payload
+    params.setdefault("maxlag", 5)
+    loop = asyncio.get_running_loop()
+    hosts = _HOSTS.get()
+    host = urlsplit(url).hostname
+    gate = hosts[host] if hosts is not None else {
+        "lock": asyncio.Semaphore(HOST_CONCURRENCY), "until": 0.0
+    }
+    cache = _RESPONSE_CACHE.get()
+    key = (url, tuple(sorted(params.items())))
+    if cache is not None and key in cache:
+        return cache[key]
+    deadline = _DEADLINE.get()
+    for attempt in range(2):
+        # Cooldown is shared across all seeds using the same Wikimedia host.
+        async with gate["lock"]:
+            while gate["until"] > loop.time():
+                delay = gate["until"] - loop.time()
+                if deadline is not None and loop.time() + delay >= deadline:
+                    raise TimeoutError("host Retry-After exceeds remaining lookup budget")
+                await asyncio.sleep(delay)
+            async with asyncio.timeout(_REQUEST_SECONDS):
+                response = await client.get(url, params=params)
+            payload = {}
+            if response.is_success:
+                payload = response.json()
+            api_error = payload.get("error", {})
+            transient = response.status_code in (429, 503) or api_error.get("code") == "maxlag"
+            if transient:
+                delay = _retry_delay(response.headers.get("Retry-After"))
+                gate["until"] = max(gate["until"], loop.time() + delay)
+                if attempt == 0:
+                    _record_error(
+                        params,
+                        ValueError("Wikimedia throttled request"),
+                        status=response.status_code,
+                        retry=True,
+                        delay=delay,
+                    )
+                    continue
+            response.raise_for_status()
+            if api_error:
+                raise ValueError(str(api_error.get("code", "api_error")))
+            if cache is not None:
+                cache[key] = payload
+            return payload
+    raise RuntimeError("unreachable retry state")
 
 
 async def _optional_json(client, url, **params):
     try:
         return await _json(client, url, **params)
     except (TimeoutError, httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as exc:
-        errors = _ERRORS.get()
-        if errors is not None:
-            errors.append(
-                {
-                    "action": params.get("list") or params.get("action"),
-                    "query": params.get("srsearch")
-                    or params.get("search")
-                    or params.get("cmtitle"),
-                    "error": type(exc).__name__,
-                    "detail": str(exc)[:160],
-                }
-            )
+        response = exc.response if isinstance(exc, httpx.HTTPStatusError) else None
+        _record_error(params, exc, status=response.status_code if response is not None else None)
         return {}
 
 
@@ -336,6 +404,42 @@ async def _search_entities(client, seed, lang):
     return payload.get("search", [])
 
 
+_UNFILMABLE = re.compile(
+    r"\b(?:experiment|experiments|scientific instrument|telescope array|"
+    r"radio telescope|cosmology project|observational program|"
+    r"experimento|instrumento cientifico|programa|program|programme|"
+    r"derrumbe|collapse|accident|disaster|accidente|hike|trekking|"
+    r"walking tour|excursion|animita|animitas|memorial to|memorial de|"
+    r"archive|archives|archivo|archivos|administrative office|"
+    r"government agency|government institution|institucion administrativa)\b"
+)
+_SETTLEMENT_BUCKET = re.compile(
+    r"^(?:populated places|settlements|cities|towns|villages|municipalities|"
+    r"communes|localities|localidades|comunas|municipios)\b"
+)
+
+
+def _unfilmable(value):
+    key = _key(value)
+    return bool(
+        _UNFILMABLE.search(key)
+        or re.search(r"\b(?:array|collaboration|survey project)\b", key)
+        or (len(value) >= 7 and value.isalpha() and value.isupper())
+    )
+
+
+def _place_priority(entity):
+    if _claim_ids(entity, "P31") & {"Q515", "Q3957", "Q532", "Q486972", "Q15284"}:
+        return 0
+    if re.search(
+        r"\b(?:municipality|commune|town|village|city|neighborhood|"
+        r"municipio|comuna|localidad|ciudad|barrio)\b",
+        _key(_entity_text(entity, [])),
+    ):
+        return 0
+    return 1
+
+
 def _child_term(term, variants):
     # Commons disambiguation suffixes are not a search term ("Castro, Chile").
     term = term.split(",", 1)[0].strip()
@@ -348,6 +452,7 @@ def _child_term(term, variants):
         or _META_PREFIX.search(key)
         or _META_PHRASE.search(key)
         or _PLURAL_CATEGORY.search(key)
+        or _unfilmable(term)
         or re.fullmatch(r"Q\d+", term)
     ):
         return None
@@ -360,14 +465,19 @@ def _child_term(term, variants):
 
 async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_ready):
     variants = _variants(seed)
-    searches = [(seed, "en"), (seed, "es")]
-    searches.extend((name, "en") for name in sorted(variants - {seed})[:2])
+    # One entity search per name; bilingual labels are fetched together below.
+    # Prefer the widely used English alias where available.
+    searches = [(seed, "en")]
     if topic in _ROOT_TOPICS:
-        searches.insert(0, (f"{seed} {topic}", "en"))
+        searches = [(f"{seed} {topic}", "en"), (seed, "en")]
     search_terms = [*searches, *((name, "en") for name in context)]
     groups = await asyncio.gather(
         *(_search_entities(client, name, lang) for name, lang in search_terms)
     )
+    if not any(groups[: len(searches)]) and len(variants) > 1:
+        alternate = sorted(variants - {seed})[0]
+        groups.insert(len(searches), await _search_entities(client, alternate, "en"))
+        searches.append((alternate, "en"))
     matches = {}
     for hits in groups[: len(searches)]:
         for hit in hits:
@@ -469,14 +579,13 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
     # CirrusSearch uses the indexed statements and incoming links; avoid WDQS.
     child_topic = topic if topic not in _ROOT_TOPICS else None
     root_ids = {qid for qid, _ in roots}
+    # Combine statements into one ranked request per root, instead of 12-24 calls.
     specifications = [
-        (qid, prop, keyword)
-        for prop in ("P131", "P276", "P706", "P361")
+        (qid, ("P131", "P276", "P706", "P361"), child_topic or "")
         for qid, _ in roots
-        for keyword in (("temple", "shrine") if child_topic == "temple" else ("",))
     ]
     groups = await asyncio.gather(
-        *(_search_children(client, qid, prop, keyword) for qid, prop, keyword in specifications)
+        *(_search_children(client, qid, props, keyword) for qid, props, keyword in specifications)
     )
     # Stable round robin across root/relationship rankings, not completion order.
     ids = list(dict.fromkeys(qid for qid in _interleave(groups, limit=20) if qid not in root_ids))
@@ -486,7 +595,7 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
         for qid in sorted(_claim_ids(entity, "P527"))
         if qid not in root_ids
     ]
-    ids = list(dict.fromkeys([*parts, *ids]))[:80]
+    ids = list(dict.fromkeys([*ids, *parts]))[:40]
     if not ids:
         return []
     # Preserve verified children after each completed label batch, even if another
@@ -498,7 +607,7 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
         rows = []
         for qid in ids:
             entity = children.get(qid, {})
-            if not _geo(entity) or _bad(entity, []):
+            if not _geo(entity) or _bad(entity, []) or _unfilmable(_entity_text(entity, [])):
                 continue
             if child_topic and not _topic_matches(child_topic, _entity_text(entity, [])):
                 continue
@@ -510,8 +619,11 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
                 continue
             term = _child_term(_label(entity), variants)
             if term:
-                rows.append({"term": term, "origin": "wikidata"})
-        state["terms"] = rows
+                rows.append((
+                    _place_priority(entity),
+                    {"term": term, "origin": "wikidata"},
+                ))
+        state["terms"] = [row for _, row in sorted(rows, key=lambda pair: pair[0])]
 
     await asyncio.gather(*(load(ids[i : i + 40]) for i in range(0, len(ids), 40)))
     return state.get("terms", [])
@@ -560,10 +672,10 @@ def _interleave(groups, *, limit=MAX_RELATED):
     return [group[index] for index in range(limit) for group in groups if index < len(group)]
 
 
-async def _search_children(client, root, prop, keyword):
-    query = f"haswbstatement:{prop}={root}"
+async def _search_children(client, root, props, keyword):
+    query = "(" + " OR ".join(f"haswbstatement:{prop}={root}" for prop in props) + ")"
     if keyword:
-        query += f" {keyword}"
+        query += " (temple OR shrine)" if keyword == "temple" else f" {keyword}"
     payload = await _optional_json(
         client,
         WIKIDATA,
@@ -572,7 +684,7 @@ async def _search_children(client, root, prop, keyword):
         srnamespace=0,
         srsearch=query,
         srsort="incoming_links_desc",
-        srlimit=20,
+        srlimit=16,
         format="json",
     )
     return [
@@ -680,7 +792,11 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     child_topic = topic if topic not in _ROOT_TOPICS else None
     if child_topic:
         buckets = [title for title in buckets if _topic_matches(child_topic, title)]
-    buckets.sort(key=lambda title: (_key(title[9:]).startswith("geography"), title))
+    buckets.sort(key=lambda title: (
+        not _SETTLEMENT_BUCKET.search(_key(title[9:])),
+        _key(title[9:]).startswith("geography"),
+        title,
+    ))
     direct = [
         {"term": term, "origin": "commons"}
         for title in categories
@@ -688,7 +804,7 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     ]
     state["terms"] = direct
     # Retain completed buckets at the deadline, in fixed bucket order.
-    buckets = buckets[:8]
+    buckets = buckets[:3]
     groups = [[] for _ in buckets]
 
     async def descend(index, title):
@@ -698,7 +814,12 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             for member in members
             if (term := _child_term(member[9:], root_variants))
         ]
-        state["terms"] = _interleave([*groups, direct])
+        # Settlement containers outrank individual landmarks.
+        towns = [row for bucket, group in zip(buckets, groups, strict=True)
+                 if _SETTLEMENT_BUCKET.search(_key(bucket[9:])) for row in group]
+        other = [group for bucket, group in zip(buckets, groups, strict=True)
+                 if not _SETTLEMENT_BUCKET.search(_key(bucket[9:]))]
+        state["terms"] = towns + _interleave([*other, direct])
 
     await asyncio.gather(*(descend(i, title) for i, title in enumerate(buckets)))
     return state.get("terms", [])
