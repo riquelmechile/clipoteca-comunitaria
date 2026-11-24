@@ -418,7 +418,14 @@ def test_failed_assembly_manifest_without_video(tmp_path):
     put(work / "scenes/a/timing-import.json", {"import": 30})
     put(
         work / "scenes/a/import/imported.json",
-        {"termination_reason": "enough", "time_s": 29.5, "searches_avoided": 12},
+        {
+            "termination_reason": "enough",
+            "time_s": 29.5,
+            "searches_avoided": 12,
+            "raw_count": 10,
+            "relevant_count": 3,
+            "commons_consulted": True,
+        },
     )
     writer = Writer(tmp_path / "catalogue")
     result = delivery.build_delivery(work, writer.path)
@@ -430,6 +437,9 @@ def test_failed_assembly_manifest_without_video(tmp_path):
     assert result["timings"]["scene.a.import.termination_reason.enough"] == 1
     assert result["timings"]["scene.a.import.time_s"] == 29.5
     assert result["timings"]["scene.a.import.searches_avoided"] == 12
+    assert result["timings"]["scene.a.import.raw_count"] == 10
+    assert result["timings"]["scene.a.import.relevant_count"] == 3
+    assert result["timings"]["scene.a.import.commons_consulted"] is True
 
 
 def test_catalogue_conflict_reloads_and_reassigns_without_deleting_assets(setup, monkeypatch):

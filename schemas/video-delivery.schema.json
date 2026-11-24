@@ -178,6 +178,11 @@
     },
     "timings": {
       "type": "object",
+      "patternProperties": {
+        "^scene\\..+\\.(import|import_retry)\\.commons_consulted$": {
+          "type": "boolean"
+        }
+      },
       "additionalProperties": {
         "type": "number",
         "minimum": 0

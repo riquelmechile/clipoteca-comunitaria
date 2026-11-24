@@ -29,6 +29,9 @@ def _timings(work):
                 "searches_cancelled",
                 "downloads_started",
                 "downloads_avoided",
+                "raw_count",
+                "relevant_count",
+                "commons_consulted",
             ):
                 if key in report:
                     timings[f"scene.{folder.name}.{stage}.{key}"] = report[key]
