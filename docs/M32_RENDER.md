@@ -60,7 +60,7 @@ solo en index con contents: write. En el Worker, CLIPOTECA_DISPATCH_TOKEN
 necesita actions: read y write sobre este repositorio; CLIPOTECA_WRITE_TOKEN
 autoriza nuevas solicitudes. El id de descarga es una credencial, no debe
 registrarse ni compartirse. Los POST de video tienen cuota propia (5 minutos
-entre solicitudes y 12 por día UTC por IP, Cache API best-effort); la cuota
+entre solicitudes y 50 por día UTC por IP, Cache API best-effort); la cuota
 normal de importación no cambia. Tras aceptar el POST puede haber un 404
 transitorio mientras aparece el run; reintentar. La descarga admite Range,
 streaming para ZIP almacenado y fallback deflate de hasta 8 MB. El estado

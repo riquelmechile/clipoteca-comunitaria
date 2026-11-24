@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import worker from "../src/index";
-import {quota, resetQuotaReservations} from "../src/quota";
+import {quota, resetQuotaReservations, VIDEO_DAILY_LIMIT} from "../src/quota";
 import {zipEntry} from "../src/video-zip";
 
 const id = "a".repeat(32);
@@ -209,7 +209,8 @@ describe("streaming and isolated video quota",()=>{
     expect(await quota(req,"video")).toBe(false);
     const cooldown=[...saved.keys()].find(k=>/^\/_quota\/video\/[a-f0-9]{24}$/.test(new URL(k).pathname))!;
     expect(saved.get(cooldown)?.headers.get("cache-control")).toBe("public, max-age=300");
-    for(let i=1;i<12;i++){saved.delete(cooldown);expect(await quota(req,"video")).toBe(true);}
+    expect(VIDEO_DAILY_LIMIT).toBe(50);
+    for(let i=1;i<VIDEO_DAILY_LIMIT;i++){saved.delete(cooldown);expect(await quota(req,"video")).toBe(true);}
     saved.delete(cooldown);
     expect(await quota(req,"video")).toBe(false);
   });
