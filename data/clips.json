@@ -9730,5 +9730,70 @@
     },
     "status": "published",
     "created_at": "2026-11-24T15:25:33.317386Z"
+  },
+  {
+    "id": "clip-000150",
+    "title": {
+      "es": "Viaje impresionante a través de torres del dolore",
+      "en": "Breathtaking journey through torres del paine"
+    },
+    "description": {
+      "es": "Viaje impresionante a través de torres del dolore",
+      "en": "Breathtaking journey through torres del paine"
+    },
+    "tags": {
+      "es": [
+        "Viaje",
+        "impresionante",
+        "través",
+        "torres",
+        "dolore"
+      ],
+      "en": [
+        "Breathtaking",
+        "journey",
+        "through",
+        "torres",
+        "paine"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35564897",
+      "source_language": "en",
+      "source_title": "breathtaking-journey-through-torres-del-paine-35564897",
+      "source_url": "https://www.pexels.com/video/breathtaking-journey-through-torres-del-paine-35564897/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 8238781,
+      "sha256": "137422b8c1730e3ac6fa2a46dc025a05fb1e29fcf2bc9aaf099690851a5744f4",
+      "perceptual_hash": "8cb7743f01e0769c~4670.99:95b67a158c6ab48d~5114.98:95926a17056a3eb7~4711.99:92d82d5912767d93~5197.92:cceab3664c99338c~4498.41"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000150.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000150.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000150_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000150_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000150_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000150_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000150_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000150_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T17:04:33.137242Z"
   }
 ]
