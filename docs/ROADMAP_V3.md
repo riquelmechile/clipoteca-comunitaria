@@ -38,7 +38,7 @@ Agente ──MCP/REST──▶ Worker ──workflow_dispatch──▶ render.ym
 
 ## Bloque H — contrato
 
-- [x] **M25 · Roadmap v3 + contrato del guion (1 PR).** Este documento. `schemas/video.schema.json` y `pipeline/clipoteca/studio/script.py`: `title`, `aspect` (9:16, 16:9, 1:1), `language`, `music {mood, bpm}`, `voice {voice, speed, lexicon}`, `scenes[] {id, type intro|fact|outro, title, sub, say, caption, query {es, en}, prompt, avoid}`. Validación estricta (rechaza claves desconocidas), 3 a 12 escenas, estimación de duración desde el texto, identificador determinista del guion. Sin render y sin dependencias nuevas. **Aceptación:** CI verde, fixtures de guiones válidos e inválidos. **Estado:** Código y pruebas en main.
+- [x] **M25 · Roadmap v3 + contrato del guion (1 PR).** Este documento. `schemas/video.schema.json` y `pipeline/clipoteca/studio/script.py`: `title`, `aspect` (9:16, 16:9, 1:1), `language`, `music {mood, bpm}`, `voice {voice, speed, lexicon}`, `scenes[] {id, type intro|fact|outro, title, sub, say, caption, query {es, en}, prompt, avoid}`. Validación estricta (rechaza claves desconocidas), 3 a 12 escenas, estimación de duración desde el texto, identificador determinista del guion. Sin render y sin dependencias nuevas. **Aceptación:** CI verde, fixtures de guiones válidos e inválidos. **Estado:** (#84) Código y pruebas en main.
 
 ## Bloque I — las tres piezas paralelas (independientes entre sí)
 

@@ -61,7 +61,7 @@ Los dos casos locales de M30 usaron HyperFrames 0.9.36 y GSAP 3.15.1. No son una
 ### Qué falta
 
 - Workflow de video en Actions que encadene las etapas, reintente escenas y serialice la publicación.
-- Todavía no existen los endpoints de video ni las tools MCP de render y estado.
+- Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
 - Importar material nuevo dentro del flujo de video y validarlo de punta a punta en Actions.
 - Tipografía propia incrustada y franja de título adaptada al sujeto.
 - Validación integral de los tres formatos, tiempos y costos por etapa, y versión 3.0.0.

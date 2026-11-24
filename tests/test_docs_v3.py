@@ -42,9 +42,9 @@ def _parser_options(module):
     for node in main.body:
         if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
             call = node.value
-            if not isinstance(call.func, ast.Attribute) or not isinstance(
-                node.targets[0], ast.Name
-            ):
+            if not isinstance(call.func, ast.Attribute):
+                continue
+            if not isinstance(node.targets[0], ast.Name):
                 continue
             name = node.targets[0].id
             if call.func.attr == "ArgumentParser":
