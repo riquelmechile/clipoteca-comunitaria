@@ -83,7 +83,11 @@ subtítulo conserva el texto escrito.
 | music | mood upbeat, chill o epic; bpm 60–180 (120 por defecto) |
 | voice | M1–M5 o F1–F5; speed 0,8–1,5; lexicon opcional; F1 y 1,2 por defecto |
 | scenes | 3–12; ID único; type intro, fact u outro; al menos una fact |
-| Campos de escena | id, type, title, say, query.es, query.en, prompt; opcionales sub, caption, avoid |
+| Campos de escena | id, type, title, say, query.es, query.en, prompt; opcionales sub, caption, avoid, query.related |
+
+`query.related` acepta listas opcionales `es` y `en` de hasta ocho terminos por idioma
+(por ejemplo, `{"es":["Castro","Ancud"],"en":["Chiloe churches"]}`). Deben ser
+conceptos o lugares vinculados realmente a la escena, no palabras de relleno.
 
 El plan rechaza estimaciones superiores a 60 segundos; la línea de tiempo
 rechaza duraciones reales mayores y QA comprueba el MP4. La entrada del
@@ -274,3 +278,39 @@ En la corrida real 45322952524 (Chile, de norte a sur, ocho escenas, voz
 diferencia. El nuevo cálculo separa explícitamente voz de duración
 del montaje. Es una corrección metodológica, no una medición de error
 típico ni una validación posterior en producción.
+
+
+### Busqueda relacionada (v3)
+
+- El motor considera hasta ocho terminos distintos por escena, primero los del guion,
+  despues Wikidata (busqueda indexada de declaraciones, sin SPARQL; desambiguacion por coordenadas/clase geografica, pais y
+  notoriedad; hasta tres raices relacionadas; hijos por ubicacion/partes) y Commons
+  (subcategorias de lugares, filtrando categorias meta y eventos fechados).
+  Las consultas fallidas se omiten. Para nombres ambiguos se consulta el termino
+  junto al lugar padre (por ejemplo, Castro Chiloe), sin modificar tags ni
+  rebajar el gate visual. `related_queries` registra la consulta efectiva.
+- El plan permanece offline por defecto. En el render real se debe agregar
+  `--resolve-related` al comando existente de `clipoteca.studio.plan` de
+  `.github/workflows/render.yml` (sin otros cambios). El plan comparte una cache
+  por render y un presupuesto de 6 segundos por semilla, con hasta cuatro semillas concurrentes; los plazos de busqueda de clips no cambian.
+- La primera ronda conserva el 60% del presupuesto de importacion cuando hay
+  relacionados; estos usan el resto con descubrimiento concurrente y escrituras
+  locales seriales. El retry usa relacionados, o consultas simplificadas no
+  repetidas si no existen. Los limites existentes de 600 y 180 s no cambian.
+- El gate usa metadata real, nunca los tags inyectados; CLIP sigue siendo obligatorio.
+  `source.found_by_query` y `source.related_to` guardan procedencia solamente.
+- `imported.json` registra terminos usados y disponibles con su origen. `entrega.json`
+  registra los relacionados de cada escena, `matched_query` y `found_by_query` si
+  corresponde. `timings.json` mantiene valores numericos: claves
+  `scene.ID.related_terms.ORIGEN.TERMINO` y `scene.ID.matched_query.TERMINO` valen 1.
+- El Worker requiere redeploy para anunciar el nuevo campo opcional en MCP.
+
+Prueba de red manual (fuera del CI):
+
+```sh
+uv run --no-sync python scripts/smoke_related.py --batch "Chiloé" "Easter Island" "Kyoto temples" "Santiago Chile city"
+```
+
+Imprime por consulta las semillas, raices Wikidata (QID y etiqueta), categorias
+raiz de Commons, terminos con origen, errores/timeouts por proveedor y latencia del lote. Los tests usan transportes HTTP
+simulados y no demuestran los resultados actuales de los servicios externos.

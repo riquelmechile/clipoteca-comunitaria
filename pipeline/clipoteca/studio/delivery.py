@@ -7,13 +7,34 @@ from pathlib import Path
 
 from ..catalog import Catalog
 from .index import _atomic, _digest, _read, _validator
+from .related import merge_terms, related_terms
 from .script import parse_video_script, script_id
+
+
+def _related_evidence(folder):
+    job_path = folder / "job.json"
+    if not job_path.is_file():
+        return []
+    job = _read(job_path)
+    groups = [related_terms(job)]
+    for name in ("import", "import-retry"):
+        manifest = folder / name / "imported.json"
+        if manifest.is_file():
+            groups.append(_read(manifest).get("related_terms", []))
+    return merge_terms(job["queries"], *groups)
 
 
 def _timings(work):
     path = work / "timings.json"
     timings = _read(path) if path.is_file() else {}
     for folder in sorted((work / "scenes").glob("*")):
+        for row in _related_evidence(folder):
+            timings[f"scene.{folder.name}.related_terms.{row['origin']}.{row['term']}"] = 1
+        selected = folder / "result.json"
+        if selected.is_file():
+            term = _read(selected).get("clip", {}).get("matched_query")
+            if term:
+                timings[f"scene.{folder.name}.matched_query.{term}"] = 1
         for path in sorted(folder.glob("timing*.json")):
             for key, value in _read(path).items():
                 timings[f"scene.{folder.name}.{key}"] = value
@@ -77,6 +98,8 @@ def build_delivery(work, catalog_path):
         folder = work / "scenes" / scene.id
         path = folder / "result.json"
         result = _read(path) if path.is_file() else {}
+        related = _related_evidence(folder)
+        evidence = {"related_terms": related} if related else {}
         if result.get("status") != "ok":
             rows.append(
                 {
@@ -84,6 +107,7 @@ def build_delivery(work, catalog_path):
                     "status": "fail",
                     "reason": result.get("reason", "missing_result"),
                     "tried": result.get("tried", []),
+                    **evidence,
                 }
             )
             continue
@@ -112,6 +136,8 @@ def build_delivery(work, catalog_path):
                 "origin": "imported" if imported else "catalog",
                 "source": record["source"]["provider"],
                 "source_url": record["source"]["source_url"],
+                **evidence,
+                **{key: clip[key] for key in ("matched_query", "found_by_query") if clip.get(key)},
             }
         )
     if any(row["status"] == "fail" for row in rows):

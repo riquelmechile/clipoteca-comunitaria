@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import re
@@ -108,7 +109,14 @@ def scene_job(script: VideoScript, scene: SceneSpec, est: dict[str, Any]) -> dic
         "len_est": est["len_est"],
         "len_fetch": est["len_fetch"],
         "start_est": est["start_est"],
-        "queries": {lang: list(scene.query[lang]) for lang in ("es", "en")},
+        "queries": {
+            **{lang: list(scene.query[lang]) for lang in ("es", "en")},
+            **(
+                {"related": {lang: list(terms) for lang, terms in scene.query["related"].items()}}
+                if "related" in scene.query
+                else {}
+            ),
+        },
         "prompt": scene.prompt,
         "avoid": list(scene.avoid),
         "negatives": NEG.copy(),
@@ -139,20 +147,26 @@ def write_plan(
     script: VideoScript,
     out_dir: str | Path,
     catalog_path: str | Path | None = None,
+    *,
+    resolve_related: bool = False,
 ) -> dict[str, Any]:
     """Write plan and one job per scene, rejecting unsafe IDs before any write."""
     for scene in script.scenes:
         _safe_scene_id(scene.id)
     plan = build_plan(script)
     root = Path(out_dir)
+    jobs = [
+        scene_job(script, scene, est)
+        for scene, est in zip(script.scenes, plan["scenes"], strict=True)
+    ]
+    if resolve_related:
+        from .related import resolve_jobs
+
+        asyncio.run(resolve_jobs(jobs))
     assignments = None
     if catalog_path is not None:
         from .library import assign_scenes, load_catalog
 
-        jobs = [
-            scene_job(script, scene, est)
-            for scene, est in zip(script.scenes, plan["scenes"], strict=True)
-        ]
         listed = assign_scenes(jobs, load_catalog(catalog_path))
         assignments = {
             "version": 1,
@@ -166,9 +180,9 @@ def write_plan(
                 for item in listed
             },
         }
-    for scene, est in zip(script.scenes, plan["scenes"], strict=True):
+    for scene, job in zip(script.scenes, jobs, strict=True):
         folder = root / "scenes" / scene.id
-        _atomic_json(folder / "job.json", scene_job(script, scene, est))
+        _atomic_json(folder / "job.json", job)
         if assignments is not None:
             _atomic_json(folder / "assignment.json", assignments["scenes"][scene.id])
     if assignments is not None:
@@ -182,10 +196,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--script", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--catalog", type=Path)
+    parser.add_argument("--resolve-related", action="store_true")
     args = parser.parse_args(argv)
     try:
         script = parse_video_script(json.loads(args.script.read_text(encoding="utf-8")))
-        plan = write_plan(script, args.out, args.catalog)
+        plan = write_plan(script, args.out, args.catalog, resolve_related=args.resolve_related)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         parser.exit(2, f"plan: {exc}\n")
     print(

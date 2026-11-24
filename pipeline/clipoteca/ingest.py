@@ -673,6 +673,7 @@ async def ingest(
                                     "source_url": safe_source_url(candidate.source_url),
                                     "source_start": window.start,
                                     "source_end": window.end,
+                                    **(scene_budget.provenance(query) if scene_budget else {}),
                                     **(
                                         {
                                             key: candidate.metadata[key]

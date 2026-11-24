@@ -57,7 +57,8 @@ jobs:
           mkdir -p work
           printf '%s' "$SCRIPT_JSON" > work/guion.json
           uv run --no-sync python -m clipoteca.studio.plan \
-            --script work/guion.json --out work/plan --catalog data/clips.json
+            --script work/guion.json --out work/plan --catalog data/clips.json \
+            --resolve-related
           uv run --no-sync python - <<'PY' >> "$GITHUB_OUTPUT"
           import json
           plan = json.load(open("work/plan/plan.json", encoding="utf-8"))

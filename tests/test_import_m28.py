@@ -680,3 +680,36 @@ def test_irrelevant_candidate_is_never_downloaded(tmp_path, videos, engine):
     assert result["downloads_completed"] == 2
     assert result["text_evaluated"] >= 3
     assert result["evaluated_count"] >= 2
+
+
+def test_related_retry_does_not_repeat_primary_queries(tmp_path, monkeypatch):
+    job = load("job.json")
+    job["queries"] = {
+        "es": ["Chilo\u00e9"],
+        "en": ["Chiloe Island"],
+        "related": {"es": ["Castro", "Ancud"]},
+    }
+
+    async def forbidden(*args, **kwargs):
+        pytest.fail("retry must not repeat primary queries")
+
+    async def related(queries, adapters, *, on_query, **kwargs):
+        for query in queries:
+            on_query(query)
+        return IngestReport("fixture", "no_results", (), ())
+
+    monkeypatch.setattr(importer, "ingest", forbidden)
+    monkeypatch.setattr(importer, "ingest_related", related)
+    report = import_scene(
+        job,
+        tmp_path / "related-retry",
+        catalog_path=_catalog(tmp_path),
+        adapters=[FakeAdapter("pexels")],
+        translator=translate,
+        simple=True,
+    )
+    assert report["queries_tried"] == ["Castro", "Ancud"]
+    assert report["related_terms"] == [
+        {"term": "Castro", "origin": "script"},
+        {"term": "Ancud", "origin": "script"},
+    ]

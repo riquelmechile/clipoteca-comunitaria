@@ -622,6 +622,21 @@ def clip_scene(
             if result is not None:
                 analyzed_s = result.pop("_analyzed_s", None)
                 degraded = result.pop("degraded_reason", None)
+                if "matched_query" in candidate:
+                    result.update(
+                        {
+                            "matched_query": candidate["matched_query"],
+                            "related_match": bool(candidate.get("related_match")),
+                        }
+                    )
+                    if candidate.get("found_by_query"):
+                        result["found_by_query"] = candidate["found_by_query"]
+                if (
+                    (job.get("related_terms") or job.get("queries", {}).get("related"))
+                    and candidate.get("fallback")
+                    and not candidate.get("matched_query")
+                ):
+                    degraded = degraded or "text_gate"
                 report = {
                     "version": 1,
                     "id": scene_id,
@@ -642,7 +657,9 @@ def clip_scene(
                         and (result["sim"] >= job.get("catalog_min_sim", 0.27))
                     )
                     if imported:
-                        result["name_match"] = bool(candidate.get("name_match"))
+                        result["name_match"] = bool(
+                            candidate.get("name_match") or candidate.get("related_match")
+                        )
                     prefer = best is None
                     if best is not None:
                         previous = best["clip"]
@@ -659,20 +676,27 @@ def clip_scene(
                                 result["name_match"],
                                 result["sim"],
                                 result["score"],
+                                not result.get("related_match", False),
                             ) > (
                                 previous.get("name_match", False),
                                 previous["sim"],
                                 previous["score"],
+                                not previous.get("related_match", False),
                             )
                         else:
-                            prefer = (result["sim"], result["score"]) > (
+                            prefer = (
+                                result["sim"],
+                                result["score"],
+                                not result.get("related_match", False),
+                            ) > (
                                 previous["sim"],
                                 previous["score"],
+                                not previous.get("related_match", False),
                             )
                     if prefer:
                         os.replace(rendered, final_clip)
                         best = report
-                    if report["catalog_strong"]:
+                    if report["catalog_strong"] and not result.get("related_match"):
                         break
                     continue
                 os.replace(rendered, final_clip)

@@ -14,6 +14,7 @@ from ..providers.base import SupportStatus
 from ..translate.argos import QUALITY_TRANSLATION_REASONS, public_translation_error
 from ..translate.expand import expand_query
 from . import library
+from .related import primary_queries, related_parent, related_search_query, related_terms
 from .windows import fit_mode
 
 _LANGUAGES = ("en", "es", "zh", "ru")
@@ -84,7 +85,15 @@ class SceneBudget:
     def text_good(self, record):
         # Searchable query terms are never evidence; check actual source/title.
         queries = self.job["queries"]
-        relevant = library.sufficient_query_match(record, queries["es"] + queries["en"])
+        primary = primary_queries(queries)
+        if not library.sufficient_query_match(record, primary):
+            match = library.related_match(record, related_terms(self.job))
+            if match is None:
+                return False
+            score, _ = library.text_score(record, [match["term"]], [], self.job.get("avoid", []))
+            unpenalized, _ = library.text_score(record, [match["term"]], [], [])
+            return score > 0 or score == unpenalized
+        relevant = True
         score, _ = library.text_score(
             {"title": record.get("title"), "source": record.get("source")},
             queries["es"],
@@ -99,6 +108,20 @@ class SceneBudget:
         )
         return relevant and (score > 0 or score == unpenalized)
 
+    def provenance(self, query):
+        terms = primary_queries(self.job["queries"])
+        match = next(
+            (
+                row
+                for row in related_terms(self.job)
+                if related_search_query(self.job, row["term"]) == query
+            ),
+            None,
+        )
+        if match and terms:
+            return {"found_by_query": query, "related_to": related_parent(self.job) or terms[0]}
+        return {"found_by_query": query} if related_terms(self.job) else {}
+
     def candidate_text_good(self, candidate, localized):
         key = candidate.origin_id
         if key not in self.text_checked:
@@ -111,7 +134,9 @@ class SceneBudget:
                         if candidate.metadata and name in candidate.metadata
                     }
                 )
-            self.text_checked[key] = self.text_good({"title": localized.title, "source": source})
+            self.text_checked[key] = self.text_good(
+                {"title": localized.title, "description": localized.description, "source": source}
+            )
             if not self.text_checked[key]:
                 self._reject({"id": key}, "text_gate")
         return self.text_checked[key]
@@ -295,6 +320,143 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
         else next(
             (s for s in statuses if s not in {"no_results", "duplicate", "unavailable"}),
             "no_results" if "no_results" in statuses or not statuses else statuses[0],
+        )
+    )
+    return IngestReport(last, status, tuple(ids), tuple(errors))
+
+
+async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs):
+    """Parallel discovery across distinct terms; serialize every ingest/catalog write."""
+    writer = kwargs["writer"]
+    horizon = kwargs.pop("horizon")
+    limit = kwargs.pop("max_results")
+    concurrency = kwargs["concurrency"]
+    ordered = _ordered(adapters, place=scene_budget.place)
+    if scene_budget.place:
+        ordered.sort(key=lambda adapter: adapter.name != "wikimedia_commons")
+    expansions = []
+    errors = []
+    ids = []
+    statuses = []
+    seen = set()
+    last = "scene-related"
+    index = 0
+
+    for term in queries:
+        if scene_budget.reason():
+            break
+        query = related_search_query(scene_budget.job, term)
+        expansion = expand_query(query, translator=kwargs.get("translator"))
+        invalid = any(
+            (not expansion.terms.get(lang) or lang in expansion.errors)
+            and (
+                expansion.terms.get(lang)
+                or (public_translation_error(expansion.errors.get(lang, "")) or "").rsplit(":", 1)[
+                    -1
+                ]
+                not in QUALITY_TRANSLATION_REASONS
+            )
+            for lang in _LANGUAGES
+        )
+        if invalid:
+            on_query(term)
+            report = await _ingest(
+                query,
+                adapters,
+                max_results=limit,
+                horizon=f"{horizon}-translation-{index}",
+                discovery=SearchResult(expansion, [], [], [], 0),
+                scene_budget=scene_budget,
+                **kwargs,
+            )
+            index += 1
+            errors.extend(report.errors)
+            statuses.append(report.status)
+        else:
+            expansions.append((term, query, expansion))
+
+    plan = [
+        (term, query, expansion, adapter, lang)
+        for lang in _LANGUAGES
+        for adapter in ordered
+        for term, query, expansion in expansions
+        if expansion.terms.get(lang) and lang in adapter.accepts_text_languages
+    ]
+    if scene_budget.place and not any(
+        adapter.name == "wikimedia_commons" and adapter.support_status in _SEARCHABLE
+        for _, _, _, adapter, _ in plan
+    ):
+        scene_budget.commons_exhausted = True
+
+    async def discover(term, query, expansion, adapter, lang):
+        on_query(term)
+        if adapter.support_status in _SEARCHABLE:
+            scene_budget.searches_started += 1
+        try:
+            partial = replace(expansion, terms={lang: expansion.terms[lang]})
+            result = await SearchEngine([adapter], concurrency=1).search(
+                query,
+                catalog=writer.read_catalog()[0],
+                expansion=partial,
+                allow_partial_expansion=True,
+            )
+            if adapter.support_status == _DOWNLOAD:
+                scene_budget.discovered.update(c.origin_id for c in result.candidates)
+            return replace(result, expansion=expansion)
+        except asyncio.CancelledError:
+            scene_budget.searches_cancelled += 1
+            raise
+
+    for offset in range(0, len(plan), concurrency):
+        if scene_budget.reason():
+            break
+        batch = plan[offset : offset + concurrency]
+        tasks = [asyncio.create_task(discover(*entry)) for entry in batch]
+        try:
+            for (_, query, _, adapter, _), task in zip(batch, tasks, strict=True):
+                if scene_budget.reason():
+                    break
+                result = await task
+                if adapter.name == "wikimedia_commons" and adapter.support_status in _SEARCHABLE:
+                    scene_budget.commons_consulted = True
+                if scene_budget.reason():
+                    break
+                unique = [
+                    candidate for candidate in result.candidates if candidate.origin_id not in seen
+                ]
+                seen.update(candidate.origin_id for candidate in unique)
+                report = await _ingest(
+                    query,
+                    adapters,
+                    max_results=max(1, limit - scene_budget.relevant_count()),
+                    horizon=f"{horizon}-batch-{index}",
+                    discovery=replace(result, candidates=unique),
+                    scene_budget=scene_budget,
+                    **kwargs,
+                )
+                scene_budget.relevant_count()
+                index += 1
+                last = report.request_id
+                errors.extend(report.errors)
+                statuses.append(report.status)
+                if report.status == "published":
+                    ids.extend(report.published_ids)
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    status = (
+        "published"
+        if ids
+        else next(
+            (
+                status
+                for status in statuses
+                if status not in {"no_results", "duplicate", "unavailable"}
+            ),
+            "no_results",
         )
     )
     return IngestReport(last, status, tuple(ids), tuple(errors))

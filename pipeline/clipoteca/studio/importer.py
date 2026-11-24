@@ -26,7 +26,8 @@ from ..sources import SOURCES
 from ..storage.github import ReleaseAsset, ReleaseBatch, StorageError
 from . import library
 from .plan import _atomic_json
-from .scene_search import SceneBudget, ingest
+from .related import related_search_query, related_terms, resolve_jobs
+from .scene_search import SceneBudget, ingest, ingest_related
 from .windows import fit_mode
 
 
@@ -429,6 +430,14 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
             job["queries"]["en"],
             job.get("avoid", []),
         )
+        primary = job["queries"]["es"] + job["queries"]["en"]
+        related = related_terms(job)
+        primary_match = library.sufficient_query_match(item["record"], primary)
+        match = library.related_match(item["record"], related) if not primary_match else None
+        if match:
+            score, matched = library.text_score(
+                item["record"], [match["term"]], [], job.get("avoid", [])
+            )
         scored.append(
             {
                 "clip_id": item["imp_id"],
@@ -445,12 +454,49 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 "source_url": item["source_url"],
                 "fit": fit,
                 "local_path": item["local_path"],
+                **(
+                    {
+                        "matched_query": (
+                            match["term"]
+                            if match
+                            else next(
+                                (
+                                    term
+                                    for term in primary
+                                    if library.sufficient_query_match(item["record"], [term])
+                                ),
+                                None,
+                            )
+                        ),
+                        "found_by_query": item["record"]["source"].get("found_by_query"),
+                        "related_match": bool(match),
+                    }
+                    if related
+                    else {}
+                ),
                 **({"fallback": True} if item.get("fallback") else {}),
             }
         )
-    scored.sort(
-        key=lambda x: (not x["name_match"], -x["score"], abs(x["duration"] - length), x["clip_id"])
-    )
+    if related_terms(job):
+        scored.sort(
+            key=lambda x: (
+                bool(x.get("fallback")),
+                -x["score"],
+                x.get("related_match", False),
+                not x["name_match"],
+                abs(x["duration"] - length),
+                x["clip_id"],
+            )
+        )
+    else:
+        scored.sort(
+            key=lambda x: (
+                not x["name_match"],
+                -x["score"],
+                abs(x["duration"] - length),
+                x["clip_id"],
+            )
+        )
     return {
         "id": job["id"],
         "status": "imported" if scored else "needs_import",
@@ -502,14 +548,12 @@ def import_scene(
     simple: bool = False,
     enough: int = 3,
     relevance_check: Callable[[dict, Path], bool] | None = None,
+    auto_related: bool = False,
 ) -> dict[str, Any]:
     """Search using existing ingest but keep ALL results, jobs and assets local."""
     length, fetch, queries = _validate(job, max_results, max_clips_per_source, concurrency)
     if isinstance(enough, bool) or not isinstance(enough, int) or not 0 <= enough <= 50:
         raise ImportSceneError("enough must be 0..50")
-    if simple:
-        place_queries = [query for query in queries if library.query_names([query])]
-        queries = list(dict.fromkeys([*place_queries, *simple_queries(job, queries)]))
     # Place-bearing queries must reach Commons with their original entity intact.
     queries.sort(
         key=lambda term: (
@@ -618,63 +662,104 @@ def import_scene(
         visual_match=visual_match,
         rejections=rejections,
     )
-    budget.searches_planned = len(queries) * sum(
+    searchable_slots = sum(
         len(set(adapter.accepts_text_languages) & {"en", "es", "zh", "ru"})
         for adapter in selected
         if adapter.support_status == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
         or adapter.support_status == SupportStatus.SUPPORTED_SEARCH_ONLY
     )
 
+    def note_query(query):
+        if query not in tried:
+            tried.append(query)
+
+    def absorb(report):
+        budget.relevant_count()
+        hard = _classify(report.errors, rejections)
+        failures.extend(hard)
+        soft_only = bool(report.errors) and not hard
+        if report.status not in _QUIET_STATUSES and not soft_only:
+            failures.append("ingest_" + report.status)
+
+    def ingest_options(horizon):
+        return {
+            "repository": "local/local",
+            "token": "",
+            "job_root": stage / "jobs",
+            "max_results": max(1, max_results - budget.relevant_count()),
+            "scene_budget": budget,
+            "max_clips_per_source": max_clips_per_source,
+            "concurrency": concurrency,
+            "filters": {"max_duration": duration_cap},
+            "horizon": horizon,
+            "writer": writer,
+            "storage": storage,
+            "downloader": downloader,
+            "translator": translator,
+            "embedding_encoder": embedding_encoder,
+        }
+
     async def execute() -> None:
         try:
             if not selected:
                 return
-            for index, query in enumerate(queries):
-                remaining = timeout - (time.monotonic() - started)
-                if remaining <= 0:
-                    failures.append("timeout")
+            # The plan normally provides cached terms. Direct CLI imports can resolve
+            # them under the same scene deadline; injected adapters stay offline.
+            if auto_related and "related_terms" not in job:
+                await resolve_jobs([job], timeout=min(6, timeout / 10))
+            related = [row["term"] for row in related_terms(job)]
+            primary = queries
+            if simple:
+                if related:
+                    primary = []
+                else:
+                    original = {" ".join(library._words(query)) for query in queries}
+                    primary = [
+                        query
+                        for query in simple_queries(job, queries)
+                        if " ".join(library._words(query)) not in original
+                    ]
+            budget.searches_planned = (len(primary) + len(related)) * searchable_slots
+            # Reserve time within the existing deadline, never add another scene budget.
+            primary_deadline = started + timeout * (0.6 if related else 1.0)
+            for index, query in enumerate(primary):
+                remaining = primary_deadline - time.monotonic()
+                if remaining <= 0 or budget.reason():
                     break
-                if budget.reason():
-                    break
-                tried.append(query)
-                # The legacy spread flag remains accepted, but never reserves slots
-                # for later queries once adequate material is available.
-                slots = max(1, max_results - budget.relevant_count())
+                note_query(query)
                 try:
                     report = await asyncio.wait_for(
                         ingest(
                             query,
                             selected,
-                            repository="local/local",
-                            token="",
-                            job_root=stage / "jobs",
-                            max_results=slots,
-                            scene_budget=budget,
-                            max_clips_per_source=max_clips_per_source,
-                            concurrency=concurrency,
-                            # No aspect filter: clip-scene reframes any orientation to the
-                            # target, and filtering here would discard most horizontal stock.
-                            filters={"max_duration": duration_cap},
-                            horizon=f"studio-v1-{index}"
-                            if not simple
-                            else f"studio-simple-{index}",
-                            writer=writer,
-                            storage=storage,
-                            downloader=downloader,
-                            translator=translator,
-                            embedding_encoder=embedding_encoder,
+                            **ingest_options(f"studio-{'simple' if simple else 'v1'}-{index}"),
                         ),
                         timeout=remaining,
                     )
-                    budget.relevant_count()
-                    hard = _classify(report.errors, rejections)
-                    failures.extend(hard)
-                    soft_only = bool(report.errors) and not hard
-                    if report.status not in _QUIET_STATUSES and not soft_only:
-                        failures.append("ingest_" + report.status)
+                    absorb(report)
+                except TimeoutError:
+                    if not related:
+                        failures.append("timeout")
+                    break
+                except Exception as exc:
+                    failures.append(type(exc).__name__)
+            remaining = started + timeout - time.monotonic()
+            if related and remaining > 0 and not budget.reason():
+                try:
+                    report = await asyncio.wait_for(
+                        ingest_related(
+                            related,
+                            selected,
+                            on_query=note_query,
+                            **ingest_options(
+                                "studio-related-retry" if simple else "studio-related"
+                            ),
+                        ),
+                        timeout=remaining,
+                    )
+                    absorb(report)
                 except TimeoutError:
                     failures.append("timeout")
-                    break
                 except Exception as exc:
                     failures.append(type(exc).__name__)
         finally:
@@ -719,6 +804,13 @@ def import_scene(
         "id": job["id"],
         "status": "ok" if imported else ("error" if failures else "no_results"),
         "queries_tried": tried,
+        "related_terms": [row for row in related_terms(job) if row["term"] in tried],
+        "related_terms_available": related_terms(job),
+        "related_queries": {
+            term: related_search_query(job, term)
+            for term in tried
+            if any(row["term"] == term for row in related_terms(job))
+        },
         "clips": imported,
         "errors": sorted(set(failures)),
         "rejections": dict(sorted(rejections.items())),
@@ -754,6 +846,7 @@ def main(argv: list[str] | None = None) -> int:
     scene.add_argument("--enough", type=int, default=3)
     scene.add_argument("--spread-queries", action="store_true")
     scene.add_argument("--simple", action="store_true")
+    scene.add_argument("--resolve-related", action="store_true")
     scene.add_argument("--timeout", type=float)
     args = parser.parse_args(argv)
     try:
@@ -766,6 +859,7 @@ def main(argv: list[str] | None = None) -> int:
             max_results=args.max_results,
             spread_queries=args.spread_queries,
             simple=args.simple,
+            auto_related=args.resolve_related,
             enough=args.enough,
             timeout_s=args.timeout,
         )

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..place_names import _fold, _words, aliases, query_names
+from .related import primary_queries, related_terms
 from .windows import fit_mode
 
 
@@ -53,7 +54,22 @@ def name_match(clip, queries, *, source_only=False):
     )
 
 
-def sufficient_query_match(clip, queries):
+def related_match(clip, related):
+    """Whole phrases from actual metadata, never inferred tags or search provenance."""
+    source = clip.get("source") or {}
+    fragments = (
+        _values(clip.get("title")) + _values(clip.get("description")) + _source_fragments(source)
+    )
+    for row in related:
+        key = " ".join(_words(row["term"]))
+        if key and any(f" {key} " in f" {' '.join(_words(part))} " for part in fragments):
+            return row
+    return None
+
+
+def sufficient_query_match(clip, queries, related=()):
+    if related_match(clip, related):
+        return True
     source = clip.get("source") or {}
     fragments = _values(clip.get("title")) + _source_fragments(source)
     tokens = {word for fragment in fragments for word in _words(fragment)}
@@ -169,6 +185,7 @@ def candidates(
     minimum_side = int(job.get("min_short_side", 720))
     queries = job.get("queries", {})
     place_queries = queries.get("es", []) + queries.get("en", [])
+    related = related_terms(job)
     has_place = bool(query_names(place_queries))
     scored = []
     fallbacks = []
@@ -204,7 +221,14 @@ def candidates(
             queries.get("en", []),
             job.get("avoid", []),
         )
-        place_ok = not has_place or sufficient_query_match(clip, place_queries)
+        primary_ok = (not has_place or sufficient_query_match(clip, place_queries)) and score > 0
+        match = related_match(clip, related) if not primary_ok else None
+        if match:
+            score, matched = text_score(clip, [match["term"]], [], job.get("avoid", []))
+            # Whole phrases with short words can pass even when token scoring ignores them.
+            if not job.get("avoid") and score == 0:
+                score = 0.5
+        place_ok = primary_ok or (match is not None and score > 0)
         source = clip.get("source", {})
         candidate = {
             "clip_id": clip["id"],
@@ -218,11 +242,32 @@ def candidates(
             "size_bytes": media["size_bytes"],
             "source_url": source.get("source_url") if isinstance(source, dict) else None,
             "fit": fit,
-            **({"fallback": True} if not (place_ok and score > 0) else {}),
+            **(
+                {
+                    "matched_query": (
+                        match["term"]
+                        if match
+                        else next(
+                            (
+                                q
+                                for q in primary_queries(queries)
+                                if sufficient_query_match(clip, [q])
+                            ),
+                            place_queries[0] if primary_ok and place_queries else None,
+                        )
+                    ),
+                    "related_match": bool(match),
+                }
+                if related and place_ok
+                else {}
+            ),
+            **({"fallback": True} if not place_ok else {}),
         }
-        (scored if place_ok and score > 0 else fallbacks).append(candidate)
+        (scored if place_ok else fallbacks).append(candidate)
     pool = scored or fallbacks
-    return sorted(pool, key=lambda item: (-item["score"], item["clip_id"]))
+    return sorted(
+        pool, key=lambda item: (-item["score"], item.get("related_match", False), item["clip_id"])
+    )
 
 
 def assign_scenes(

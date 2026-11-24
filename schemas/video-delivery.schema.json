@@ -139,6 +139,40 @@
               "degraded_reason": {
                 "type": "string",
                 "minLength": 1
+              },
+              "related_terms": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "term",
+                    "origin"
+                  ],
+                  "properties": {
+                    "term": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "origin": {
+                      "enum": [
+                        "script",
+                        "wikidata",
+                        "commons"
+                      ]
+                    }
+                  }
+                }
+              },
+              "matched_query": {
+                "type": "string",
+                "minLength": 1
+              },
+              "found_by_query": {
+                "type": "string",
+                "minLength": 1
               }
             }
           },
@@ -166,6 +200,32 @@
                 "items": {
                   "type": "object"
                 }
+              },
+              "related_terms": {
+                "type": "array",
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "term",
+                    "origin"
+                  ],
+                  "properties": {
+                    "term": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "origin": {
+                      "enum": [
+                        "script",
+                        "wikidata",
+                        "commons"
+                      ]
+                    }
+                  }
+                }
               }
             }
           }
@@ -177,10 +237,19 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["scene_id", "degraded_reason"],
+        "required": [
+          "scene_id",
+          "degraded_reason"
+        ],
         "properties": {
-          "scene_id": {"type": "string", "minLength": 1},
-          "degraded_reason": {"type": "string", "minLength": 1}
+          "scene_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "degraded_reason": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
