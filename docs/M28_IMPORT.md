@@ -133,3 +133,13 @@ test_clipscene_m28.py cubre rutas absolutas, traversal, symlink,
 selector ambiguo y hash incorrecto con fallback.
 Los tests saltan si falta ffmpeg o cv2; no descargan modelos.
 No se cambian dependencias, workflows ni datos persistentes.
+
+## Política de búsqueda para entrega v3
+
+El workflow activa --spread-queries, que reparte el presupuesto de candidatos
+entre las consultas únicas en inglés y español en su orden original, hasta
+el tope de ocho candidatos o 600 segundos. Si no pasa la evaluación de
+escena ningún importado, --simple deriva hasta dos consultas breves del
+título y prompt sin calificativos comunes; se prueban hasta dos candidatos
+en 180 segundos. Los manifiestos de ambas rondas se conservan para indexado.
+Los defaults históricos del CLI permanecen compatibles.

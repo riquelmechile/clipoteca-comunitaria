@@ -19,7 +19,13 @@ El nombre de corrida es render seguido del request_id.
 - plan valida guion y asigna candidatos del catálogo.
 - voice, music y scene (matriz) corren en paralelo. Por escena, si no existe
   una coincidencia fuerte (sim ≥0,27, provisional), se importan candidatos
-  y se compara por similitud, con el catálogo válido como respaldo.
+  y se compara por similitud, con el catálogo válido como respaldo. La primera
+  ronda reparte hasta ocho candidatos entre las consultas únicas (en, es),
+  en orden, con 600 s de presupuesto. Si ningún importado supera los filtros
+  de escena, una ronda adicional simplifica título y prompt, hasta dos
+  candidatos en 180 s. El total máximo es diez. Una coincidencia débil válida
+  del catálogo se marca fallback=true cuando resulta elegida. Sin candidato
+  válido, entrega.json registra el motivo de la escena y no se entrega MP4.
 - index descarga artefactos de scene, detecta manifiestos de importación
   no vacíos e indexa todos los clips válidos en un solo commit, aunque
   falle assemble. Es el único job con contents: write; grupo
@@ -52,6 +58,20 @@ necesita actions: read y write sobre este repositorio; CLIPOTECA_WRITE_TOKEN
 autoriza nuevas solicitudes. El id de descarga es una credencial, no debe
 registrarse ni compartirse.
 
-Promover también la acción de instalación FFmpeg fijada antes de medir.
+Promover también [propuestas/install-ffmpeg.action.yml](../propuestas/install-ffmpeg.action.yml)
+a .github/actions/install-ffmpeg/action.yml. Usa FFmpeg/FFprobe b6.1.1
+fijados por SHA-256, con apt acotado como respaldo; el tiempo medido
+por escena se guarda como install_ffmpeg, aparte de catalog, import e import_retry.
 La medición del tiempo de instalación y de los tres formatos permanece
 pendiente de corrida real; no se afirma que el despliegue ya esté activo.
+
+## Primera corrida del workflow anterior
+
+[Run 45309334286](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45309334286):
+cinco escenas 9:16; cuatro resolvieron catálogo (~1 min por escena), dos
+esperaron ~17 min de instalación apt. La importación real trajo tres clips
+(Pexels, Wikimedia Commons, TILvids) en ~2,5 min tras una sola consulta
+(tarpaulin). Los tres fueron rechazados por relevancia; assemble falló con
+lona (no_candidate). No se produjo un video final. Estos datos motivan las
+dos rondas, el indexado independiente y el instalador fijo. Los resultados
+del nuevo flujo siguen pendientes de corrida real.

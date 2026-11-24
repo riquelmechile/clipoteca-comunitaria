@@ -5,6 +5,7 @@
 - Entrega de MP4 por artefacto temporal de siete días, sin publicación del video ni ficha persistente.
 - Selección fuerte del catálogo (sim ≥ 0,27 provisional), búsqueda de respaldo en fuentes y selección por pertinencia.
 - Indexado de todos los clips importados válidos, independiente de selección final y QA; un commit de catálogo.
+- Búsqueda repartida (8 candidatos, 600 s) y segunda ronda simplificada (2, 180 s), respaldo explícito y diagnósticos de escenas sin MP4. Instalador FFmpeg fijo con medición separada.
 - REST y MCP de video, estado por etapa y descarga de artefacto; versión sincronizada y tres guiones de ejemplo.
 - Pendiente: promover workflow y acción FFmpeg, desplegar Worker y medir tres corridas reales.
 

@@ -144,9 +144,18 @@ for id in intro nubes lluvia; do
   strong=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("catalog_strong",False))' "$scene/result.json")
   if [ "$strong" != True ]; then
     code=0
-    uv run --no-sync python -m clipoteca.studio.importer scene --job "$scene/job.json" --catalog data/clips.json --out "$scene/import" || code=$?
+    uv run --no-sync python -m clipoteca.studio.importer scene --job "$scene/job.json" --catalog data/clips.json --out "$scene/import" --max-results 8 --spread-queries --timeout 600 || code=$?
     [ "$code" -eq 0 ] || [ "$code" -eq 3 ] || exit "$code"
-    uv run --no-sync python -m clipoteca.studio.selection --scene "$scene" --phase finish
+    code=0
+    uv run --no-sync python -m clipoteca.studio.selection --scene "$scene" --phase finish || code=$?
+    [ "$code" -eq 0 ] || [ "$code" -eq 3 ] || exit "$code"
+    retry=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("needs_retry",False))' "$scene/result.json")
+    if [ "$retry" = True ]; then
+      code=0
+      uv run --no-sync python -m clipoteca.studio.importer scene --job "$scene/job.json" --catalog data/clips.json --out "$scene/import-retry" --max-results 2 --spread-queries --simple --timeout 180 || code=$?
+      [ "$code" -eq 0 ] || [ "$code" -eq 3 ] || exit "$code"
+      uv run --no-sync python -m clipoteca.studio.selection --scene "$scene" --phase finish
+    fi
   fi
   cp "$scene/clip.mp4" "build/video/clips/$id.mp4"
 done

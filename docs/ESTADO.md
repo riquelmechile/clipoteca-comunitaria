@@ -60,6 +60,14 @@ El [job studio](../.github/workflows/ci.yml) instala el extra y ejecuta estos te
 
 Los dos casos locales de M30 usaron HyperFrames 0.9.36 y GSAP 3.15.1. No son una medida de latencia del futuro servicio. No hay tiempos/RMS publicados por mood en [M27](M27_MUSICA.md), ni mediciones completas de ajuste y mezcla en [M29](M29_AJUSTE_MEZCLA.md), ni tabla completa de las diez voces.
 
+### Primera corrida del workflow anterior
+
+[Run 45309334286](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45309334286),
+cinco escenas 9:16: falló en assemble por lona (no_candidate). Cuatro escenas
+resolvieron del catálogo en ~1 min por escena; dos esperaron ~17 min por apt.
+La ingesta real trajo tres clips en ~2,5 min, pero ninguna coincidencia válida
+para lona. No hay MP4 final. Ver [M32_RENDER.md](M32_RENDER.md).
+
 ### M34: mediciones del nuevo flujo
 
 | Guion | Formato | Tiempos de etapas / minutos de Actions |

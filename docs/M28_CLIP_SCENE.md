@@ -288,3 +288,8 @@ Una coincidencia válida con sim al menos ese umbral evita importar. En ausencia
 de coincidencia fuerte, selection conserva el mejor respaldo de catálogo y
 compara con los importados válidos por similitud, luego puntaje visual.
 El indexado de todos los clips que pasaron ingesta es independiente de esta elección.
+
+Si ningún importado válido aparece en la primera ronda, se prueban consultas
+simplificadas en una segunda ronda. El respaldo de catálogo elegido sin
+coincidencia fuerte se marca fallback=true. Si no queda ningún clip, se
+conserva el motivo de la escena en entrega.json aun sin MP4.

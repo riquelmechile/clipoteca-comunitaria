@@ -79,7 +79,9 @@ El motor produce un MP4 desde un guion español de 3 a 12 escenas, hasta 60 segu
 en 9:16, 16:9 o 1:1. No genera el guion ni usa un modelo de lenguaje.
 Cada escena busca una coincidencia fuerte en el catálogo (sim ≥0,27, umbral provisional).
 Si no existe, importa desde las fuentes y elige el candidato válido más pertinente,
-con material válido del catálogo como respaldo. La biblioteca incorpora todos los
+con material válido del catálogo como respaldo. Se reparten hasta ocho candidatos
+entre las consultas y se prueban hasta dos adicionales con consultas simplificadas
+si ningún importado supera la evaluación. La biblioteca incorpora todos los
 clips importados que pasan los filtros normales de ingesta, incluso si no se usan
 en el montaje o el video falla QA. La selección ocurre en paralelo por escena.
 La voz, música, títulos y subtítulos se componen y renderizan localmente en Actions;
