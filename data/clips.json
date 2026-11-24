@@ -9992,5 +9992,71 @@
     },
     "status": "published",
     "created_at": "2026-11-24T19:29:41.510760Z"
+  },
+  {
+    "id": "clip-000154",
+    "title": {
+      "es": "Impresionante vista de drones del desierto de atacama",
+      "en": "Stunning drone view of atacama desert"
+    },
+    "description": {
+      "es": "Impresionante vista de drones del desierto de atacama",
+      "en": "Stunning drone view of atacama desert"
+    },
+    "tags": {
+      "es": [
+        "Impresionante",
+        "vista",
+        "drones",
+        "desierto",
+        "atacama"
+      ],
+      "en": [
+        "Stunning",
+        "drone",
+        "view",
+        "atacama",
+        "desert"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "33655180",
+      "source_language": "en",
+      "source_title": "stunning-drone-view-of-atacama-desert-33655180",
+      "source_url": "https://www.pexels.com/video/stunning-drone-view-of-atacama-desert-33655180/",
+      "source_start": 0.0,
+      "source_end": 10.86085,
+      "found_by_query": "Atacama desert Chile"
+    },
+    "media": {
+      "duration_seconds": 10.86085,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 10153761,
+      "sha256": "a7e3e12c607dd4c04f0d9de8f6e65061aebb4f97f7f41085340771a4c74a9cd6",
+      "perceptual_hash": "a59bf28d155a6f10~1758.91:a689fb85166a6d1c~1592.32:b28cfb86036d651e~1430.74:99846fe8d9247770~1508.75:8e4b78a5d6e191b8~1691.75"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000154.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000154.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000154_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000154_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000154_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000154_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000154_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000154_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T19:29:41.510760Z"
   }
 ]
