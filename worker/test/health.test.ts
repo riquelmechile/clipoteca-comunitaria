@@ -11,7 +11,7 @@ describe("health route", () => {
     const response = await worker.fetch(new Request("https://clipoteca.test/v1/health"));
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      status: "ok", service: "clipoteca", version: "2.0.6",
+      status: "ok", service: "clipoteca", version: "3.0.0",
       checks: { catalogue: "ok", mcp: "ok", items: 0 },
     });
   });
