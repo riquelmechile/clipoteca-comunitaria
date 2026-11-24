@@ -556,8 +556,9 @@ def test_maxlag_does_not_set_host_cooldown():
         def response(request):
             calls.append(request)
             if len(calls) == 1:
-                return httpx.Response(200, json={"error": {"code": "maxlag"}},
-                                      headers={"Retry-After": "30"})
+                return httpx.Response(
+                    200, json={"error": {"code": "maxlag"}}, headers={"Retry-After": "30"}
+                )
             return httpx.Response(200, json={"ok": True})
 
         host = {"lock": asyncio.Semaphore(1), "until": 0.0}
@@ -580,10 +581,13 @@ def test_commons_does_not_wait_for_wikidata():
         if request.url.host == "www.wikidata.org":
             await asyncio.sleep(10)
         if request.url.params.get("list") == "search":
-            return httpx.Response(200, json={"query": {"search": [{"title": "Category:Kyoto Japan"}]}})
-        return httpx.Response(200, json={"query": {"categorymembers": [
-            {"ns": 14, "title": "Category:Kiyomizu temple"}
-        ]}})
+            return httpx.Response(
+                200, json={"query": {"search": [{"title": "Category:Kyoto Japan"}]}}
+            )
+        return httpx.Response(
+            200,
+            json={"query": {"categorymembers": [{"ns": 14, "title": "Category:Kiyomizu temple"}]}},
+        )
 
     async def run():
         job = {"queries": {"en": ["Kyoto temples, Japan"], "es": []}}
@@ -607,20 +611,148 @@ def test_long_retry_after_is_capped_and_commons_independent(monkeypatch):
                 attempts += 1
                 return httpx.Response(429, headers={"Retry-After": "30"})
             if request.url.params.get("list") == "search":
-                return httpx.Response(200, json={"query": {"search": [
-                    {"title": "Category:Chiloe"}
-                ]}})
-            return httpx.Response(200, json={"query": {"categorymembers": [
-                {"ns": 14, "title": "Category:Castro"}
-            ]}})
+                return httpx.Response(
+                    200, json={"query": {"search": [{"title": "Category:Chiloe"}]}}
+                )
+            return httpx.Response(
+                200, json={"query": {"categorymembers": [{"ns": 14, "title": "Category:Castro"}]}}
+            )
 
         job = {"queries": {"en": ["Chiloe"], "es": []}}
         async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
             await resolve_jobs([job], client=client, timeout=0.15)
         assert attempts >= 1
         assert {"term": "Castro", "origin": "commons"} in job["related_terms"]
-        delays = [row["retry_after_s"] for row in job["related_diagnostic"]["errors"]
-                  if "retry_after_s" in row]
+        delays = [
+            row["retry_after_s"]
+            for row in job["related_diagnostic"]["errors"]
+            if "retry_after_s" in row
+        ]
         assert delays and max(delays) <= 0.02
 
     asyncio.run(run())
+
+
+# Real Commons listings captured from the live API (2026-11-24), trimmed.
+_REAL_MEMBERS = {
+    "Category:Chiloé Archipelago": [
+        "Ancud",
+        "Chilote mythology",
+        "Chonchi",
+        "Churches in Chiloé",
+        "Cuisine of Chiloé",
+        "Dalcahue",
+        "Estanislao León Bazán",
+        "Quellón",
+        "Snow in Chiloe Province, Chile",
+    ],
+    "Category:Chiloé Island": [
+        "2016 Chiloé earthquake",
+        "Castro, Chile",
+        "History of Chiloé Island",
+        "Maps of Chiloé Island",
+        "Tantauco Park",
+    ],
+    "Category:Churches in Chiloé": ["Iglesia de Aucar", "Iglesia de Astillero"],
+}
+_REAL_SIZES = {
+    "Category:Castro, Chile": 400,
+    "Category:Ancud": 300,
+    "Category:Quellón": 120,
+    "Category:Dalcahue": 110,
+    "Category:Chonchi": 100,
+    "Category:Tantauco Park": 40,
+    "Category:Chilote mythology": 10,
+    "Category:Estanislao León Bazán": 2,
+    "Category:Churches in Chiloé": 500,
+    "Category:Iglesia de Aucar": 30,
+    "Category:Iglesia de Astillero": 5,
+}
+
+
+def _real_commons(request):
+    params = request.url.params
+    if params.get("list") == "search":
+        return httpx.Response(200, json={"query": {"search": []}})
+    if params.get("prop") == "categoryinfo":
+        pages = [
+            {"title": title, "categoryinfo": {"size": _REAL_SIZES[title]}}
+            for title in params["titles"].split("|")
+            if title in _REAL_SIZES
+        ]
+        return httpx.Response(200, json={"query": {"pages": pages}})
+    children = [
+        {"ns": 14, "title": f"Category:{title}"}
+        for title in _REAL_MEMBERS.get(params["cmtitle"], [])
+    ]
+    return httpx.Response(200, json={"query": {"categorymembers": children}})
+
+
+def test_commons_waits_for_verified_roots_and_ranks_by_category_size():
+    from clipoteca.studio import related
+
+    async def run():
+        ready = asyncio.Event()
+        wiki = {"geographic": True}
+
+        async def publish():
+            # The verified category arrives after the text search already missed.
+            await asyncio.sleep(0.05)
+            wiki["commons_titles"] = ["Category:Chiloé Island", "Category:Chiloé Archipelago"]
+            ready.set()
+
+        state = {}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(_real_commons)) as client:
+            publisher = asyncio.create_task(publish())
+            rows = await related._commons(
+                client, "chiloe", ("chile",), state, topic=None, wiki=wiki, roots_ready=ready
+            )
+            await publisher
+        terms = [row["term"] for row in rows]
+        assert state["commons_roots"] == ["Category:Chiloé Island", "Category:Chiloé Archipelago"]
+        # Notable towns lead; people, mythology and meta categories do not.
+        assert terms[:4] == ["Castro", "Ancud", "Quellón", "Dalcahue"]
+        assert {"Chonchi", "Tantauco Park", "Iglesia de Aucar"} <= set(terms)
+        assert terms.index("Estanislao León Bazán") > terms.index("Chonchi")
+        assert not {"Churches in Chiloé", "Cuisine of Chiloé", "Maps of Chiloé Island"} & set(terms)
+        assert all("earthquake" not in term and "Snow" not in term for term in terms)
+
+    asyncio.run(run())
+
+
+def test_commons_without_verified_roots_does_not_hang(monkeypatch):
+    from clipoteca.studio import related
+
+    monkeypatch.setattr(related, "_VERIFIED_WAIT", 0.05)
+
+    async def run():
+        state = {}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(_real_commons)) as client:
+            rows = await asyncio.wait_for(
+                related._commons(
+                    client,
+                    "chiloe",
+                    ("chile",),
+                    state,
+                    topic=None,
+                    wiki={},
+                    roots_ready=asyncio.Event(),
+                ),
+                timeout=2,
+            )
+        assert rows == []
+
+    asyncio.run(run())
+
+
+def test_child_terms_keep_spanish_proper_names_and_drop_qualifiers():
+    from clipoteca.studio.related import _child_term, _or_query
+
+    variants = {"atacama", "atacama desert", "desierto de atacama"}
+    assert _child_term("Salar de Atacama", variants) == "Salar de Atacama"
+    assert _child_term("San Pedro de Atacama (commune)", variants) == "San Pedro de Atacama"
+    assert _child_term("Landscapes of the Atacama Desert", variants) is None
+    assert _child_term("Maps of the Atacama dispute", variants) is None
+    assert _child_term("Torres del Paine (mountain)", {"torres del paine"}) is None
+    query = _or_query([f"torres del paine variant number {i}" for i in range(40)])
+    assert 0 < len(query) <= 280 and query.startswith('"torres del paine variant number 0"')

@@ -1,4 +1,5 @@
 """Resolve queries live and merge successful entries into the repository cache."""
+
 import argparse
 import asyncio
 from pathlib import Path
@@ -10,7 +11,7 @@ from clipoteca.studio.related_cache import CACHE_PATH, load_cache, merge_entries
 async def seed(queries, path):
     jobs = [{"queries": {"en": [query], "es": []}} for query in queries]
     for offset in range(0, len(jobs), 4):
-        await resolve_jobs(jobs[offset:offset + 4], persistent_cache={})
+        await resolve_jobs(jobs[offset : offset + 4], persistent_cache={})
     entries = [entry for job in jobs for entry in job["related_cache_entries"]]
     save_cache(path, merge_entries(load_cache(path), entries))
     print(f"Resolved {len(entries)} cache entries")

@@ -9,15 +9,24 @@ import httpx
 from clipoteca.studio import related
 from clipoteca.studio.index import DryWriter, index_clips
 from clipoteca.studio.related_cache import (
-    cache_key, load_cache, make_entry, merge_entries, save_cache,
+    cache_key,
+    load_cache,
+    make_entry,
+    merge_entries,
+    save_cache,
 )
 
 
 def _entry():
-    return make_entry(("chiloe", (), True, None), {}, {
-        "terms": [{"term": "Castro", "origin": "commons"}],
-        "commons_roots": ["Category:Chiloe"], "geographic": True,
-    })
+    return make_entry(
+        ("chiloe", (), True, None),
+        {},
+        {
+            "terms": [{"term": "Castro", "origin": "commons"}],
+            "commons_roots": ["Category:Chiloe"],
+            "geographic": True,
+        },
+    )
 
 
 def test_fresh_cache_avoids_network_and_stale_survives_failure(tmp_path):
@@ -42,8 +51,9 @@ def test_fresh_cache_avoids_network_and_stale_survives_failure(tmp_path):
             assert not job["related_cache_entries"]
             entry["date"] = (datetime.now(UTC) - timedelta(days=31)).isoformat()
             cache = {cache_key(("chiloe", (), True, None)): entry}
-            await related.resolve_jobs([job], client=client, persistent_cache=cache,
-                                       timeout=0.1, batch_timeout=0.3)
+            await related.resolve_jobs(
+                [job], client=client, persistent_cache=cache, timeout=0.1, batch_timeout=0.3
+            )
             assert calls
             assert job["related_diagnostic"]["cache_stale"] == ["chiloe"]
             assert job["related_terms"] == entry["terms"]
@@ -92,14 +102,15 @@ def test_bundle_uses_single_non_forced_ref_update():
             return httpx.Response(200, json={"object": {"sha": "parent"}})
         if path.endswith("/contents/data/related_terms.json"):
             assert request.url.params["ref"] == "parent"
-            return httpx.Response(200, json={"content": base64.b64encode(
-                b'{"version":1,"entries":[]}'
-            ).decode()})
+            return httpx.Response(
+                200, json={"content": base64.b64encode(b'{"version":1,"entries":[]}').decode()}
+            )
         if path.endswith("/git/commits/parent"):
             return httpx.Response(200, json={"tree": {"sha": "base-tree"}})
         if path.endswith("/git/trees"):
             assert {row["path"] for row in body["tree"]} == {
-                "data/clips.json", "data/related_terms.json"
+                "data/clips.json",
+                "data/related_terms.json",
             }
             return httpx.Response(201, json={"sha": "tree"})
         if path.endswith("/git/commits"):

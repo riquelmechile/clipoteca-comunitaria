@@ -419,7 +419,9 @@ class GitHubCatalogWriter:
             raise ValueError("GitHub did not return an optimistic catalogue SHA")
         raw: bytes
         if payload.get("encoding") == "none" or not payload.get("content"):
-            response = self.client.get(self.url, headers={"Accept": "application/vnd.github.raw"}, **options)
+            response = self.client.get(
+                self.url, headers={"Accept": "application/vnd.github.raw"}, **options
+            )
             response.raise_for_status()
             raw = response.content
         else:
@@ -512,7 +514,6 @@ class GitHubCatalogWriter:
             return str(response.json()["commit"]["sha"])
         raise AssertionError("unreachable")
 
-
     @property
     def _git_url(self):
         return f"https://api.github.com/repos/{self.repository}"
@@ -531,9 +532,11 @@ class GitHubCatalogWriter:
         response.raise_for_status()
         raw = response.json()
         if raw.get("encoding") == "none" or not raw.get("content"):
-            response = self.client.get(url + "/contents/data/related_terms.json",
-                                       params={"ref": head},
-                                       headers={"Accept": "application/vnd.github.raw"})
+            response = self.client.get(
+                url + "/contents/data/related_terms.json",
+                params={"ref": head},
+                headers={"Accept": "application/vnd.github.raw"},
+            )
             response.raise_for_status()
             payload = response.json()
         else:
@@ -548,20 +551,35 @@ class GitHubCatalogWriter:
         response = self.client.get(url + "/git/commits/" + head)
         response.raise_for_status()
         tree = response.json()["tree"]["sha"]
-        response = self.client.post(url + "/git/trees", json={
-            "base_tree": tree,
-            "tree": [{"path": path, "mode": "100644", "type": "blob",
-                      "content": json.dumps(value, ensure_ascii=True, indent=2) + "\n"}
-                     for path, value in files.items()],
-        })
+        response = self.client.post(
+            url + "/git/trees",
+            json={
+                "base_tree": tree,
+                "tree": [
+                    {
+                        "path": path,
+                        "mode": "100644",
+                        "type": "blob",
+                        "content": json.dumps(value, ensure_ascii=True, indent=2) + "\n",
+                    }
+                    for path, value in files.items()
+                ],
+            },
+        )
         response.raise_for_status()
-        response = self.client.post(url + "/git/commits", json={
-            "message": "chore(catalog): publish verified related cache and catalogue",
-            "tree": response.json()["sha"], "parents": [head],
-        })
+        response = self.client.post(
+            url + "/git/commits",
+            json={
+                "message": "chore(catalog): publish verified related cache and catalogue",
+                "tree": response.json()["sha"],
+                "parents": [head],
+            },
+        )
         response.raise_for_status()
         commit = response.json()["sha"]
-        response = self.client.patch(url + "/git/refs/heads/main", json={"sha": commit, "force": False})
+        response = self.client.patch(
+            url + "/git/refs/heads/main", json={"sha": commit, "force": False}
+        )
         if response.status_code in (409, 422):
             raise RuntimeError("catalogue conflict after bounded retries")
         response.raise_for_status()

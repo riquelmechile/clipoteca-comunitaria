@@ -257,8 +257,12 @@ def _publish_clips(storage, writer, imports, day, created, repository, token, re
             mapping[imp_id] = identifier
         if incoming:
             if isinstance(writer, GitHubCatalogWriter):
-                writer.update(incoming, verified_assets=verified, retries=0,
-                              **({"related_entries": related_entries} if related_entries else {}))
+                writer.update(
+                    incoming,
+                    verified_assets=verified,
+                    retries=0,
+                    **({"related_entries": related_entries} if related_entries else {}),
+                )
             else:
                 writer.update(incoming, verified_assets=verified)
     except Exception as exc:
@@ -302,10 +306,14 @@ def _retryable(exc):
     return isinstance(exc, RuntimeError) and "catalogue conflict" in str(exc)
 
 
-def _publish_with_retry(storage, writer, imports, day, created, repository, token, related_entries=None):
+def _publish_with_retry(
+    storage, writer, imports, day, created, repository, token, related_entries=None
+):
     for attempt in range(6):
         try:
-            return _publish_clips(storage, writer, imports, day, created, repository, token, related_entries)
+            return _publish_clips(
+                storage, writer, imports, day, created, repository, token, related_entries
+            )
         except Exception as exc:
             if not _retryable(exc) or attempt == 5:
                 raise

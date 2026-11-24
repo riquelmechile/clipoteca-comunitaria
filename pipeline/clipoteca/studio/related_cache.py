@@ -24,8 +24,10 @@ def cache_key(key):
 
 
 def _safe(value):
-    return isinstance(value, str) and bool(value.strip()) and not any(
-        unicodedata.category(char).startswith("C") for char in value
+    return (
+        isinstance(value, str)
+        and bool(value.strip())
+        and not any(unicodedata.category(char).startswith("C") for char in value)
     )
 
 
@@ -46,11 +48,13 @@ def valid(entry):
         from ..place_names import _words
 
         normalized = [entry["seed"], *entry["context"]]
-        return (all(_safe(value) for value in strings)
-                and all(value == " ".join(_words(value)) for value in normalized)
-                and entry["context"] == sorted(set(entry["context"]))
-                and timestamp.tzinfo is not None
-                and timestamp <= datetime.now(UTC) + timedelta(minutes=5))
+        return (
+            all(_safe(value) for value in strings)
+            and all(value == " ".join(_words(value)) for value in normalized)
+            and entry["context"] == sorted(set(entry["context"]))
+            and timestamp.tzinfo is not None
+            and timestamp <= datetime.now(UTC) + timedelta(minutes=5)
+        )
     except (OSError, ValueError, TypeError, KeyError):
         return False
 
@@ -87,7 +91,9 @@ def merge_entries(current, entries):
             continue
         key = entry_key(entry)
         previous = result.get(key)
-        if previous is None or datetime.fromisoformat(entry["date"]) > datetime.fromisoformat(previous["date"]):
+        if previous is None or datetime.fromisoformat(entry["date"]) > datetime.fromisoformat(
+            previous["date"]
+        ):
             result[key] = entry
     return result
 
@@ -117,10 +123,16 @@ def make_entry(key, wiki, commons):
     if not terms:
         return None
     entry = {
-        "seed": seed, "context": list(context), "place": place, "topic": topic,
-        "date": datetime.now(UTC).isoformat(), "terms": terms,
-        "roots": wiki.get("roots", [])[:3], "commons_roots": commons.get("commons_roots", [])[:3],
-        "wiki_geo": bool(wiki.get("geographic")), "commons_geo": bool(commons.get("geographic")),
+        "seed": seed,
+        "context": list(context),
+        "place": place,
+        "topic": topic,
+        "date": datetime.now(UTC).isoformat(),
+        "terms": terms,
+        "roots": wiki.get("roots", [])[:3],
+        "commons_roots": commons.get("commons_roots", [])[:3],
+        "wiki_geo": bool(wiki.get("geographic")),
+        "commons_geo": bool(commons.get("geographic")),
         "country_only": bool(wiki.get("country_only")),
     }
     return entry if valid(entry) else None
@@ -128,9 +140,15 @@ def make_entry(key, wiki, commons):
 
 def restore(entry):
     return (
-        {"terms": [row for row in entry["terms"] if row["origin"] == "wikidata"],
-         "roots": entry["roots"], "geographic": entry["wiki_geo"],
-         "country_only": entry["country_only"]},
-        {"terms": [row for row in entry["terms"] if row["origin"] == "commons"],
-         "commons_roots": entry["commons_roots"], "geographic": entry["commons_geo"]},
+        {
+            "terms": [row for row in entry["terms"] if row["origin"] == "wikidata"],
+            "roots": entry["roots"],
+            "geographic": entry["wiki_geo"],
+            "country_only": entry["country_only"],
+        },
+        {
+            "terms": [row for row in entry["terms"] if row["origin"] == "commons"],
+            "commons_roots": entry["commons_roots"],
+            "geographic": entry["commons_geo"],
+        },
     )
