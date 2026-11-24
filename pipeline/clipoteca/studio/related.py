@@ -88,6 +88,7 @@ _GEO_CLASSES = _COUNTRY_CLASSES | {
     "Q16970",
     "Q839954",
     "Q570116",
+    "Q8514",
 }
 _BAD_CLASSES = {
     "Q16521",
@@ -424,7 +425,7 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
         geographic = [
             (qid, entity)
             for qid, entity in geographic
-            if _topic_matches(topic, _entity_text(entity, matches[qid]))
+            if _root_topic_matches(topic, entity, matches[qid])
         ]
     geographic.sort(
         key=lambda row: (
@@ -486,29 +487,54 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
         )
     )
     parts = [
-        qid for _, entity in roots for qid in sorted(_claim_ids(entity, "P527"))
+        qid
+        for _, entity in roots
+        for qid in sorted(_claim_ids(entity, "P527"))
         if qid not in root_ids
     ]
     ids = list(dict.fromkeys([*parts, *ids]))[:80]
     if not ids:
         return []
-    details = await asyncio.gather(
-        *(_child_entities(client, ids[i : i + 40]) for i in range(0, len(ids), 40))
-    )
-    children = {qid: entity for group in details for qid, entity in group.items()}
-    rows = []
-    for qid in ids:
-        entity = children.get(qid, {})
-        if not _geo(entity) or _bad(entity, []):
-            continue
-        if child_topic and not _topic_matches(child_topic, _entity_text(entity, [])):
-            continue
-        if countries and _claim_ids(entity, "P17") and not _claim_ids(entity, "P17") & countries:
-            continue
-        term = _child_term(_label(entity), variants)
-        if term:
-            rows.append({"term": term, "origin": "wikidata"})
-    return rows
+    # Preserve verified children after each completed label batch, even if another
+    # batch runs out of the seed budget. Final ordering is independent of latency.
+    children = {}
+
+    async def load(batch):
+        children.update(await _child_entities(client, batch))
+        rows = []
+        for qid in ids:
+            entity = children.get(qid, {})
+            if not _geo(entity) or _bad(entity, []):
+                continue
+            if child_topic and not _topic_matches(child_topic, _entity_text(entity, [])):
+                continue
+            if countries and _claim_ids(entity, "P17") and not _claim_ids(entity, "P17") & countries:
+                continue
+            term = _child_term(_label(entity), variants)
+            if term:
+                rows.append({"term": term, "origin": "wikidata"})
+        state["terms"] = rows
+
+    await asyncio.gather(*(load(ids[i : i + 40]) for i in range(0, len(ids), 40)))
+    return state.get("terms", [])
+
+
+def _root_topic_matches(topic, entity, hits):
+    # A region described as being in a desert is not itself the desert.
+    if topic == "desert":
+        if "Q8514" in _claim_ids(entity, "P31"):
+            return True
+        for label in entity.get("labels", {}).values():
+            if _topic_matches(topic, label.get("value", "")):
+                return True
+        descriptions = [
+            entry.get("value", "") for entry in entity.get("descriptions", {}).values()
+        ] + [hit.get("description", "") for hit in hits]
+        return any(
+            re.match(r"^(?:a |the |un |el )?(?:desert|desierto)\b", _key(value))
+            for value in descriptions
+        )
+    return _topic_matches(topic, _entity_text(entity, hits))
 
 
 def _entity_text(entity, hits):
@@ -669,18 +695,21 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
         and _topic_matches(child_topic, term)
     ]
     state["terms"] = direct
-    nested = await asyncio.gather(*(_category_members(client, title) for title in buckets[:8]))
-    groups = [
-        [
+    # Retain completed buckets at the deadline, in fixed bucket order.
+    buckets = buckets[:8]
+    groups = [[] for _ in buckets]
+
+    async def descend(index, title):
+        members = await _category_members(client, title)
+        groups[index] = [
             {"term": term, "origin": "commons"}
-            for title in group
-            if (term := _child_term(title[9:], root_variants))
+            for member in members
+            if (term := _child_term(member[9:], root_variants))
         ]
-        for group in nested
-    ]
-    # Interleave buckets to avoid filling all slots with one kind of landmark.
-    groups.append(direct)
-    return _interleave(groups)
+        state["terms"] = _interleave([*groups, direct])
+
+    await asyncio.gather(*(descend(i, title) for i, title in enumerate(buckets)))
+    return state.get("terms", [])
 
 
 async def _run_provider(function, client, seed, context, state, timeout, **kwargs):
