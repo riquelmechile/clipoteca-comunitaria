@@ -196,7 +196,7 @@ describe("streaming and isolated video quota",()=>{
     expect(await quota(req,"import")).toBe(true);
     expect(await quota(req,"video")).toBe(true);
     expect(await quota(req,"video")).toBe(false);
-    const cooldown=[...saved.keys()].find(k=>k.includes("/video/")&&k.split("/").length===5)!;
+    const cooldown=[...saved.keys()].find(k=>/^\/_quota\/video\/[a-f0-9]{24}$/.test(new URL(k).pathname))!;
     expect(saved.get(cooldown)?.headers.get("cache-control")).toBe("public, max-age=300");
     for(let i=1;i<12;i++){saved.delete(cooldown);expect(await quota(req,"video")).toBe(true);}
     saved.delete(cooldown);
