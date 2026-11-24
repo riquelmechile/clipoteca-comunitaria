@@ -382,3 +382,33 @@ def test_delivery_records_failed_qa_and_all_indexed_clips(setup):
     with pytest.raises(ValueError, match="mismatch"):
         delivery.build_delivery(work, writer.path)
     assert not (work / "entrega.json").exists()
+
+
+def test_failed_assembly_manifest_without_video(tmp_path):
+    work = tmp_path / "work"
+    script = {
+        "title": "El ciclo del agua",
+        "aspect": "9:16",
+        "scenes": [
+            {
+                "id": name,
+                "type": "fact",
+                "title": name,
+                "say": "El agua cambia.",
+                "query": {"es": ["agua"], "en": ["water"]},
+                "prompt": "Natural flowing water",
+            }
+            for name in ("a", "b", "c")
+        ],
+    }
+    put(work / "guion.json", script)
+    put(work / "scenes/a/result.json", {"status": "fail", "reason": "no_candidate"})
+    put(work / "scenes/a/timing.json", {"install_ffmpeg": 10, "catalog": 2})
+    put(work / "scenes/a/timing-import.json", {"import": 30})
+    writer = Writer(tmp_path / "catalogue")
+    result = delivery.build_delivery(work, writer.path)
+    assert result["sha256"] is None
+    assert result["qa"]["pass"] is False
+    assert result["scenes"][0]["reason"] == "no_candidate"
+    assert result["timings"]["scene.a.install_ffmpeg"] == 10
+    assert result["timings"]["scene.a.import"] == 30

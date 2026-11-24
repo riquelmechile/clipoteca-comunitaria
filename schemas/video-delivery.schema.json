@@ -36,17 +36,38 @@
       ]
     },
     "duration_s": {
-      "type": "number",
-      "exclusiveMinimum": 0,
-      "maximum": 60
+      "anyOf": [
+        {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "size_bytes": {
-      "type": "integer",
-      "minimum": 1
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "qa": {
       "type": "object",
@@ -73,39 +94,78 @@
       "minItems": 3,
       "maxItems": 12,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "id",
-          "clip_id",
-          "origin",
-          "source",
-          "source_url"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "clip_id",
+              "origin",
+              "source",
+              "source_url",
+              "status",
+              "fallback"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clip_id": {
+                "type": "string",
+                "pattern": "^(?:clip-[0-9]{6}|imp-[a-f0-9]{12})$"
+              },
+              "origin": {
+                "enum": [
+                  "catalog",
+                  "imported"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "status": {
+                "const": "ok"
+              },
+              "fallback": {
+                "type": "boolean"
+              }
+            }
           },
-          "clip_id": {
-            "type": "string",
-            "pattern": "^(?:clip-[0-9]{6}|imp-[a-f0-9]{12})$"
-          },
-          "origin": {
-            "enum": [
-              "catalog",
-              "imported"
-            ]
-          },
-          "source": {
-            "type": "string",
-            "minLength": 1
-          },
-          "source_url": {
-            "type": "string",
-            "format": "uri"
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "status",
+              "reason",
+              "tried"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "const": "fail"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "tried": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
           }
-        }
+        ]
       }
     },
     "clips_indexed": {
@@ -123,5 +183,42 @@
         "minimum": 0
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "qa": {
+            "properties": {
+              "pass": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "duration_s": {
+            "type": "number"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer"
+          },
+          "scenes": {
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
