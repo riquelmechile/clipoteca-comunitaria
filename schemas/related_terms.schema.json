@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "entries"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed",
+        "context",
+        "place",
+        "topic",
+        "date",
+        "terms",
+        "roots",
+        "commons_roots",
+        "wiki_geo",
+        "commons_geo",
+        "country_only"
+      ],
+      "properties": {
+        "seed": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "context": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          }
+        },
+        "place": {
+          "type": "boolean"
+        },
+        "topic": {
+          "enum": [
+            null,
+            "temple",
+            "desert"
+          ]
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "terms": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "term",
+              "origin"
+            ],
+            "properties": {
+              "term": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "origin": {
+                "enum": [
+                  "wikidata",
+                  "commons"
+                ]
+              }
+            }
+          }
+        },
+        "roots": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "qid",
+              "label"
+            ],
+            "properties": {
+              "qid": {
+                "type": "string",
+                "pattern": "^Q[1-9][0-9]*$"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 180
+              }
+            }
+          }
+        },
+        "commons_roots": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 250,
+            "pattern": "^Category:"
+          }
+        },
+        "wiki_geo": {
+          "type": "boolean"
+        },
+        "commons_geo": {
+          "type": "boolean"
+        },
+        "country_only": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

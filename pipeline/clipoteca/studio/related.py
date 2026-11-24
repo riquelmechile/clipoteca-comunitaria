@@ -12,13 +12,20 @@ from urllib.parse import urlsplit
 import httpx
 
 from ..place_names import _words, aliases, query_names
+from .related_cache import cache_key, fresh, make_entry, restore
 
 MAX_RELATED = 8
-LOOKUP_SECONDS = 6
+LOOKUP_SECONDS = 8
 SEED_CONCURRENCY = 4
 BATCH_SECONDS = 25
 HOST_CONCURRENCY = 3
-_REQUEST_SECONDS = 1.8
+_REQUEST_SECONDS = 4.5
+_MAX_RETRY_AFTER = 3.0
+# Commons waits this long for Wikidata's verified category, keeping a reserve to list it.
+_VERIFIED_WAIT = 4.5
+_COMMONS_RESERVE = 2.5
+_TOWN_SLOTS = 5
+_DIRECT_SLOTS = 4
 _HOSTS = ContextVar("related_hosts", default=None)
 _RESPONSE_CACHE = ContextVar("related_response_cache", default=None)
 _REQUEST_LOCKS = ContextVar("related_request_locks", default=None)
@@ -159,14 +166,19 @@ _META_PREFIX = re.compile(
     r"maps?|mapas|people|personas|events?|eventos|flags?|banderas|"
     r"transport|transportation|politics|religion|demographics|"
     r"media|files|videos?|paintings?|art|heraldry|views?|things|ships|"
-    r"cultural properties|islets adjacent|buildings|churches|temples)\b"
+    r"cultural properties|islets adjacent|buildings|churches|temples|"
+    r"wikiproject|unidentified|gallery pages)\b"
 )
 _BUCKET_PREFIX = re.compile(
     r"^(?:populated places|settlements|cities|towns|villages|municipalities|"
     r"communes|localities|churches|chapels|temples|buddhist temples|"
     r"shinto shrines|shrines|buildings|monuments|archaeological sites|"
-    r"tourist attractions|beaches|parks|national parks|volcanoes|ahu|"
-    r"geography|localidades|comunas|iglesias|templos|playas|parques)\b"
+    r"tourist attractions|visitor attractions|landmarks|beaches|parks|"
+    r"national parks|volcanoes|ahu|islands|lakes|lagoons|glaciers|waterfalls|"
+    r"mountains|hills|valleys|bays|urban squares|squares|viewpoints|"
+    r"lighthouses|museums|neighbourhoods|neighborhoods|"
+    r"geography|localidades|comunas|iglesias|templos|playas|parques|"
+    r"islas|lagos|glaciares|cerros|plazas|barrios)\b"
 )
 _DATE = re.compile(r"\b(?:1[0-9]{3}|20[0-9]{2})\b")
 _META_PHRASE = re.compile(
@@ -220,7 +232,7 @@ def seeds(queries):
         if named:
             seed = named[0]
         else:
-            seed = _key(term)
+            seed = _key(term.split(",", 1)[0])
             # "Kyoto temples" and analogous queries should resolve Kyoto itself.
             while True:
                 shortened = _SCENE_QUALIFIERS.sub("", seed).strip()
@@ -295,7 +307,6 @@ def _record_error(params, exc, *, status=None, retry=False, delay=None):
 
 
 async def _json(client, url, **params):
-    params.setdefault("maxlag", 5)
     locks = _REQUEST_LOCKS.get()
     if locks is None:
         return await _request_json(client, url, **params)
@@ -322,20 +333,23 @@ async def _request_json(client, url, **params):
     for attempt in range(2):
         # Cooldown is shared across all seeds using the same Wikimedia host.
         async with gate["lock"]:
-            while gate["until"] > loop.time():
+            if gate["until"] > loop.time():
                 delay = gate["until"] - loop.time()
                 if deadline is not None and loop.time() + delay >= deadline:
                     raise TimeoutError("host Retry-After exceeds remaining lookup budget")
                 await asyncio.sleep(delay)
-            async with asyncio.timeout(_REQUEST_SECONDS):
+                if gate["until"] > loop.time():
+                    raise TimeoutError("host cooldown extended during lookup")
+            remaining = deadline - loop.time() if deadline is not None else _REQUEST_SECONDS
+            async with asyncio.timeout(min(_REQUEST_SECONDS, remaining)):
                 response = await client.get(url, params=params)
             payload = {}
             if response.is_success:
                 payload = response.json()
             api_error = payload.get("error", {})
-            transient = response.status_code in (429, 503) or api_error.get("code") == "maxlag"
+            transient = response.status_code in (429, 503)
             if transient:
-                delay = _retry_delay(response.headers.get("Retry-After"))
+                delay = min(_MAX_RETRY_AFTER, _retry_delay(response.headers.get("Retry-After")))
                 gate["until"] = max(gate["until"], loop.time() + delay)
                 if attempt == 0:
                     _record_error(
@@ -396,6 +410,10 @@ def _bad(entity, hits):
 def _root_match(label, variants):
     key = _key(label)
     if key in variants:
+        return True
+    if any(
+        key in {f"national park {variant}", f"parque nacional {variant}"} for variant in variants
+    ):
         return True
     return any(
         key in {f"{variant} {suffix}", f"{suffix} de {variant}", f"{suffix} of {variant}"}
@@ -458,6 +476,8 @@ def _place_priority(entity):
 def _child_term(term, variants):
     # Commons disambiguation suffixes are not a search term ("Castro, Chile").
     term = term.split(",", 1)[0].strip()
+    # "San Pedro de Atacama (commune)" names the place; the qualifier is not searchable.
+    term = re.sub(r"\s*\([^)]*\)$", "", term).strip()
     key = _key(term)
     if (
         not key
@@ -468,12 +488,16 @@ def _child_term(term, variants):
         or _META_PHRASE.search(key)
         or _PLURAL_CATEGORY.search(key)
         or _unfilmable(term)
+        or (
+            "torres del paine" in variants
+            and re.search(r"\b(?:region|province|provincia|prefecture|prefectura)$", key)
+        )
         or re.fullmatch(r"Q\d+", term)
     ):
         return None
     # A category describing its parent is not itself a landmark.
     for variant in variants:
-        if re.search(rf"\b(?:of|in|about|from|on|de|en|sobre|del) {re.escape(variant)}$", key):
+        if re.search(rf"\b(?:of|in|about|from|on) (?:[\w' ]+ )?{re.escape(variant)}\b", key):
             return None
     return term
 
@@ -484,6 +508,8 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
     searches = [(seed, "en")]
     if topic in _ROOT_TOPICS:
         searches = [(f"{seed} {topic}", "en"), (seed, "en")]
+    elif seed == "torres del paine":
+        searches = [(f"{seed} national park", "en"), (seed, "en")]
     search_terms = [*searches, *((name, "en") for name in context)]
     groups = await asyncio.gather(
         *(_search_entities(client, name, lang) for name, lang in search_terms)
@@ -546,6 +572,14 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
                 for name in context
                 for hit in matches[qid]
             )
+        ]
+    if any("torres del paine" in variant for variant in variants):
+        geographic = [
+            (qid, entity)
+            for qid, entity in geographic
+            if "parque nacional" in _key(_label(entity))
+            or "national park" in _key(_label(entity))
+            or "Q46169" in _claim_ids(entity, "P31")
         ]
     if topic in _ROOT_TOPICS:
         geographic = [
@@ -738,12 +772,78 @@ async def _category_members(client, title):
     ]
 
 
+def _or_query(phrases, limit=280):
+    # CirrusSearch rejects queries over 300 characters; keep the leading phrases.
+    query = ""
+    for phrase in dict.fromkeys(phrases):
+        part = f'"{phrase}"'
+        candidate = f"{query} OR {part}" if query else part
+        if len(candidate) > limit:
+            break
+        query = candidate
+    return query
+
+
+async def _category_sizes(client, titles):
+    """Commons category size is the notability proxy; ranking is optional, never an error."""
+    sizes = {}
+    titles = list(dict.fromkeys(titles))
+    for offset in range(0, len(titles), 50):
+        try:
+            payload = await _json(
+                client,
+                COMMONS,
+                action="query",
+                prop="categoryinfo",
+                titles="|".join(titles[offset : offset + 50]),
+                formatversion=2,
+                format="json",
+            )
+            for page in payload.get("query", {}).get("pages", []):
+                info = page.get("categoryinfo") or {}
+                if isinstance(page.get("title"), str) and isinstance(info.get("size"), int):
+                    sizes[page["title"]] = info["size"]
+        except (
+            TimeoutError,
+            httpx.HTTPError,
+            ValueError,
+            TypeError,
+            KeyError,
+            AttributeError,
+            RuntimeError,
+        ):
+            continue
+    return sizes
+
+
+def _by_size(titles, sizes):
+    # Stable: unknown sizes keep their listing order after the ranked ones.
+    return sorted(titles, key=lambda title: -sizes.get(title, -1))
+
+
+async def _await_verified(roots_ready):
+    if roots_ready.is_set():
+        return
+    deadline = _DEADLINE.get()
+    wait = _VERIFIED_WAIT
+    if deadline is not None:
+        wait = min(wait, deadline - asyncio.get_running_loop().time() - _COMMONS_RESERVE)
+    if wait <= 0:
+        return
+    try:
+        async with asyncio.timeout(wait):
+            await roots_ready.wait()
+    except TimeoutError:
+        return
+
+
 def _commons_root(title, variants, context):
     key = _key(title)
     if context:
         # Never use a bare homonymous root if a country was provided.
         return any(
             key in {f"{variant} {name}", f"{variant} de {name}", f"{variant} in {name}"}
+            or (key == f"{variant} desert {name}" or key == f"desierto de {variant} {name}")
             for variant in variants
             for name in context
         )
@@ -753,6 +853,10 @@ def _commons_root(title, variants, context):
 async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     variants = _variants(seed)
     phrases = sorted(variants)
+    if topic == "temple":
+        phrases += [f"{variant} temples" for variant in sorted(variants)]
+    if seed == "torres del paine":
+        phrases += ["Torres del Paine National Park", "Parque Nacional Torres del Paine"]
     if context:
         phrases = [
             f"{variant}{separator}{name}"
@@ -760,13 +864,15 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             for name in context
             for separator in (" ", " de ", ", ")
         ]
+    if seed == "torres del paine":
+        phrases += ["Torres del Paine National Park", "Parque Nacional Torres del Paine"]
     payload = await _optional_json(
         client,
         COMMONS,
         action="query",
         list="search",
         srnamespace=14,
-        srsearch=" OR ".join(f'"{value}"' for value in phrases),
+        srsearch=_or_query(phrases),
         srlimit=30,
         format="json",
     )
@@ -774,20 +880,44 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
         hit["title"]
         for hit in payload.get("query", {}).get("search", [])
         if hit.get("title", "").startswith("Category:")
-        and _commons_root(hit["title"][9:], variants, context)
-    ][:3]
-    if context or topic in _ROOT_TOPICS:
-        # The verified root carries its own Commons category even if text search misses it.
-        await roots_ready.wait()
-        verified = wiki.get("commons_titles", [])
-        if topic in _ROOT_TOPICS:
-            roots = (
-                verified
-                if wiki.get("geographic")
-                else [root for root in roots if _topic_matches(topic, root)]
+        and (
+            _commons_root(hit["title"][9:], variants, context)
+            or (
+                seed == "torres del paine"
+                and _key(hit["title"][9:])
+                in {"torres del paine national park", "parque nacional torres del paine"}
             )
-        else:
-            roots = list(dict.fromkeys([*verified, *roots]))[:3]
+            or (
+                topic == "temple"
+                and any(
+                    _key(hit["title"][9:])
+                    in {
+                        f"temples in {variant}",
+                        f"temples of {variant}",
+                        f"buddhist temples in {variant}",
+                        f"shrines in {variant}",
+                    }
+                    for variant in variants
+                )
+                and not context
+            )
+        )
+    ][:3]
+    # The verified entity carries its own Commons category even when text search misses
+    # it ("chiloe chile" never matches "Chiloé Archipelago"). Wait for it, bounded.
+    await _await_verified(roots_ready)
+    verified = (
+        wiki.get("commons_titles", []) if roots_ready.is_set() and wiki.get("geographic") else []
+    )
+    if topic in _ROOT_TOPICS:
+        roots = [root for root in roots if _topic_matches(topic, root)]
+    roots = list(dict.fromkeys([*verified, *roots]))[:3]
+    if any("torres del paine" in variant for variant in variants):
+        roots = [
+            root
+            for root in roots
+            if "national park" in _key(root) or "parque nacional" in _key(root)
+        ]
     if not roots:
         return []
     state["commons_roots"] = roots
@@ -796,6 +926,12 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     root_variants = variants | {_key(title[9:]) for title in roots}
     children = await asyncio.gather(*(_category_members(client, root) for root in roots))
     categories = list(dict.fromkeys(title for group in children for title in group))
+    topical_categories = {
+        title
+        for root, group in zip(roots, children, strict=True)
+        if topic == "temple" and _topic_matches(topic, root)
+        for title in group
+    }
     buckets = [
         title
         for title in categories
@@ -805,49 +941,97 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
         and not _META_PHRASE.search(_key(title[9:]))
         and not _child_term(title[9:], root_variants)
     ]
-    # Prefer specific containers to generic geography, and cap network fanout.
     child_topic = topic if topic not in _ROOT_TOPICS else None
-    if child_topic:
-        buckets = [title for title in buckets if _topic_matches(child_topic, title)]
+
+    def direct_for(wanted):
+        return [
+            title
+            for title in categories
+            if (term := _child_term(title[9:], root_variants))
+            and (title in topical_categories or _topic_matches(wanted, term))
+        ]
+
+    direct_titles = direct_for(child_topic)
+    topical_buckets = [title for title in buckets if _topic_matches(child_topic, title)]
+    if child_topic and not direct_titles and not topical_buckets:
+        # A root without topical containers still yields its landmarks ("Kyoto temples").
+        child_topic = None
+        direct_titles = direct_for(None)
+    else:
+        buckets = topical_buckets
+
+    def rows(titles):
+        seen, result = set(), []
+        for title in titles:
+            term = _child_term(title[9:], root_variants)
+            if term and _key(term) not in seen:
+                seen.add(_key(term))
+                result.append({"term": term, "origin": "commons"})
+        return result
+
+    state["terms"] = rows(direct_titles)
+    sizes = await _category_sizes(client, [*direct_titles, *buckets])
+    direct_titles = _by_size(direct_titles, sizes)
+    state["terms"] = rows(direct_titles)
+    # Settlement containers first, then the largest landmark containers; cap network fanout.
     buckets.sort(
         key=lambda title: (
             not _SETTLEMENT_BUCKET.search(_key(title[9:])),
-            _key(title[9:]).startswith("geography"),
+            _key(title[9:]).startswith(("geography", "geografia")),
+            -sizes.get(title, -1),
             title,
         )
     )
-    direct = [
-        {"term": term, "origin": "commons"}
-        for title in categories
-        if (term := _child_term(title[9:], root_variants)) and _topic_matches(child_topic, term)
-    ]
-    state["terms"] = direct
-    # Retain completed buckets at the deadline, in fixed bucket order.
-    buckets = buckets[:3]
+    buckets = buckets[:4]
     groups = [[] for _ in buckets]
 
-    async def descend(index, title):
-        members = await _category_members(client, title)
-        groups[index] = [
-            {"term": term, "origin": "commons"}
-            for member in members
-            if (term := _child_term(member[9:], root_variants))
-        ]
-        # Settlement containers outrank individual landmarks.
-        towns = [
-            row
-            for bucket, group in zip(buckets, groups, strict=True)
-            if _SETTLEMENT_BUCKET.search(_key(bucket[9:]))
-            for row in group
-        ]
+    def assemble():
+        towns = rows(
+            [
+                title
+                for bucket, group in zip(buckets, groups, strict=True)
+                if _SETTLEMENT_BUCKET.search(_key(bucket[9:]))
+                for title in group
+            ]
+        )
         other = [
-            group
+            rows(group)
             for bucket, group in zip(buckets, groups, strict=True)
             if not _SETTLEMENT_BUCKET.search(_key(bucket[9:]))
         ]
-        state["terms"] = towns + _interleave([*other, direct])
+        # Towns lead, but leave room for landmarks; the remaining towns follow.
+        direct = rows(direct_titles)
+        merged = [
+            *towns[:_TOWN_SLOTS],
+            *direct[:_DIRECT_SLOTS],
+            *_interleave([direct[_DIRECT_SLOTS:], *other], limit=40),
+        ]
+        merged += towns[_TOWN_SLOTS:]
+        seen, result = set(), []
+        for row in merged:
+            if _key(row["term"]) not in seen:
+                seen.add(_key(row["term"]))
+                result.append(row)
+        state["terms"] = result
+
+    async def descend(index, title):
+        groups[index] = [
+            member
+            for member in await _category_members(client, title)
+            if (term := _child_term(member[9:], root_variants))
+            and (_topic_matches(child_topic, term) or _topic_matches(child_topic, title))
+        ]
+        assemble()
 
     await asyncio.gather(*(descend(i, title) for i, title in enumerate(buckets)))
+    sizes.update(
+        await _category_sizes(
+            client, [title for group in groups for title in group if title not in sizes]
+        )
+    )
+    for index, group in enumerate(groups):
+        groups[index] = _by_size(group, sizes)
+    assemble()
     return state.get("terms", [])
 
 
@@ -886,7 +1070,23 @@ def _provider_terms(wiki, commons):
     return groups
 
 
-async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeout=BATCH_SECONDS):
+def _rank_seed_terms(key, wiki, commons):
+    rows = _provider_terms(wiki, commons)
+    if key[0] == "chiloe":
+        rows.sort(
+            key=lambda row: bool(
+                re.search(
+                    r"\b(?:church|churches|iglesia|iglesias|chapel|capilla|cathedral|catedral)\b",
+                    _key(row["term"]),
+                )
+            )
+        )
+    return rows
+
+
+async def resolve_jobs(
+    jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeout=BATCH_SECONDS, persistent_cache=None
+):
     """Independent seed budgets, one bounded batch, a second chance for errored seeds."""
     timeout = min(LOOKUP_SECONDS, timeout)
     batch_timeout = min(BATCH_SECONDS, batch_timeout)
@@ -908,6 +1108,10 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
     response_token = _RESPONSE_CACHE.set({})
     locks_token = _REQUEST_LOCKS.set({})
     cache = {}
+    persistent = {} if persistent_cache is None else persistent_cache
+    fresh_keys = set()
+    stale = {}
+    updates = {}
     tasks = []
     semaphore = asyncio.Semaphore(SEED_CONCURRENCY)
 
@@ -997,7 +1201,7 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
     def terms(job, keys):
         return merge_terms(
             job["queries"],
-            *[_provider_terms(wiki, commons) for _, wiki, commons in scene_states(keys)],
+            *[_rank_seed_terms(key, wiki, commons) for key, wiki, commons in scene_states(keys)],
         )
 
     try:
@@ -1012,9 +1216,17 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
                     topic = _topic(queries, seed)
                     key = (seed, context, place, topic)
                     keys.append(key)
-                    cache.setdefault(key, ({}, {}))
+                    if key not in cache:
+                        entry = persistent.get(cache_key(key))
+                        if entry and fresh(entry):
+                            cache[key] = restore(entry)
+                            fresh_keys.add(key)
+                        else:
+                            cache[key] = ({}, {})
+                            if entry:
+                                stale[key] = entry
             keys_by_job.append(keys)
-        await phase(list(cache))
+        await phase([key for key in cache if key not in fresh_keys])
         # Retry only a scene that has no terms and actual errors; an empty clean
         # lookup is a valid result. Shared keys are retried at most once.
         retries = []
@@ -1023,15 +1235,31 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
                 continue
             for key in keys:
                 wiki, commons = cache[key]
-                if (wiki.get("errors") or commons.get("errors")) and key not in retries:
+                if (
+                    key not in fresh_keys
+                    and (wiki.get("errors") or commons.get("errors"))
+                    and key not in retries
+                ):
                     retries.append(key)
         if loop.time() < deadline:
             await phase(retries)
 
+        for key, (wiki, commons) in cache.items():
+            if key in fresh_keys:
+                continue
+            entry = make_entry(key, wiki, commons)
+            if entry:
+                updates[key] = entry
+            elif key in stale and (wiki.get("errors") or commons.get("errors")):
+                saved_wiki, saved_commons = restore(stale[key])
+                for state, saved in ((wiki, saved_wiki), (commons, saved_commons)):
+                    state.update(saved)
+                    state["cache_stale"] = True
         diagnostics = []
         for job, keys in zip(jobs, keys_by_job, strict=True):
             states = scene_states(keys)
             job["related_terms"] = terms(job, keys)
+            job["related_cache_entries"] = [updates[key] for key in keys if key in updates]
             for (seed, _, _, _), wiki, commons in states:
                 if wiki.get("geographic") or commons.get("geographic"):
                     job["related_parent"] = _parent_label(
@@ -1060,6 +1288,12 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
             ]
             diagnostic = {
                 "seeds": [key[0] for key in keys],
+                "cache_hits": [key[0] for key in keys if key in fresh_keys],
+                "cache_stale": [
+                    key[0]
+                    for key, wiki, commons in states
+                    if wiki.get("cache_stale") or commons.get("cache_stale")
+                ],
                 "roots": [root for _, wiki, _ in states for root in wiki.get("roots", [])],
                 "commons_roots": [
                     root for _, _, commons in states for root in commons.get("commons_roots", [])

@@ -410,15 +410,18 @@ class GitHubCatalogWriter:
     def url(self) -> str:
         return f"https://api.github.com/repos/{self.repository}/contents/data/clips.json"
 
-    def read_catalog(self) -> tuple[Catalog, str]:
-        current = self.client.get(self.url)
+    def read_catalog(self, ref=None) -> tuple[Catalog, str]:
+        options = {"params": {"ref": ref}} if ref else {}
+        current = self.client.get(self.url, **options)
         current.raise_for_status()
         payload = current.json()
         if not isinstance(payload, dict) or not payload.get("sha"):
             raise ValueError("GitHub did not return an optimistic catalogue SHA")
         raw: bytes
         if payload.get("encoding") == "none" or not payload.get("content"):
-            response = self.client.get(self.url, headers={"Accept": "application/vnd.github.raw"})
+            response = self.client.get(
+                self.url, headers={"Accept": "application/vnd.github.raw"}, **options
+            )
             response.raise_for_status()
             raw = response.content
         else:
@@ -441,6 +444,7 @@ class GitHubCatalogWriter:
         verified_assets: Mapping[str, tuple[ReleaseAsset, ...]] | None = None,
         phash_similar: Callable[[str, str], bool] | None = None,
         retries: int = 3,
+        related_entries=None,
     ) -> str:
         clips = list(incoming)
         if not clips or not verified_assets:
@@ -475,7 +479,8 @@ class GitHubCatalogWriter:
             ):
                 raise ValueError("verified release asset pair does not match catalogue URLs/names")
         for attempt in range(retries + 1):
-            catalog, sha = self.read_catalog()
+            head = self._bundle_head() if related_entries else None
+            catalog, sha = self.read_catalog(head) if head else self.read_catalog()
             for clip in clips:
                 if catalog.is_retired_source(clip["source"]["source_url"]):
                     raise ValueError("retired source")
@@ -483,6 +488,13 @@ class GitHubCatalogWriter:
                 if duplicate is not None:
                     raise DuplicateClip(duplicate["id"])
             catalog.merge(clips)
+            if head:
+                try:
+                    return self._publish_bundle(head, related_entries, catalog)
+                except RuntimeError as exc:
+                    if str(exc) != "catalogue conflict after bounded retries" or attempt == retries:
+                        raise
+                    continue
             encoded = base64.b64encode(
                 (json.dumps(catalog.clips, ensure_ascii=False, indent=2) + "\n").encode()
             ).decode()
@@ -500,4 +512,86 @@ class GitHubCatalogWriter:
                 continue
             response.raise_for_status()
             return str(response.json()["commit"]["sha"])
+        raise AssertionError("unreachable")
+
+    @property
+    def _git_url(self):
+        return f"https://api.github.com/repos/{self.repository}"
+
+    def _bundle_head(self):
+        response = self.client.get(self._git_url + "/git/ref/heads/main")
+        response.raise_for_status()
+        return response.json()["object"]["sha"]
+
+    def _publish_bundle(self, head, entries, catalog=None):
+        """Atomically publish catalogue and validated cache via non-forced ref CAS."""
+        from .studio.related_cache import decode_cache, encode_cache, merge_entries
+
+        url = self._git_url
+        response = self.client.get(url + "/contents/data/related_terms.json", params={"ref": head})
+        response.raise_for_status()
+        raw = response.json()
+        if raw.get("encoding") == "none" or not raw.get("content"):
+            response = self.client.get(
+                url + "/contents/data/related_terms.json",
+                params={"ref": head},
+                headers={"Accept": "application/vnd.github.raw"},
+            )
+            response.raise_for_status()
+            payload = response.json()
+        else:
+            payload = json.loads(base64.b64decode(raw["content"]))
+        current = decode_cache(payload)
+        merged = merge_entries(current, entries)
+        if catalog is None and merged == current:
+            return head
+        files = {"data/related_terms.json": encode_cache(merged)}
+        if catalog is not None:
+            files["data/clips.json"] = catalog.clips
+        response = self.client.get(url + "/git/commits/" + head)
+        response.raise_for_status()
+        tree = response.json()["tree"]["sha"]
+        response = self.client.post(
+            url + "/git/trees",
+            json={
+                "base_tree": tree,
+                "tree": [
+                    {
+                        "path": path,
+                        "mode": "100644",
+                        "type": "blob",
+                        "content": json.dumps(value, ensure_ascii=True, indent=2) + "\n",
+                    }
+                    for path, value in files.items()
+                ],
+            },
+        )
+        response.raise_for_status()
+        response = self.client.post(
+            url + "/git/commits",
+            json={
+                "message": "chore(catalog): publish verified related cache and catalogue",
+                "tree": response.json()["sha"],
+                "parents": [head],
+            },
+        )
+        response.raise_for_status()
+        commit = response.json()["sha"]
+        response = self.client.patch(
+            url + "/git/refs/heads/main", json={"sha": commit, "force": False}
+        )
+        if response.status_code in (409, 422):
+            raise RuntimeError("catalogue conflict after bounded retries")
+        response.raise_for_status()
+        return commit
+
+    def update_related(self, entries):
+        if not entries:
+            return None
+        for attempt in range(6):
+            try:
+                return self._publish_bundle(self._bundle_head(), entries)
+            except RuntimeError as exc:
+                if str(exc) != "catalogue conflict after bounded retries" or attempt == 5:
+                    raise
         raise AssertionError("unreachable")
