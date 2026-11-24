@@ -674,6 +674,15 @@ async def ingest(
                                     **(
                                         {
                                             key: candidate.metadata[key]
+                                            for key in ("commons_category", "commons_place_aliases")
+                                            if candidate.metadata and key in candidate.metadata
+                                        }
+                                        if candidate.provider == "wikimedia_commons"
+                                        else {}
+                                    ),
+                                    **(
+                                        {
+                                            key: candidate.metadata[key]
                                             for key in ("issue_number", "issue_author", "issue_url")
                                             if candidate.metadata and key in candidate.metadata
                                         }

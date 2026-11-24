@@ -95,11 +95,12 @@ class SceneBudget:
         return None
 
 
-def _ordered(adapters):
+def _ordered(adapters, *, place=False):
     return sorted(
         adapters,
         key=lambda adapter: (
             adapter.support_status != _DOWNLOAD,
+            not (place and adapter.name == "wikimedia_commons"),
             -int(getattr(adapter, "discovery_priority", 0)),
             adapter.name == "youtube",
         ),
@@ -137,7 +138,7 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
     last = "scene"
     seen = set()
     index = 0
-    ordered = _ordered(adapters)
+    ordered = _ordered(adapters, place=bool(library.query_names([query])))
 
     async def discover(adapter, lang):
         if adapter.support_status in _SEARCHABLE:

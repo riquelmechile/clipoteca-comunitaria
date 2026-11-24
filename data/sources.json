@@ -195,7 +195,7 @@
     },
     "download_supported": true,
     "credentials_present": true,
-    "notes": "file namespace, inspect rights"
+    "notes": "file namespace and bounded place categories; inspect rights"
   },
   {
     "name": "internet_archive",

@@ -96,6 +96,8 @@
           "type": "string",
           "minLength": 2
         },
+        "commons_category": {"type": "string", "minLength": 1},
+        "commons_place_aliases": {"type": "array", "items": {"type": "string", "minLength": 1}},
         "source_title": {
           "type": "string"
         },

@@ -5,22 +5,11 @@ from __future__ import annotations
 import json
 import math
 import re
-import unicodedata
 from pathlib import Path
 from typing import Any
 
+from ..place_names import _fold, _words, aliases, query_names
 from .windows import fit_mode
-
-
-def _fold(text: str) -> str:
-    value = unicodedata.normalize("NFKC", text).casefold()
-    return "".join(
-        char for char in unicodedata.normalize("NFKD", value) if unicodedata.category(char) != "Mn"
-    )
-
-
-def _words(text: str) -> list[str]:
-    return re.findall(r"\w+", _fold(text))
 
 
 def _values(value: object) -> list[str]:
@@ -33,47 +22,17 @@ def _values(value: object) -> list[str]:
     return []
 
 
-# Known geographic entities plus explicit multi-word title-cased names in queries.
-# Match full token sequences, never a single component such as "Nui".
 _STOP = frozenset(
     "a an the of in on at and or with from for to is by as footage video view "
     "el la los las de del en y o con por para un una al a que es vista imagen".split()
 )
-_PLACE_NAMES = (
-    "rapa nui",
-    "easter island",
-    "isla de pascua",
-    "valparaiso",
-    "atacama",
-    "torres del paine",
-    "paine",
-    "chiloe",
-    "perito moreno",
-    "patagonia",
-    "santiago",
-    "antofagasta",
-    "punta arenas",
-)
-_NAME_SEQUENCE = re.compile(r"\b[A-Z\u00c0-\u00de][\w]+(?:\s+[A-Z\u00c0-\u00de][\w]+)+")
 
-
-def query_names(queries):
-    names = set()
-    for query in queries:
-        folded = " ".join(_words(query))
-        for name in _PLACE_NAMES:
-            if f" {name} " in f" {folded} ":
-                names.add(name)
-        # Internal capitalized proper names; sentence-initial single words
-        # are ambiguous, so require a known entity or a multi-word sequence.
-        if not query.isupper():
-            for match in _NAME_SEQUENCE.finditer(query):
-                names.add(" ".join(_words(match.group())))
-    return {
-        name
-        for name in names
-        if not any(name != other and f" {name} " in f" {other} " for other in names)
-    }
+def _source_fragments(source):
+    return (
+        _values(source.get("source_title"))
+        + _values(source.get("commons_category"))
+        + _values(source.get("commons_place_aliases"))
+    )
 
 
 def name_match(clip, queries, *, source_only=False):
@@ -84,15 +43,18 @@ def name_match(clip, queries, *, source_only=False):
     if not source_only:
         fragments += _values(clip.get("description")) + _values(clip.get("tags"))
     source = clip.get("source") or {}
-    fragments += _values(source.get("source_title"))
+    fragments += _source_fragments(source)
     return any(
-        f" {name} " in f" {' '.join(_words(fragment))} " for name in names for fragment in fragments
+        f" {alias} " in f" {' '.join(_words(fragment))} "
+        for name in names
+        for alias in aliases(name)
+        for fragment in fragments
     )
 
 
 def sufficient_query_match(clip, queries):
     source = clip.get("source") or {}
-    fragments = _values(clip.get("title")) + _values(source.get("source_title"))
+    fragments = _values(clip.get("title")) + _source_fragments(source)
     tokens = {word for fragment in fragments for word in _words(fragment)}
     names = query_names(queries)
     if names and not name_match(clip, queries, source_only=True):
@@ -176,7 +138,7 @@ def text_score(
         *_values(clip.get("title")),
         *_values(clip.get("description")),
         *_values(clip.get("tags")),
-        *([source.get("source_title", "")] if isinstance(source, dict) else []),
+        *(_source_fragments(source) if isinstance(source, dict) else []),
     ]
     haystack = _fold(" ".join(text for text in fragments if isinstance(text, str)))
     tokens = set(_words(haystack))

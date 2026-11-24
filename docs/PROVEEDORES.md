@@ -303,3 +303,22 @@ Pruebas sin red: Set-Cookie Domain=.dzen.ru seguido de Cookie correcto;
 cookie host-only de api.bilibili.com; aislamiento al CDN; Location relativa
 en descargas y URL visible; regresiones M24 r7, TLS y HLS anteriores.
 Este PR no representa evidencia de smoke live ni cambia capacidades.
+
+### Wikimedia Commons: búsqueda geográfica
+
+Cuando se detecta un nombre propio, Commons intenta resolver categorías mediante
+MediaWiki (namespace 14), con coincidencia exacta normalizada y prioridad para
+`Videos of X`. Se aceptan los alias documentados Rapa Nui, Easter Island e Isla de
+Pascua; no se crean alias a partir de la consulta libre. Se recorren hasta seis
+categorías, dos niveles de profundidad y 50 miembros por petición (sin paginación
+adicional), con un máximo de tres segundos o la mitad del presupuesto del adaptador.
+Las peticiones son seriales por adaptador, usan el User-Agent del proyecto y maxlag=5.
+Los videos encontrados por categoría preceden a los de texto y se deduplican por ID.
+Sin categoría, o si falla su API, continúa la búsqueda textual. El registro conserva
+el título original, `commons_category` y `commons_place_aliases` opcionales;
+la categoría aporta evidencia de pertinencia, no una garantía del contenido visual.
+Se mantienen las verificaciones existentes de licencia, MIME, HTTPS y descarga
+segura; WebM/OGV se normalizan a MP4 por el pipeline habitual. En escenas con nombre
+propio Commons se programa antes que los bancos stock, sin excluir otras fuentes.
+No se incorporan los bancos oficiales Imagen de Chile ni Sernatur: sus términos
+prohíben el acceso automatizado, la minería de datos y la redistribución.
