@@ -186,17 +186,33 @@ class IndexStorage(GitHubReleaseStorage):
         response.raise_for_status()
         return self._asset(response.json())
 
+    def verify_uploaded_asset(self, asset, name, size, digest):
+        # The upload response contains the authoritative metadata. Re-listing a
+        # nearly full release twice per asset burns up to 20 API calls per upload.
+        if asset.name != name or asset.state != "uploaded" or asset.size != size:
+            raise StorageError(f"incomplete asset: {name}")
+        url = _public_asset_url(asset.browser_download_url, self.repository, "")
+        body = self._request("GET", url).content
+        if hashlib.sha256(body).hexdigest() != digest:
+            raise StorageError(f"asset digest mismatch: {name}")
+        return asset
+
 
 def _upload(storage, release, asset, name, uploaded=None):
     path, size, digest = asset
     if _digest(path) != (size, digest):
         raise PublishError("asset changed before upload")
-    existing = storage.find_existing_asset(release, name, size, digest)
-    if existing is not None:
-        raise ConcurrentWrite("asset already reserved")
+    if not isinstance(storage, IndexStorage):
+        existing = storage.find_existing_asset(release, name, size, digest)
+        if existing is not None:
+            raise ConcurrentWrite("asset already reserved")
+    # The real IndexStorage POST is the atomic name reservation; never adopt an
+    # existing asset on conflict. Validate metadata and actual downloaded bytes.
     existing = storage.upload_asset(release, path, name)
     if uploaded is not None:
         uploaded.append(existing.id)
+    if isinstance(storage, IndexStorage):
+        return storage.verify_uploaded_asset(existing, name, size, digest)
     return storage.verify_asset(name, size, digest, release.id)
 
 
@@ -356,8 +372,8 @@ class DryStorage:
         self._ids[asset_id].unlink(missing_ok=True)
 
 
-def _collect(work, created):
-    imports = {}
+def _collect(work, created, token):
+    imports, errors, ambiguous = {}, [], set()
     paths = [
         path
         for scene in sorted((work / "scenes").glob("*"))
@@ -366,19 +382,39 @@ def _collect(work, created):
     ]
     for path in paths:
         root = path.parent
-        manifest = _read(_local(root, "imported.json"))
-        for entry in manifest["clips"]:
-            # Fallback material only fills a scene; it never grows the catalogue.
-            if entry.get("fallback"):
-                continue
-            identifier = entry["imp_id"]
-            record, assets = _imported(root, identifier, entry)
-            urls = [f"https://example.invalid/{i}" for i in range(len(assets))]
-            _record_clip(record, "clip-999999", created, urls)
-            if identifier in imports and imports[identifier][1][0][1:] != assets[0][1:]:
-                raise PublishError("ambiguous imported identity")
-            imports.setdefault(identifier, (record, assets))
-    return imports
+        try:
+            manifest = _read(_local(root, "imported.json"))
+            entries = manifest["clips"]
+            if not isinstance(entries, list):
+                raise PublishError("invalid index input")
+        except Exception as exc:
+            errors.append(_error(exc))
+            continue
+        for entry in entries:
+            identifier = None
+            try:
+                # Fallback material only fills a scene; it never grows the catalogue.
+                if entry.get("fallback"):
+                    continue
+                raw = entry["imp_id"]
+                if not isinstance(raw, str) or not _IMP_ID.fullmatch(raw):
+                    raise PublishError("invalid imported identifier")
+                identifier = raw
+                record, assets = _imported(root, identifier, entry)
+                urls = [f"https://example.invalid/{i}" for i in range(len(assets))]
+                _record_clip(record, "clip-999999", created, urls)
+                if token and token in json.dumps(record):
+                    raise PublishError("credential in index input")
+                if identifier in ambiguous:
+                    continue
+                if identifier in imports and imports[identifier][1][0][1:] != assets[0][1:]:
+                    ambiguous.add(identifier)
+                    imports.pop(identifier)
+                    raise PublishError("ambiguous imported identity")
+                imports.setdefault(identifier, (record, assets))
+            except Exception as exc:
+                errors.append(_error(exc, identifier))
+    return imports, errors
 
 
 def _error(exc, imp_id=None):
@@ -386,6 +422,8 @@ def _error(exc, imp_id=None):
     # strings. They can contain credentials, signed URLs, or untrusted metadata.
     if isinstance(exc, httpx.HTTPStatusError):
         message = f"GitHub HTTP {exc.response.status_code}"
+        if exc.response.headers.get("x-ratelimit-remaining") == "0":
+            message += " (rate limit exhausted)"
     elif isinstance(exc, httpx.TimeoutException):
         message = "GitHub request timed out"
     elif isinstance(exc, httpx.RequestError):
@@ -393,7 +431,30 @@ def _error(exc, imp_id=None):
     elif isinstance(exc, ValidationError):
         message = "clip schema validation failed"
     elif isinstance(exc, PublishError):
-        message = str(exc)
+        detail = str(exc)
+        # Only our constant diagnostic strings may leave this boundary.
+        allowed = {
+            "unsafe imported asset path",
+            "unsafe imported asset root",
+            "missing or unsafe imported asset",
+            "invalid preview size",
+            "invalid asset size",
+            "invalid imported identifier",
+            "missing or ambiguous imported clip",
+            "imported video integrity mismatch",
+            "inconsistent storyboard",
+            "repeated imported asset",
+            "provisional clip metadata",
+            "unsafe verified asset URL",
+            "asset changed before upload",
+            "retired source",
+            "ambiguous imported identity",
+            "credential in index input",
+            "invalid index input",
+            "missing indexing credentials",
+            "remote indexing failed",
+        }
+        message = detail if detail in allowed else "invalid publication input"
     elif isinstance(exc, (ConcurrentWrite, DuplicateClip, IdentityCollision)):
         message = "asset or catalogue identity conflict"
     elif isinstance(exc, StorageError):
@@ -429,16 +490,14 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
     created = moment.astimezone(UTC).isoformat().replace("+00:00", "Z")
     day = today or moment.astimezone(UTC).date()
     try:
-        imports = _collect(work, created)
-        if token and any(token in json.dumps(item[0]) for item in imports.values()):
-            raise PublishError("credential in index input")
+        imports, errors = _collect(work, created, token)
     except PublishError:
         raise
     except Exception as exc:
         raise PublishError("invalid index input") from exc
     owned = []
     try:
-        mapping, reused, indexed, errors = {}, [], [], []
+        mapping, reused, indexed = {}, [], []
         if imports:
             if storage is None:
                 storage = IndexStorage(repository, token=token)
@@ -495,7 +554,7 @@ def main(argv=None):
                 raise PublishError("missing indexing credentials")
             result = index_clips(args.work, repository=repository, token=token)
     except PublishError as exc:
-        print(json.dumps({"error": str(exc), **_error(exc.__cause__ or exc)}))
+        print(json.dumps({"error": _error(exc)["message"], **_error(exc.__cause__ or exc)}))
         return exc.code
     except Exception as exc:
         print(json.dumps({"error": "invalid index input", **_error(exc)}))

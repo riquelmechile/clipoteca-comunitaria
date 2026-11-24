@@ -156,7 +156,7 @@ def test_all_imported_clips_indexed_without_video_or_passing_qa(setup):
 
 
 @pytest.mark.parametrize("change", ["absolute", "traversal", "symlink", "sha", "story", "empty"])
-def test_validate_all_assets_before_remote_calls(setup, change):
+def test_invalid_asset_never_published_but_valid_clips_continue(setup, change):
     work, _, _, _, writer = setup
     root = work / "scenes/a/import"
     path = root / "imported.json"
@@ -178,9 +178,11 @@ def test_validate_all_assets_before_remote_calls(setup, change):
     else:
         (root / entry["assets"]["thumbnail"]).write_bytes(b"")
     put(path, manifest)
-    with pytest.raises(index.PublishError):
-        run(setup)
-    assert writer.updates == []
+    result = run(setup)
+    assert entry["imp_id"] not in result["clips"]
+    assert len(result["indexed"]) == 2
+    assert len(writer.updates) == 2
+    assert result["errors"][0]["imp_id"] == entry["imp_id"]
 
 
 def test_rollback(setup, monkeypatch):
@@ -501,3 +503,31 @@ def test_index_continues_after_one_remote_failure(setup):
     ]
     assert result == index._read(work / "index.json")
     assert TOKEN not in json.dumps(result)
+
+
+def test_index_release_has_capacity_for_entire_clip(setup):
+    work, _, _, _, _ = setup
+    github = FakeGitHub([catalogue_record(1), catalogue_record(2)])
+    github.releases.append(
+        {
+            "id": 1,
+            "tag_name": "batch-2026-01-02-001",
+            "upload_url": f"https://uploads.github.com/repos/{REPO}/releases/1/assets",
+            "assets": [{"name": f"existing-{i}"} for i in range(999)],
+        }
+    )
+    result = github.index(work)
+    assert len(result["indexed"]) == 3
+    assert len(github.releases[0]["assets"]) == 999
+    assert github.releases[1]["tag_name"] == "batch-2026-01-02-002"
+    # The initial reserve + catalogue dedup needs some listings, but never
+    # another two full release scans for every uploaded asset.
+    listings = [
+        path for method, path in github.calls if method == "GET" and path.endswith("/assets")
+    ]
+    assert len(listings) < 20
+
+
+def test_unknown_exception_details_cannot_leak_tokens():
+    assert TOKEN not in json.dumps(index._error(index.PublishError(TOKEN)))
+    assert TOKEN not in json.dumps(index._error(RuntimeError(TOKEN)))

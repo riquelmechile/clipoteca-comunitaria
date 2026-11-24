@@ -41,10 +41,12 @@ function zip(name:string, data:Uint8Array, deflate=false) {
 }
 const encode = (text:string)=>new TextEncoder().encode(text);
 function fakeActions(options:{expired?:boolean; status?:string; conclusion?:string;
-  file?:boolean; deflate?:boolean; gone?:boolean; invalidEvidence?:boolean; large?:boolean}={}) {
+  file?:boolean; deflate?:boolean; gone?:boolean; invalidEvidence?:boolean; large?:boolean;
+  fallback?:boolean}={}) {
   const movie = zip("video.mp4",options.large ? new Uint8Array(9_000_000) : encode("video bytes"),options.deflate);
   const delivery = zip("entrega.json",encode(options.invalidEvidence ? "invalid JSON" : JSON.stringify({
     qa:{pass:true,failed:[]}, clips_indexed:["clip-000001"],
+    ...(options.fallback ? {warnings:[{scene_id:"chiloe",degraded_reason:"low_sim"}]} : {}),
   })));
   const fn = vi.fn(async (url:string|URL|Request, init?:RequestInit) => {
     const path = new URL(String(url)).pathname;
@@ -184,6 +186,15 @@ describe("streaming and isolated video quota",()=>{
     fakeActions({invalidEvidence:true});
     expect(await (await worker.fetch(request("/v1/videos/"+id),env)).json())
       .toMatchObject({status:"done",warnings:["delivery_evidence_unavailable"]});
+  });
+  it("exposes scene warnings without failing QA or changing operational warnings",async()=>{
+    fakeActions({fallback:true});
+    const response = await worker.fetch(request("/v1/videos/"+id),env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status:"done",
+      qa:{pass:true,failed:[],warnings:[{scene_id:"chiloe",degraded_reason:"low_sim"}]},
+    });
   });
   it("uses a distinct five-minute reservation and daily cap",async()=>{
     resetQuotaReservations();
