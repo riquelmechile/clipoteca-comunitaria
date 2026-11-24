@@ -66,13 +66,39 @@ def merge_terms(queries, *groups):
 # Wikidata class identifiers, not a geographical name allowlist.
 _COUNTRY_CLASSES = {"Q6256", "Q3624078", "Q15634554"}
 _GEO_CLASSES = _COUNTRY_CLASSES | {
-    "Q515", "Q3957", "Q532", "Q486972", "Q23442", "Q33837", "Q56061",
-    "Q5107", "Q82794", "Q1187811", "Q15284", "Q22698", "Q159313",
-    "Q46169", "Q473972", "Q207694", "Q16970", "Q839954", "Q570116",
+    "Q515",
+    "Q3957",
+    "Q532",
+    "Q486972",
+    "Q23442",
+    "Q33837",
+    "Q56061",
+    "Q5107",
+    "Q82794",
+    "Q1187811",
+    "Q15284",
+    "Q22698",
+    "Q159313",
+    "Q46169",
+    "Q473972",
+    "Q207694",
+    "Q16970",
+    "Q839954",
+    "Q570116",
 }
 _BAD_CLASSES = {
-    "Q16521", "Q7366", "Q482994", "Q4830453", "Q43229", "Q11424", "Q5",
-    "Q4167410", "Q13406463", "Q18608583", "Q134556", "Q17362920",
+    "Q16521",
+    "Q7366",
+    "Q482994",
+    "Q4830453",
+    "Q43229",
+    "Q11424",
+    "Q5",
+    "Q4167410",
+    "Q13406463",
+    "Q18608583",
+    "Q134556",
+    "Q17362920",
 }
 _BAD_DESCRIPTION = re.compile(
     r"\b(taxon|genus|species|insect|song|album|band|company|corporation|"
@@ -80,10 +106,28 @@ _BAD_DESCRIPTION = re.compile(
     r"taxon|genero|especie|cancion|album|empresa|circunscripcion)\b"
 )
 _GEO_QUALIFIERS = (
-    "island", "islands", "province", "archipelago", "prefecture", "city",
-    "municipality", "commune", "region", "district", "national park", "isla",
-    "islas", "provincia", "archipielago", "prefectura", "ciudad", "comuna",
-    "municipio", "parque nacional", "metropolitan area", "urban area",
+    "island",
+    "islands",
+    "province",
+    "archipelago",
+    "prefecture",
+    "city",
+    "municipality",
+    "commune",
+    "region",
+    "district",
+    "national park",
+    "isla",
+    "islas",
+    "provincia",
+    "archipielago",
+    "prefectura",
+    "ciudad",
+    "comuna",
+    "municipio",
+    "parque nacional",
+    "metropolitan area",
+    "urban area",
 )
 _SCENE_QUALIFIERS = re.compile(
     r"\b(?:city|ciudad|temples?|templos?|shrines?|santuarios?|"
@@ -265,19 +309,21 @@ def _child_term(term, variants):
 
 async def _wikidata(client, seed, context, state, *, place_hint):
     variants = _variants(seed)
-    search_terms = [(seed, "en"), (seed, "es"), *((name, "en") for name in context)]
+    searches = [(seed, "en"), (seed, "es")]
+    searches.extend((name, "en") for name in sorted(variants - {seed})[:2])
+    search_terms = [*searches, *((name, "en") for name in context)]
     groups = await asyncio.gather(
         *(_search_entities(client, name, lang) for name, lang in search_terms)
     )
     matches = {}
-    for hits in groups[:2]:
+    for hits in groups[: len(searches)]:
         for hit in hits:
             qid = hit.get("id")
             labels = [hit.get("label", ""), hit.get("match", {}).get("text", "")]
             if _qid(qid) and any(_root_match(label, variants) for label in labels):
                 matches.setdefault(qid, []).append(hit)
     context_matches = {}
-    for name, hits in zip(context, groups[2:], strict=True):
+    for name, hits in zip(context, groups[len(searches) :], strict=True):
         for hit in hits:
             qid = hit.get("id")
             labels = [hit.get("label", ""), hit.get("match", {}).get("text", "")]
@@ -312,6 +358,17 @@ async def _wikidata(client, seed, context, state, *, place_hint):
             (qid, entity)
             for qid, entity in geographic
             if _claim_ids(entity, "P17") & countries or qid in countries
+        ]
+    elif context:
+        # A failed country lookup must not select a more popular foreign homonym.
+        geographic = [
+            (qid, entity)
+            for qid, entity in geographic
+            if any(
+                f" {name} " in f" {_key(hit.get('description', ''))} "
+                for name in context
+                for hit in matches[qid]
+            )
         ]
     geographic.sort(
         key=lambda row: (
@@ -416,7 +473,12 @@ async def _commons(client, seed, context, state):
     variants = _variants(seed)
     phrases = sorted(variants)
     if context:
-        phrases = [f"{variant} {name}" for variant in phrases for name in context]
+        phrases = [
+            f"{variant}{separator}{name}"
+            for variant in phrases
+            for name in context
+            for separator in (" ", " de ", ", ")
+        ]
     payload = await _optional_json(
         client,
         COMMONS,
@@ -457,14 +519,22 @@ async def _commons(client, seed, context, state):
     ]
     state["terms"] = direct
     nested = await asyncio.gather(*(_category_members(client, title) for title in buckets[:8]))
-    deeper = [
-        {"term": term, "origin": "commons"}
+    groups = [
+        [
+            {"term": term, "origin": "commons"}
+            for title in group
+            if (term := _child_term(title[9:], root_variants))
+        ]
         for group in nested
-        for title in group
-        if (term := _child_term(title[9:], root_variants))
     ]
-    # Interleave distinct results later; proper place names beat umbrella categories.
-    return deeper + direct
+    # Interleave buckets to avoid filling all slots with one kind of landmark.
+    groups.append(direct)
+    return [
+        group[index]
+        for index in range(MAX_RELATED)
+        for group in groups
+        if index < len(group)
+    ]
 
 
 async def _run_provider(function, client, seed, context, state, **kwargs):
@@ -520,7 +590,9 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
         diagnostics = []
         for job, keys in zip(jobs, keys_by_job, strict=True):
             states = [(key, *cache[key]) for key in keys]
-            if any(wiki.get("geographic") and not wiki.get("country_only") for _, wiki, _ in states):
+            if any(
+                wiki.get("geographic") and not wiki.get("country_only") for _, wiki, _ in states
+            ):
                 states = [row for row in states if not row[1].get("country_only")]
             groups = []
             for _, wiki, commons in states:
@@ -537,7 +609,9 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
                     "seeds": [key[0] for key in keys],
                     "roots": [root for _, wiki, _ in states for root in wiki.get("roots", [])],
                     "commons_roots": [
-                        root for _, _, commons in states for root in commons.get("commons_roots", [])
+                        root
+                        for _, _, commons in states
+                        for root in commons.get("commons_roots", [])
                     ],
                 }
             )
