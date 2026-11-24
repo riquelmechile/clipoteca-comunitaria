@@ -177,7 +177,7 @@ async def _commons(client, seed):
 
 async def _safe_lookup(function, client, seed):
     try:
-        async with asyncio.timeout(LOOKUP_SECONDS):
+        async with asyncio.timeout(LOOKUP_SECONDS - 1):
             return await function(client, seed)
     except (TimeoutError, httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
         return []

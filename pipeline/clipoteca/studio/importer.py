@@ -432,11 +432,8 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
         )
         primary = job["queries"]["es"] + job["queries"]["en"]
         related = related_terms(job)
-        match = (
-            library.related_match(item["record"], related)
-            if not library.sufficient_query_match(item["record"], primary)
-            else None
-        )
+        primary_match = library.sufficient_query_match(item["record"], primary)
+        match = library.related_match(item["record"], related) if not primary_match else None
         if match:
             score, matched = library.text_score(
                 item["record"], [match["term"]], [], job.get("avoid", [])
@@ -459,8 +456,19 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 "local_path": item["local_path"],
                 **(
                     {
-                        "matched_query": item["record"]["source"].get("found_by_query")
-                        or (match["term"] if match else None),
+                        "matched_query": (
+                            match["term"]
+                            if match
+                            else next(
+                                (
+                                    term
+                                    for term in primary
+                                    if library.sufficient_query_match(item["record"], [term])
+                                ),
+                                None,
+                            )
+                        ),
+                        "found_by_query": item["record"]["source"].get("found_by_query"),
                         "related_match": bool(match),
                     }
                     if related
@@ -469,16 +477,23 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 **({"fallback": True} if item.get("fallback") else {}),
             }
         )
-    scored.sort(
-        key=lambda x: (
-            bool(x.get("fallback")),
-            -x["score"],
-            x.get("related_match", False),
-            not x["name_match"],
-            abs(x["duration"] - length),
-            x["clip_id"],
+    if related_terms(job):
+        scored.sort(
+            key=lambda x: (
+                bool(x.get("fallback")),
+                -x["score"],
+                x.get("related_match", False),
+                not x["name_match"],
+                abs(x["duration"] - length),
+                x["clip_id"],
+            )
         )
-    )
+    else:
+        scored.sort(
+            key=lambda x: (
+                not x["name_match"], -x["score"], abs(x["duration"] - length), x["clip_id"]
+            )
+        )
     return {
         "id": job["id"],
         "status": "imported" if scored else "needs_import",
@@ -530,6 +545,7 @@ def import_scene(
     simple: bool = False,
     enough: int = 3,
     relevance_check: Callable[[dict, Path], bool] | None = None,
+    auto_related: bool = False,
 ) -> dict[str, Any]:
     """Search using existing ingest but keep ALL results, jobs and assets local."""
     length, fetch, queries = _validate(job, max_results, max_clips_per_source, concurrency)
@@ -686,7 +702,7 @@ def import_scene(
                 return
             # The plan normally provides cached terms. Direct CLI imports can resolve
             # them under the same scene deadline; injected adapters stay offline.
-            if own_adapters and "related_terms" not in job:
+            if auto_related and "related_terms" not in job:
                 await resolve_jobs([job], timeout=min(6, timeout / 10))
             related = [row["term"] for row in related_terms(job)]
             primary = queries
@@ -812,6 +828,7 @@ def main(argv: list[str] | None = None) -> int:
     scene.add_argument("--enough", type=int, default=3)
     scene.add_argument("--spread-queries", action="store_true")
     scene.add_argument("--simple", action="store_true")
+    scene.add_argument("--resolve-related", action="store_true")
     scene.add_argument("--timeout", type=float)
     args = parser.parse_args(argv)
     try:
@@ -824,6 +841,7 @@ def main(argv: list[str] | None = None) -> int:
             max_results=args.max_results,
             spread_queries=args.spread_queries,
             simple=args.simple,
+            auto_related=args.resolve_related,
             enough=args.enough,
             timeout_s=args.timeout,
         )

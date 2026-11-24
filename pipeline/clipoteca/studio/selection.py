@@ -76,6 +76,7 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
                             and candidate["clip"].get("name_match", False),
                             candidate["clip"]["sim"],
                             candidate["clip"]["score"],
+                            not candidate["clip"].get("related_match", False),
                         )
                         > (
                             not imported.get("degraded_reason"),
@@ -83,6 +84,7 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
                             and imported["clip"].get("name_match", False),
                             imported["clip"]["sim"],
                             imported["clip"]["score"],
+                            not imported["clip"].get("related_match", False),
                         )
                     )
                 )
