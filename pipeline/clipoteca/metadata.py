@@ -7,13 +7,7 @@ import re
 from typing import Callable
 
 from .providers.base import Candidate
-from .translate.argos import (
-    QUALITY_TRANSLATION_REASONS,
-    TranslationFailed,
-    public_translation_error,
-    translate_text,
-)
-from .translate.dictionary import find_concept, normalize
+from .translate.argos import TranslationFailed, translate_text
 
 
 class MetadataTranslationError(RuntimeError):
@@ -120,40 +114,10 @@ def _title_tags(title: str) -> list[str]:
     return result[:12]
 
 
-def _keyword_tags(
-    text: str,
-    source: str,
-    target: str,
-    translator: Callable[[str, str, str], str] | None,
-) -> list[str]:
-    """Translate query tags per word, curated dictionary before vetted Argos."""
-    result = []
-    for word in _title_tags(text):
-        try:
-            concept = find_concept(word)
-            if source == target:
-                translated = word
-            elif (
-                concept is not None
-                and source in concept.terms
-                and target in concept.terms
-                and normalize(concept.terms[source]) == normalize(word)
-            ):
-                translated = concept.terms[target]
-            else:
-                translated = translate_text(word, source, target, translator=translator)
-        except TranslationFailed as exc:
-            raise MetadataTranslationError(str(exc)) from exc
-        result.extend(_title_tags(translated))
-    return result
-
-
 def localize_candidate(
     candidate: Candidate,
     *,
     translator: Callable[[str, str, str], str] | None = None,
-    include_query_tags: bool = True,
-    on_query_tag_warning: Callable[[str, str], None] | None = None,
 ) -> LocalizedMetadata:
     original = candidate.source_title.strip()
     if not original:
@@ -172,26 +136,35 @@ def localize_candidate(
     if description_language not in {"es", "en", "zh", "ru"}:
         description_language = candidate.source_language
     desc = _bilingual(raw_description, description_language, translator)
-    # Translate query tags separately, not as sentences. Never retain
-    # hallucinated repeated fragments or language stopwords in the index.
+    # Only provider-owned text is searchable. Discovery terms are not metadata.
     tags = {}
+    provider_tags = []
+    if isinstance(source_data, dict):
+        for key in ("tags", "keywords"):
+            value = source_data.get(key)
+            if isinstance(value, str):
+                provider_tags.append(value)
+            elif isinstance(value, list):
+                provider_tags.extend(item for item in value if isinstance(item, str))
+    extra = {"es": [], "en": []}
+    for value in provider_tags:
+        if not value.strip():
+            continue
+        try:
+            translated = _bilingual(value, candidate.source_language, translator)
+        except MetadataTranslationError:
+            # Optional provider tags never invalidate factual title/description.
+            if candidate.source_language in extra:
+                extra[candidate.source_language].extend(_title_tags(value))
+            continue
+        for language in extra:
+            extra[language].extend(_title_tags(translated[language]))
     for language in ("es", "en"):
-        query_tags: list[str] = []
-        if include_query_tags:
-            try:
-                query_tags = _keyword_tags(candidate.term, candidate.language, language, translator)
-            except MetadataTranslationError as exc:
-                code = public_translation_error(str(exc))
-                if (
-                    not code
-                    or code.rsplit(":", 1)[-1] not in QUALITY_TRANSLATION_REASONS
-                    or on_query_tag_warning is None
-                ):
-                    raise
-                # Only the ingestion caller can explicitly accept and record
-                # degradation of optional tags; standalone metadata stays strict.
-                on_query_tag_warning(language, code)
-        words = [*_title_tags(title[language]), *query_tags]
+        words = [
+            *_title_tags(title[language]),
+            *_title_tags(desc[language]),
+            *extra[language],
+        ]
         seen = set()
         tags[language] = []
         for word in words:

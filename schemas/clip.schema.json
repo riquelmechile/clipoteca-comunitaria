@@ -59,6 +59,9 @@
       }
     }
   },
+  "if": {"properties": {"status": {"const": "retired"}}},
+  "then": {"required": ["retirement"]},
+  "else": {"not": {"required": ["retirement"]}},
   "properties": {
     "id": {
       "type": "string",
@@ -237,7 +240,16 @@
       }
     },
     "status": {
-      "const": "published"
+      "enum": ["published", "retired"]
+    },
+    "retirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "date"],
+      "properties": {
+        "reason": {"type": "string", "minLength": 1},
+        "date": {"type": "string", "format": "date"}
+      }
     },
     "created_at": {
       "type": "string",

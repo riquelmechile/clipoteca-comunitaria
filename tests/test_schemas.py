@@ -55,7 +55,7 @@ def valid_clip() -> dict:
 
 def test_clip_valid_and_model_fields_match() -> None:
     Draft202012Validator(schema("clip.schema.json")).validate(valid_clip())
-    assert {field.name for field in fields(Clip)} == set(valid_clip())
+    assert {field.name for field in fields(Clip)} == set(valid_clip()) | {"retirement"}
 
 
 @pytest.mark.parametrize(
@@ -89,3 +89,16 @@ def test_search_and_job_examples() -> None:
             "source_errors": {},
         }
     )
+
+
+def test_retired_clip_requires_reason_and_date():
+    clip = valid_clip()
+    clip["status"] = "retired"
+    validator = Draft202012Validator(schema("clip.schema.json"))
+    with pytest.raises(ValidationError):
+        validator.validate(clip)
+    clip["retirement"] = {"reason": "wrong location", "date": "2026-11-24"}
+    validator.validate(clip)
+    clip["status"] = "published"
+    with pytest.raises(ValidationError):
+        validator.validate(clip)

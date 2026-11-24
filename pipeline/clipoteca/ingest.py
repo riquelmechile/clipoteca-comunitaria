@@ -205,7 +205,8 @@ def _published_source_complete(
     matching = [
         clip
         for clip in clips
-        if candidate_url
+        if clip.get("status") != "retired"
+        and candidate_url
         and canonical_source_url(str(clip["source"].get("source_url", ""))) == candidate_url
     ]
     legacy = next((clip for clip in matching if "source_start" not in clip["source"]), None)
@@ -504,6 +505,10 @@ async def ingest(
             # Avoid downloading deterministic sources whose requested scene ranges
             # are already represented. One legacy whole-source clip is also complete.
             candidate_url = canonical_source_url(candidate.source_url)
+            if catalogue.is_retired_source(candidate_url):
+                errors.append(f"{candidate.origin_id}:retired_source")
+                job["source_errors"][candidate.origin_id] = "retired_source"
+                continue
             if candidate_url in job.get("terminal_sources", ()):
                 errors.append(f"{candidate.origin_id}:scene_quality_rejected")
                 job["source_errors"][candidate.origin_id] = "scene_quality_rejected"
@@ -529,20 +534,8 @@ async def ingest(
                         job["source_errors"][candidate.origin_id] = "search_only"
                         continue
 
-                    # Fail multilingual metadata before spending bandwidth on a large video.
-                    def note_query_tag_warning(language: str, code: str) -> None:
-                        job.setdefault("source_warnings", {})[
-                            f"translation:metadata:{candidate.origin_id}:{language}"
-                        ] = code
-
-                    localized = localize_candidate(
-                        candidate,
-                        translator=translator,
-                        # Temporary scene candidates must not acquire fabricated
-                        # proper-name evidence from their own discovery query.
-                        include_query_tags=candidate.provider != "community" and not scene_budget,
-                        on_query_tag_warning=note_query_tag_warning,
-                    )
+                    # Search terms are not evidence of the video's contents.
+                    localized = localize_candidate(candidate, translator=translator)
                     if scene_budget:
                         if scene_budget.reason():
                             break

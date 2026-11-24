@@ -44,14 +44,11 @@ def relocalize_catalog(
             continue
         source = clip["source"]
         source_language = overrides.get(clip["id"], source["source_language"])
-        # Existing query tags are factual evidence of the ingested query.
-        original_tag = next(iter(clip["tags"].get("es") or []), source["source_title"])
-        term_language = "es" if clip["tags"].get("es") else source_language
         candidate = Candidate(
             provider=source["provider"],
             provider_id=source["provider_id"],
-            term=original_tag,
-            language=term_language,
+            term=source["source_title"],
+            language=source_language,
             source_url=source["source_url"],
             source_title=source["source_title"],
             source_language=source_language,

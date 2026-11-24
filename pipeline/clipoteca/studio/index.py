@@ -208,11 +208,14 @@ def _publish_clips(storage, writer, imports, day, created, repository, token):
     reserved = set()
     try:
         for imp_id, (record, assets) in imports.items():
+            if working.is_retired_source(record["source"]["source_url"]):
+                raise PublishError("retired source")
             match = next(
                 (
                     clip
                     for clip in working.clips
-                    if clip["media"]["sha256"] == record["media"]["sha256"]
+                    if clip.get("status") == "published"
+                    and clip["media"]["sha256"] == record["media"]["sha256"]
                 ),
                 None,
             ) or working.find_duplicate(record)

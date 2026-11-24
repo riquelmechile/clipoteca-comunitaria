@@ -75,6 +75,8 @@ def _local_hits(catalog: Catalog, query: str) -> list[dict]:
     tokens = canonical_tokens(query)
     hits = []
     for clip in catalog.clips:
+        if clip.get("status") != "published":
+            continue
         text = [
             *clip["title"].values(),
             *clip["description"].values(),
@@ -300,6 +302,7 @@ class SearchEngine:
         seen = {
             f"{clip['source']['provider']}:{clip['source']['provider_id']}": clip["id"]
             for clip in catalog.clips
+            if clip.get("status") != "retired"
         }
         candidates: list[Candidate] = []
         duplicates = 0
@@ -310,6 +313,8 @@ class SearchEngine:
                 if not queue:
                     continue
                 candidate = queue.popleft()
+                if catalog.is_retired_source(candidate.source_url):
+                    continue
                 if candidate.origin_id in seen:
                     duplicates += 1
                     if seen[candidate.origin_id]:
