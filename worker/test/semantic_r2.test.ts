@@ -16,6 +16,7 @@ const env = {
   CLIPOTECA_QUERY_DISPATCH_MODE:"1",
 };
 const rain={
+  status: "published",
   id:"clip-000101",title:{es:"Lluvia",en:"Rain"},
   description:{es:"Tormenta",en:"Storm"},tags:{es:["lluvia"],en:["rain"]},
   source:{provider:"pexels",source_language:"es"},

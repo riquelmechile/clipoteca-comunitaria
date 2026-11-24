@@ -3,6 +3,7 @@ import worker from "../src/index";
 import { handleCatalog, storyboardTimestamp } from "../src/catalog";
 
 const clip = {
+  status: "published",
   id: "clip-000042",
   title: { es: "Río", en: "River" },
   description: { es: "Escena", en: "Scene" },

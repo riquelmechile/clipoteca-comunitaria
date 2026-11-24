@@ -3,6 +3,7 @@ import worker from "../src/index";
 import { expiredDeadLetter, isStaleJob, loadJob, requestId } from "../src/jobs";
 
 const first = {
+  status: "published",
   id: "clip-000001", title: {es:"Lluvia",en:"Rain"},
   description: {es:"Lluvia",en:"Rain"}, tags:{es:["lluvia"],en:["rain"]},
   source:{provider:"nasa",source_language:"en"}, 

@@ -181,6 +181,7 @@ describe("M22 r3 no-match response contract",()=>{
     const encoded=btoa(String.fromCharCode(...orthogonal));
     const tail=fixture.manifest.tail!;
     const sample={
+      status: "published",
       id:"clip-000101",title:{es:"Lluvia",en:"Rain"},
       description:{es:"Agua",en:"Water"},tags:{es:["lluvia"],en:["rain"]},
       source:{provider:"pexels",source_language:"en"},

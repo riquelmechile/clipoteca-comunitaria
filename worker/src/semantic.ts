@@ -595,7 +595,7 @@ function matchesFilters(clip:Clip,params:URLSearchParams):boolean{
     (!params.has("has_audio")||clip.media.has_audio===(params.get("has_audio")==="true"));
 }
 export function prepareSearchIndex(clips:Clip[]):Map<string,Set<string>>{
-  return new Map(clips.map(clip=>[clip.id,new Set(searchTokens([
+  return new Map(clips.filter(clip=>clip.status==="published").map(clip=>[clip.id,new Set(searchTokens([
     ...Object.values(clip.title),...Object.values(clip.description),
     ...clip.tags.es,...clip.tags.en,clip.source.source_title??"",
     ...(clip.source.keywords??[]),
@@ -612,7 +612,7 @@ export async function semanticSearch(
   skipQueryVectorFetch=false,
 ):Promise<SemanticSearchResult>{
   const clips=catalogue??await loadCatalog(env);
-  const eligible=clips.filter(c=>matchesFilters(c,filters));
+  const eligible=clips.filter(c=>c.status==="published"&&matchesFilters(c,filters));
   const index=precomputedIndex??prepareSearchIndex(clips);
   const tokens=searchTokens(query);
   const lexical=eligible.filter(c=>keywordMatches(c,tokens,index));

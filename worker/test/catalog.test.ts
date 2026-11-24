@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleCatalog, normalizeSearch, searchTokens } from "../src/catalog";
 
 const clip = {
+  status: "published",
   id: "clip-000001",
   title: { es: "Lluvia", en: "Rain" },
   description: { es: "Calle", en: "Street" },
@@ -25,6 +26,17 @@ describe("catalog routes", () => {
     expect(response?.status).toBe(200);
     const payload = (await response?.json()) as { items: unknown[] };
     expect(payload.items).toHaveLength(1);
+  });
+
+  it("excludes retired clips from list and downloads", async () => {
+    const retired = { ...clip, id: "clip-000002", status: "retired" };
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json([clip, retired])));
+    const list = await handleCatalog(new Request("https://api.test/v1/clips"), {});
+    expect((await list?.json() as {items: unknown[]}).items).toHaveLength(1);
+    const download = await handleCatalog(
+      new Request("https://api.test/v1/clips/clip-000002/download"), {},
+    );
+    expect(download?.status).toBe(404);
   });
 
   it("returns typed 404 and redirects downloads", async () => {

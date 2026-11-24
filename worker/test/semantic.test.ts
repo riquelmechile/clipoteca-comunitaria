@@ -10,6 +10,7 @@ import worker from "../src/index";
 
 const catalog = [
   {
+    status: "published",
     id: "clip-000101",
     title: {es:"Lluvia suave",en:"Rain on city"},
     description:{es:"Lluvia y agua",en:"Rainy street"},
@@ -19,6 +20,7 @@ const catalog = [
     storage:{asset_url:"https://github.com/ex/x.mp4"},
   },
   {
+    status: "published",
     id:"clip-000102",
     title:{es:"Sol",en:"Sunshine"},
     description:{es:"D\u00eda soleado",en:"Sunny day"},

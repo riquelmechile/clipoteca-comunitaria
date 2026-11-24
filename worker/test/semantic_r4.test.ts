@@ -11,6 +11,7 @@ const env = {
   CLIPOTECA_DISPATCH_TOKEN:"testing-token-allowed",
 };
 const rain = {
+  status: "published",
   id:"clip-000101",title:{es:"Lluvia",en:"Rain"},
   description:{es:"Agua",en:"Water"},tags:{es:["lluvia"],en:["rain"]},
   source:{provider:"pexels",source_language:"es"},

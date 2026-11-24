@@ -5,6 +5,7 @@ import {resetSemanticCache,resetQueryDispatch} from "../src/semantic";
 import {resetQuotaReservations} from "../src/quota";
 
 const clip=(id:number,title:string,orientation="16:9",duration=12,ext=".mp4")=>({
+  status:"published",
   id:"clip-"+String(id).padStart(6,"0"),
   title:{es:title,en:title},description:{es:title,en:title},
   tags:{es:[title],en:[title]},
