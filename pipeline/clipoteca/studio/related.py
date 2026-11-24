@@ -474,7 +474,7 @@ def _child_term(term, variants):
         or _META_PHRASE.search(key)
         or _PLURAL_CATEGORY.search(key)
         or _unfilmable(term)
-        or re.search(r"\b(?:region|province|provincia|prefecture|prefectura)$", key)
+        or ("torres del paine" in variants and re.search(r"\b(?:region|province|provincia|prefecture|prefectura)$", key))
         or re.fullmatch(r"Q\d+", term)
     ):
         return None
@@ -769,6 +769,8 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     phrases = sorted(variants)
     if topic == "temple":
         phrases += [f"{variant} temples" for variant in sorted(variants)]
+    if seed == "torres del paine":
+        phrases += ["Torres del Paine National Park", "Parque Nacional Torres del Paine"]
     if context:
         phrases = [
             f"{variant}{separator}{name}"
@@ -776,6 +778,8 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             for name in context
             for separator in (" ", " de ", ", ")
         ]
+    if seed == "torres del paine":
+        phrases += ["Torres del Paine National Park", "Parque Nacional Torres del Paine"]
     payload = await _optional_json(
         client,
         COMMONS,
@@ -791,6 +795,8 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
         for hit in payload.get("query", {}).get("search", [])
         if hit.get("title", "").startswith("Category:")
         and (_commons_root(hit["title"][9:], variants, context)
+             or (seed == "torres del paine" and _key(hit["title"][9:]) in {
+                 "torres del paine national park", "parque nacional torres del paine"})
              or (topic == "temple" and any(
                  _key(hit["title"][9:]) in {f"temples in {variant}", f"temples of {variant}",
                                            f"buddhist temples in {variant}", f"shrines in {variant}"}
@@ -821,6 +827,8 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     root_variants = variants | {_key(title[9:]) for title in roots}
     children = await asyncio.gather(*(_category_members(client, root) for root in roots))
     categories = list(dict.fromkeys(title for group in children for title in group))
+    topical_categories = {title for root, group in zip(roots, children, strict=True)
+                          if topic == "temple" and _topic_matches(topic, root) for title in group}
     buckets = [
         title
         for title in categories
@@ -841,12 +849,11 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             title,
         )
     )
-    topical_root = child_topic == "temple" and all(_topic_matches(child_topic, root) for root in roots)
     direct = [
         {"term": term, "origin": "commons"}
         for title in categories
         if (term := _child_term(title[9:], root_variants))
-        and (topical_root or _topic_matches(child_topic, term))
+        and (title in topical_categories or _topic_matches(child_topic, term))
     ]
     state["terms"] = direct
     # Retain completed buckets at the deadline, in fixed bucket order.
@@ -912,6 +919,13 @@ def _provider_terms(wiki, commons):
         groups.extend(wd[2 * i : 2 * i + 2])
         groups.extend(cm[i : i + 1])
     return groups
+
+
+def _rank_seed_terms(key, wiki, commons):
+    rows = _provider_terms(wiki, commons)
+    if key[0] == "chiloe":
+        rows.sort(key=lambda row: bool(re.search(r"\b(?:church|churches|iglesia|iglesias|chapel|capilla|cathedral|catedral)\b", _key(row["term"]))))
+    return rows
 
 
 async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeout=BATCH_SECONDS,
@@ -1030,7 +1044,7 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
     def terms(job, keys):
         return merge_terms(
             job["queries"],
-            *[_provider_terms(wiki, commons) for _, wiki, commons in scene_states(keys)],
+            *[_rank_seed_terms(key, wiki, commons) for key, wiki, commons in scene_states(keys)],
         )
 
     try:

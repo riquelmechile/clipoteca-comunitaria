@@ -75,3 +75,42 @@ def test_index_merges_scene_cache_without_imported_clips(tmp_path):
     result = index_clips(work, repository="", token="", writer=writer)
     assert not result.get("errors")
     assert list(load_cache(dry / "data" / "related_terms.json").values()) == [entry]
+
+
+def test_bundle_uses_single_non_forced_ref_update():
+    import base64
+
+    from clipoteca.catalog import Catalog, GitHubCatalogWriter
+
+    calls = []
+
+    def response(request):
+        path = request.url.path
+        body = json.loads(request.content) if request.content else {}
+        calls.append((request.method, path, body))
+        if path.endswith("/git/ref/heads/main"):
+            return httpx.Response(200, json={"object": {"sha": "parent"}})
+        if path.endswith("/contents/data/related_terms.json"):
+            assert request.url.params["ref"] == "parent"
+            return httpx.Response(200, json={"content": base64.b64encode(
+                b'{"version":1,"entries":[]}'
+            ).decode()})
+        if path.endswith("/git/commits/parent"):
+            return httpx.Response(200, json={"tree": {"sha": "base-tree"}})
+        if path.endswith("/git/trees"):
+            assert {row["path"] for row in body["tree"]} == {
+                "data/clips.json", "data/related_terms.json"
+            }
+            return httpx.Response(201, json={"sha": "tree"})
+        if path.endswith("/git/commits"):
+            assert body["parents"] == ["parent"]
+            return httpx.Response(201, json={"sha": "commit"})
+        if path.endswith("/git/refs/heads/main"):
+            assert body == {"sha": "commit", "force": False}
+            return httpx.Response(200, json={})
+        raise AssertionError(path)
+
+    with httpx.Client(transport=httpx.MockTransport(response)) as client:
+        writer = GitHubCatalogWriter("example/repo", "", client=client)
+        assert writer._publish_bundle(writer._bundle_head(), [_entry()], Catalog([])) == "commit"
+    assert sum(method == "PATCH" for method, _, _ in calls) == 1

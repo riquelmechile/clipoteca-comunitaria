@@ -110,10 +110,10 @@ def save_cache(path, entries):
 
 
 def make_entry(key, wiki, commons):
-    from .related import merge_terms, _provider_terms
+    from .related import merge_terms, _rank_seed_terms
 
     seed, context, place, topic = key
-    terms = merge_terms({"en": [seed], "es": []}, _provider_terms(wiki, commons))
+    terms = merge_terms({"en": [seed], "es": []}, _rank_seed_terms(key, wiki, commons))
     if not terms:
         return None
     entry = {
