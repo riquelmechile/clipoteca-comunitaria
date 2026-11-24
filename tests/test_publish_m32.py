@@ -493,7 +493,11 @@ def test_index_continues_after_one_remote_failure(setup):
     assert entries[0]["imp_id"] not in result["clips"]
     assert len(result["indexed"]) == 2
     assert result["errors"] == [
-        {"exception": "HTTPStatusError", "message": "GitHub HTTP 500", "imp_id": entries[0]["imp_id"]}
+        {
+            "exception": "HTTPStatusError",
+            "message": "GitHub HTTP 500",
+            "imp_id": entries[0]["imp_id"],
+        }
     ]
     assert result == index._read(work / "index.json")
     assert TOKEN not in json.dumps(result)

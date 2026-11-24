@@ -404,7 +404,10 @@ def _error(exc, imp_id=None):
             detail,
         ):
             message = detail
-        elif detail in {"release tag creation conflicts persisted", "catalogue commit outcome unknown"}:
+        elif detail in {
+            "release tag creation conflicts persisted",
+            "catalogue commit outcome unknown",
+        }:
             message = detail
         else:
             message = "release storage operation failed"
