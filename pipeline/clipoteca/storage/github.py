@@ -83,7 +83,9 @@ class GitHubReleaseStorage:
         response.raise_for_status()
         return response
 
-    def get_or_create_batch_release(self, day: date) -> ReleaseBatch:
+    def get_or_create_batch_release(self, day: date, *, required_assets: int = 1) -> ReleaseBatch:
+        if not 1 <= required_assets <= 1000:
+            raise ValueError("invalid release asset reservation size")
         prefix = f"batch-{day.isoformat()}-"
         for create_attempt in range(4):
             releases = []
@@ -100,7 +102,7 @@ class GitHubReleaseStorage:
             )
             for item in reversed(matching):
                 release = self._batch(item)
-                if len(self._list_assets(release.id)) < 1000:
+                if len(self._list_assets(release.id)) + required_assets <= 1000:
                     return release
             number = (int(matching[-1]["tag_name"].rsplit("-", 1)[1]) + 1) if matching else 1
             tag = f"{prefix}{number:03d}"

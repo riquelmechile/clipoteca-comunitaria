@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from ..catalog import Catalog, DuplicateClip, GitHubCatalogWriter, IdentityCollision
 from ..storage.github import GitHubReleaseStorage, ReleaseAsset, ReleaseBatch, StorageError
@@ -186,17 +186,33 @@ class IndexStorage(GitHubReleaseStorage):
         response.raise_for_status()
         return self._asset(response.json())
 
+    def verify_uploaded_asset(self, asset, name, size, digest):
+        # The upload response contains the authoritative metadata. Re-listing a
+        # nearly full release twice per asset burns up to 20 API calls per upload.
+        if asset.name != name or asset.state != "uploaded" or asset.size != size:
+            raise StorageError(f"incomplete asset: {name}")
+        url = _public_asset_url(asset.browser_download_url, self.repository, "")
+        body = self._request("GET", url).content
+        if hashlib.sha256(body).hexdigest() != digest:
+            raise StorageError(f"asset digest mismatch: {name}")
+        return asset
+
 
 def _upload(storage, release, asset, name, uploaded=None):
     path, size, digest = asset
     if _digest(path) != (size, digest):
         raise PublishError("asset changed before upload")
-    existing = storage.find_existing_asset(release, name, size, digest)
-    if existing is not None:
-        raise ConcurrentWrite("asset already reserved")
+    if not isinstance(storage, IndexStorage):
+        existing = storage.find_existing_asset(release, name, size, digest)
+        if existing is not None:
+            raise ConcurrentWrite("asset already reserved")
+    # The real IndexStorage POST is the atomic name reservation; never adopt an
+    # existing asset on conflict. Validate metadata and actual downloaded bytes.
     existing = storage.upload_asset(release, path, name)
     if uploaded is not None:
         uploaded.append(existing.id)
+    if isinstance(storage, IndexStorage):
+        return storage.verify_uploaded_asset(existing, name, size, digest)
     return storage.verify_asset(name, size, digest, release.id)
 
 
@@ -224,7 +240,7 @@ def _publish_clips(storage, writer, imports, day, created, repository, token):
                 reused.append(match["id"])
                 continue
             if release is None:
-                release = storage.get_or_create_batch_release(day)
+                release = storage.get_or_create_batch_release(day, required_assets=len(assets))
                 reserved = set(storage.reserved_ids(release))
             identifier = working.next_id(reserved_ids=reserved)
             names = [f"clip_{identifier}.mp4", f"thumb_{identifier}.webp"]
@@ -323,7 +339,7 @@ class DryStorage:
         self._ids[number] = tag
         return ReleaseBatch(number, tag, "")
 
-    def get_or_create_batch_release(self, day):
+    def get_or_create_batch_release(self, day, *, required_assets=1):
         return self._release(f"batch-{day.isoformat()}-001")
 
     def reserved_ids(self, release):
@@ -356,8 +372,8 @@ class DryStorage:
         self._ids[asset_id].unlink(missing_ok=True)
 
 
-def _collect(work, created):
-    imports = {}
+def _collect(work, created, token):
+    imports, errors, ambiguous = {}, [], set()
     paths = [
         path
         for scene in sorted((work / "scenes").glob("*"))
@@ -366,36 +382,119 @@ def _collect(work, created):
     ]
     for path in paths:
         root = path.parent
-        manifest = _read(_local(root, "imported.json"))
-        for entry in manifest["clips"]:
-            # Fallback material only fills a scene; it never grows the catalogue.
-            if entry.get("fallback"):
-                continue
-            identifier = entry["imp_id"]
-            record, assets = _imported(root, identifier, entry)
-            urls = [f"https://example.invalid/{i}" for i in range(len(assets))]
-            _record_clip(record, "clip-999999", created, urls)
-            if identifier in imports and imports[identifier][1][0][1:] != assets[0][1:]:
-                raise PublishError("ambiguous imported identity")
-            imports.setdefault(identifier, (record, assets))
-    return imports
+        try:
+            manifest = _read(_local(root, "imported.json"))
+            entries = manifest["clips"]
+            if not isinstance(entries, list):
+                raise PublishError("invalid index input")
+        except Exception as exc:
+            errors.append(_error(exc))
+            continue
+        for entry in entries:
+            identifier = None
+            try:
+                # Fallback material only fills a scene; it never grows the catalogue.
+                if entry.get("fallback"):
+                    continue
+                raw = entry["imp_id"]
+                if not isinstance(raw, str) or not _IMP_ID.fullmatch(raw):
+                    raise PublishError("invalid imported identifier")
+                identifier = raw
+                record, assets = _imported(root, identifier, entry)
+                urls = [f"https://example.invalid/{i}" for i in range(len(assets))]
+                _record_clip(record, "clip-999999", created, urls)
+                if token and token in json.dumps(record):
+                    raise PublishError("credential in index input")
+                if identifier in ambiguous:
+                    continue
+                if identifier in imports and imports[identifier][1][0][1:] != assets[0][1:]:
+                    ambiguous.add(identifier)
+                    imports.pop(identifier)
+                    raise PublishError("ambiguous imported identity")
+                imports.setdefault(identifier, (record, assets))
+            except Exception as exc:
+                errors.append(_error(exc, identifier))
+    return imports, errors
+
+
+def _error(exc, imp_id=None):
+    # Never serialize upstream response bodies, request URLs, or arbitrary exception
+    # strings. They can contain credentials, signed URLs, or untrusted metadata.
+    if isinstance(exc, httpx.HTTPStatusError):
+        message = f"GitHub HTTP {exc.response.status_code}"
+        if exc.response.headers.get("x-ratelimit-remaining") == "0":
+            message += " (rate limit exhausted)"
+    elif isinstance(exc, httpx.TimeoutException):
+        message = "GitHub request timed out"
+    elif isinstance(exc, httpx.RequestError):
+        message = "GitHub transport failure"
+    elif isinstance(exc, ValidationError):
+        message = "clip schema validation failed"
+    elif isinstance(exc, PublishError):
+        detail = str(exc)
+        # Only our constant diagnostic strings may leave this boundary.
+        allowed = {
+            "unsafe imported asset path",
+            "unsafe imported asset root",
+            "missing or unsafe imported asset",
+            "invalid preview size",
+            "invalid asset size",
+            "invalid imported identifier",
+            "missing or ambiguous imported clip",
+            "imported video integrity mismatch",
+            "inconsistent storyboard",
+            "repeated imported asset",
+            "provisional clip metadata",
+            "unsafe verified asset URL",
+            "asset changed before upload",
+            "retired source",
+            "ambiguous imported identity",
+            "credential in index input",
+            "invalid index input",
+            "missing indexing credentials",
+            "remote indexing failed",
+        }
+        message = detail if detail in allowed else "invalid publication input"
+    elif isinstance(exc, (ConcurrentWrite, DuplicateClip, IdentityCollision)):
+        message = "asset or catalogue identity conflict"
+    elif isinstance(exc, StorageError):
+        detail = str(exc)
+        if re.fullmatch(
+            r"(?:asset name collision|asset not found|incomplete asset|asset digest mismatch): "
+            r"(?:clip|thumb|story)_clip-[0-9]{6,}(?:_[0-9]{2})?\\.(?:mp4|webp)",
+            detail,
+        ):
+            message = detail
+        elif detail in {
+            "release tag creation conflicts persisted",
+            "catalogue commit outcome unknown",
+        }:
+            message = detail
+        else:
+            message = "release storage operation failed"
+    elif isinstance(exc, RuntimeError) and str(exc) == "catalogue conflict after bounded retries":
+        message = str(exc)
+    else:
+        message = "unexpected indexing failure (unsafe details withheld)"
+    error = {"exception": type(exc).__name__, "message": message}
+    if imp_id is not None:
+        error["imp_id"] = imp_id
+    return error
 
 
 def index_clips(work_dir, *, repository, token, storage=None, writer=None, today=None, now=None):
-    """Verify every imported asset before a single catalogue update, without touching video."""
+    """Verify every input before publishing valid clips independently of video."""
     work = Path(work_dir)
     (work / "index.json").unlink(missing_ok=True)
     moment = now or datetime.now(UTC)
     created = moment.astimezone(UTC).isoformat().replace("+00:00", "Z")
     day = today or moment.astimezone(UTC).date()
     try:
-        imports = _collect(work, created)
-        if token and any(token in json.dumps(item[0]) for item in imports.values()):
-            raise PublishError("credential in index input")
+        imports, errors = _collect(work, created, token)
     except PublishError:
         raise
-    except Exception:
-        raise PublishError("invalid index input") from None
+    except Exception as exc:
+        raise PublishError("invalid index input") from exc
     owned = []
     try:
         mapping, reused, indexed = {}, [], []
@@ -406,14 +505,29 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
             if writer is None:
                 writer = GitHubCatalogWriter(repository, token)
                 owned.append(writer.client)
-            mapping, reused, indexed = _publish_with_retry(
-                storage, writer, imports, day, created, repository, token
-            )
-        result = {"version": 1, "clips": mapping, "reused_clips": reused, "indexed": indexed}
+            for imp_id, item in imports.items():
+                try:
+                    found, existing, published = _publish_with_retry(
+                        storage, writer, {imp_id: item}, day, created, repository, token
+                    )
+                except Exception as exc:
+                    errors.append(_error(exc, imp_id))
+                    continue
+                mapping.update(found)
+                reused.extend(existing)
+                indexed.extend(published)
+        result = {
+            "version": 1,
+            "clips": mapping,
+            "reused_clips": sorted(set(reused)),
+            "indexed": indexed,
+        }
+        if errors:
+            result["errors"] = errors
         _atomic(work / "index.json", result)
         return result
-    except Exception:
-        raise PublishError("remote indexing failed", 1) from None
+    except Exception as exc:
+        raise PublishError("remote indexing failed", 1) from exc
     finally:
         for client in owned:
             client.close()
@@ -440,13 +554,15 @@ def main(argv=None):
                 raise PublishError("missing indexing credentials")
             result = index_clips(args.work, repository=repository, token=token)
     except PublishError as exc:
-        print(json.dumps({"error": str(exc)}))
+        print(json.dumps({"error": _error(exc)["message"], **_error(exc.__cause__ or exc)}))
         return exc.code
-    except Exception:
-        print(json.dumps({"error": "invalid index input"}))
+    except Exception as exc:
+        print(json.dumps({"error": "invalid index input", **_error(exc)}))
         return 2
     print(json.dumps(result, ensure_ascii=True))
-    return 0
+    # A partial result is useful to assembly and must reach the artifact upload.
+    # Total failure remains a nonzero CLI exit with per-clip evidence in the log.
+    return 1 if result.get("errors") and not result["clips"] else 0
 
 
 if __name__ == "__main__":
