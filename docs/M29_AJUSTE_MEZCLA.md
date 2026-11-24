@@ -80,11 +80,15 @@ de los vídeos. Su grafo FFmpeg aplica:
    (threshold 0,05; ratio 3,5; attack 22 ms; release 420 ms).
 4. `amix` de voz y música atenuada a 48 kHz.
 5. `loudnorm` en dos pasadas: primera mide I, TP, LRA, umbral y offset;
-   segunda aplica parámetros medidos y limitador final a 0,89.
+   segunda aplica parámetros medidos, objetivo por defecto -1,5 dBTP y
+   limitador final al menor valor entre 0,89 y 10^(TP/20).
 
 `measure_loudness` mide el audio final con FFmpeg y devuelve
 `lufs`, `true_peak`, `lra`. La compuerta dura exige
-`|lufs - (-14.0)| <= 1.0` y `true_peak <= -0.9 dBTP`.
+`|lufs - (-14.0)| <= 1.0` y `true_peak <= -1.4 dBTP` con
+objetivo por defecto -1,5 y tolerancia de 0,1. El MP4 final conserva
+la compuerta QA de -0,9 dBTP, con margen para el incremento por AAC.
+La corrida 45322952524 midio -0,8 dBFS despues del mux (rechazada).
 Si no pasa, no se publica el nuevo `mix.wav`. La duración debe
 coincidir con `timeline.total` con tolerancia de 20 ms.
 

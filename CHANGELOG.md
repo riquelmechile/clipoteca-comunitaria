@@ -2,6 +2,8 @@
 
 ## 3.0.0 (pendiente de promoción y corrida real)
 
+- Calidad real: subtítulos acotados en tres aspectos, margen de pico previo a AAC, estimación de montaje alineada al timeline real, relevancia y nombres propios en importaciones, deduplicación y limpieza de temporizadores y subprocesos cancelados. QA sigue bloqueando la entrega rechazada. Sin cambio de versión.
+
 - Búsqueda de escenas progresiva: corte por cantidad o suficiencia, plazo global, cancelación de descubrimiento y diagnóstico por ronda; conserva el ranking final.
 
 - Entrega de MP4 por artefacto temporal de siete días, sin publicación del video ni ficha persistente.

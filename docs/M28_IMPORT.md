@@ -142,13 +142,23 @@ El workflow conserva --spread-queries como flag compatible, sin reservar
 cupos para consultas futuras. El limite es ocho candidatos validos o 600 s.
 Se corta antes con --enough 3 (default; 0 desactiva esta salida), si tres
 clips ya verificados cumplen len_fetch, lado corto minimo y coincidencia
-lexica positiva con los titulos reales. Los tags sintetizados a partir de
-la consulta no se usan como evidencia independiente de relevancia.
-El tope de cantidad cuenta solo clips que cumplen el filtro de asignacion.
-El puntaje final y las pruebas de clip-scene no cambian.
+lexica de una misma consulta: dos terminos distintos, o al menos la mitad
+si tiene uno o dos terminos, sin tildes, mayusculas ni palabras vacias.
+Cuando las consultas contienen un nombre propio reconocido (por ejemplo
+Rapa Nui), se exige coincidencia de nombre completo en titulo real o
+localizado. Las importaciones temporales omiten tags sintetizados a partir
+de la consulta, para que no simulen evidencia de identidad.
+El tope de cantidad y de suficiencia cuenta clips unicos por SHA-256
+que cumplen el filtro de asignacion. Los clips no pertinentes conservan
+su lugar en el manifiesto e indexado, pero no adelantan el corte.
+Entre importados que superan todas las compuertas visuales, clip-scene
+prefiere coincidencia de nombre en titulo, descripcion o tags derivados
+de la fuente. No altera el puntaje visual, ni la prioridad de catalogo
+fuerte. El vocabulario de nombres conocidos y las secuencias de nombres
+con mayusculas son una heuristica, no un reconocedor NER universal.
 
 En cada consulta se priorizan en, es, zh y ru; dentro de cada idioma,
-proveedores con descarga, Pexels primero, prioridad de discovery y orden
+proveedores con descarga, prioridad declarada por adaptador (Pexels 100) y orden
 estable. No se excluye ninguna fuente elegible; se ejecutan lotes de hasta
 concurrency proveedores en paralelo y se consumen en orden de prioridad.
 Al alcanzar el objetivo se cancelan y esperan las busquedas pendientes;
@@ -171,3 +181,10 @@ La prueba de reejecución compara metadatos semánticos y valida los hashes y
 tamaños reales de cada MP4 por separado. No exige que FFmpeg produzca bytes
 idénticos entre dos codificaciones equivalentes; los IDs derivados del hash
 y las rutas asociadas se normalizan solo para esa comparación.
+
+
+Los plazos POSIX no reemplazan temporizadores existentes ni se instalan
+desde hilos secundarios. El temporizador y el manejador se restauran incluso
+si el cuerpo falla. FFmpeg de deteccion de escenas, HLS y DASH se espera como
+subproceso asincrono; la cancelacion mata y recoge el hijo, y borra las salidas
+parciales de mux.

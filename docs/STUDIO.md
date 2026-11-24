@@ -256,3 +256,21 @@ y su contexto están en [ESTADO.md](ESTADO.md).
 - M30: [composición y render](M30_COMPOSICION.md).
 - M31: [QA](M31_QA.md).
 - M32: [indexado y entrega](M32_PUBLICACION.md), [workflow](M32_RENDER.md).
+
+
+## Duración prevista y calidad del render
+
+La estimación histórica de voz (`estimate_durations`, escenas y total)
+conserva el contrato de segundos de habla y la expansión de números y
+léxico. Con `include_render=True` agrega `render_total`; `plan.total_est`
+usa la misma cuantización que el timeline de WAV: 0,6 s de margen por
+escena, 1,2 s para el outro, mínimos de cuatro pulsos o 3,5 s y redondeo
+al siguiente pulso completo. No se cambió el ritmo de habla de 0,065 s
+por carácter dividido por velocidad: falta la duración WAV por línea
+para calibrar esa parte.
+
+En la corrida real 45322952524 (Chile, de norte a sur, ocho escenas, voz
+1.1), la estimación de habla fue 42,3 s y el render 49,8 s: 7,5 s de
+diferencia. El nuevo cálculo separa explícitamente voz de duración
+del montaje. Es una corrección metodológica, no una medición de error
+típico ni una validación posterior en producción.

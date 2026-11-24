@@ -94,3 +94,27 @@ scene.intro.import.termination_reason.enough = 1), para mantener el contrato
 numerico del esquema de entrega. El objetivo de 1-2 min por escena con
 material disponible requiere validacion real posterior al merge; no es
 una medicion de este PR.
+
+
+## Qué ocurre si QA rechaza el video
+
+Por ejemplo, la corrida 45322952524 (Chile, de norte a sur) renderizó
+49,8 s, pero falló layout_playwright (desborde de subtítulo) y
+loudness_ebur128 (pico -0,8 dBFS con máximo -0,9). No entrega MP4.
+
+Al finalizar la corrida, GET /v1/videos/{id} devuelve status "failed";
+stages.qa.conclusion indica "failure" si falló ese paso. Si el artefacto
+entrega está disponible y se puede leer, qa.pass es false y qa.failed
+enumera las compuertas fallidas. En el ejemplo sería:
+
+    {"status":"failed","qa":{"pass":false,
+      "failed":["layout_playwright","loudness_ebur128"]}}
+
+La respuesta real conserva también id y stages; no hay file_url ni
+campo separado reason. El motivo detallado y mediciones están en
+qa_report.json del artefacto entrega (si se pudo generar). Si la evidencia
+no puede leerse, la respuesta puede omitir qa y advertir
+delivery_evidence_unavailable; stages sigue indicando el estado del paso.
+El usuario puede volver a solicitar el render respetando las cuotas.
+La política de no entregar videos rechazados no cambia; no se añade
+deliver_on_qa_fail.

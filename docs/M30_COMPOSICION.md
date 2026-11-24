@@ -70,7 +70,12 @@ del siguiente corte y cada corte destella suavemente por 0.22 s.
 La animación GSAP se registra pausada en window.__timelines["main"].
 
 Los subtítulos son bloques de máximo 4 palabras, acotados además por
-el ancho estimado, con cierre ante puntuación. Cada palabra comienza en
+el ancho estimado de glifos anchos (1 em por carácter, más márgenes y
+padding del pill), con cierre ante puntuación. Si una palabra sola no
+cabe, su grupo reduce la fuente hasta 30 px y permite partir un token
+extremo sin salir del ancho. Se prueba el layout real con Chromium para
+9:16, 16:9 y 1:1, incluyendo «ascensores y miradores» y palabras largas.
+Cada palabra comienza en
 vo + inicio relativo, se ilumina con #FFD23F y vuelve a blanco antes
 de terminar el bloque. La duración del bloque se limita por el inicio
 del siguiente, el final de la línea y timeline.total. Todo texto pasa
