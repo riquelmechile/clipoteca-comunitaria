@@ -10374,5 +10374,66 @@
     },
     "status": "published",
     "created_at": "2026-11-24T23:20:09.941399Z"
+  },
+  {
+    "id": "clip-000159",
+    "title": {
+      "es": "Notas de escritura por persona",
+      "en": "Person writing notes"
+    },
+    "description": {
+      "es": "Notas de escritura por persona",
+      "en": "Person writing notes"
+    },
+    "tags": {
+      "es": [
+        "Notas",
+        "escritura",
+        "persona"
+      ],
+      "en": [
+        "Person",
+        "writing",
+        "notes"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "6781562",
+      "source_language": "en",
+      "source_title": "person-writing-notes-6781562",
+      "source_url": "https://www.pexels.com/video/person-writing-notes-6781562/",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1750156,
+      "sha256": "b406c62bf595ad24d10442690997a9f6dcf62f9cab7e9a1cc64da9d9bd55dcf6",
+      "perceptual_hash": "8c4d5f5016fef098~1190.67:844d0d5c167efa9a~1073.64:c44d4d445717fa9a~999.06:c44e47444603fbfb~932.35:c6464646430bfbbb~936.95"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000159.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000159.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000159_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000159_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000159_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000159_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000159_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000159_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T23:20:09.941399Z"
   }
 ]
