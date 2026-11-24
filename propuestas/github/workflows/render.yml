@@ -325,7 +325,7 @@ jobs:
           retention-days: 7
 
   assemble:
-    needs: [plan, voice, music, scene, index]
+    needs: [plan, voice, music, scene]
     # A scene that found nothing must not hide the report: run whenever the rest exists.
     if: ${{ !cancelled() && needs.voice.result == 'success' && needs.music.result == 'success' }}
     runs-on: ubuntu-latest
@@ -373,11 +373,6 @@ jobs:
         with:
           pattern: scene-*
           path: work/scene-artifacts
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        if: needs.index.result == 'success' && needs.index.outputs.indexed == 'true'
-        with:
-          name: indexed-clips
-          path: work
       - name: Collect the scenes
         run: |
           mkdir -p work/scenes
@@ -552,9 +547,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write
-    concurrency:
-      group: clipoteca-catalog
-      cancel-in-progress: false
     outputs:
       indexed: ${{ steps.index.outputs.indexed }}
     steps:

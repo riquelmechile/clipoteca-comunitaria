@@ -8,14 +8,16 @@ import json
 import os
 import re
 import tempfile
+import time
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import httpx
 from jsonschema import Draft202012Validator, FormatChecker
 
-from ..catalog import Catalog, GitHubCatalogWriter
+from ..catalog import Catalog, DuplicateClip, GitHubCatalogWriter, IdentityCollision
 from ..storage.github import GitHubReleaseStorage, ReleaseAsset, ReleaseBatch, StorageError
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -166,15 +168,35 @@ def _public_asset_url(value, repository, token):
     return value
 
 
+class ConcurrentWrite(StorageError):
+    """A reserved asset name or optimistic catalogue write was contested."""
+
+
+class IndexStorage(GitHubReleaseStorage):
+    def upload_asset(self, release, path, name):
+        # Unlike the ordinary serial writer, never adopt an in-flight named asset.
+        response = self.client.post(
+            release.upload_url,
+            params={"name": name},
+            headers={"Content-Type": "application/octet-stream"},
+            content=path.read_bytes(),
+        )
+        if response.status_code in (409, 422):
+            raise ConcurrentWrite("asset reservation conflict")
+        response.raise_for_status()
+        return self._asset(response.json())
+
+
 def _upload(storage, release, asset, name, uploaded=None):
     path, size, digest = asset
     if _digest(path) != (size, digest):
         raise PublishError("asset changed before upload")
     existing = storage.find_existing_asset(release, name, size, digest)
-    if existing is None:
-        existing = storage.upload_asset(release, path, name)
-        if uploaded is not None:
-            uploaded.append(existing.id)
+    if existing is not None:
+        raise ConcurrentWrite("asset already reserved")
+    existing = storage.upload_asset(release, path, name)
+    if uploaded is not None:
+        uploaded.append(existing.id)
     return storage.verify_asset(name, size, digest, release.id)
 
 
@@ -215,8 +237,15 @@ def _publish_clips(storage, writer, imports, day, created, repository, token):
             verified[identifier] = pair
             mapping[imp_id] = identifier
         if incoming:
-            writer.update(incoming, verified_assets=verified)
-    except Exception:
+            if isinstance(writer, GitHubCatalogWriter):
+                writer.update(incoming, verified_assets=verified, retries=0)
+            else:
+                writer.update(incoming, verified_assets=verified)
+    except Exception as exc:
+        # Contested writes may share a name with a legacy ingest writer. Never delete
+        # a reservation on a conflict; the next attempt re-reads the remote catalogue.
+        if _retryable(exc):
+            raise
         # A lost PUT response can mean the optimistic commit actually succeeded.
         # Never delete assets referenced by an observed committed catalogue.
         committed = set()
@@ -240,6 +269,27 @@ def _publish_clips(storage, writer, imports, day, created, repository, token):
                 pass
         raise
     return mapping, sorted(set(reused)), [clip["id"] for clip in incoming]
+
+
+def _retryable(exc):
+    if isinstance(exc, (ConcurrentWrite, DuplicateClip, IdentityCollision)):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in (409, 422)
+    if isinstance(exc, StorageError):
+        return "asset name collision:" in str(exc)
+    return isinstance(exc, RuntimeError) and "catalogue conflict" in str(exc)
+
+
+def _publish_with_retry(storage, writer, imports, day, created, repository, token):
+    for attempt in range(6):
+        try:
+            return _publish_clips(storage, writer, imports, day, created, repository, token)
+        except Exception as exc:
+            if not _retryable(exc) or attempt == 5:
+                raise
+            time.sleep(min(8, 0.5 * 2**attempt))
+    raise AssertionError("unreachable")
 
 
 class DryWriter:
@@ -344,12 +394,12 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
         mapping, reused, indexed = {}, [], []
         if imports:
             if storage is None:
-                storage = GitHubReleaseStorage(repository, token=token)
+                storage = IndexStorage(repository, token=token)
                 owned.append(storage.client)
             if writer is None:
                 writer = GitHubCatalogWriter(repository, token)
                 owned.append(writer.client)
-            mapping, reused, indexed = _publish_clips(
+            mapping, reused, indexed = _publish_with_retry(
                 storage, writer, imports, day, created, repository, token
             )
         result = {"version": 1, "clips": mapping, "reused_clips": reused, "indexed": indexed}

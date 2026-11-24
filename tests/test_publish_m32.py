@@ -220,6 +220,7 @@ class FakeGitHub:
         self.calls = []
         self.serial = 100
         self.fail_once = None
+        self.conflict_once = False
 
     def _next(self):
         self.serial += 1
@@ -243,6 +244,11 @@ class FakeGitHub:
                 body = {"sha": self.catalog_sha, "encoding": "base64", "content": content}
                 return httpx.Response(200, json=body)
             body = json.loads(request.content)
+            if self.conflict_once:
+                self.conflict_once = False
+                self.catalog = json.dumps([*json.loads(self.catalog), catalogue_record(3)])
+                self.catalog_sha = "concurrent"
+                return httpx.Response(409)
             if body["sha"] != self.catalog_sha:
                 return httpx.Response(409)
             self.catalog = base64.b64decode(body["content"]).decode()
@@ -277,6 +283,8 @@ class FakeGitHub:
         if request.url.host == "uploads.github.com":
             release = next(x for x in self.releases if x["id"] == int(path.split("/")[5]))
             name = request.url.params["name"]
+            if any(a["name"] == name for a in release["assets"]):
+                return httpx.Response(422)
             link = f"https://github.com/{REPO}/releases/download/{release['tag_name']}/{name}"
             asset = {
                 "id": self._next(),
@@ -309,7 +317,7 @@ class FakeGitHub:
             work,
             repository=REPO,
             token=TOKEN,
-            storage=index.GitHubReleaseStorage(REPO, token=TOKEN, client=client),
+            storage=index.IndexStorage(REPO, token=TOKEN, client=client),
             writer=GitHubCatalogWriter(REPO, TOKEN, client=client),
             today=DAY,
             now=NOW,
@@ -415,3 +423,18 @@ def test_failed_assembly_manifest_without_video(tmp_path):
     assert result["scenes"][0]["reason"] == "no_candidate"
     assert result["timings"]["scene.a.install_ffmpeg"] == 10
     assert result["timings"]["scene.a.import"] == 30
+
+
+def test_catalogue_conflict_reloads_and_reassigns_without_deleting_assets(setup, monkeypatch):
+    work, _, entries, _, _ = setup
+    github = FakeGitHub([catalogue_record(1), catalogue_record(2)])
+    github.conflict_once = True
+    monkeypatch.setattr(index.time, "sleep", lambda _: None)
+    result = github.index(work)
+    assert set(result["clips"]) == {entry["imp_id"] for entry in entries}
+    assert "clip-000003" in result["reused_clips"]
+    assert len([call for call in github.writes() if call[0] == "PUT"]) == 2
+    assert not any(method == "DELETE" for method, _ in github.writes())
+    published = json.loads(github.catalog)
+    assert len(published) == 5
+    assert len({row["id"] for row in published}) == 5
