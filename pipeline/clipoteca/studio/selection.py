@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
+import shutil
 from pathlib import Path
 
 from .clipscene import ClipSceneError, _atomic_json, clip_scene
@@ -40,27 +40,49 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
     else:
         catalog = _read(folders["catalog"] / "result.json")
     imported = None
-    assignment = root / "import" / "assignment.json"
-    if phase != "catalog" and not catalog.get("catalog_strong") and assignment.is_file():
-        imported = runner(
-            job,
-            _read(assignment),
-            folders["imported"],
-            exclude=exclude,
-            local_root=root / "import",
-        )
+    imported_folder = None
+    tried = list(catalog.get("tried", []))
+    if phase != "catalog" and not catalog.get("catalog_strong"):
+        for name in ("import", "import-retry"):
+            assignment = root / name / "assignment.json"
+            if not assignment.is_file():
+                continue
+            folder = folders["imported"] / name
+            candidate = runner(
+                job,
+                _read(assignment),
+                folder,
+                exclude=exclude,
+                local_root=root / name,
+            )
+            tried.extend(candidate.get("tried", []))
+            if imported is None or (
+                candidate.get("status") == "ok"
+                and (
+                    imported.get("status") != "ok"
+                    or (candidate["clip"]["sim"], candidate["clip"]["score"])
+                    > (imported["clip"]["sim"], imported["clip"]["score"])
+                )
+            ):
+                imported = candidate
+                imported_folder = folder
     origin, result = choose_result(catalog, imported)
     result = dict(result)
+    result["tried"] = tried
+    result["needs_retry"] = (
+        not catalog.get("catalog_strong")
+        and (imported is None or imported.get("status") != "ok")
+        and not (root / "import-retry" / "imported.json").exists()
+    )
     if result.get("status") == "ok":
         result["source"] = origin
-        # Preserve the catalogue report on disk for the next phase, not its duplicate MP4.
-        source = folders[origin] / "clip.mp4"
-        if phase == "catalog":
-            import shutil
-
-            shutil.copyfile(source, root / "clip.mp4")
+        result["fallback"] = origin == "catalog" and not catalog.get("catalog_strong", False)
+        if origin == "imported":
+            result["import_round"] = imported_folder.name
+            source = imported_folder / "clip.mp4"
         else:
-            os.replace(source, root / "clip.mp4")
+            source = folders["catalog"] / "clip.mp4"
+        shutil.copyfile(source, root / "clip.mp4")
     _atomic_json(root / "result.json", result)
     return result
 

@@ -305,7 +305,13 @@ class DryStorage:
 
 def _collect(work, created):
     imports = {}
-    for path in sorted((work / "scenes").glob("*/import/imported.json")):
+    paths = [
+        path
+        for scene in sorted((work / "scenes").glob("*"))
+        for name in ("import", "import-retry")
+        if (path := scene / name / "imported.json").is_file()
+    ]
+    for path in paths:
         root = path.parent
         manifest = _read(_local(root, "imported.json"))
         for entry in manifest["clips"]:

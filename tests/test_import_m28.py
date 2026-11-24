@@ -520,3 +520,32 @@ def test_real_failures_stay_errors_without_leaking_payloads(
     assert result["status"] == "error" and code == 1
     assert expected in result["errors"]
     assert "example.org" not in json.dumps(result)
+
+
+def test_spread_queries_reserves_budget(tmp_path, monkeypatch):
+    job = load("job.json")
+    job["queries"] = {"en": ["rain", "storm"], "es": ["lluvia", "tormenta"]}
+    calls = []
+
+    async def fake(query, adapters, **kwargs):
+        calls.append((query, kwargs["max_results"]))
+        return IngestReport("fixture", "no_results", (), ())
+
+    monkeypatch.setattr(importer, "ingest", fake)
+    report = import_scene(
+        job,
+        tmp_path / "spread",
+        catalog_path=_catalog(tmp_path),
+        adapters=[FakeAdapter("pexels")],
+        max_results=8,
+        spread_queries=True,
+    )
+    assert report["queries_tried"] == ["rain", "storm", "lluvia", "tormenta"]
+    assert calls[0] == ("rain", 2)
+    assert len(calls) == 4
+
+
+def test_simple_queries_remove_common_qualifiers():
+    job = {"title": "La lona", "prompt": "Real cinematic footage of waterproof tarpaulin"}
+    assert importer.simple_queries(job, ["rain"]) == ["lona", "waterproof tarpaulin"]
+    assert importer.simple_queries(job, ["lona", "waterproof tarpaulin"]) == ["waterproof"]

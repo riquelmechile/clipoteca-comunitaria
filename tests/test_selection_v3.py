@@ -40,6 +40,9 @@ def test_weak_catalogue_survives_failed_import(tmp_path):
         return result
 
     assert select_scene(tmp_path, "catalog", runner=runner)["source"] == "catalog"
-    assert select_scene(tmp_path, "finish", runner=runner)["source"] == "catalog"
+    result = select_scene(tmp_path, "finish", runner=runner)
+    assert result["source"] == "catalog"
+    assert result["fallback"] is True
+    assert result["needs_retry"] is True
     assert (tmp_path / "clip.mp4").read_bytes() == b"catalogue"
     assert calls == [0.27]

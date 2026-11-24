@@ -409,6 +409,30 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
     }
 
 
+_QUERY_STOP = frozenset(
+    "a an the of in on at and or with from for footage real natural moving view close "
+    "up cinematic beautiful detailed high quality shot video aerial slow motion "
+    "el la los las de del en y con por para un una vista video imagen hermoso".split()
+)
+
+
+def simple_queries(job, original):
+    """Derive up to two short subject queries, without a language model."""
+    used = {term.casefold() for term in original}
+    result = []
+    for text in (job.get("title", ""), job["prompt"]):
+        words = [
+            word for word in re.findall(r"[^\W\d_]+", text.casefold())
+            if word not in _QUERY_STOP and len(word) > 1
+        ]
+        for term in (" ".join(words[:3]), " ".join(words[:1])):
+            if term and term not in used:
+                result.append(term)
+                used.add(term)
+                break
+    return result
+
+
 def import_scene(
     job: dict[str, Any],
     out_dir: str | Path,
@@ -423,9 +447,13 @@ def import_scene(
     translator: Callable[..., Any] | None = None,
     embedding_encoder: Any = None,
     timeout_s: float | None = None,
+    spread_queries: bool = False,
+    simple: bool = False,
 ) -> dict[str, Any]:
     """Search using existing ingest but keep ALL results, jobs and assets local."""
     length, fetch, queries = _validate(job, max_results, max_clips_per_source, concurrency)
+    if simple:
+        queries = simple_queries(job, queries)
     if timeout_s is None:
         try:
             timeout_s = float(os.environ.get("CLIPOTECA_IMPORT_TIMEOUT", "900"))
@@ -473,6 +501,9 @@ def import_scene(
                 if len(writer.imported) >= max_results:
                     break
                 tried.append(query)
+                budget = max_results - len(writer.imported)
+                if spread_queries:
+                    budget = max(1, math.ceil(budget / (len(queries) - index)))
                 try:
                     report = await asyncio.wait_for(
                         ingest(
@@ -481,13 +512,13 @@ def import_scene(
                             repository="local/local",
                             token="",
                             job_root=stage / "jobs",
-                            max_results=max_results - len(writer.imported),
+                            max_results=budget,
                             max_clips_per_source=max_clips_per_source,
                             concurrency=concurrency,
                             # No aspect filter: clip-scene reframes any orientation to the
                             # target, and filtering here would discard most horizontal stock.
                             filters={"max_duration": duration_cap},
-                            horizon=f"studio-v1-{index}",
+                            horizon=f"studio-v1-{index}" if not simple else f"studio-simple-{index}",
                             writer=writer,
                             storage=storage,
                             downloader=downloader,
@@ -548,6 +579,9 @@ def main(argv: list[str] | None = None) -> int:
     scene.add_argument("--out", type=Path, required=True)
     scene.add_argument("--providers")
     scene.add_argument("--max-results", type=int, default=3)
+    scene.add_argument("--spread-queries", action="store_true")
+    scene.add_argument("--simple", action="store_true")
+    scene.add_argument("--timeout", type=float)
     args = parser.parse_args(argv)
     try:
         job = json.loads(args.job.read_text(encoding="utf-8"))
@@ -557,6 +591,9 @@ def main(argv: list[str] | None = None) -> int:
             catalog_path=args.catalog,
             providers=args.providers,
             max_results=args.max_results,
+            spread_queries=args.spread_queries,
+            simple=args.simple,
+            timeout_s=args.timeout,
         )
     except (OSError, ImportSceneError, ValueError, TypeError) as exc:
         parser.exit(2, f"importer: {type(exc).__name__}: invalid input\n")
