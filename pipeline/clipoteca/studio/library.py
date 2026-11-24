@@ -224,6 +224,7 @@ def candidates(
     pool = scored or fallbacks
     return sorted(pool, key=lambda item: (-item["score"], item["clip_id"]))
 
+
 def assign_scenes(
     jobs: list[dict[str, Any]],
     catalog: dict[str, Any] | list[dict[str, Any]],

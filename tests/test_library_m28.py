@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from clipoteca.studio.clipscore import ClipScoreError, ClipScorer, MEAN, STD
 from clipoteca.place_names import query_names
+from clipoteca.studio.clipscore import ClipScoreError, ClipScorer, MEAN, STD
 from clipoteca.studio.library import (
     assign_scenes,
     candidates,
@@ -110,13 +110,10 @@ def test_assign_scenes_rarer_first_and_no_primary_duplicates() -> None:
     assert assign_scenes(jobs, _index(), top_n=4) == answers
 
 
-def test_no_text_match_uses_catalog_fallback_without_network() -> None:
+def test_needs_import_is_explicit_and_no_network() -> None:
     impossible = _job("elefantes cósmicos", "cosmic elephants")
     impossible["id"] = "missing"
-    assignment = assign_scenes([impossible], _index())[0]
-    assert assignment["id"] == "missing"
-    assert assignment["status"] == "catalog"
-    assert assignment["primary"]["fallback"] is True
+    assert assign_scenes([impossible], _index()) == [{"id": "missing", "status": "needs_import"}]
 
 
 def test_clipscore_requires_only_local_files(tmp_path: Path) -> None:
