@@ -142,9 +142,9 @@ def test_all_imported_clips_indexed_without_video_or_passing_qa(setup):
     result = run(setup)
     assert set(result["clips"]) == {entry["imp_id"] for entry in entries}
     assert len(result["indexed"]) == 3
-    assert len(writer.updates) == 1
-    assert len(writer.updates[0][0]) == 3
-    assert all(len(assets) == 3 for assets in writer.updates[0][1].values())
+    assert len(writer.updates) == 3
+    assert all(len(clips) == 1 for clips, _ in writer.updates)
+    assert all(len(assets) == 3 for _, pair in writer.updates for assets in pair.values())
     assert not (work / "video.mp4").exists()
     assert not (root / "data/videos").exists()
     assert not list((root / "assets").glob("video-*"))
@@ -152,7 +152,7 @@ def test_all_imported_clips_indexed_without_video_or_passing_qa(setup):
     second = run(setup)
     assert second["clips"] == result["clips"]
     assert second["indexed"] == []
-    assert len(writer.updates) == 1
+    assert len(writer.updates) == 3
 
 
 @pytest.mark.parametrize("change", ["absolute", "traversal", "symlink", "sha", "story", "empty"])
@@ -190,8 +190,11 @@ def test_rollback(setup, monkeypatch):
         raise RuntimeError(TOKEN)
 
     monkeypatch.setattr(writer, "update", fail)
-    with pytest.raises(index.PublishError, match="remote indexing failed"):
-        run(setup)
+    result = run(setup)
+    assert result["clips"] == {}
+    assert len(result["errors"]) == 3
+    assert all(row["exception"] == "RuntimeError" for row in result["errors"])
+    assert TOKEN not in json.dumps(result)
     assert not list((root / "assets").rglob("*.mp4"))
     assert not list((root / "assets").rglob("*.webp"))
 
@@ -333,7 +336,7 @@ def test_real_clients_index_once_and_never_publish_video(setup):
     first = github.index(work)
     assert len(first["indexed"]) == 3
     assert set(first["clips"]) == {entry["imp_id"] for entry in entries}
-    assert len([call for call in github.writes() if call[0] == "PUT"]) == 1
+    assert len([call for call in github.writes() if call[0] == "PUT"]) == 3
     assert all("video-" not in release["tag_name"] for release in github.releases)
     assert all("/data/videos" not in path for _, path in github.calls)
     assert TOKEN not in github.catalog + json.dumps(first)
@@ -369,7 +372,15 @@ def test_delivery_records_failed_qa_and_all_indexed_clips(setup):
             work / "scenes" / name / "result.json",
             {"status": "ok", "clip": {"clip_id": entry["imp_id"], "imported": True}},
         )
-    put(work / "scenes/c/result.json", {"status": "ok", "clip": {"clip_id": "clip-000001"}})
+    put(
+        work / "scenes/c/result.json",
+        {
+            "status": "ok",
+            "clip": {"clip_id": "clip-000001"},
+            "fallback": True,
+            "degraded_reason": "low_sim",
+        },
+    )
     video = b"synthetic video"
     (work / "video.mp4").write_bytes(video)
     put(work / "render.json", {"duration_s": 8, "size_bytes": len(video)})
@@ -385,6 +396,7 @@ def test_delivery_records_failed_qa_and_all_indexed_clips(setup):
     put(work / "timings.json", {"render": 2})
     manifest = delivery.build_delivery(work, writer.path)
     assert manifest["qa"] == {"pass": False, "failed": ["audio"]}
+    assert manifest["warnings"] == [{"scene_id": "c", "degraded_reason": "low_sim"}]
     assert manifest["clips_indexed"] == result["indexed"]
     assert [row["origin"] for row in manifest["scenes"]] == ["imported", "imported", "catalog"]
     assert manifest["scenes"][0]["clip_id"] == result["clips"][entries[0]["imp_id"]]
@@ -450,7 +462,7 @@ def test_catalogue_conflict_reloads_and_reassigns_without_deleting_assets(setup,
     result = github.index(work)
     assert set(result["clips"]) == {entry["imp_id"] for entry in entries}
     assert "clip-000003" in result["reused_clips"]
-    assert len([call for call in github.writes() if call[0] == "PUT"]) == 2
+    assert len([call for call in github.writes() if call[0] == "PUT"]) == 3
     assert not any(method == "DELETE" for method, _ in github.writes())
     published = json.loads(github.catalog)
     assert len(published) == 5
@@ -469,3 +481,19 @@ def test_fallback_imports_fill_scenes_but_are_not_indexed(tmp_path):
     result = run((work, root, [good], index.DryStorage(root), writer))
     assert set(result["clips"]) == {good["imp_id"]}
     assert len(result["indexed"]) == 1
+
+
+def test_index_continues_after_one_remote_failure(setup):
+    work, _, entries, _, _ = setup
+    github = FakeGitHub([catalogue_record(1), catalogue_record(2)])
+    github.fail_once = lambda request: request.method == "POST" and (
+        request.url.host == "uploads.github.com"
+    )
+    result = github.index(work)
+    assert entries[0]["imp_id"] not in result["clips"]
+    assert len(result["indexed"]) == 2
+    assert result["errors"] == [
+        {"exception": "HTTPStatusError", "message": "GitHub HTTP 500", "imp_id": entries[0]["imp_id"]}
+    ]
+    assert result == index._read(work / "index.json")
+    assert TOKEN not in json.dumps(result)

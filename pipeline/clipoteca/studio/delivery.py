@@ -128,6 +128,11 @@ def build_delivery(work, catalog_path):
         "size_bytes": size,
         "qa": {"pass": qa["pass"], "failed": qa["failed"]},
         "scenes": rows,
+        "warnings": [
+            {"scene_id": row["id"], "degraded_reason": row["degraded_reason"]}
+            for row in rows
+            if row.get("fallback")
+        ],
         "clips_indexed": indexed["indexed"],
         "timings": _timings(work),
     }

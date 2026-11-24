@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 from ..catalog import Catalog, DuplicateClip, GitHubCatalogWriter, IdentityCollision
 from ..storage.github import GitHubReleaseStorage, ReleaseAsset, ReleaseBatch, StorageError
@@ -224,7 +224,7 @@ def _publish_clips(storage, writer, imports, day, created, repository, token):
                 reused.append(match["id"])
                 continue
             if release is None:
-                release = storage.get_or_create_batch_release(day)
+                release = storage.get_or_create_batch_release(day, required_assets=len(assets))
                 reserved = set(storage.reserved_ids(release))
             identifier = working.next_id(reserved_ids=reserved)
             names = [f"clip_{identifier}.mp4", f"thumb_{identifier}.webp"]
@@ -323,7 +323,7 @@ class DryStorage:
         self._ids[number] = tag
         return ReleaseBatch(number, tag, "")
 
-    def get_or_create_batch_release(self, day):
+    def get_or_create_batch_release(self, day, *, required_assets=1):
         return self._release(f"batch-{day.isoformat()}-001")
 
     def reserved_ids(self, release):
@@ -381,8 +381,45 @@ def _collect(work, created):
     return imports
 
 
+def _error(exc, imp_id=None):
+    # Never serialize upstream response bodies, request URLs, or arbitrary exception
+    # strings. They can contain credentials, signed URLs, or untrusted metadata.
+    if isinstance(exc, httpx.HTTPStatusError):
+        message = f"GitHub HTTP {exc.response.status_code}"
+    elif isinstance(exc, httpx.TimeoutException):
+        message = "GitHub request timed out"
+    elif isinstance(exc, httpx.RequestError):
+        message = "GitHub transport failure"
+    elif isinstance(exc, ValidationError):
+        message = "clip schema validation failed"
+    elif isinstance(exc, PublishError):
+        message = str(exc)
+    elif isinstance(exc, (ConcurrentWrite, DuplicateClip, IdentityCollision)):
+        message = "asset or catalogue identity conflict"
+    elif isinstance(exc, StorageError):
+        detail = str(exc)
+        if re.fullmatch(
+            r"(?:asset name collision|asset not found|incomplete asset|asset digest mismatch): "
+            r"(?:clip|thumb|story)_clip-[0-9]{6,}(?:_[0-9]{2})?\\.(?:mp4|webp)",
+            detail,
+        ):
+            message = detail
+        elif detail in {"release tag creation conflicts persisted", "catalogue commit outcome unknown"}:
+            message = detail
+        else:
+            message = "release storage operation failed"
+    elif isinstance(exc, RuntimeError) and str(exc) == "catalogue conflict after bounded retries":
+        message = str(exc)
+    else:
+        message = "unexpected indexing failure (unsafe details withheld)"
+    error = {"exception": type(exc).__name__, "message": message}
+    if imp_id is not None:
+        error["imp_id"] = imp_id
+    return error
+
+
 def index_clips(work_dir, *, repository, token, storage=None, writer=None, today=None, now=None):
-    """Verify every imported asset before a single catalogue update, without touching video."""
+    """Verify every input before publishing valid clips independently of video."""
     work = Path(work_dir)
     (work / "index.json").unlink(missing_ok=True)
     moment = now or datetime.now(UTC)
@@ -394,11 +431,11 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
             raise PublishError("credential in index input")
     except PublishError:
         raise
-    except Exception:
-        raise PublishError("invalid index input") from None
+    except Exception as exc:
+        raise PublishError("invalid index input") from exc
     owned = []
     try:
-        mapping, reused, indexed = {}, [], []
+        mapping, reused, indexed, errors = {}, [], [], []
         if imports:
             if storage is None:
                 storage = IndexStorage(repository, token=token)
@@ -406,14 +443,29 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
             if writer is None:
                 writer = GitHubCatalogWriter(repository, token)
                 owned.append(writer.client)
-            mapping, reused, indexed = _publish_with_retry(
-                storage, writer, imports, day, created, repository, token
-            )
-        result = {"version": 1, "clips": mapping, "reused_clips": reused, "indexed": indexed}
+            for imp_id, item in imports.items():
+                try:
+                    found, existing, published = _publish_with_retry(
+                        storage, writer, {imp_id: item}, day, created, repository, token
+                    )
+                except Exception as exc:
+                    errors.append(_error(exc, imp_id))
+                    continue
+                mapping.update(found)
+                reused.extend(existing)
+                indexed.extend(published)
+        result = {
+            "version": 1,
+            "clips": mapping,
+            "reused_clips": sorted(set(reused)),
+            "indexed": indexed,
+        }
+        if errors:
+            result["errors"] = errors
         _atomic(work / "index.json", result)
         return result
-    except Exception:
-        raise PublishError("remote indexing failed", 1) from None
+    except Exception as exc:
+        raise PublishError("remote indexing failed", 1) from exc
     finally:
         for client in owned:
             client.close()
@@ -440,13 +492,15 @@ def main(argv=None):
                 raise PublishError("missing indexing credentials")
             result = index_clips(args.work, repository=repository, token=token)
     except PublishError as exc:
-        print(json.dumps({"error": str(exc)}))
+        print(json.dumps({"error": str(exc), **_error(exc.__cause__ or exc)}))
         return exc.code
-    except Exception:
-        print(json.dumps({"error": "invalid index input"}))
+    except Exception as exc:
+        print(json.dumps({"error": "invalid index input", **_error(exc)}))
         return 2
     print(json.dumps(result, ensure_ascii=True))
-    return 0
+    # A partial result is useful to assembly and must reach the artifact upload.
+    # Total failure remains a nonzero CLI exit with per-clip evidence in the log.
+    return 1 if result.get("errors") and not result["clips"] else 0
 
 
 if __name__ == "__main__":

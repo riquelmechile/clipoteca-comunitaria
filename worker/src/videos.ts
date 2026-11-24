@@ -23,7 +23,8 @@ type Job = {name:string; status:string; conclusion:string|null;
   steps?: {name:string; status:string; conclusion:string|null}[]};
 type Artifact = {id:number; name:string; expired:boolean; size_in_bytes:number};
 type Context = {base:string; token:string};
-type Delivery = {qa?:{pass:boolean;failed:string[]}; clips_indexed?:string[]};
+type SceneWarning = {scene_id:string;degraded_reason:string};
+type Delivery = {qa?:{pass:boolean;failed:string[];warnings?:SceneWarning[]}; clips_indexed?:string[]};
 function context(env: RestEnv): Context | null {
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   const token = env.CLIPOTECA_DISPATCH_TOKEN;
@@ -197,7 +198,14 @@ async function status(ctx: Context, run: Run, id: string, rid: string, rows: Art
       if (object(data) && object(data.qa) && typeof data.qa.pass === "boolean" &&
           Array.isArray(data.qa.failed) && data.qa.failed.every(x=>typeof x==="string") &&
           Array.isArray(data.clips_indexed) && data.clips_indexed.every(x=>typeof x==="string")) {
-        delivery = {qa:{pass:data.qa.pass, failed:data.qa.failed}, clips_indexed:data.clips_indexed};
+        const sceneWarnings = data.warnings;
+        if (sceneWarnings !== undefined && (!Array.isArray(sceneWarnings) ||
+            !sceneWarnings.every(w=>object(w) && typeof w.scene_id==="string" &&
+              typeof w.degraded_reason==="string"))) throw new Error("invalid scene warnings");
+        delivery = {qa:{pass:data.qa.pass, failed:data.qa.failed,
+          ...(sceneWarnings === undefined ? {} : {warnings:sceneWarnings.map(w=>({
+            scene_id:w.scene_id, degraded_reason:w.degraded_reason,
+          }))})}, clips_indexed:data.clips_indexed};
       } else throw new Error("invalid delivery evidence");
     } catch {
       warnings.push("delivery_evidence_unavailable");
