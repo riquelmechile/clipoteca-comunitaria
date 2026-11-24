@@ -218,7 +218,7 @@ def candidates(
             "size_bytes": media["size_bytes"],
             "source_url": source.get("source_url") if isinstance(source, dict) else None,
             "fit": fit,
-            "fallback": not (place_ok and score > 0),
+            **({"fallback": True} if not (place_ok and score > 0) else {}),
         }
         (scored if place_ok and score > 0 else fallbacks).append(candidate)
     pool = scored or fallbacks
