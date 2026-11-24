@@ -10500,5 +10500,69 @@
     },
     "status": "published",
     "created_at": "2026-11-24T23:20:09.941399Z"
+  },
+  {
+    "id": "clip-000161",
+    "title": {
+      "es": "Una mujer triste usando un tel\u00e9fono celular",
+      "en": "A sad woman using a cellphone"
+    },
+    "description": {
+      "es": "Una mujer triste usando un tel\u00e9fono celular",
+      "en": "A sad woman using a cellphone"
+    },
+    "tags": {
+      "es": [
+        "mujer",
+        "triste",
+        "usando",
+        "tel\u00e9fono",
+        "celular"
+      ],
+      "en": [
+        "sad",
+        "woman",
+        "using",
+        "cellphone"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "8410090",
+      "source_language": "en",
+      "source_title": "a-sad-woman-using-a-cellphone-8410090",
+      "source_url": "https://www.pexels.com/video/a-sad-woman-using-a-cellphone-8410090/",
+      "source_start": 2.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2220128,
+      "sha256": "31aaa0c3e5651b4ef2db4435bef3a145b89f18d79c83a6fea6a60372e04836ff",
+      "perceptual_hash": "a162579f6d38b445~2234.98:a3639729729447ba~2196.82:e7ffbf60884011c6~1675.22:eefca1803bf51c03~1732.65:cef9811e3380bf94~2015.63"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000161.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000161.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000161_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000161_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000161_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000161_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000161_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000161_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T23:20:09.941399Z"
   }
 ]
