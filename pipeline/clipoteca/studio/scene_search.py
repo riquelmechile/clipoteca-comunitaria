@@ -82,9 +82,10 @@ class SceneBudget:
     def good(self, record):
         media = record["media"]
         length = float(self.job["len_est"])
-        if media["duration_seconds"] < 0.42 * length or fit_mode(
-            media["duration_seconds"], length
-        ) is None:
+        if (
+            media["duration_seconds"] < 0.42 * length
+            or fit_mode(media["duration_seconds"], length) is None
+        ):
             self._reject(record, "too_short")
             return False
         if min(media["width"], media["height"]) < self.job.get("min_short_side", 720):
