@@ -506,7 +506,9 @@ def publish_video(
         record, imports, asset = _prepare(work, created)
         if token and token in json.dumps(record, ensure_ascii=False):
             raise PublishError("credential in publication input")
-        if token and any(token in json.dumps(item[0], ensure_ascii=False) for item in imports.values()):
+        if token and any(
+            token in json.dumps(item[0], ensure_ascii=False) for item in imports.values()
+        ):
             raise PublishError("credential in publication input")
     except PublishError:
         raise
@@ -545,7 +547,10 @@ def publish_video(
         saved = records.save(record)
         _public_asset_url(saved["storage"]["asset_url"], repository, token)
         return _finish(work, saved, mapping, reused, False)
-    except PublishError:
+    except PublishError as exc:
+        # All module-generated errors have static messages; hide injected backend errors too.
+        if token and token in str(exc) or repository and repository in str(exc):
+            raise PublishError("remote publication failed", 1) from None
         raise
     except Exception:
         raise PublishError("remote publication failed", 1) from None
