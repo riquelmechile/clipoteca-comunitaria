@@ -111,9 +111,7 @@ class SceneBudget:
                         if candidate.metadata and name in candidate.metadata
                     }
                 )
-            self.text_checked[key] = self.text_good(
-                {"title": localized.title, "source": source}
-            )
+            self.text_checked[key] = self.text_good({"title": localized.title, "source": source})
             if not self.text_checked[key]:
                 self._reject({"id": key}, "text_gate")
         return self.text_checked[key]

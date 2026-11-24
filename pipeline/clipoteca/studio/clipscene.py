@@ -636,8 +636,10 @@ def clip_scene(
                 if ranked or job.get("_allow_fallback"):
                     imported = result.get("imported", False)
                     report["source"] = "imported" if imported else "catalog"
-                    report["catalog_strong"] = not degraded and not imported and (
-                        result["sim"] >= job.get("catalog_min_sim", 0.27)
+                    report["catalog_strong"] = (
+                        not degraded
+                        and not imported
+                        and (result["sim"] >= job.get("catalog_min_sim", 0.27))
                     )
                     if imported:
                         result["name_match"] = bool(candidate.get("name_match"))

@@ -20,9 +20,10 @@ def choose_result(catalog, imported=None):
             imp_degraded = bool(imported.get("degraded_reason"))
             if cat_degraded != imp_degraded:
                 return ("imported", imported) if cat_degraded else ("catalog", catalog)
-            if cat_degraded and (
-                catalog["clip"]["sim"], catalog["clip"]["score"]
-            ) > (imported["clip"]["sim"], imported["clip"]["score"]):
+            if cat_degraded and (catalog["clip"]["sim"], catalog["clip"]["score"]) > (
+                imported["clip"]["sim"],
+                imported["clip"]["score"],
+            ):
                 return "catalog", catalog
         return "imported", imported
     if catalog.get("status") == "ok":

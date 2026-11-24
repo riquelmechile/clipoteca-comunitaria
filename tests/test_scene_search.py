@@ -261,9 +261,7 @@ async def test_chiloe_commons_discovery_recorded_before_media_timeout(monkeypatc
     writer = Writer()
     settings = job()
     settings["queries"] = {"en": ["Chiloe Island"], "es": ["Chilo\u00e9"]}
-    budget = scene_search.SceneBudget(
-        settings, writer.imported, 2, 2, 100, clock=lambda: 0
-    )
+    budget = scene_search.SceneBudget(settings, writer.imported, 2, 2, 100, clock=lambda: 0)
     calls, cancelled = [], []
     adapters = [
         Provider("pexels", calls, cancelled),

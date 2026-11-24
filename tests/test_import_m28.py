@@ -667,8 +667,12 @@ def test_irrelevant_candidate_is_never_downloaded(tmp_path, videos, engine):
         },
     )
     result = _import(
-        load("job.json"), tmp_path / "gate", _catalog(tmp_path), videos,
-        entries=entries, max_results=2,
+        load("job.json"),
+        tmp_path / "gate",
+        _catalog(tmp_path),
+        videos,
+        entries=entries,
+        max_results=2,
     )
     assert result["status"] == "ok"
     assert result["rejections"]["text_gate"] >= 1

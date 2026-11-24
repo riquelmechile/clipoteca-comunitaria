@@ -55,6 +55,4 @@ def test_degraded_fallback_ranked_by_sim_and_never_beats_valid():
     assert choose_result(catalog, imported)[0] == "catalog"
     assert choose_result(catalog, row(0.17, 0))[0] == "imported"
     assert choose_result(row(0.17, 0), imported)[0] == "catalog"
-    assert choose_result(catalog, {**imported, "clip": {"sim": 0.2, "score": 0}})[0] == (
-        "imported"
-    )
+    assert choose_result(catalog, {**imported, "clip": {"sim": 0.2, "score": 0}})[0] == ("imported")
