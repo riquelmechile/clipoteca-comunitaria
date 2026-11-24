@@ -9860,5 +9860,69 @@
     },
     "status": "published",
     "created_at": "2026-11-24T17:04:33.137242Z"
+  },
+  {
+    "id": "clip-000152",
+    "title": {
+      "es": "Cuevas de nieve de torres del dolore",
+      "en": "Snow capped peaks of torres del paine"
+    },
+    "description": {
+      "es": "Cuevas de nieve de torres del dolore",
+      "en": "Snow capped peaks of torres del paine"
+    },
+    "tags": {
+      "es": [
+        "Cuevas",
+        "nieve",
+        "torres",
+        "dolore"
+      ],
+      "en": [
+        "Snow",
+        "capped",
+        "peaks",
+        "torres",
+        "paine"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "29998635",
+      "source_language": "en",
+      "source_title": "snow-capped-peaks-of-torres-del-paine-29998635",
+      "source_url": "https://www.pexels.com/video/snow-capped-peaks-of-torres-del-paine-29998635/",
+      "source_start": 6.0,
+      "source_end": 16.96695
+    },
+    "media": {
+      "duration_seconds": 10.96095,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 4420245,
+      "sha256": "7bfbf3e22ead92129fbb78309d73708de6449f44f8fdfbf03c101f875b6bac3a",
+      "perceptual_hash": "f9e0c24ffd30a01b~6656.01:f9e0821ffc30a23b~6830.92:f9e0824ffd30a03b~6705.30:f8e8c347fd30b013~6528.92:fce8c143ff3ab001~6476.06"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000152.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000152.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000152_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000152_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000152_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000152_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000152_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000152_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T17:04:33.137242Z"
   }
 ]
