@@ -183,3 +183,17 @@ def test_without_catalog_has_no_assignment_side_effect(tmp_path: Path) -> None:
     write_plan(_script(), tmp_path)
     assert not (tmp_path / "assignments.json").exists()
     assert not list(tmp_path.glob("scenes/*/assignment.json"))
+
+
+def test_related_queries_are_optional_immutable_and_preserved_in_job() -> None:
+    data = _fixture("guion.json")
+    original = script_id(parse_video_script(data))
+    data["scenes"][0]["query"]["related"] = {"es": ["Castro"], "en": ["Ancud"]}
+    script = parse_video_script(data)
+    assert script_id(script) != original
+    assert script.scenes[0].query["related"]["es"] == ("Castro",)
+    data["scenes"][0]["query"]["related"]["es"].append("Chonchi")
+    job = scene_job(script, script.scenes[0], estimate_scenes(script)[0])
+    assert job["queries"]["related"] == {"es": ["Castro"], "en": ["Ancud"]}
+    old = _script()
+    assert "related" not in scene_job(old, old.scenes[0], estimate_scenes(old)[0])["queries"]

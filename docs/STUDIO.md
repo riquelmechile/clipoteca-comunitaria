@@ -83,7 +83,11 @@ subtítulo conserva el texto escrito.
 | music | mood upbeat, chill o epic; bpm 60–180 (120 por defecto) |
 | voice | M1–M5 o F1–F5; speed 0,8–1,5; lexicon opcional; F1 y 1,2 por defecto |
 | scenes | 3–12; ID único; type intro, fact u outro; al menos una fact |
-| Campos de escena | id, type, title, say, query.es, query.en, prompt; opcionales sub, caption, avoid |
+| Campos de escena | id, type, title, say, query.es, query.en, prompt; opcionales sub, caption, avoid, query.related |
+
+`query.related` acepta listas opcionales `es` y `en` de hasta ocho terminos por idioma
+(por ejemplo, `{"es":["Castro","Ancud"],"en":["Chiloe churches"]}`). Deben ser
+conceptos o lugares vinculados realmente a la escena, no palabras de relleno.
 
 El plan rechaza estimaciones superiores a 60 segundos; la línea de tiempo
 rechaza duraciones reales mayores y QA comprueba el MP4. La entrada del

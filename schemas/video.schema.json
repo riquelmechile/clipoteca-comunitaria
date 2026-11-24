@@ -172,6 +172,30 @@
                 "minLength": 1,
                 "maxLength": 80
               }
+            },
+            "related": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "es": {
+                  "type": "array",
+                  "maxItems": 8,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "en": {
+                  "type": "array",
+                  "maxItems": 8,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                }
+              }
             }
           }
         },

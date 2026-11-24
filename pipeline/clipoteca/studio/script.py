@@ -86,7 +86,7 @@ class SceneSpec:
     sub: str
     say: str
     caption: str
-    query: Mapping[str, tuple[str, ...]]
+    query: Mapping[str, tuple[str, ...] | Mapping[str, tuple[str, ...]]]
     prompt: str
     avoid: tuple[str, ...]
 
@@ -94,7 +94,14 @@ class SceneSpec:
         object.__setattr__(
             self,
             "query",
-            _FrozenMap({key: tuple(words) for key, words in self.query.items()}),
+            _FrozenMap(
+                {
+                    key: _FrozenMap({lang: tuple(terms) for lang, terms in words.items()})
+                    if isinstance(words, Mapping)
+                    else tuple(words)
+                    for key, words in self.query.items()
+                }
+            ),
         )
 
 
@@ -214,7 +221,7 @@ def parse_video_script(data: object) -> VideoScript:
             sub=scene.get("sub", ""),
             say=scene["say"],
             caption=scene.get("caption", scene["say"]),
-            query={lang: list(scene["query"][lang]) for lang in ("es", "en")},
+            query=scene["query"],
             prompt=scene["prompt"],
             avoid=tuple(scene.get("avoid", [])),
         )

@@ -108,7 +108,14 @@ def scene_job(script: VideoScript, scene: SceneSpec, est: dict[str, Any]) -> dic
         "len_est": est["len_est"],
         "len_fetch": est["len_fetch"],
         "start_est": est["start_est"],
-        "queries": {lang: list(scene.query[lang]) for lang in ("es", "en")},
+        "queries": {
+            **{lang: list(scene.query[lang]) for lang in ("es", "en")},
+            **(
+                {"related": {lang: list(terms) for lang, terms in scene.query["related"].items()}}
+                if "related" in scene.query
+                else {}
+            ),
+        },
         "prompt": scene.prompt,
         "avoid": list(scene.avoid),
         "negatives": NEG.copy(),
