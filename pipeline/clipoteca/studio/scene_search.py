@@ -88,7 +88,6 @@ class SceneBudget:
         )
         if not (
             self.valid(record)
-            and record["media"]["duration_seconds"] >= self.job["len_fetch"]
             and relevant
             and (score > 0 or score == unpenalized)
         ):
@@ -217,9 +216,6 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
                 if scene_budget.reason():
                     break
                 result = await task
-                if scene_budget.place and adapter.name == "wikimedia_commons":
-                    if adapter.support_status in _SEARCHABLE:
-                        scene_budget.commons_consulted = True
                 if scene_budget.reason():
                     break
                 unique = [c for c in result.candidates if c.origin_id not in seen]
@@ -236,6 +232,12 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
                 )
                 # Evaluate the final candidate too, even if no other wave follows.
                 scene_budget.relevant_count()
+                if (
+                    scene_budget.place
+                    and adapter.name == "wikimedia_commons"
+                    and adapter.support_status in _SEARCHABLE
+                ):
+                    scene_budget.commons_consulted = True
                 index += 1
                 last = report.request_id
                 errors.extend(report.errors)

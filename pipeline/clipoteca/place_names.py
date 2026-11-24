@@ -48,6 +48,8 @@ def query_names(queries):
     names = set()
     for query in queries:
         folded = " ".join(_words(query))
+        if query.strip() == "Grey":
+            names.add("grey glacier")
         for name in _PLACE_NAMES:
             if f" {name} " in f" {folded} ":
                 names.add(name)

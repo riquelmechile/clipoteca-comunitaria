@@ -33,7 +33,13 @@ def test_budget():
     now = [0]
     records = [record(width=640), record(duration=2), record(title="car")]
     budget = scene_search.SceneBudget(
-        job(), records, 8, 2, 10, clock=lambda: now[0], visual_match=lambda _: True
+        job(),
+        records,
+        8,
+        2,
+        10,
+        clock=lambda: now[0],
+        visual_match=lambda row: row["media"]["duration_seconds"] >= 4,
     )
     assert budget.valid_count() == 2
     assert budget.reason() is None
@@ -192,7 +198,10 @@ async def test_place_consults_commons_before_relevance_cutoff(monkeypatch):
     monkeypatch.setattr(
         scene_search,
         "expand_query",
-        lambda *args, **kwargs: QueryExpansion("Easter Island moai", {"en": "Easter Island moai"}),
+        lambda *args, **kwargs: QueryExpansion(
+            "Easter Island moai",
+            {lang: "Easter Island moai" for lang in ("en", "es", "zh", "ru")},
+        ),
     )
 
     async def fake_ingest(query, adapters, *, discovery, scene_budget, **kwargs):

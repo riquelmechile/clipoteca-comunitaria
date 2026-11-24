@@ -568,6 +568,11 @@ def import_scene(
             if scorer is None:
                 scorer = ClipScorer(cache_dir() / "clip-vit-b32")
                 scorer._sess()
+        except (ImportError, OSError, RuntimeError, ValueError):
+            scorer_unavailable = True
+            failures.append("clip_relevance_unavailable")
+            return False
+        try:
             analysis, reason = analyze_window(job, path, scorer, started + timeout)
             if reason == "timeout":
                 failures.append("timeout")
@@ -575,9 +580,8 @@ def import_scene(
         except TimeoutError:
             failures.append("timeout")
             return False
-        except (ImportError, OSError, RuntimeError, ValueError):
-            scorer_unavailable = True
-            failures.append("clip_relevance_unavailable")
+        except (OSError, RuntimeError, ValueError):
+            rejections["visual_analysis_error"] = rejections.get("visual_analysis_error", 0) + 1
             return False
 
     budget = SceneBudget(
@@ -653,6 +657,8 @@ def import_scene(
         except _SceneDeadline:
             failures.append("timeout")
 
+    # Finalization must not start new visual analysis outside the wall deadline.
+    budget.visual_match = None
     reason = "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
     imported: list[dict[str, Any]] = []
     seen_digests: set[str] = set()
@@ -727,6 +733,9 @@ def main(argv: list[str] | None = None) -> int:
                 "status": result["status"],
                 "imported": len(result["clips"]),
                 "termination_reason": result["termination_reason"],
+                "raw_count": result["raw_count"],
+                "relevant_count": result["relevant_count"],
+                "commons_consulted": result["commons_consulted"],
                 "time_s": result["time_s"],
                 "searches_started": result["searches_started"],
                 "searches_avoided": result["searches_avoided"],

@@ -365,9 +365,7 @@ def analyze_window(job: dict[str, Any], downloaded: Path, scorer: Any, deadline:
         "cuts": _cuts(downloaded, deadline, analyzed_duration),
     }
     proposals = windows(analyzed, prompt, length, nemb=negatives)
-    chosen, reason = choose_window(
-        proposals, job.get("min_sim", 0.22), job.get("min_prob", 0.5)
-    )
+    chosen, reason = choose_window(proposals, job.get("min_sim", 0.22), job.get("min_prob", 0.5))
     if chosen is None:
         return None, reason
     if chosen["score"] < job.get("min_score", 0.0):

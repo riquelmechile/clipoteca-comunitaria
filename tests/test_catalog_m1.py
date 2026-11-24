@@ -327,3 +327,14 @@ def test_new_batch_release_is_never_marked_latest():
             "make_latest": "false",
         }
     ]
+
+
+def test_retired_clip_is_not_indexed_and_source_stays_blocked():
+    retired = sample_clip()
+    retired["status"] = "retired"
+    retired["retirement"] = {"reason": "wrong subject", "date": "2026-11-24"}
+    catalog = Catalog([retired])
+    assert catalog.indexes() == {"es": {}, "en": {}}
+    assert catalog.is_retired_source(retired["source"]["source_url"])
+    assert catalog.find_duplicate(sample_clip("clip-000002")) is None
+    assert catalog.next_id() == "clip-000002"
