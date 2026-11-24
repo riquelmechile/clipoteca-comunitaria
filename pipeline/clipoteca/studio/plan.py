@@ -168,8 +168,7 @@ def write_plan(
             estimate["related_diagnostic"] = diagnostic
             # A single machine-readable line per scene, retained in Actions logs.
             print(
-                "related "
-                + json.dumps({"scene": job["id"], **diagnostic}, ensure_ascii=True),
+                "related " + json.dumps({"scene": job["id"], **diagnostic}, ensure_ascii=True),
                 flush=True,
             )
     assignments = None

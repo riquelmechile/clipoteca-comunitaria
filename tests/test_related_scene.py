@@ -325,7 +325,9 @@ def test_wikimedia_retry_after_and_recovery():
         token = related._ERRORS.set(errors)
         try:
             async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
-                result = await related._optional_json(client, related.WIKIDATA, action="wbsearchentities")
+                result = await related._optional_json(
+                    client, related.WIKIDATA, action="wbsearchentities"
+                )
             assert result["search"] == [{"id": "Q1"}]
             assert len(calls) == 2
             assert calls[1] - calls[0] >= 0.018
