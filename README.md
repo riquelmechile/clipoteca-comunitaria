@@ -92,10 +92,9 @@ El video final nunca se publica en Releases ni en el catálogo.
   <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-studio.svg" width="100%" alt="Guion a MP4: plan, voz, música y escenas en paralelo, indexado separado de clips, ensamblaje y QA, entrega temporal al solicitante." />
 </p>
 
-El código REST/MCP y la propuesta de workflow forman parte de esta versión.
-**Pendiente de promoción y corrida real:** instalar el workflow propuesto, desplegar
-el Worker, medir los tres formatos y comprobar las fuentes e indexado de extremo
-a extremo. No se afirma disponibilidad pública antes de ese despliegue.
+La API REST/MCP y el workflow de entrega están desplegados y probados con
+corridas reales en 9:16, 16:9 y 1:1. Los límites conocidos están en
+[docs/ESTADO.md](docs/ESTADO.md).
 
 ### Cómo pedir un video
 

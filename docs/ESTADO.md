@@ -31,7 +31,7 @@ Ninguna máquina personal ni servidor propio forma parte del servicio.
 
 ## Motor de video (v3), en main sin publicar versión
 
-El paquete es **3.0.0**. El código REST/MCP y el workflow propuesto de entrega aún requieren promoción y despliegue. Consulta [STUDIO.md](STUDIO.md). El catálogo crece con todos los clips válidos importados; el MP4 final solo se entrega por artefacto temporal.
+El paquete es **3.0.0**, publicado como v3.0.0. La API REST/MCP y el workflow de entrega están desplegados. Consulta [STUDIO.md](STUDIO.md). El catálogo crece con todos los clips válidos importados; el MP4 final solo se entrega por artefacto temporal.
 
 | Hito | Qué entrega | Documento | Verificación en el árbol |
 |---|---|---|---|
@@ -42,7 +42,7 @@ El paquete es **3.0.0**. El código REST/MCP y el workflow propuesto de entrega 
 | M29 | Ajuste al tiempo real, mezcla medida | [Ajuste y mezcla](M29_AJUSTE_MEZCLA.md) | [test_fit_m29.py](../tests/test_fit_m29.py), [test_mix_m29.py](../tests/test_mix_m29.py) |
 | M30 | HTML con títulos y subtítulos, render MP4 | [Composición](M30_COMPOSICION.md) | [test_compose_m30.py](../tests/test_compose_m30.py), render real de tres escenas |
 | M31 | 14 compuertas QA, reporte ligado al SHA del MP4 | [QA](M31_QA.md) | [test_qa_m31.py](../tests/test_qa_m31.py), layout real en Chromium |
-| M32 | Indexado independiente de QA, entrega temporal; workflow propuesto | [Indexado](M32_PUBLICACION.md), [Workflow](M32_RENDER.md) | [test_publish_m32.py](../tests/test_publish_m32.py), [test_render_v3_workflow.py](../tests/test_render_v3_workflow.py) |
+| M32 | Indexado independiente de QA, entrega temporal; workflow de entrega | [Indexado](M32_PUBLICACION.md), [Workflow](M32_RENDER.md) | [test_publish_m32.py](../tests/test_publish_m32.py), [test_render_v3_workflow.py](../tests/test_render_v3_workflow.py) |
 | M33 | API de video, estado y descarga; MCP | [OpenAPI](openapi.yaml), [MCP](mcp-tools.md) | [videos.test.ts](../worker/test/videos.test.ts) |
 | M34 | Versiones sincronizadas y tres guiones de ejemplo | [Studio](STUDIO.md) | [test_docs_v3.py](../tests/test_docs_v3.py) |
 
@@ -70,18 +70,23 @@ para lona. No hay MP4 final. Ver [M32_RENDER.md](M32_RENDER.md).
 
 ### M34: mediciones del nuevo flujo
 
-| Guion | Formato | Tiempos de etapas / minutos de Actions |
+Corridas reales del 24 de noviembre de 2026, pedidas por la API pública:
+
+| Guion | Formato | Resultado |
 |---|---|---|
-| Chile | 9:16 | Pendiente de corrida real |
-| Sistema solar | 16:9 | Pendiente de corrida real |
-| Ciclo de una planta | 1:1 | Pendiente de corrida real |
+| Chile, de norte a sur (8 escenas) | 9:16 | QA aprobado; ~50 s de video; ~23 min de punta a punta |
+| Sistema solar | 16:9 | QA aprobado |
+| Ciclo de una planta | 1:1 | QA aprobado |
+
+Los tiempos por etapa de cada corrida quedan en `timings.json` del artefacto de entrega.
 
 ### Qué falta
 
-- Desplegar la API REST/MCP de video y validar el workflow de entrega con corridas reales.
-- Importar material nuevo dentro del flujo de video y validarlo de punta a punta en Actions.
+- El video sale más largo que lo pedido (unos 50 s para un guion pensado en 40 s): falta ajustar la estimación de duración.
+- Una escena de un lugar con poco material en las fuentes puede tardar más de 10 minutos y terminar con un clip de respaldo.
+- El armado y render tarda entre 6 y 8 minutos para un video de 50 s.
+- Los términos relacionados salen de Wikimedia Commons; Wikidata aún no aporta términos propios y los temas dentro de un lugar («templos de Kioto») se resuelven de forma genérica.
 - Tipografía propia incrustada y franja de título adaptada al sujeto.
-- Validación integral de los tres formatos, tiempos y costos por etapa; pendiente de corrida real.
 - Hashes de miniaturas/storyboards desde M28 y reserva de ID para storyboards huérfanos tras rollback (ver [M32](M32_PUBLICACION.md)).
 
 ## Verificación de la versión 2.0.6

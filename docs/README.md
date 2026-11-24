@@ -55,4 +55,4 @@ Estos documentos describen el estado **en el momento de cada hito**. Sus cifras 
 | [M30_COMPOSICION.md](M30_COMPOSICION.md) | M30: composición y render |
 | [M31_QA.md](M31_QA.md) | M31: control de calidad |
 | [M32_PUBLICACION.md](M32_PUBLICACION.md) | M32: indexado y entrega |
-| [M32_RENDER.md](M32_RENDER.md) | M32: workflow de entrega propuesto; pendiente de corrida real |
+| [M32_RENDER.md](M32_RENDER.md) | M32: workflow de entrega |

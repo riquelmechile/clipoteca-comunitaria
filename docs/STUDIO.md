@@ -2,8 +2,7 @@
 
 Studio transforma un guion español en MP4 con voz, música y clips reales.
 No contiene un LLM. La versión del repositorio es 3.0.0; la API y el
-workflow de entrega requieren promoción y despliegue antes de uso público.
-Ver [M32_RENDER.md](M32_RENDER.md).
+workflow de entrega están desplegados. Ver [M32_RENDER.md](M32_RENDER.md).
 
 ![Flujo de entrega temporal y crecimiento de biblioteca](../assets/clipoteca-studio.svg)
 
@@ -240,9 +239,7 @@ y su contexto están en [ESTADO.md](ESTADO.md).
 
 ## Límites conocidos y pendiente
 
-- Pendiente de promover el workflow de entrega y validar tres corridas reales en Actions.
-- Sin API de video ni tools MCP de video, sin versión 3.0.0.
-- Falta verificar importación de material nuevo dentro de un video completo en Actions.
+- La duración final supera la pedida y una escena con poco material puede terminar con un clip de respaldo; ver [ESTADO.md](ESTADO.md).
 - QA no mide si el clip corresponde al tema de la escena: un video puede aprobar las 14 compuertas con una toma poco pertinente.
 - No hay tipografía propia incrustada ni colocación de la franja del título según el sujeto.
 - La mejor toma de voz puede quedar bajo umbral; QA final no lo convierte en éxito.

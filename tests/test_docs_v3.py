@@ -162,7 +162,7 @@ def test_documented_repository_version_matches_package():
     assert status_version and status_version.group(1) == version
 
 
-def test_video_api_is_documented_without_claiming_live_deployment():
+def test_video_api_is_documented_as_deployed():
     import yaml
 
     openapi = yaml.safe_load(_text(DOCS / "openapi.yaml"))
@@ -173,8 +173,10 @@ def test_video_api_is_documented_without_claiming_live_deployment():
         assert name in _text(DOCS / "mcp-tools.md")
     for path in (ROOT / "README.md", DOCS / "STUDIO.md", DOCS / "ESTADO.md"):
         content = _text(path).lower()
-        assert "promov" in content or "promoción" in content
-        assert "desplieg" in content
+        # 3.0.0 is released: the docs state the deployment and no longer defer it.
+        assert "desplegad" in content
+        assert "pendiente de promoción" not in content
+        assert "pendiente de corrida real" not in content
     assert "nunca se publica" in _text(ROOT / "README.md").lower()
 
 
