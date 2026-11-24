@@ -1,0 +1,56 @@
+{
+  "title": "El sistema solar",
+  "aspect": "16:9",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "scenes": [
+    {
+      "id": "sol",
+      "type": "intro",
+      "title": "El Sol",
+      "say": "El Sol es la estrella que ilumina nuestro sistema.",
+      "query": {
+        "es": [
+          "Sol estrella superficie"
+        ],
+        "en": [
+          "Sun solar surface NASA"
+        ]
+      },
+      "prompt": "Real solar observation footage of the Sun with moving solar plasma"
+    },
+    {
+      "id": "tierra",
+      "type": "fact",
+      "title": "La Tierra",
+      "say": "La Tierra gira alrededor del Sol.",
+      "query": {
+        "es": [
+          "Tierra desde espacio"
+        ],
+        "en": [
+          "Earth orbit view NASA"
+        ]
+      },
+      "prompt": "Real moving view of planet Earth from space"
+    },
+    {
+      "id": "luna",
+      "type": "outro",
+      "title": "La Luna",
+      "say": "La Luna acompaña a la Tierra en su viaje.",
+      "query": {
+        "es": [
+          "Luna superficie cráteres"
+        ],
+        "en": [
+          "Moon lunar surface NASA"
+        ]
+      },
+      "prompt": "Moving lunar surface footage showing craters"
+    }
+  ]
+}

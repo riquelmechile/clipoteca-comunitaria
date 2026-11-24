@@ -1,10 +1,11 @@
 openapi: 3.1.0
 info:
   title: Clipoteca Comunitaria REST API
-  version: 2.0.6
+  version: 3.0.0
   description: |
     Public catalogue/search and Issue contributions. Authenticated imports use
-    a write bearer token. MCP uses a separate Streamable HTTP endpoint.
+    a write bearer token. Video rendering uses the same token and quota; a private
+    capability ID authorizes status and file access. MCP uses Streamable HTTP.
 components:
   securitySchemes:
     writeToken:
@@ -21,6 +22,35 @@ components:
           properties:
             code: {type: string}
             message: {type: string}
+    VideoRequest:
+      type: object
+      additionalProperties: false
+      required: [script]
+      properties:
+        script: {$ref: "../schemas/video.schema.json"}
+        index_clips: {type: boolean, default: true}
+    VideoAccepted:
+      type: object
+      required: [id, status, status_url]
+      properties:
+        id: {type: string, pattern: "^[a-f0-9]{32}$"}
+        status: {const: queued}
+        status_url: {type: string, format: uri}
+    VideoStatus:
+      type: object
+      required: [id, status]
+      properties:
+        id: {type: string, pattern: "^[a-f0-9]{32}$"}
+        status: {enum: [queued, running, done, failed, expired]}
+        stages: {type: object}
+        qa:
+          type: object
+          required: [pass, failed]
+          properties:
+            pass: {type: boolean}
+            failed: {type: array, items: {type: string}}
+        clips_indexed: {type: array, items: {type: string}}
+        file_url: {type: string, format: uri}
     Filters:
       type: object
       additionalProperties: false
@@ -387,3 +417,58 @@ paths:
         "400": {description: Invalid input}
         "429": {description: Public contribution rate limit}
         "503": {description: Issue service unavailable}
+  /v1/videos:
+    post:
+      operationId: renderVideo
+      description: >
+        Request a video from a supplied Spanish script (3–12 scenes, up to 60 seconds).
+        The serialized script is limited to 60000 characters. The worker does not write the script.
+        index_clips controls catalogue indexing, independent of video QA.
+      security: [{writeToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VideoRequest"}
+      responses:
+        "202":
+          description: Render accepted
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VideoAccepted"}
+        "400": {description: Invalid request}
+        "401": {description: Write token required}
+        "413": {description: Request too large}
+        "429": {description: Shared import quota or upstream rate limit}
+        "503": {description: Actions unavailable}
+  /v1/videos/{id}:
+    get:
+      operationId: getVideoStatus
+      security: []
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, pattern: "^[a-f0-9]{32}$"}}
+      responses:
+        "200":
+          description: State and stage progress; file_url when approved video is available
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VideoStatus"}
+        "400": {description: Invalid capability ID}
+        "404": {description: Video not found}
+        "503": {description: Actions unavailable}
+  /v1/videos/{id}/file:
+    get:
+      operationId: downloadVideo
+      security: []
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string, pattern: "^[a-f0-9]{32}$"}}
+      responses:
+        "200":
+          description: Approved MP4, retained for seven days
+          content:
+            video/mp4:
+              schema: {type: string, format: binary}
+        "400": {description: Invalid capability ID}
+        "404": {description: Video not available}
+        "410": {description: Video expired}
+        "503": {description: Actions unavailable}

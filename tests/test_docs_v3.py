@@ -101,7 +101,9 @@ def test_documented_cli_matches_argparse():
         "mix",
         "compose",
         "qa",
-        "publish",
+        "index",
+        "selection",
+        "delivery",
     }
 
 
@@ -160,17 +162,32 @@ def test_documented_repository_version_matches_package():
     assert status_version and status_version.group(1) == version
 
 
-def test_pending_video_api_not_advertised():
-    forbidden = ("/v1/videos", "render_video", "get_video_status")
-    for path in (
-        ROOT / "README.md",
-        DOCS / "STUDIO.md",
-        DOCS / "ESTADO.md",
-        DOCS / "ARQUITECTURA.md",
-    ):
-        for line in _text(path).splitlines():
-            if any(name in line for name in forbidden):
-                assert "todavía no" in line.lower() or "falta" in line.lower(), (path, line)
+def test_video_api_is_documented_without_claiming_live_deployment():
+    import yaml
+
+    openapi = yaml.safe_load(_text(DOCS / "openapi.yaml"))
+    assert {"/v1/videos", "/v1/videos/{id}", "/v1/videos/{id}/file"} <= set(openapi["paths"])
+    mcp = _text(ROOT / "worker" / "src" / "mcp.ts")
+    for name in ("render_video", "get_video_status"):
+        assert f'registerTool("{name}"' in mcp
+        assert name in _text(DOCS / "mcp-tools.md")
+    for path in (ROOT / "README.md", DOCS / "STUDIO.md", DOCS / "ESTADO.md"):
+        content = _text(path).lower()
+        assert "promov" in content or "promoción" in content
+        assert "desplieg" in content
+    assert "nunca se publica" in _text(ROOT / "README.md").lower()
+
+
+def test_three_release_demo_scripts():
+    expected = {
+        "chile-vertical.json": "9:16",
+        "sistema-solar-horizontal.json": "16:9",
+        "planta-cuadrado.json": "1:1",
+    }
+    for name, aspect in expected.items():
+        script = parse_video_script(json.loads(_text(DOCS / "ejemplos" / name)))
+        assert script.aspect == aspect
+        assert 3 <= len(script.scenes) <= 12
 
 
 def test_documented_model_downloads_are_real_models():
@@ -183,7 +200,7 @@ def test_documented_model_downloads_are_real_models():
     if "ensure_model" not in scorer:
         walkthrough = guide.split("set -eu", 1)[1]
         fetch = walkthrough.index("ensure_model('clip-vit-b32')")
-        assert fetch < walkthrough.index("clipoteca.studio.clipscene")
+        assert fetch < walkthrough.index("clipoteca.studio.selection")
 
 
 def test_documented_workflows_exist():
