@@ -122,12 +122,13 @@ def test_related_wikidata_fixtures_and_render_cache():
             if params.get("action") == "wbsearchentities":
                 return httpx.Response(200, json={"search": search.get(params["search"], [])})
             if params.get("action") == "query":
-                statement = params["srsearch"].split()[0]
+                statement = params["srsearch"].split()[0].lstrip("(")
                 prop, root = statement.removeprefix("haswbstatement:").split("=")
+                assert "haswbstatement:P276=" in params["srsearch"]
                 assert root not in {"Q14625303", "Q54832215", "Q900002", "Q900003", "Q900004"}
                 assert params["srsort"] == "incoming_links_desc"
                 if root in {"Q34600", "Q120730"}:
-                    assert params["srsearch"].endswith((" temple", " shrine"))
+                    assert params["srsearch"].endswith(" (temple OR shrine)")
                 ids = child_ids.get(root, []) if prop == "P131" else []
                 return httpx.Response(
                     200, json={"query": {"search": [{"title": qid} for qid in ids]}}
@@ -169,7 +170,7 @@ def test_related_wikidata_fixtures_and_render_cache():
         assert related_terms(jobs[5]) == []
         assert diagnostics[4]["roots"] == [{"qid": "Q2887", "label": "Santiago"}]
         assert not any(call[0] == "query.wikidata.org" for call in calls)
-        assert calls.count(("www.wikidata.org", "wbsearchentities", "chiloe")) == 2
+        assert calls.count(("www.wikidata.org", "wbsearchentities", "chiloe")) == 1
         assert related_search_query(jobs[0], "Castro") == "Castro Chilo\u00e9"
         assert related_search_query(jobs[1], "Hanga Roa") == "Hanga Roa Easter Island"
         assert related_search_query(jobs[4], "Providencia") == "Providencia santiago chile"
@@ -303,6 +304,118 @@ def test_desert_query_does_not_accept_region_homonym():
         assert job["related_terms"] == []
 
     asyncio.run(run())
+
+
+def test_wikimedia_retry_after_and_recovery():
+    import time
+
+    from clipoteca.studio import related
+
+    calls = []
+
+    def response(request):
+        calls.append(time.monotonic())
+        assert request.url.params["maxlag"] == "5"
+        if len(calls) == 1:
+            return httpx.Response(429, headers={"Retry-After": "0.02"})
+        return httpx.Response(200, json={"search": [{"id": "Q1"}]})
+
+    async def run():
+        errors = []
+        token = related._ERRORS.set(errors)
+        try:
+            async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+                result = await related._optional_json(client, related.WIKIDATA, action="wbsearchentities")
+            assert result["search"] == [{"id": "Q1"}]
+            assert len(calls) == 2
+            assert calls[1] - calls[0] >= 0.018
+            assert errors[0]["http_status"] == 429
+            assert errors[0]["retry"] is True
+        finally:
+            related._ERRORS.reset(token)
+
+    asyncio.run(run())
+
+
+def test_persistent_error_and_second_opportunity():
+    from clipoteca.studio import related
+
+    attempts = []
+
+    def response(request):
+        attempts.append(request.url.host)
+        return httpx.Response(503, headers={"Retry-After": "0"})
+
+    async def run():
+        job = {"queries": {"en": ["Chilo\u00e9"], "es": []}}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+            diagnostics = await resolve_jobs([job], client=client, timeout=0.3, batch_timeout=2)
+        row = diagnostics[0]
+        assert job["related_terms"] == []
+        assert row == job["related_diagnostic"]
+        assert row["status"] == "error"
+        assert row["errors"]
+        assert any(error["http_status"] == 503 for error in row["errors"])
+        assert all(item["attempts"] == 2 for item in row["providers"])
+        assert row["batch_elapsed_s"] <= 2.1
+        assert len(attempts) >= 4
+        assert related._retry_delay("0") == 0
+
+    asyncio.run(run())
+
+
+def test_ten_slow_scenes_keep_independent_budgets_and_cache(monkeypatch):
+    from clipoteca.studio import related
+
+    calls = []
+    active = 0
+    peak = 0
+
+    async def wiki(_client, seed, _context, _state, **kwargs):
+        nonlocal active, peak
+        calls.append(seed)
+        active += 1
+        peak = max(peak, active)
+        await asyncio.sleep(0.025)
+        active -= 1
+        return [{"term": f"{seed} landmark", "origin": "wikidata"}]
+
+    async def commons(*args, **kwargs):
+        return []
+
+    async def run():
+        monkeypatch.setattr(related, "_wikidata", wiki)
+        monkeypatch.setattr(related, "_commons", commons)
+        monkeypatch.setattr(related, "SEED_CONCURRENCY", 2)
+        jobs = [{"queries": {"en": [f"Place {i}"], "es": []}} for i in range(10)]
+        jobs.append({"queries": {"en": ["Place 0"], "es": []}})
+        async with httpx.AsyncClient() as client:
+            diagnostics = await resolve_jobs(jobs, client=client, timeout=0.08, batch_timeout=0.8)
+        assert len(calls) == 10
+        assert peak == 2
+        assert all(job["related_terms"] for job in jobs)
+        assert jobs[0]["related_terms"] == jobs[-1]["related_terms"]
+        assert all(row["status"] == "ok" for row in diagnostics)
+        assert all(row["batch_elapsed_s"] < 0.8 for row in diagnostics)
+
+    asyncio.run(run())
+
+
+def test_nonfilmable_terms_filtered():
+    from clipoteca.studio.related import _child_term
+
+    for label in (
+        "POLARBEAR",
+        "Simons Array",
+        "Derrumbe de la mina San Francisco",
+        "Programa Revivamos las Torres",
+        "Hike to Grey Glacier",
+        "Animita de Daniel Zamudio",
+        "Archivo Nacional",
+    ):
+        assert _child_term(label, {"chiloe"}) is None
+    for label in ("Castro", "Ancud", "Iglesia de Castro", "Cuernos del Paine"):
+        assert _child_term(label, {"chiloe"}) == label
 
 
 def test_lookup_failure_preserves_explicit_and_bounds_terms():

@@ -21,6 +21,7 @@ HOST_CONCURRENCY = 3
 _REQUEST_SECONDS = 1.8
 _HOSTS = ContextVar("related_hosts", default=None)
 _RESPONSE_CACHE = ContextVar("related_response_cache", default=None)
+_REQUEST_LOCKS = ContextVar("related_request_locks", default=None)
 _DEADLINE = ContextVar("related_deadline", default=None)
 _ERRORS = ContextVar("related_errors", default=None)
 WIKIDATA = "https://www.wikidata.org/w/api.php"
@@ -293,6 +294,16 @@ def _record_error(params, exc, *, status=None, retry=False, delay=None):
 
 async def _json(client, url, **params):
     params.setdefault("maxlag", 5)
+    locks = _REQUEST_LOCKS.get()
+    if locks is None:
+        return await _request_json(client, url, **params)
+    key = (url, tuple(sorted(params.items())))
+    lock = locks.setdefault(key, asyncio.Lock())
+    async with lock:
+        return await _request_json(client, url, **params)
+
+
+async def _request_json(client, url, **params):
     loop = asyncio.get_running_loop()
     hosts = _HOSTS.get()
     host = urlsplit(url).hostname
@@ -466,7 +477,6 @@ def _child_term(term, variants):
 async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_ready):
     variants = _variants(seed)
     # One entity search per name; bilingual labels are fetched together below.
-    # Prefer the widely used English alias where available.
     searches = [(seed, "en")]
     if topic in _ROOT_TOPICS:
         searches = [(f"{seed} {topic}", "en"), (seed, "en")]
@@ -880,6 +890,7 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
     }
     host_token = _HOSTS.set(hosts)
     response_token = _RESPONSE_CACHE.set({})
+    locks_token = _REQUEST_LOCKS.set({})
     cache = {}
     tasks = []
     semaphore = asyncio.Semaphore(SEED_CONCURRENCY)
@@ -1035,6 +1046,7 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
                 task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+        _REQUEST_LOCKS.reset(locks_token)
         _RESPONSE_CACHE.reset(response_token)
         _HOSTS.reset(host_token)
         if owned:

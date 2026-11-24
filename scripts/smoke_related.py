@@ -20,7 +20,7 @@ async def main(queries, *, batch=False):
         rows = [
             {
                 "query": query,
-                **diagnostic,
+                **job.get("related_diagnostic", diagnostic),
                 "related_terms": [
                     {**row, "search_query": related_search_query(job, row["term"])}
                     for row in job["related_terms"]
