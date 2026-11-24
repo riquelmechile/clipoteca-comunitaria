@@ -1,7 +1,8 @@
 /** Asynchronous video delivery through GitHub Actions, separate from public clip storage. */
 import type { RestEnv } from "./rest";
 import { quota } from "./quota";
-import { MAX_ARCHIVE, zipEntry } from "./video-zip";
+import { zipEntry } from "./video-zip";
+import { ArtifactExpired, artifactResponse, serveVideo } from "./video-stream";
 
 const ID = /^[a-f0-9]{32}$/;
 const json = (body: unknown, status = 200) => Response.json(body, {
@@ -135,28 +136,45 @@ function expiredRun(run: Run) {
   return run.status === "completed" && run.conclusion === "success" &&
     Boolean(run.updated_at && Date.now() - Date.parse(run.updated_at) > 7 * 86400_000);
 }
+async function signedArtifact(ctx: Context, artifact: Artifact) {
+  if (artifact.expired) throw new ArtifactExpired("artifact expired");
+  const response = await github(ctx, "/actions/artifacts/" + artifact.id + "/zip");
+  if (response.status === 410) throw new ArtifactExpired("artifact expired");
+  if (response.status !== 302 && response.status !== 307) return {response};
+  const url = new URL(response.headers.get("location") ?? "");
+  if (url.protocol !== "https:" || url.username || url.password || url.port ||
+      !(url.hostname.endsWith(".blob.core.windows.net") ||
+        url.hostname.endsWith(".actions.githubusercontent.com") ||
+        url.hostname.endsWith(".githubusercontent.com"))) throw new Error("invalid artifact host");
+  return {url:url.href};
+}
 async function archive(ctx: Context, artifact: Artifact, limit: number): Promise<ArrayBuffer> {
-  if (artifact.expired || !Number.isFinite(artifact.size_in_bytes) ||
-      artifact.size_in_bytes > limit || artifact.size_in_bytes < 1) {
-    throw new Error("invalid artifact");
-  }
-  let response = await github(ctx, "/actions/artifacts/" + artifact.id + "/zip");
-  if (response.status === 302 || response.status === 307) {
-    const url = new URL(response.headers.get("location") ?? "");
-    if (url.protocol !== "https:" || url.username || url.password || url.port ||
-        !(url.hostname.endsWith(".blob.core.windows.net") ||
-          url.hostname.endsWith(".actions.githubusercontent.com") ||
-          url.hostname.endsWith(".githubusercontent.com"))) throw new Error("invalid artifact host");
-    // Never forward GitHub authorization to the signed blob URL.
-    response = await fetch(url.href, {redirect:"manual"});
-  }
+  if (!Number.isFinite(artifact.size_in_bytes) || artifact.size_in_bytes > limit ||
+      artifact.size_in_bytes < 1) throw new Error("invalid artifact");
+  const signed = await signedArtifact(ctx,artifact);
+  const response = signed.url ? await artifactResponse(signed.url) : signed.response!;
   const length = Number(response.headers.get("content-length") ?? artifact.size_in_bytes);
   if (!response.ok || !Number.isFinite(length) || length > limit) {
+    await response.body?.cancel();
     throw new Error("artifact unavailable");
   }
-  const buffer = await response.arrayBuffer();
-  if (buffer.byteLength > limit) throw new Error("artifact exceeds bound");
-  return buffer;
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("missing archive body");
+  const chunks:Uint8Array[] = [];
+  let size=0;
+  try {
+    for (;;) {
+      const {done,value}=await reader.read();
+      if(done) break;
+      size+=value.length;
+      if(size>limit) throw new Error("artifact exceeds bound");
+      chunks.push(value);
+    }
+  } finally {await reader.cancel().catch(()=>{});}
+  const buffer=new Uint8Array(size);
+  let offset=0;
+  for(const chunk of chunks) {buffer.set(chunk,offset);offset+=chunk.length;}
+  return buffer.buffer;
 }
 function stage(job?: Job) {
   return job ? {status:job.status, conclusion:job.conclusion} :
@@ -169,9 +187,11 @@ async function status(ctx: Context, run: Run, id: string, rid: string, rows: Art
   const video = member(rows, "video-" + rid);
   const evidence = member(rows, "entrega-" + rid);
   let delivery: Delivery = {};
+  const warnings:string[] = [];
+  let videoExpired = expired(video);
   if (evidence && !expired(evidence)) {
-    const buffer = await archive(ctx, evidence, 2_000_000);
     try {
+      const buffer = await archive(ctx, evidence, 2_000_000);
       const bytes = await zipEntry(buffer, "entrega.json", 1_000_000);
       const data: unknown = JSON.parse(new TextDecoder().decode(bytes));
       if (object(data) && object(data.qa) && typeof data.qa.pass === "boolean" &&
@@ -179,32 +199,35 @@ async function status(ctx: Context, run: Run, id: string, rid: string, rows: Art
           Array.isArray(data.clips_indexed) && data.clips_indexed.every(x=>typeof x==="string")) {
         delivery = {qa:{pass:data.qa.pass, failed:data.qa.failed}, clips_indexed:data.clips_indexed};
       } else throw new Error("invalid delivery evidence");
-    } catch (exc) {
-      // An incomplete assembly may upload reports but not the manifest.
-      if (video || !(exc instanceof Error) || exc.message !== "missing zip member") throw exc;
-      try {
-        const bytes = await zipEntry(buffer, "qa_report.json", 1_000_000);
-        const qa: unknown = JSON.parse(new TextDecoder().decode(bytes));
-        if (object(qa) && typeof qa.pass === "boolean" && Array.isArray(qa.failed) &&
-            qa.failed.every(x=>typeof x==="string")) {
-          delivery.qa = {pass:qa.pass, failed:qa.failed};
-        }
-      } catch { /* No QA report exists when assembly failed earlier. */ }
+    } catch {
+      warnings.push("delivery_evidence_unavailable");
     }
   }
   const indexed = member(rows, "indexed-clips");
-  if (!delivery.clips_indexed && indexed && !expired(indexed)) {
+  if (indexed && !expired(indexed)) {
+    try {
     const bytes = await zipEntry(await archive(ctx,indexed,1_000_000),"index.json",500_000);
     const data: unknown = JSON.parse(new TextDecoder().decode(bytes));
     if (object(data) && Array.isArray(data.indexed) && data.indexed.every(x=>typeof x==="string")) {
       delivery.clips_indexed = data.indexed;
+    } else throw new Error("invalid index evidence");
+    } catch { warnings.push("index_evidence_unavailable"); }
+  }
+  if (video && !videoExpired && delivery.qa?.pass !== false) {
+    try {
+      const signed = await signedArtifact(ctx,video);
+      if (signed.response && !signed.response.ok) throw new Error("artifact unavailable");
+      await signed.response?.body?.cancel();
+    } catch (exc) {
+      if (exc instanceof ArtifactExpired) videoExpired = true;
+      else warnings.push("video_availability_unconfirmed");
     }
   }
-  const file = Boolean(video && !expired(video) && delivery.qa?.pass);
-  const state = run.status !== "completed" ?
-    (["queued","waiting","requested","pending"].includes(run.status) ? "queued" : "running") :
-    file ? "done" : expired(video) || (!video && (expiredRun(run) || expired(evidence)))
-      ? "expired" : "failed";
+  const file = Boolean(video && !videoExpired && delivery.qa?.pass !== false);
+  const state = videoExpired || (!video && expiredRun(run)) ? "expired" :
+    file ? "done" : run.status !== "completed" ?
+      (["queued","waiting","requested","pending"].includes(run.status) ? "queued" : "running") :
+      "failed";
   return json({
     id, status:state, stages:{
       plan:stage(jobs.find(j=>j.name==="plan")), voice:stage(jobs.find(j=>j.name==="voice")),
@@ -214,7 +237,7 @@ async function status(ctx: Context, run: Run, id: string, rid: string, rows: Art
       qa:stage(assemble?.steps?.find(j=>j.name==="Quality control (14 gates)") as Job | undefined),
       index:stage(jobs.find(j=>j.name==="index")),
     },
-    ...delivery, ...(file ? {file_url:new URL("/v1/videos/" + id + "/file",request.url).href} : {}),
+    ...delivery, ...(warnings.length ? {warnings} : {}), ...(file ? {file_url:new URL("/v1/videos/" + id + "/file",request.url).href} : {}),
   });
 }
 
@@ -249,11 +272,14 @@ export async function handleVideos(request: Request, env: RestEnv): Promise<Resp
     const video = member(rows, "video-" + rid);
     if (expired(video) || (!video && expiredRun(run))) return error("video_expired", 410);
     if (!video) return error("video_not_available", 404);
-    const bytes = await zipEntry(await archive(ctx, video, MAX_ARCHIVE), "video.mp4", 100_000_000);
-    return new Response(bytes, {headers:{
-      "content-type":"video/mp4", "content-length":String(bytes.length),
-      "cache-control":"no-store", "referrer-policy":"no-referrer",
-      "content-disposition":'attachment; filename="video.mp4"',
-    }});
-  } catch { return error("actions_unavailable", 503); }
+    const signed = await signedArtifact(ctx,video);
+    if (!signed.url) {
+      await signed.response?.body?.cancel();
+      throw new Error("missing signed artifact URL");
+    }
+    return await serveVideo(signed.url,request.headers.get("range"));
+  } catch (exc) {
+    if (exc instanceof ArtifactExpired) return error("video_expired",410);
+    return error("actions_unavailable", 503);
+  }
 }
