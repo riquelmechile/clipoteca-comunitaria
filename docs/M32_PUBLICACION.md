@@ -78,3 +78,17 @@ Solo se conserva procedencia factual, sin decisiones de licencias,
 creditos ni derechos. Los tokens y cuerpos HTTP nunca se imprimen;
 las URLs publicas de assets contienen el repositorio por definicion.
 El workflow y sus permisos se configuran fuera de este PR.
+
+## Ajustes de la revisión del orquestador
+
+- Si una corrida se corta después de crear el Release del video y antes
+  de subir el archivo, la siguiente reutiliza ese Release vacío del mismo
+  día en vez de dejarlo huérfano y crear el siguiente número. Esto exige
+  que la publicación esté serializada (un solo job de publicación a la
+  vez): el workflow debe usar un grupo de concurrencia para este paso.
+- Los tests incluyen un recorrido completo con las clases reales
+  (almacenamiento de video, escritor del catálogo y fichas) contra una API
+  de GitHub simulada en memoria, sin red.
+- Pendiente conocido: un asset de storyboard que no se pudo borrar en un
+  rollback no reserva su número de clip, y una corrida posterior puede
+  chocar con ese nombre (termina en error, no corrompe nada).

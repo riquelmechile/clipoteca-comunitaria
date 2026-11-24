@@ -377,6 +377,7 @@ class VideoStorage(GitHubReleaseStorage):
                 if len(batch) < 100:
                     break
             number = minimum
+            empty = None
             for item in releases:
                 tag = item.get("tag_name", "")
                 if not _VIDEO_ID.fullmatch(tag):
@@ -387,16 +388,21 @@ class VideoStorage(GitHubReleaseStorage):
                     continue
                 release = self._batch(item)
                 name = f"video_{tag}.mp4"
-                if not any(
-                    a.get("name") == name and a.get("size") == size
-                    for a in self._list_assets(release.id)
-                ):
+                assets = self._list_assets(release.id)
+                if not assets and tag.startswith(prefix) and (empty is None or tag < empty.tag):
+                    # A run that died between creating the release and uploading the video.
+                    empty = release
+                if not any(a.get("name") == name and a.get("size") == size for a in assets):
                     continue
                 try:
                     self.verify_asset(name, size, digest, release.id)
                 except StorageError:
                     continue
                 return release
+            if empty is not None:
+                # Reuse it instead of leaving an empty release behind and numbering past it.
+                # Safe because the publishing job is serialized (one publication at a time).
+                return empty
             tag = f"{prefix}{number:03d}"
             response = self.client.post(
                 self.releases_url,

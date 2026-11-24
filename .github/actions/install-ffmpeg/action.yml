@@ -1,0 +1,25 @@
+name: Install ffmpeg
+description: >-
+  apt install with a bounded wait and retries. The plain one-liner has hung for minutes on
+  hosted runners (stalled mirror or the man-db trigger), blocking a job that has no time limit.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        # The man-db trigger rebuilds its index after every install and is the usual stall.
+        sudo rm -f /var/lib/man-db/auto-update
+        for attempt in 1 2 3; do
+          if timeout 240 sudo apt-get update -qq \
+            && timeout 420 sudo apt-get install -y -qq ffmpeg; then
+            ffmpeg -version | head -1
+            exit 0
+          fi
+          echo "::warning::apt attempt $attempt failed or timed out"
+          sudo pkill -9 -x apt-get || true
+          sudo pkill -9 -x dpkg || true
+          sudo dpkg --configure -a || true
+          sleep 10
+        done
+        echo "::error::could not install ffmpeg after 3 attempts"
+        exit 1

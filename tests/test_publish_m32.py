@@ -421,3 +421,198 @@ def test_dry_run(setup, monkeypatch, capsys):
     assert TOKEN not in output
     assert REPO not in output.replace(f"https://github.com/{REPO}/releases/download/", "")
     assert len(publish._read(root / "data/clips.json")) == 4
+
+
+def test_gate_rejects_other_bytes_of_the_same_size(setup):
+    """Review: the "sha" case also changed the size, so the size check hid the sha check."""
+    work = setup[0]
+    original = (work / "video.mp4").read_bytes()
+    (work / "video.mp4").write_bytes(bytes(byte ^ 0xFF for byte in original))
+    render = publish._read(work / "render.json")
+    assert render["size_bytes"] == len(original)
+    reject(work, 4)
+
+
+def test_gate_rejects_a_scene_that_did_not_end_ok(setup):
+    """Review: the "scene" case removed `clip`, so it never reached the status check."""
+    work = setup[0]
+    path = work / "scenes/s1/result.json"
+    result = publish._read(path)
+    assert result["status"] == "ok" and "clip" in result
+    result["status"] = "fail"
+    put(path, result)
+    reject(work, 4)
+
+
+class FakeGitHub:
+    """Just enough of the REST API to run the REAL storage, catalogue writer and records."""
+
+    def __init__(self, catalog):
+        self.catalog = json.dumps(catalog, indent=2) + "\n"
+        self.catalog_sha = "s0"
+        self.releases = []
+        self.blobs = {}
+        self.files = {}
+        self.calls = []
+        self.serial = 100
+        self.fail_once = None
+
+    def _next(self):
+        self.serial += 1
+        return self.serial
+
+    def handler(self, request):
+        import base64
+        import re
+
+        method, url, path = request.method, str(request.url), request.url.path
+        self.calls.append((method, path))
+        if self.fail_once and self.fail_once(request):
+            self.fail_once = None
+            return httpx.Response(500)
+        if url.startswith("https://github.com/") and method == "GET":
+            found = url in self.blobs
+            return httpx.Response(200 if found else 404, content=self.blobs.get(url, b""))
+        if path == f"/repos/{REPO}/contents/data/clips.json":
+            if method == "GET":
+                content = base64.b64encode(self.catalog.encode()).decode()
+                body = {"sha": self.catalog_sha, "encoding": "base64", "content": content}
+                return httpx.Response(200, json=body)
+            body = json.loads(request.content)
+            if body["sha"] != self.catalog_sha:
+                return httpx.Response(409)
+            self.catalog = base64.b64decode(body["content"]).decode()
+            self.catalog_sha = f"s{self._next()}"
+            return httpx.Response(200, json={"commit": {"sha": "c1"}})
+        if path == f"/repos/{REPO}/contents/data/videos":
+            names = [{"name": key.rsplit("/", 1)[1], "type": "file"} for key in self.files]
+            return httpx.Response(200, json=names) if names else httpx.Response(404)
+        record = re.fullmatch(rf"/repos/{REPO}/contents/(data/videos/.+)", path)
+        if record:
+            key = record.group(1)
+            if method == "GET":
+                if key not in self.files:
+                    return httpx.Response(404)
+                content, sha = self.files[key]
+                encoded = base64.b64encode(content).decode()
+                body = {"encoding": "base64", "content": encoded, "sha": sha}
+                return httpx.Response(200, json=body)
+            body = json.loads(request.content)
+            if key in self.files and body.get("sha") != self.files[key][1]:
+                return httpx.Response(422)
+            self.files[key] = (base64.b64decode(body["content"]), f"f{self._next()}")
+            return httpx.Response(201, json={})
+        if path == f"/repos/{REPO}/releases":
+            if method == "GET":
+                page = int(request.url.params.get("page", 1))
+                per = int(request.url.params.get("per_page", 30))
+                return httpx.Response(200, json=self.releases[(page - 1) * per : page * per])
+            body = json.loads(request.content)
+            if any(item["tag_name"] == body["tag_name"] for item in self.releases):
+                return httpx.Response(422)
+            assert body["make_latest"] == "false" and not body["draft"]
+            ident = self._next()
+            upload = f"https://uploads.github.com/repos/{REPO}/releases/{ident}/assets"
+            release = {
+                "id": ident,
+                "tag_name": body["tag_name"],
+                "draft": False,
+                "prerelease": False,
+                "assets": [],
+                "upload_url": upload + "{?name,label}",
+            }
+            self.releases.append(release)
+            return httpx.Response(201, json=release)
+        listing = re.fullmatch(rf"/repos/{REPO}/releases/(\d+)/assets", path)
+        if listing and method == "GET":
+            release = next(x for x in self.releases if x["id"] == int(listing.group(1)))
+            first = int(request.url.params.get("page", 1)) == 1
+            return httpx.Response(200, json=release["assets"] if first else [])
+        if request.url.host == "uploads.github.com":
+            release = next(x for x in self.releases if x["id"] == int(path.split("/")[5]))
+            name = request.url.params["name"]
+            link = f"https://github.com/{REPO}/releases/download/{release['tag_name']}/{name}"
+            asset = {
+                "id": self._next(),
+                "name": name,
+                "size": len(request.content),
+                "state": "uploaded",
+                "browser_download_url": link,
+            }
+            release["assets"].append(asset)
+            self.blobs[link] = request.content
+            return httpx.Response(201, json=asset)
+        removal = re.fullmatch(rf"/repos/{REPO}/releases/assets/(\d+)", path)
+        if removal and method == "DELETE":
+            for release in self.releases:
+                release["assets"] = [
+                    a for a in release["assets"] if a["id"] != int(removal.group(1))
+                ]
+            return httpx.Response(204)
+        raise AssertionError((method, url))
+
+    def publish(self, work):
+        from clipoteca.catalog import GitHubCatalogWriter
+
+        client = httpx.Client(
+            transport=httpx.MockTransport(self.handler),
+            headers={"Authorization": "Bearer " + TOKEN},
+            follow_redirects=True,
+        )
+        return publish.publish_video(
+            work,
+            repository=REPO,
+            token=TOKEN,
+            storage=publish.VideoStorage(REPO, token=TOKEN, client=client),
+            writer=GitHubCatalogWriter(REPO, TOKEN, client=client),
+            records=publish.VideoRecords(REPO, TOKEN, client=client),
+            today=DAY,
+            now=NOW,
+        )
+
+    def writes(self, since=0):
+        return [call for call in self.calls[since:] if call[0] in {"POST", "PUT", "DELETE"}]
+
+
+def test_real_clients_publish_once_and_keep_the_token_out(tmp_path):
+    """Review: the real catalogue writer, video storage and records had no test at all."""
+    work = tmp_path / "work"
+    make_work(work)
+    github = FakeGitHub([catalogue_record(1), catalogue_record(2)])
+    first = github.publish(work)
+    assert first["video_id"] == "video-2026-01-02-001" and not first["already_published"]
+    tags = {item["tag_name"]: [a["name"] for a in item["assets"]] for item in github.releases}
+    assert tags["video-2026-01-02-001"] == ["video_video-2026-01-02-001.mp4"]
+    record_path = "data/videos/video-2026-01-02-001.json"
+    assert list(github.files) == [record_path]
+    record = json.loads(github.files[record_path][0])
+    published = {clip["id"]: clip for clip in json.loads(github.catalog)}
+    for scene in record["scenes"]:
+        assert scene["clip_id"] in published
+    everything = github.catalog + json.dumps(record) + json.dumps(first)
+    assert TOKEN not in everything and "local://" not in everything and "imp-" not in record_path
+    assert "imp-" not in json.dumps(record["scenes"])
+    seen = len(github.calls)
+    again = github.publish(work)
+    assert again["already_published"] and again["video_id"] == first["video_id"]
+    assert github.writes(seen) == []
+
+
+def test_real_clients_reuse_a_video_release_left_empty_by_a_crash(tmp_path):
+    """Review: a failed video upload left `-001` empty and the retry created `-002`."""
+    work = tmp_path / "work"
+    make_work(work)
+    github = FakeGitHub([catalogue_record(1), catalogue_record(2)])
+    github.fail_once = lambda request: (
+        request.url.host == "uploads.github.com" and request.url.params["name"].startswith("video_")
+    )
+    with pytest.raises(publish.PublishError) as crash:
+        github.publish(work)
+    assert crash.value.code == 1 and TOKEN not in str(crash.value)
+    video_tags = [x["tag_name"] for x in github.releases if x["tag_name"].startswith("video-")]
+    assert video_tags == ["video-2026-01-02-001"]
+    result = github.publish(work)
+    video_tags = [x["tag_name"] for x in github.releases if x["tag_name"].startswith("video-")]
+    assert video_tags == ["video-2026-01-02-001"]
+    assert result["video_id"] == "video-2026-01-02-001" and not result["already_published"]
+    assert list(github.files) == ["data/videos/video-2026-01-02-001.json"]
