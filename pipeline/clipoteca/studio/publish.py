@@ -12,6 +12,7 @@ import tempfile
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 from jsonschema import Draft202012Validator, FormatChecker
@@ -67,9 +68,7 @@ def _digest(path):
 
 
 def _validator(name):
-    return Draft202012Validator(
-        _read(_ROOT / "schemas" / name), format_checker=FormatChecker()
-    )
+    return Draft202012Validator(_read(_ROOT / "schemas" / name), format_checker=FormatChecker())
 
 
 def _local(root, relative):
@@ -146,8 +145,13 @@ def _record_clip(record, identifier, created, urls):
     }
     if len(urls) > 2:
         value["storage"]["storyboard_urls"] = urls[2:]
-    encoded = json.dumps(value)
-    if "local://" in encoded or re.search(r"imp-[a-f0-9]{12}", encoded):
+    encoded = json.dumps({key: item for key, item in value.items() if key not in {"id", "storage"}})
+    old_id = record["id"]
+    if (
+        "local://" in json.dumps(value)
+        or re.search(r"imp-[a-f0-9]{12}", json.dumps(value))
+        or old_id in encoded
+    ):
         raise PublishError("provisional clip metadata")
     _validator("clip.schema.json").validate(value)
     return value
@@ -263,6 +267,21 @@ def _prepare(work, created):
     return record, imports, (video, size, digest)
 
 
+def _public_asset_url(value, repository, token):
+    parsed = urlsplit(value)
+    if (
+        parsed.scheme != "https"
+        or parsed.netloc != "github.com"
+        or parsed.query
+        or parsed.fragment
+        or (repository and not parsed.path.startswith(f"/{repository}/releases/download/"))
+        or "/releases/download/" not in parsed.path
+        or (token and token in value)
+    ):
+        raise PublishError("unsafe verified asset URL", 1)
+    return value
+
+
 def _upload(storage, release, asset, name, uploaded=None):
     path, size, digest = asset
     if _digest(path) != (size, digest):
@@ -275,7 +294,7 @@ def _upload(storage, release, asset, name, uploaded=None):
     return storage.verify_asset(name, size, digest, release.id)
 
 
-def _publish_clips(storage, writer, imports, scenes, day, created):
+def _publish_clips(storage, writer, imports, scenes, day, created, repository, token):
     catalog, _ = writer.read_catalog()
     known = {clip["id"] for clip in catalog.clips}
     if any(not row["imported"] and row["clip_id"] not in known for row in scenes):
@@ -308,7 +327,8 @@ def _publish_clips(storage, writer, imports, scenes, day, created):
                 _upload(storage, release, asset, name, uploaded)
                 for asset, name in zip(assets, names, strict=True)
             )
-            clip = _record_clip(record, identifier, created, [a.browser_download_url for a in pair])
+            urls = [_public_asset_url(a.browser_download_url, repository, token) for a in pair]
+            clip = _record_clip(record, identifier, created, urls)
             working.merge([clip])
             incoming.append(clip)
             verified[identifier] = pair
@@ -316,7 +336,22 @@ def _publish_clips(storage, writer, imports, scenes, day, created):
         if incoming:
             writer.update(incoming, verified_assets=verified)
     except Exception:
+        # A lost PUT response can mean the optimistic commit actually succeeded.
+        # Never delete assets referenced by an observed committed catalogue.
+        committed = set()
+        if incoming:
+            try:
+                latest, _ = writer.read_catalog()
+                published = {clip["id"]: clip for clip in latest.clips}
+                for clip in incoming:
+                    if published.get(clip["id"]) == clip:
+                        committed.update(asset.id for asset in verified[clip["id"]])
+            except Exception:
+                # If commit state cannot be determined, leave assets reserved.
+                raise StorageError("catalogue commit outcome unknown") from None
         for asset_id in reversed(uploaded):
+            if asset_id in committed:
+                continue
             try:
                 storage.delete_asset(asset_id)
             except Exception:
@@ -469,9 +504,9 @@ def publish_video(
     day = today or moment.astimezone(UTC).date()
     try:
         record, imports, asset = _prepare(work, created)
-        if token and token in json.dumps(record):
+        if token and token in json.dumps(record, ensure_ascii=False):
             raise PublishError("credential in publication input")
-        if token and any(token in json.dumps(item[0]) for item in imports.values()):
+        if token and any(token in json.dumps(item[0], ensure_ascii=False) for item in imports.values()):
             raise PublishError("credential in publication input")
     except PublishError:
         raise
@@ -488,20 +523,27 @@ def publish_video(
         if records is None:
             records = VideoRecords(repository, token)
             owned.append(records.client)
-        mapping, reused = _publish_clips(storage, writer, imports, record["scenes"], day, created)
+        mapping, reused = _publish_clips(
+            storage, writer, imports, record["scenes"], day, created, repository, token
+        )
         for scene in record["scenes"]:
             if scene["imported"]:
                 scene["clip_id"] = mapping[scene["clip_id"]]
         previous = records.find(asset[2])
         if previous is not None:
+            _public_asset_url(previous["storage"]["asset_url"], repository, token)
             return _finish(work, previous, mapping, reused, True)
         release = storage.video_release(day, asset[1], asset[2])
         name = f"video_{release.tag}.mp4"
         verified = _upload(storage, release, asset, name)
         record["id"] = release.tag
-        record["storage"] = {"release_tag": release.tag, "asset_url": verified.browser_download_url}
+        record["storage"] = {
+            "release_tag": release.tag,
+            "asset_url": _public_asset_url(verified.browser_download_url, repository, token),
+        }
         _validator("video-record.schema.json").validate(record)
         saved = records.save(record)
+        _public_asset_url(saved["storage"]["asset_url"], repository, token)
         return _finish(work, saved, mapping, reused, False)
     except PublishError:
         raise
