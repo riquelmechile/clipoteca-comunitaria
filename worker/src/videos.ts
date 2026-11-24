@@ -7,7 +7,13 @@ const ID = /^[a-f0-9]{32}$/;
 const json = (body: unknown, status = 200) => Response.json(body, {
   status, headers: {"cache-control": "no-store", "referrer-policy": "no-referrer"},
 });
-const error = (code: string, status: number) => json({error: {code}}, status);
+const error = (code: string, status: number) => json({error: {code, message:code}}, status);
+
+// Run names and artifact names can be public. Never put the bearer capability in them.
+async function workflowId(id: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(id));
+  return Array.from(new Uint8Array(digest), b=>b.toString(16).padStart(2,"0")).join("");
+}
 const object = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value));
 
@@ -90,7 +96,7 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
     b => b.toString(16).padStart(2,"0")).join("");
   const response = await github(ctx, "/actions/workflows/render.yml/dispatches", {
     method:"POST", body: JSON.stringify({ref:"main", inputs:{
-      request_id:id, script_json:script, index_clips:String(raw.index_clips ?? true),
+      request_id:await workflowId(id), script_json:script, index_clips:String(raw.index_clips ?? true),
     }}),
   });
   if (response.status !== 204) {
@@ -156,12 +162,12 @@ function stage(job?: Job) {
   return job ? {status:job.status, conclusion:job.conclusion} :
     {status:"queued", conclusion:null};
 }
-async function status(ctx: Context, run: Run, id: string, rows: Artifact[], request: Request) {
+async function status(ctx: Context, run: Run, id: string, rid: string, rows: Artifact[], request: Request) {
   const jobs = await pageRows<Job>(ctx, "/actions/runs/" + run.id + "/jobs", "jobs");
   const scenes = jobs.filter(job => /^scene(?:\s|\(|$)/.test(job.name));
   const assemble = jobs.find(job => job.name === "assemble");
-  const video = member(rows, "video-" + id);
-  const evidence = member(rows, "entrega-" + id);
+  const video = member(rows, "video-" + rid);
+  const evidence = member(rows, "entrega-" + rid);
   let delivery: Delivery = {};
   if (evidence && !expired(evidence)) {
     const buffer = await archive(ctx, evidence, 2_000_000);
@@ -232,14 +238,15 @@ export async function handleVideos(request: Request, env: RestEnv): Promise<Resp
   try {
     if (path === "/v1/videos") return await submit(request, ctx, env);
     const id = match![1]!;
-    const run = await findRun(ctx, id);
+    const rid = await workflowId(id);
+    const run = await findRun(ctx, rid);
     if (!run) {
       return !match![2] && await remembered(id)
         ? json({id,status:"queued"}) : error("video_not_found", 404);
     }
     const rows = await artifacts(ctx, run);
-    if (!match![2]) return await status(ctx, run, id, rows, request);
-    const video = member(rows, "video-" + id);
+    if (!match![2]) return await status(ctx, run, id, rid, rows, request);
+    const video = member(rows, "video-" + rid);
     if (expired(video) || (!video && expiredRun(run))) return error("video_expired", 410);
     if (!video) return error("video_not_available", 404);
     const bytes = await zipEntry(await archive(ctx, video, MAX_ARCHIVE), "video.mp4", 100_000_000);

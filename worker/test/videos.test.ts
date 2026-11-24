@@ -4,6 +4,10 @@ import {resetQuotaReservations} from "../src/quota";
 import {zipEntry} from "../src/video-zip";
 
 const id = "a".repeat(32);
+async function workflowId(value:string) {
+  const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,"0")).join("");
+}
 const token = "write-test-token-1234";
 const env = {CLIPOTECA_WRITE_TOKEN:token, CLIPOTECA_DISPATCH_TOKEN:"actions-test-token"};
 const base = "https://clipoteca.test";
@@ -44,8 +48,9 @@ function fakeActions(options:{expired?:boolean; status?:string; conclusion?:stri
   })));
   const fn = vi.fn(async (url:string|URL|Request, init?:RequestInit) => {
     const path = new URL(String(url)).pathname;
+    const rid = await workflowId(id);
     if (path.endsWith("/runs")) return Response.json({workflow_runs:[{
-      id:4, display_title:"render "+id,status:options.status??"completed",
+      id:4, display_title:"render "+rid,status:options.status??"completed",
       conclusion:options.conclusion??"success",
     }]});
     if (path.endsWith("/jobs")) return Response.json({jobs:[
@@ -53,8 +58,8 @@ function fakeActions(options:{expired?:boolean; status?:string; conclusion?:stri
       {name:"scene (intro)",status:"completed",conclusion:"success"},
     ]});
     if (path.endsWith("/artifacts")) return Response.json({artifacts:options.file===false?[]:[
-      {id:7,name:"video-"+id,expired:options.expired??false,size_in_bytes:movie.byteLength},
-      {id:8,name:"entrega-"+id,expired:false,size_in_bytes:delivery.byteLength},
+      {id:7,name:"video-"+rid,expired:options.expired??false,size_in_bytes:movie.byteLength},
+      {id:8,name:"entrega-"+rid,expired:false,size_in_bytes:delivery.byteLength},
     ]});
     if (path.endsWith("/8/zip")) return new Response(delivery);
     if (path.endsWith("/7/zip")) return new Response(null,{status:302,
@@ -79,10 +84,12 @@ describe("video REST delivery",()=>{
     }});
   });
   it("validates authorization, script and quota; dispatches random capability",async()=>{
+    let dispatched = "";
     const fetcher = vi.fn(async (_url:string, init?:RequestInit)=> {
       const data = JSON.parse(String(init?.body));
       expect(data.ref).toBe("main");
-      expect(data.inputs.request_id).toMatch(/^[a-f0-9]{32}$/);
+      expect(data.inputs.request_id).toMatch(/^[a-f0-9]{64}$/);
+      dispatched = data.inputs.request_id;
       expect(JSON.parse(data.inputs.script_json)).toEqual(script);
       expect(data.inputs.index_clips).toBe("false");
       return new Response(null,{status:204});
@@ -92,7 +99,10 @@ describe("video REST delivery",()=>{
     expect((await worker.fetch(request("/v1/videos",{script:{}}),env)).status).toBe(400);
     const res=await worker.fetch(request("/v1/videos",{script,index_clips:false}),env);
     expect(res.status).toBe(202);
-    expect(await res.json()).toMatchObject({status:"queued",id:expect.stringMatching(/^[a-f0-9]{32}$/)});
+    const result = await res.json() as {status:string;id:string};
+    expect(result).toMatchObject({status:"queued",id:expect.stringMatching(/^[a-f0-9]{32}$/)});
+    expect(dispatched).toBe(await workflowId(result.id));
+    expect(dispatched).not.toBe(result.id);
     expect((await worker.fetch(request("/v1/videos",{script}),env)).status).toBe(429);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
