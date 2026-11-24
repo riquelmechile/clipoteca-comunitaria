@@ -595,6 +595,7 @@ def import_scene(
         except _SceneDeadline:
             failures.append("timeout")
 
+    reason = "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
     imported: list[dict[str, Any]] = []
     seen_digests: set[str] = set()
     for record in writer.imported:
@@ -614,9 +615,7 @@ def import_scene(
         "errors": sorted(set(failures)),
         "rejections": dict(sorted(rejections.items())),
         "time_s": round(time.monotonic() - started, 3),
-        "termination_reason": (
-            "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
-        ),
+        "termination_reason": reason,
         "searches_started": budget.searches_started,
         "searches_avoided": max(0, budget.searches_planned - budget.searches_started),
         "searches_cancelled": budget.searches_cancelled,

@@ -92,11 +92,11 @@ class Writer:
 @pytest.mark.parametrize(
     ("maximum", "enough", "expected"), [(8, 3, "enough"), (2, 3, "max_results")]
 )
-async def test_cutoff_cancels_inflight_and_avoids_new_batches(monkeypatch, maximum, enough, expected):
+async def test_cutoff_cancels_inflight_and_avoids_new_batches(
+    monkeypatch, maximum, enough, expected
+):
     writer = Writer()
-    budget = scene_search.SceneBudget(
-        job(), writer.imported, maximum, enough, 100, clock=lambda: 0
-    )
+    budget = scene_search.SceneBudget(job(), writer.imported, maximum, enough, 100, clock=lambda: 0)
     calls, cancelled = [], []
     adapters = [
         Provider("slow", calls, cancelled, slow=True),
