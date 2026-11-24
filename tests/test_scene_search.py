@@ -194,7 +194,10 @@ async def test_place_consults_commons_before_relevance_cutoff(monkeypatch):
         visual_match=lambda row: row["media"].get("sha256") == "good",
     )
     calls, cancelled = [], []
-    adapters = [Provider("pexels", calls, cancelled), Provider("wikimedia_commons", calls, cancelled)]
+    adapters = [
+        Provider("pexels", calls, cancelled),
+        Provider("wikimedia_commons", calls, cancelled),
+    ]
     monkeypatch.setattr(
         scene_search,
         "expand_query",

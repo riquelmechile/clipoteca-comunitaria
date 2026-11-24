@@ -86,11 +86,7 @@ class SceneBudget:
             queries["en"],
             [],
         )
-        if not (
-            self.valid(record)
-            and relevant
-            and (score > 0 or score == unpenalized)
-        ):
+        if not (self.valid(record) and relevant and (score > 0 or score == unpenalized)):
             return False
         digest = str(record["media"].get("sha256") or id(record)).lower()
         if digest not in self.visual_cache:
@@ -201,9 +197,7 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
     for lang in _LANGUAGES:
         if not expansion.terms.get(lang):
             continue
-        available = [
-            a for a in ordered if lang in a.accepts_text_languages and (lang, a) != first
-        ]
+        available = [a for a in ordered if lang in a.accepts_text_languages and (lang, a) != first]
         for offset in range(0, len(available), concurrency):
             plan.append((lang, available[offset : offset + concurrency]))
 
