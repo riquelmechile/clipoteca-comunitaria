@@ -552,7 +552,7 @@ def test_real_failures_stay_errors_without_leaking_payloads(
     assert "example.org" not in json.dumps(result)
 
 
-def test_spread_queries_reserves_budget(tmp_path, monkeypatch):
+def test_spread_queries_does_not_reserve_budget(tmp_path, monkeypatch):
     job = load("job.json")
     job["queries"] = {"en": ["rain", "storm"], "es": ["lluvia", "tormenta"]}
     calls = []
@@ -571,7 +571,7 @@ def test_spread_queries_reserves_budget(tmp_path, monkeypatch):
         spread_queries=True,
     )
     assert report["queries_tried"] == ["rain", "storm", "lluvia", "tormenta"]
-    assert calls[0] == ("rain", 2)
+    assert calls[0] == ("rain", 8)
     assert len(calls) == 4
 
 

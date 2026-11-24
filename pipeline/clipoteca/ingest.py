@@ -23,7 +23,7 @@ from .catalog import (
     canonical_source_url,
     safe_source_url,
 )
-from .engine import SearchEngine
+from .engine import SearchEngine, SearchResult
 from .jobs import (
     MAX_ATTEMPTS,
     RETRYABLE,
@@ -267,6 +267,8 @@ async def ingest(
     embedding_encoder: Encoder | None = None,
     deferred_sources: tuple[str, ...] = (),
     deferred_reason: str = "deferred_to_self_hosted",
+    discovery: SearchResult | None = None,
+    scene_budget=None,
 ) -> IngestReport:
     if not expand_search and (len(adapters) != 1 or adapters[0].name != "community"):
         raise ValueError("partial expansion is allowed only for a direct community URL")
@@ -371,9 +373,13 @@ async def ingest(
                 "query_vector_cache_unavailable"
             )
         expansion = (
-            expand_query(query, translator=translator)
-            if expand_search
-            else QueryExpansion(concept=query, terms={"es": query})
+            discovery.expansion
+            if discovery is not None
+            else (
+                expand_query(query, translator=translator)
+                if expand_search
+                else QueryExpansion(concept=query, terms={"es": query})
+            )
         )
         job["terms"] = dict(expansion.terms)
         partial_quality_expansion = False
@@ -399,12 +405,14 @@ async def ingest(
                 jobs.save(job)
                 return IngestReport(rid, "failed", (), (fatal_errors[0],))
         catalogue, _ = writer.read_catalog()
-        search = await SearchEngine(adapters, concurrency=concurrency).search(
-            query,
-            catalog=catalogue,
-            expansion=expansion,
-            allow_partial_expansion=not expand_search or partial_quality_expansion,
-        )
+        search = discovery
+        if search is None:
+            search = await SearchEngine(adapters, concurrency=concurrency).search(
+                query,
+                catalog=catalogue,
+                expansion=expansion,
+                allow_partial_expansion=not expand_search or partial_quality_expansion,
+            )
         for execution in search.executions:
             job["language_counts"][execution.language] = (
                 job["language_counts"].get(execution.language, 0) + 1
@@ -478,7 +486,7 @@ async def ingest(
         published_providers: set[str] = set()
         first_pass_size = len(prioritized) if diverse_sources and max_clips_per_source > 1 else 0
         for selection_index, (candidate, window_cap) in enumerate(selections):
-            if len(ids) >= max_results:
+            if len(ids) >= max_results or (scene_budget and scene_budget.reason()):
                 break
             # First pass: no provider takes a second slot while another
             # provider still has a candidate that might pass quality gates.
@@ -533,6 +541,11 @@ async def ingest(
                         include_query_tags=candidate.provider != "community",
                         on_query_tag_warning=note_query_tag_warning,
                     )
+                    if scene_budget:
+                        if scene_budget.reason():
+                            break
+                        scene_budget.downloads_started += 1
+                        scene_budget.attempted.add(candidate.origin_id)
                     if downloader:
                         raw = await downloader(ref.url, temp)
                     elif ref.audio_url:
@@ -574,7 +587,7 @@ async def ingest(
                         embedding_frames=semantic_frames,
                     )
                     for window_index, window in enumerate(windows):
-                        if len(ids) >= max_results:
+                        if len(ids) >= max_results or (scene_budget and scene_budget.reason()):
                             break
                         normalized = normalize_media(
                             raw,
@@ -596,6 +609,13 @@ async def ingest(
                                 desired_audio is not None
                                 and normalized.media.has_audio != desired_audio
                             )
+                        ):
+                            errors.append(f"{candidate.origin_id}:media_filter")
+                            continue
+                        if scene_budget and not scene_budget.valid_media(
+                            normalized.media.duration_seconds,
+                            normalized.media.width,
+                            normalized.media.height,
                         ):
                             errors.append(f"{candidate.origin_id}:media_filter")
                             continue

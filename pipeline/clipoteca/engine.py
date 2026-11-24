@@ -248,13 +248,15 @@ class SearchEngine:
             180.0,
             max(self.discovery_seconds, waves * slowest_provider_budget + 12.0),
         )
-        if watched:
-            await asyncio.wait(watched, timeout=hard_cap)
-        pending = {task for task in tasks if not task.done()}
-        for task in pending:
-            task.cancel()
-        if pending:
-            await asyncio.gather(*pending, return_exceptions=True)
+        try:
+            if watched:
+                await asyncio.wait(watched, timeout=hard_cap)
+        finally:
+            pending = {task for task in tasks if not task.done()}
+            for task in pending:
+                task.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
 
         executions: list[Execution] = []
         source_candidates: dict[str, deque[Candidate]] = {}
