@@ -172,6 +172,9 @@ def candidates(
     for clip in _clips(catalog):
         if not _valid_clip(clip) or clip.get("status") != "published":
             continue
+        place_queries = queries.get("es", []) + queries.get("en", [])
+        if query_names(place_queries) and not sufficient_query_match(clip, place_queries):
+            continue
         media = clip["media"]
         duration = float(media["duration_seconds"])
         if duration < 0.42 * length:

@@ -33,6 +33,13 @@ _PLACE_NAMES = (
     "santiago",
     "antofagasta",
     "punta arenas",
+    "grey glacier",
+    "glaciar grey",
+    "glacier grey",
+    "san rafael",
+    "san rafael glacier",
+    "glaciar san rafael",
+    "laguna san rafael",
 )
 _NAME_SEQUENCE = re.compile(r"\b[A-Z\u00c0-\u00de][\w]+(?:\s+[A-Z\u00c0-\u00de][\w]+)+")
 
@@ -61,6 +68,8 @@ _ALIAS_GROUPS = (
     ("rapa nui", "easter island", "isla de pascua"),
     ("torres del paine", "torres del paine national park"),
     ("chiloe", "chiloe island"),
+    ("grey glacier", "glaciar grey", "glacier grey"),
+    ("san rafael", "san rafael glacier", "glaciar san rafael", "laguna san rafael"),
 )
 
 

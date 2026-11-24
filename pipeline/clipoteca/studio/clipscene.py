@@ -330,6 +330,63 @@ def _make_focus(
     )
 
 
+def analyze_window(job: dict[str, Any], downloaded: Path, scorer: Any, deadline: float):
+    """Use the same visual selection gate for discovery and final rendering."""
+    length = float(job["len_fetch"])
+    sw, sh, duration = checks.probe_video(downloaded, deadline=deadline)
+    width, height = framing.target_size(job["aspect"])
+    if not framing.resolution_ok(
+        sw,
+        sh,
+        width,
+        height,
+        int(job.get("min_short_side", 720)),
+    ):
+        return None, "low_resolution"
+    analyzed_duration = min(duration, MAX_ANALYZED_SECONDS)
+    mode = fit_mode(analyzed_duration, length)
+    if mode is None:
+        return None, "too_short"
+    frames, stamps = _preview_frames(downloaded, sw, sh, duration, deadline)
+    if not frames:
+        return None, "no_window"
+    sharp, bright, shift, diff = scorer.frame_metrics(frames)
+    embedding = scorer.image_emb(frames)
+    prompt = scorer.text_emb([job["prompt"]])[0]
+    negatives = scorer.text_emb(job.get("negatives", []))
+    analyzed = {
+        "emb": embedding,
+        "ts": stamps,
+        "dur": analyzed_duration,
+        "sharp": sharp,
+        "bright": bright,
+        "shift": shift,
+        "diff": diff,
+        "cuts": _cuts(downloaded, deadline, analyzed_duration),
+    }
+    proposals = windows(analyzed, prompt, length, nemb=negatives)
+    chosen, reason = choose_window(
+        proposals, job.get("min_sim", 0.22), job.get("min_prob", 0.5)
+    )
+    if chosen is None:
+        return None, reason
+    if chosen["score"] < job.get("min_score", 0.0):
+        return None, "low_score"
+    return {
+        "sw": sw,
+        "sh": sh,
+        "duration": duration,
+        "width": width,
+        "height": height,
+        "analyzed_duration": analyzed_duration,
+        "mode": mode,
+        "frames": frames,
+        "stamps": stamps,
+        "prompt": prompt,
+        "chosen": chosen,
+    }, "ok"
+
+
 def _attempt(
     job: dict[str, Any],
     candidate: dict[str, Any],
@@ -341,45 +398,15 @@ def _attempt(
 ) -> tuple[dict[str, Any] | None, str]:
     length = float(job["len_fetch"])
     try:
-        sw, sh, duration = checks.probe_video(downloaded, deadline=deadline)
-        width, height = framing.target_size(job["aspect"])
-        if not framing.resolution_ok(
-            sw,
-            sh,
-            width,
-            height,
-            int(job.get("min_short_side", 720)),
-        ):
-            return None, "low_resolution"
-        analyzed_duration = min(duration, MAX_ANALYZED_SECONDS)
-        mode = fit_mode(analyzed_duration, length)
-        if mode is None:
-            return None, "too_short"
-        frames, stamps = _preview_frames(downloaded, sw, sh, duration, deadline)
-        if not frames:
-            return None, "no_window"
-        sharp, bright, shift, diff = scorer.frame_metrics(frames)
-        embedding = scorer.image_emb(frames)
-        prompt = scorer.text_emb([job["prompt"]])[0]
-        negatives = scorer.text_emb(job.get("negatives", []))
-        analyzed = {
-            "emb": embedding,
-            "ts": stamps,
-            "dur": analyzed_duration,
-            "sharp": sharp,
-            "bright": bright,
-            "shift": shift,
-            "diff": diff,
-            "cuts": _cuts(downloaded, deadline, analyzed_duration),
-        }
-        proposals = windows(analyzed, prompt, length, nemb=negatives)
-        chosen, reason = choose_window(
-            proposals, job.get("min_sim", 0.22), job.get("min_prob", 0.5)
-        )
-        if chosen is None:
+        analysis, reason = analyze_window(job, downloaded, scorer, deadline)
+        if analysis is None:
             return None, reason
-        if chosen["score"] < job.get("min_score", 0.0):
-            return None, "low_score"
+        sw, sh = analysis["sw"], analysis["sh"]
+        width, height = analysis["width"], analysis["height"]
+        duration, analyzed_duration = analysis["duration"], analysis["analyzed_duration"]
+        mode = analysis["mode"]
+        frames, stamps = analysis["frames"], analysis["stamps"]
+        prompt, chosen = analysis["prompt"], analysis["chosen"]
         begin = chosen["start"]
         actual_span = analyzed_duration if mode == "whole" else length
         if _ocr_positions(downloaded, begin, actual_span, duration, (0.25, 0.75), ocr, deadline):

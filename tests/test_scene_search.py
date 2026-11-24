@@ -32,12 +32,14 @@ def record(title="rain movement", duration=5, width=720):
 def test_budget():
     now = [0]
     records = [record(width=640), record(duration=2), record(title="car")]
-    budget = scene_search.SceneBudget(job(), records, 8, 2, 10, clock=lambda: now[0])
+    budget = scene_search.SceneBudget(
+        job(), records, 8, 2, 10, clock=lambda: now[0], visual_match=lambda _: True
+    )
     assert budget.valid_count() == 2
     assert budget.reason() is None
     records.extend([record(), record()])
     assert budget.reason() == "enough"
-    budget.maximum = 4
+    budget.maximum = 2
     assert budget.reason() == "max_results"
     now[0] = 10
     assert budget.reason() == "timeout"
@@ -97,7 +99,9 @@ async def test_cutoff_cancels_inflight_and_avoids_new_batches(
     monkeypatch, maximum, enough, expected
 ):
     writer = Writer()
-    budget = scene_search.SceneBudget(job(), writer.imported, maximum, enough, 100, clock=lambda: 0)
+    budget = scene_search.SceneBudget(
+        job(), writer.imported, maximum, enough, 100, clock=lambda: 0, visual_match=lambda _: True
+    )
     calls, cancelled = [], []
     adapters = [
         Provider("slow", calls, cancelled, slow=True),
@@ -154,7 +158,9 @@ def test_relevance_and_digest_dedupe():
         record("Street food vendor"),
         record("City traffic aerial"),
     ]
-    budget = scene_search.SceneBudget(settings, records, 8, 3, 100, clock=lambda: 0)
+    budget = scene_search.SceneBudget(
+        settings, records, 8, 3, 100, clock=lambda: 0, visual_match=lambda _: True
+    )
     assert not any(budget.good(item) for item in records)
     settings["queries"] = {"es": ["moais Rapa Nui"], "en": ["Rapa Nui moai"]}
     wrong = record("Our Lady of Nui Cui statue")
@@ -165,3 +171,74 @@ def test_relevance_and_digest_dedupe():
     records[:] = [right, right.copy()]
     assert budget.valid_count() == 1
     assert budget.reason() is None
+
+
+@pytest.mark.asyncio
+async def test_place_consults_commons_before_relevance_cutoff(monkeypatch):
+    writer = Writer()
+    settings = job()
+    settings["queries"] = {"en": ["Easter Island moai"], "es": ["Rapa Nui moai"]}
+    budget = scene_search.SceneBudget(
+        settings,
+        writer.imported,
+        1,
+        1,
+        100,
+        clock=lambda: 0,
+        visual_match=lambda row: row["media"].get("sha256") == "good",
+    )
+    calls, cancelled = [], []
+    adapters = [Provider("pexels", calls, cancelled), Provider("wikimedia_commons", calls, cancelled)]
+    monkeypatch.setattr(
+        scene_search,
+        "expand_query",
+        lambda *args, **kwargs: QueryExpansion("Easter Island moai", {"en": "Easter Island moai"}),
+    )
+
+    async def fake_ingest(query, adapters, *, discovery, scene_budget, **kwargs):
+        ids = []
+        for candidate in discovery.candidates:
+            if scene_budget.reason():
+                break
+            title = "Easter Island moai"
+            row = record(title)
+            row["media"]["sha256"] = (
+                "good" if candidate.provider == "wikimedia_commons" and ids else candidate.origin_id
+            )
+            writer.imported.append(row)
+            ids.append(candidate.origin_id)
+        return IngestReport("fixture", "published", tuple(ids), ())
+
+    monkeypatch.setattr(scene_search, "_ingest", fake_ingest)
+    await scene_search.ingest(
+        "Easter Island moai",
+        adapters,
+        scene_budget=budget,
+        writer=writer,
+        max_results=1,
+        horizon="fixture",
+        concurrency=2,
+    )
+    assert calls == [("wikimedia_commons", "en")]
+    assert budget.commons_consulted
+    assert budget.valid_count() == 2
+    assert budget.relevant_count() == 1
+    assert budget.reason() == "max_results"
+
+
+def test_raw_results_do_not_count_and_visual_gate_is_cached():
+    records = [record("rain movement") for _ in range(8)]
+    checked = []
+    budget = scene_search.SceneBudget(
+        job(),
+        records,
+        2,
+        2,
+        100,
+        clock=lambda: 0,
+        visual_match=lambda row: checked.append(row) or False,
+    )
+    assert budget.valid_count() == 8
+    assert budget.reason() is None
+    assert budget.relevant_count() == 0
+    assert len(checked) == 8

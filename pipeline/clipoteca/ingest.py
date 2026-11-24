@@ -487,7 +487,7 @@ async def ingest(
         published_providers: set[str] = set()
         first_pass_size = len(prioritized) if diverse_sources and max_clips_per_source > 1 else 0
         for selection_index, (candidate, window_cap) in enumerate(selections):
-            if len(ids) >= max_results or (scene_budget and scene_budget.reason()):
+            if scene_budget.reason() if scene_budget else len(ids) >= max_results:
                 break
             # First pass: no provider takes a second slot while another
             # provider still has a candidate that might pass quality gates.
@@ -582,7 +582,7 @@ async def ingest(
                         embedding_frames=semantic_frames,
                     )
                     for window_index, window in enumerate(windows):
-                        if len(ids) >= max_results or (scene_budget and scene_budget.reason()):
+                        if scene_budget.reason() if scene_budget else len(ids) >= max_results:
                             break
                         normalized = normalize_media(
                             raw,
