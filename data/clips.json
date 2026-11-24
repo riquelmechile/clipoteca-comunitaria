@@ -10219,5 +10219,98 @@
     },
     "status": "published",
     "created_at": "2026-11-24T19:29:41.510760Z"
+  },
+  {
+    "id": "clip-000157",
+    "title": {
+      "es": "MOAI: The Silent Giants of Rapa Nui ← El misterio de la Isla de Pascua",
+      "en": "MOAI: The Silent Giants of Rapa Nui | The Mystery of Easter Island"
+    },
+    "description": {
+      "es": "En una remota isla en el Océano Pacífico se encuentra una de las maravillas arqueológicas más extraordinarias: las estatuas de Moai de Rapa Nui.\nEste documental explora los orígenes del Moai, el antiguo arte de tallar piedra, el misterio de su transporta",
+      "en": "On a remote island in the Pacific Ocean stands one of the world&#x27;s most extraordinary archaeological wonders: the Moai statues of Rapa Nui.\nThis documentary explores the origins of the Moai, the ancient art of stone carving, the mystery of their transporta"
+    },
+    "tags": {
+      "es": [
+        "MOAI",
+        "Silent",
+        "Giants",
+        "Rapa",
+        "Nui",
+        "misterio",
+        "Isla",
+        "Pascua",
+        "remota",
+        "Océano",
+        "Pacífico",
+        "encuentra",
+        "maravillas",
+        "arqueológicas",
+        "más",
+        "extraordinarias",
+        "estatuas"
+      ],
+      "en": [
+        "MOAI",
+        "Silent",
+        "Giants",
+        "Rapa",
+        "Nui",
+        "Mystery",
+        "Easter",
+        "Island",
+        "remote",
+        "Pacific",
+        "Ocean",
+        "stands",
+        "one",
+        "world",
+        "x27",
+        "most",
+        "extraordinary",
+        "archaeological",
+        "wonders"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1o7sn6mEYr",
+      "source_language": "en",
+      "source_title": "MOAI: The Silent Giants of Rapa Nui | The Mystery of Easter Island",
+      "source_url": "https://www.bilibili.com/video/BV1o7sn6mEYr",
+      "source_start": 104.0,
+      "source_end": 114.0,
+      "found_by_query": "Puna Pau Rapa Nui",
+      "related_to": "Rapa Nui"
+    },
+    "media": {
+      "duration_seconds": 9.999999,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.00000343343749,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 2283221,
+      "sha256": "9d08828c123009123f04f66fcbdd741071036bbdc853eaeb3776eddefd8b298e",
+      "perceptual_hash": "fae2849f35706346~3039.65:b9040f724bb2d9a7~1245.90:f7e41cadb98a0878~3912.42:c9cb5a3114ffa294~4547.08:d695d060681f5bf4~4755.65"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000157.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000157.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000157_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000157_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000157_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000157_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000157_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000157_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T19:29:41.510760Z"
   }
 ]
