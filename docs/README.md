@@ -7,6 +7,8 @@ Empieza por el [README del repositorio](../README.md). Esta página ordena el re
 | Documento | Para qué sirve |
 |---|---|
 | [ESTADO.md](ESTADO.md) | Qué funciona hoy, con qué evidencia y con qué límites. Es la referencia de estado; los demás documentos no la reemplazan |
+| [STUDIO.md](STUDIO.md) | Guía del motor de video por etapas, sin servicio público de video |
+| [ROADMAP_V3.md](ROADMAP_V3.md) | Hitos de video, avances y pendientes |
 | [openapi.yaml](openapi.yaml) | Contrato REST `/v1` |
 | [mcp-tools.md](mcp-tools.md) | Las ocho tools del servidor MCP |
 | [CONTRATOS_API_MCP.md](CONTRATOS_API_MCP.md) | Esquemas y metadatos compartidos por REST y MCP |
@@ -30,7 +32,6 @@ Empieza por el [README del repositorio](../README.md). Esta página ordena el re
 | [FUENTES_IDIOMAS.md](FUENTES_IDIOMAS.md) | Por qué cuatro idiomas obligatorios y qué fuentes se eligieron |
 | [ROADMAP.md](ROADMAP.md) | Hitos M0–M10 (v1) |
 | [ROADMAP_V2.md](ROADMAP_V2.md) | Hitos M11–M24 (v2) y su cierre |
-| [ROADMAP_V3.md](ROADMAP_V3.md) | Hitos M25–M34 (v3): producción de videos |
 | [adr/](adr/) | Registros de decisiones de arquitectura |
 
 ## Histórico por hito
@@ -45,3 +46,12 @@ Estos documentos describen el estado **en el momento de cada hito**. Sus cifras 
 | [M21_EMBEDDINGS.md](M21_EMBEDDINGS.md) · [M22_BUSQUEDA_SEMANTICA.md](M22_BUSQUEDA_SEMANTICA.md) | Búsqueda semántica (implementada, apagada de fábrica) |
 | [M23_GUION.md](M23_GUION.md) | Guion a clips (`resolve_script`) |
 | [MATRIZ_FUENTES_V2.md](MATRIZ_FUENTES_V2.md) · [EVIDENCIA_FUENTES_V2.md](EVIDENCIA_FUENTES_V2.md) · [DEMO_E2E_V2.md](DEMO_E2E_V2.md) | Mediciones y guion de demo de M24, anteriores a los desbloqueos de 2.0.3 |
+| [ROADMAP_V3.md](ROADMAP_V3.md) · [esquema de guion](../schemas/video.schema.json) | M25: contrato |
+| [M26_VOZ.md](M26_VOZ.md) | M26: voz y línea de tiempo |
+| [M27_MUSICA.md](M27_MUSICA.md) | M27: música offline |
+| [M28_CLIP_SCENE.md](M28_CLIP_SCENE.md) | M28: plan, biblioteca y selección |
+| [M28_IMPORT.md](M28_IMPORT.md) | M28: importación temporal |
+| [M29_AJUSTE_MEZCLA.md](M29_AJUSTE_MEZCLA.md) | M29: ajuste y mezcla |
+| [M30_COMPOSICION.md](M30_COMPOSICION.md) | M30: composición y render |
+| [M31_QA.md](M31_QA.md) | M31: control de calidad |
+| [M32_PUBLICACION.md](M32_PUBLICACION.md) | M32: módulo de publicación, sin workflow integrado |
