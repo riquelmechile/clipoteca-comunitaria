@@ -1,0 +1,102 @@
+{
+  "categories": {
+    "query": {
+      "search": [
+        {
+          "ns": 14,
+          "title": "Category:Moai planters"
+        },
+        {
+          "ns": 14,
+          "title": "Category:Easter Island"
+        }
+      ]
+    }
+  },
+  "subcategories": {
+    "query": {
+      "categorymembers": [
+        {
+          "ns": 14,
+          "title": "Category:Architecture of Easter Island"
+        },
+        {
+          "ns": 14,
+          "title": "Category:Videos of Easter Island"
+        }
+      ]
+    }
+  },
+  "files": {
+    "query": {
+      "pages": {
+        "1": {
+          "pageid": 1,
+          "ns": 6,
+          "title": "File:Coastal footage.webm",
+          "imageinfo": [
+            {
+              "mime": "video/webm",
+              "url": "https://upload.wikimedia.org/example.webm",
+              "size": 2048
+            }
+          ]
+        },
+        "2": {
+          "pageid": 2,
+          "ns": 6,
+          "title": "File:Photo.jpg",
+          "imageinfo": [
+            {
+              "mime": "image/jpeg",
+              "url": "https://upload.wikimedia.org/photo.jpg",
+              "size": 2048
+            }
+          ]
+        },
+        "3": {
+          "pageid": 3,
+          "ns": 6,
+          "title": "File:Insecure.ogv",
+          "imageinfo": [
+            {
+              "mime": "video/ogg",
+              "url": "http://upload.wikimedia.org/example.ogv",
+              "size": 2048
+            }
+          ]
+        }
+      }
+    }
+  },
+  "text": {
+    "query": {
+      "pages": {
+        "1": {
+          "pageid": 1,
+          "ns": 6,
+          "title": "File:Coastal footage.webm",
+          "imageinfo": [
+            {
+              "mime": "video/webm",
+              "url": "https://upload.wikimedia.org/example.webm",
+              "size": 2048
+            }
+          ]
+        },
+        "4": {
+          "pageid": 4,
+          "ns": 6,
+          "title": "File:Moai vase.ogv",
+          "imageinfo": [
+            {
+              "mime": "video/ogg",
+              "url": "https://upload.wikimedia.org/vase.ogv",
+              "size": 2048
+            }
+          ]
+        }
+      }
+    }
+  }
+}

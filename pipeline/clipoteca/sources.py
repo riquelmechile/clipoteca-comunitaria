@@ -106,7 +106,7 @@ SOURCES: tuple[SourceSpec, ...] = (
         WikimediaCommons,
         (),
         "public_commons",
-        "file namespace, inspect rights",
+        "file namespace and bounded place categories; inspect rights",
     ),
     SourceSpec(
         "internet_archive", InternetArchive, (), "public_archive", "movie catalog; rights vary"

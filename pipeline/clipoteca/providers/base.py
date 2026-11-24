@@ -52,6 +52,7 @@ class SearchLimits:
     max_pages: int = 2
     max_candidates: int = 25
     timeout_seconds: float = 6.0
+    place_names: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
