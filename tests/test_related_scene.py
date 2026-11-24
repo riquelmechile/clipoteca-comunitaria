@@ -315,7 +315,7 @@ def test_wikimedia_retry_after_and_recovery():
 
     def response(request):
         calls.append(time.monotonic())
-        assert request.url.params["maxlag"] == "5"
+        assert "maxlag" not in request.url.params
         if len(calls) == 1:
             return httpx.Response(429, headers={"Retry-After": "0.02"})
         return httpx.Response(200, json={"search": [{"id": "Q1"}]})
@@ -543,5 +543,52 @@ def test_related_discovery_parallel_but_ingest_serial(monkeypatch):
         )
         assert tried == ["river", "waterfall"]
         assert peak == 2
+
+    asyncio.run(run())
+
+
+def test_maxlag_does_not_set_host_cooldown():
+    from clipoteca.studio import related
+
+    async def run():
+        calls = []
+
+        def response(request):
+            calls.append(request)
+            if len(calls) == 1:
+                return httpx.Response(200, json={"error": {"code": "maxlag"}},
+                                      headers={"Retry-After": "30"})
+            return httpx.Response(200, json={"ok": True})
+
+        host = {"lock": asyncio.Semaphore(1), "until": 0.0}
+        token = related._HOSTS.set({"www.wikidata.org": host})
+        try:
+            async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+                assert await related._optional_json(client, related.WIKIDATA, action="first") == {}
+                assert host["until"] == 0
+                assert await related._optional_json(client, related.WIKIDATA, action="second")
+        finally:
+            related._HOSTS.reset(token)
+
+    asyncio.run(run())
+
+
+def test_commons_does_not_wait_for_wikidata():
+    from clipoteca.studio import related
+
+    async def response(request):
+        if request.url.host == "www.wikidata.org":
+            await asyncio.sleep(10)
+        if request.url.params.get("list") == "search":
+            return httpx.Response(200, json={"query": {"search": [{"title": "Category:Kyoto Japan"}]}})
+        return httpx.Response(200, json={"query": {"categorymembers": [
+            {"ns": 14, "title": "Category:Kiyomizu temple"}
+        ]}})
+
+    async def run():
+        job = {"queries": {"en": ["Kyoto temples, Japan"], "es": []}}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+            await related.resolve_jobs([job], client=client, timeout=0.1)
+        assert {"term": "Kiyomizu temple", "origin": "commons"} in job["related_terms"]
 
     asyncio.run(run())

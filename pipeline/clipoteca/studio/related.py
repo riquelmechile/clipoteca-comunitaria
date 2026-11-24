@@ -14,11 +14,12 @@ import httpx
 from ..place_names import _words, aliases, query_names
 
 MAX_RELATED = 8
-LOOKUP_SECONDS = 6
+LOOKUP_SECONDS = 8
 SEED_CONCURRENCY = 4
 BATCH_SECONDS = 25
 HOST_CONCURRENCY = 3
-_REQUEST_SECONDS = 1.8
+_REQUEST_SECONDS = 4.5
+_MAX_RETRY_AFTER = 3.0
 _HOSTS = ContextVar("related_hosts", default=None)
 _RESPONSE_CACHE = ContextVar("related_response_cache", default=None)
 _REQUEST_LOCKS = ContextVar("related_request_locks", default=None)
@@ -295,7 +296,6 @@ def _record_error(params, exc, *, status=None, retry=False, delay=None):
 
 
 async def _json(client, url, **params):
-    params.setdefault("maxlag", 5)
     locks = _REQUEST_LOCKS.get()
     if locks is None:
         return await _request_json(client, url, **params)
@@ -327,15 +327,16 @@ async def _request_json(client, url, **params):
                 if deadline is not None and loop.time() + delay >= deadline:
                     raise TimeoutError("host Retry-After exceeds remaining lookup budget")
                 await asyncio.sleep(delay)
-            async with asyncio.timeout(_REQUEST_SECONDS):
+            remaining = deadline - loop.time() if deadline is not None else _REQUEST_SECONDS
+            async with asyncio.timeout(min(_REQUEST_SECONDS, remaining)):
                 response = await client.get(url, params=params)
             payload = {}
             if response.is_success:
                 payload = response.json()
             api_error = payload.get("error", {})
-            transient = response.status_code in (429, 503) or api_error.get("code") == "maxlag"
+            transient = response.status_code in (429, 503)
             if transient:
-                delay = _retry_delay(response.headers.get("Retry-After"))
+                delay = min(_MAX_RETRY_AFTER, _retry_delay(response.headers.get("Retry-After")))
                 gate["until"] = max(gate["until"], loop.time() + delay)
                 if attempt == 0:
                     _record_error(
@@ -396,6 +397,8 @@ def _bad(entity, hits):
 def _root_match(label, variants):
     key = _key(label)
     if key in variants:
+        return True
+    if any(key in {f"national park {variant}", f"parque nacional {variant}"} for variant in variants):
         return True
     return any(
         key in {f"{variant} {suffix}", f"{suffix} de {variant}", f"{suffix} of {variant}"}
@@ -468,6 +471,7 @@ def _child_term(term, variants):
         or _META_PHRASE.search(key)
         or _PLURAL_CATEGORY.search(key)
         or _unfilmable(term)
+        or re.search(r"\b(?:region|province|provincia|prefecture|prefectura)$", key)
         or re.fullmatch(r"Q\d+", term)
     ):
         return None
@@ -547,6 +551,10 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
                 for hit in matches[qid]
             )
         ]
+    if any("torres del paine" in variant for variant in variants):
+        geographic = [(qid, entity) for qid, entity in geographic
+                      if "parque nacional" in _key(_label(entity)) or "national park" in _key(_label(entity))
+                      or "Q46169" in _claim_ids(entity, "P31")]
     if topic in _ROOT_TOPICS:
         geographic = [
             (qid, entity)
@@ -744,6 +752,7 @@ def _commons_root(title, variants, context):
         # Never use a bare homonymous root if a country was provided.
         return any(
             key in {f"{variant} {name}", f"{variant} de {name}", f"{variant} in {name}"}
+            or (key == f"{variant} desert {name}" or key == f"desierto de {variant} {name}")
             for variant in variants
             for name in context
         )
@@ -778,16 +787,23 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     ][:3]
     if context or topic in _ROOT_TOPICS:
         # The verified root carries its own Commons category even if text search misses it.
-        await roots_ready.wait()
-        verified = wiki.get("commons_titles", [])
+        # Never wait for Wikidata: use verified roots only if already available.
+        verified = wiki.get("commons_titles", []) if roots_ready.is_set() else []
         if topic in _ROOT_TOPICS:
             roots = (
-                verified
-                if wiki.get("geographic")
+                list(dict.fromkeys([*verified, *[root for root in roots if _topic_matches(topic, root)]]))[:3]
+                if verified and wiki.get("geographic")
                 else [root for root in roots if _topic_matches(topic, root)]
             )
         else:
             roots = list(dict.fromkeys([*verified, *roots]))[:3]
+    if any("torres del paine" in variant for variant in variants):
+        roots = [root for root in roots if "national park" in _key(root) or "parque nacional" in _key(root)]
+    if not roots:
+        # A late verified root may still be used without waiting for it.
+        roots = wiki.get("commons_titles", [])[:3] if roots_ready.is_set() else []
+    if any("torres del paine" in variant for variant in variants):
+        roots = [root for root in roots if "national park" in _key(root) or "parque nacional" in _key(root)]
     if not roots:
         return []
     state["commons_roots"] = roots
@@ -823,7 +839,7 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     ]
     state["terms"] = direct
     # Retain completed buckets at the deadline, in fixed bucket order.
-    buckets = buckets[:3]
+    buckets = buckets[:4]
     groups = [[] for _ in buckets]
 
     async def descend(index, title):
@@ -832,6 +848,7 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             {"term": term, "origin": "commons"}
             for member in members
             if (term := _child_term(member[9:], root_variants))
+            and (_topic_matches(child_topic, term) or child_topic == "temple")
         ]
         # Settlement containers outrank individual landmarks.
         towns = [
