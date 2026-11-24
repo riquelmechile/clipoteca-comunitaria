@@ -1,8 +1,7 @@
 # M32: render, indexado y entrega temporal
 
-El nuevo workflow se propone en [propuestas/github/workflows/render.yml](../propuestas/github/workflows/render.yml).
-Debe promoverse a .github/workflows/render.yml antes de desplegar el Worker 3.0.0.
-El workflow anterior no tiene el contrato de entrega y no debe usarse para solicitudes nuevas.
+El workflow está en [.github/workflows/render.yml](../.github/workflows/render.yml).
+El Worker 3.0.0 lo despacha; las corridas reales que lo validan se registran en [ESTADO](ESTADO.md).
 
 | Input | Contrato |
 |---|---|
@@ -66,8 +65,7 @@ transitorio mientras aparece el run; reintentar. La descarga admite Range,
 streaming para ZIP almacenado y fallback deflate de hasta 8 MB. El estado
 advierte si la evidencia de entrega o indexado no es legible.
 
-Promover también [propuestas/install-ffmpeg.action.yml](../propuestas/install-ffmpeg.action.yml)
-a .github/actions/install-ffmpeg/action.yml. Usa FFmpeg/FFprobe b6.1.1
+La acción [install-ffmpeg](../.github/actions/install-ffmpeg/action.yml) usa FFmpeg/FFprobe b6.1.1
 fijados por SHA-256, con apt acotado como respaldo; el tiempo medido
 por escena se guarda como install_ffmpeg, aparte de catalog, import e import_retry.
 La medición del tiempo de instalación y de los tres formatos permanece

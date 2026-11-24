@@ -78,7 +78,7 @@ para lona. No hay MP4 final. Ver [M32_RENDER.md](M32_RENDER.md).
 
 ### Qué falta
 
-- Promover el workflow de entrega desde propuestas, instalar FFmpeg fijado y desplegar la API REST/MCP de video.
+- Desplegar la API REST/MCP de video y validar el workflow de entrega con corridas reales.
 - Importar material nuevo dentro del flujo de video y validarlo de punta a punta en Actions.
 - Tipografía propia incrustada y franja de título adaptada al sujeto.
 - Validación integral de los tres formatos, tiempos y costos por etapa; pendiente de corrida real.
