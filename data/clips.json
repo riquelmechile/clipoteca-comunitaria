@@ -5899,5 +5899,933 @@
     },
     "status": "published",
     "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000087",
+    "title": {
+      "es": "Planta, pétalos, flor, anteras, flor silvestre, lapso de tiempo",
+      "en": "Plant, petals, flower, anthers, wild flower, time span"
+    },
+    "description": {
+      "es": "Top-down studio timelapse of a purple knapweed or field scabious flower blooming against a bright, textured background. The buds gradually unfold into a detailed violet blossom, capturing plant growth, botanical patterns, and natural movement.",
+      "en": "Top-down studio timelapse of a purple knapweed or field scabious flower blooming against a bright, textured background. The buys gradally unfold into a detailed violet blackom, capturing plant growth, botanical patterns, and natural movement."
+    },
+    "tags": {
+      "es": [
+        "Planta",
+        "pétalos",
+        "flor",
+        "anteras",
+        "silvestre",
+        "lapso",
+        "tiempo",
+        "flower",
+        "blooming",
+        "timelapse"
+      ],
+      "en": [
+        "Plant",
+        "petals",
+        "flower",
+        "anthers",
+        "wild",
+        "time",
+        "span"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "24105",
+      "source_language": "es",
+      "source_title": "planta, pétalos, flor, anteras, flor silvestre, lapso de tiempo",
+      "source_url": "https://pixabay.com/videos/id-24105/",
+      "source_start": 20.0,
+      "source_end": 28.708333
+    },
+    "media": {
+      "duration_seconds": 8.708333,
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2167429,
+      "sha256": "5ff0c2daca8047643994d65c0629be50920b250386fdbcbd0d46ae88cc9f9776",
+      "perceptual_hash": "b0398b9ccc9e3c36~2239.40:b0398b9ccc9e3c36~2242.49:b0398b9ccc9e3c36~2242.99:b0398b9ccc9e3c36~2258.98:b0398b9cccce3c36~2273.47"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000087.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000087.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000087_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000087_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000087_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000087_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000087_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000087_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000088",
+    "title": {
+      "es": "Naturaleza, Tiempo, Lapso, microescenas.",
+      "en": "Nature, Time, Lapse, micro-scenes."
+    },
+    "description": {
+      "es": "No lo sé.\nNature.time.lapse.720 P [Earthscape and Micro-velocity] Series (partes)]\nEarthlight",
+      "en": "I don't know.\nNature.time.lapse.720P [Earthscape and Micro-velocity] Series (parts)]\nEarthlight"
+    },
+    "tags": {
+      "es": [
+        "Naturaleza",
+        "Tiempo",
+        "Lapso",
+        "microescenas",
+        "flower",
+        "blooming",
+        "timelapse"
+      ],
+      "en": [
+        "Nature",
+        "Time",
+        "Lapse",
+        "micro",
+        "scenes"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1Rx411Q7jG",
+      "source_language": "zh",
+      "source_title": "Nature.Time.Lapse  微速拍摄 风景大片 静静观赏",
+      "source_url": "https://www.bilibili.com/video/BV1Rx411Q7jG",
+      "source_start": 64.0,
+      "source_end": 73.0
+    },
+    "media": {
+      "duration_seconds": 8.999964,
+      "width": 640,
+      "height": 360,
+      "fps": 29.000116813837682,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 743614,
+      "sha256": "b6481ef95049efe9747c8a56a6bc711d4d2eb21482df9869a173f104e7086c97",
+      "perceptual_hash": "c0b566c8bc4778e9~1632.34:c0bd3bc9b643189d~1594.78:c0ad63c99e4338cf~1510.85:d1bd26c9b62318d9~1725.30:c0bd32c8b4435cfd~1618.74"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000088.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000088.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000088_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000088_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000088_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000088_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000088_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000088_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000089",
+    "title": {
+      "es": "Planta, pétalos, flor, anteras, flor silvestre, lapso de tiempo",
+      "en": "Plant, petals, flower, anthers, wild flower, time span"
+    },
+    "description": {
+      "es": "Top-down studio timelapse of a purple knapweed or field scabious flower blooming against a bright, textured background. The buds gradually unfold into a detailed violet blossom, capturing plant growth, botanical patterns, and natural movement.",
+      "en": "Top-down studio timelapse of a purple knapweed or field scabious flower blooming against a bright, textured background. The buys gradally unfold into a detailed violet blackom, capturing plant growth, botanical patterns, and natural movement."
+    },
+    "tags": {
+      "es": [
+        "Planta",
+        "pétalos",
+        "flor",
+        "anteras",
+        "silvestre",
+        "lapso",
+        "tiempo",
+        "flower",
+        "blooming",
+        "timelapse"
+      ],
+      "en": [
+        "Plant",
+        "petals",
+        "flower",
+        "anthers",
+        "wild",
+        "time",
+        "span"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "24105",
+      "source_language": "es",
+      "source_title": "planta, pétalos, flor, anteras, flor silvestre, lapso de tiempo",
+      "source_url": "https://pixabay.com/videos/id-24105/",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1756757,
+      "sha256": "b756153be97f8fc07a5865c00cce6c2139e4a477430840da02bae92ec417ce67",
+      "perceptual_hash": "b039cf9ccc363836~2889.04:b039cf9ccc363836~2812.76:b039cf8ccc363c36~2731.05:b039cf8ccc363c36~2627.71:b039cf8ccc363c36~2522.64"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000089.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000089.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000089_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000089_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000089_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000089_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000089_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000089_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000090",
+    "title": {
+      "es": "Lapso de tiempo de la flor de la alstroemeria floreciendo en la oscuridad",
+      "en": "Timelapse of alstroemeria flower blooming in darkness"
+    },
+    "description": {
+      "es": "Lapso de tiempo de la flor de la alstroemeria floreciendo en la oscuridad",
+      "en": "Timelapse of alstroemeria flower blooming in darkness"
+    },
+    "tags": {
+      "es": [
+        "Lapso",
+        "tiempo",
+        "flor",
+        "alstroemeria",
+        "floreciendo",
+        "oscuridad",
+        "flower",
+        "blooming",
+        "timelapse"
+      ],
+      "en": [
+        "Timelapse",
+        "alstroemeria",
+        "flower",
+        "blooming",
+        "darkness"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "29968086",
+      "source_language": "en",
+      "source_title": "timelapse-of-alstroemeria-flower-blooming-in-darkness-29968086",
+      "source_url": "https://www.pexels.com/video/timelapse-of-alstroemeria-flower-blooming-in-darkness-29968086/",
+      "source_start": 18.0,
+      "source_end": 27.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1189862,
+      "sha256": "f4b6531be89f2301848857b0a374a2f5eb01fcb2d197cceac5d83439a1d056d1",
+      "perceptual_hash": "9899656c9c37669a~4411.73:9899656c9837669e~4602.10:989c656c9c33669e~5228.16:9899656c9837669e~4968.81:9899656c9837669e~5136.90"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000090.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000090.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000090_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000090_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000090_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000090_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000090_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000090_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000091",
+    "title": {
+      "es": "Serena amanecer sobre hojas de té verde exuberante",
+      "en": "Serene sunrise over lush green tea leaves"
+    },
+    "description": {
+      "es": "Serena amanecer sobre hojas de té verde exuberante",
+      "en": "Serene sunrise over lush green tea leaves"
+    },
+    "tags": {
+      "es": [
+        "Serena",
+        "amanecer",
+        "hojas",
+        "verde",
+        "exuberante",
+        "planta",
+        "luz",
+        "solar"
+      ],
+      "en": [
+        "Serene",
+        "sunrise",
+        "lush",
+        "green",
+        "tea",
+        "leaves"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "33756165",
+      "source_language": "en",
+      "source_title": "serene-sunrise-over-lush-green-tea-leaves-33756165",
+      "source_url": "https://www.pexels.com/video/serene-sunrise-over-lush-green-tea-leaves-33756165/",
+      "source_start": 0.0,
+      "source_end": 6.1
+    },
+    "media": {
+      "duration_seconds": 6.1,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1060344,
+      "sha256": "0783fb8d866c3c9dfdef7b049c4cadb5000d19981d07d1897291fe651df564f0",
+      "perceptual_hash": "8686d85961e6f25b~10819.84:8484d859e5e6f25b~10903.94:9080c866f3f3fa4e~10803.02:90806a67f1f9e85e~10258.17:90806a67f3e9e8d6~9759.15"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000091.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000091.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000091_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000091_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000091_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000091_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000091_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000091_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000092",
+    "title": {
+      "es": "Green nanotechnology based biosynthesized Copper NPs for simultáne detection of Antibiotics in drinking Water",
+      "en": "Green nanotechnology based biosynthesized Copper NPs for simultaneous detection of Antibiotics in drinking Water"
+    },
+    "description": {
+      "es": "Green nanotechnology based biosynthesized Copper NPs for simultáne detection of Antibiotics in drinking Water",
+      "en": "Green nanotechnology based biosynthesized Copper NPs for simultaneous detection of Antibiotics in drinking Water"
+    },
+    "tags": {
+      "es": [
+        "Green",
+        "nanotechnology",
+        "based",
+        "biosynthesized",
+        "Copper",
+        "NPs",
+        "simultáne",
+        "detection",
+        "Antibiotics",
+        "drinking",
+        "Water",
+        "leaves",
+        "sunlight",
+        "plant"
+      ],
+      "en": [
+        "Green",
+        "nanotechnology",
+        "based",
+        "biosynthesized",
+        "Copper",
+        "NPs",
+        "simultaneous",
+        "detection",
+        "Antibiotics",
+        "drinking",
+        "Water"
+      ]
+    },
+    "source": {
+      "provider": "peertube",
+      "provider_id": "0d87ba46-72ac-432f-b6e7-49a6177b69b9",
+      "source_language": "en",
+      "source_title": "Green nanotechnology-based biosynthesized Copper NPs for simultaneous detection of Antibiotics in drinking Water",
+      "source_url": "https://diode.zone/videos/watch/0d87ba46-72ac-432f-b6e7-49a6177b69b9",
+      "source_start": 302.0,
+      "source_end": 310.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 2143871,
+      "sha256": "2d19d4abccd8f8d319274fc62c8b58a92d503f6b8b660a4480a0e49f2cc1bbd8",
+      "perceptual_hash": "d555c5a4555515ce~3177.09:d55575f154545478~2357.20:d55575f154545478~2375.10:d55575f154545478~2375.33:fad59534c54c5c38~4046.81"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000092.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000092.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000092_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000092_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000092_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000092_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000092_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000092_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000093",
+    "title": {
+      "es": "Video de una planta",
+      "en": "Video of a plants"
+    },
+    "description": {
+      "es": "Video de una planta",
+      "en": "Video of a plants"
+    },
+    "tags": {
+      "es": [
+        "Video",
+        "planta",
+        "green",
+        "leaves",
+        "sunlight",
+        "plant"
+      ],
+      "en": [
+        "Video",
+        "plants"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "8191266",
+      "source_language": "en",
+      "source_title": "video-of-a-plants-8191266",
+      "source_url": "https://www.pexels.com/video/video-of-a-plants-8191266/",
+      "source_start": 0.0,
+      "source_end": 4.971633
+    },
+    "media": {
+      "duration_seconds": 4.971633,
+      "width": 2048,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1514621,
+      "sha256": "53469a94f3a6a4933dd8d83080c7d3febc009c285c7f3949342ce0b252fb1250",
+      "perceptual_hash": "83a6268198da9f3f~1673.09:83a626919edb9d0e~1844.27:88a687959edb1c4e~2025.23:80868f9dcbc907eb~2288.40:8c8785da43e463fc~2690.01"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000093.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000093.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000093_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000093_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000093_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000093_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000093_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000093_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000094",
+    "title": {
+      "es": "Autumn Leaf Colores en Europa.webm",
+      "en": "Autumn Leaf Colors in Europe.webm"
+    },
+    "description": {
+      "es": "Autumn Leaf Colores en Europa.webm",
+      "en": "Autumn Leaf Colors in Europe.webm"
+    },
+    "tags": {
+      "es": [
+        "Autumn",
+        "Leaf",
+        "Colores",
+        "Europa",
+        "webm",
+        "green",
+        "leaves",
+        "sunlight",
+        "plant"
+      ],
+      "en": [
+        "Autumn",
+        "Leaf",
+        "Colors",
+        "Europe",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "50335101",
+      "source_language": "en",
+      "source_title": "Autumn Leaf Colors in Europe.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Autumn_Leaf_Colors_in_Europe.webm",
+      "source_start": 190.0,
+      "source_end": 198.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 50.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 9918358,
+      "sha256": "60500f632af3169a8112ecf68e1353a8cc29a14196c1ef034490c037dabe1ef7",
+      "perceptual_hash": "d9324d60e29d652f~6483.11:df371e6c729af000~6359.33:d337160b680f7725~6234.88:d220941e714b9ff3~6098.92:d62aa496794a5c9b~6356.95"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000094.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000094.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000094_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000094_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000094_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000094_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000094_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000094_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000095",
+    "title": {
+      "es": "Entrevista con los científicos Graham Farquhar &amp; Susanne von Caemmerer Royal Medal (Biological Sciences) 2025.webm",
+      "en": "Interview with scientists Graham Farquhar & Susanne von Caemmerer Royal Medal (Biological Sciences) 2025.webm"
+    },
+    "description": {
+      "es": "Entrevista con los científicos Graham Farquhar &amp; Susanne von Caemmerer Royal Medal (Biological Sciences) 2025.webm",
+      "en": "Interview with scientists Graham Farquhar & Susanne von Caemmerer Royal Medal (Biological Sciences) 2025.webm"
+    },
+    "tags": {
+      "es": [
+        "Entrevista",
+        "científicos",
+        "Graham",
+        "Farquhar",
+        "amp",
+        "Susanne",
+        "von",
+        "Caemmerer",
+        "Royal",
+        "Medal",
+        "Biological",
+        "Sciences"
+      ],
+      "en": [
+        "Interview",
+        "scientists",
+        "Graham",
+        "Farquhar",
+        "Susanne",
+        "von",
+        "Caemmerer",
+        "Royal",
+        "Medal",
+        "Biological",
+        "Sciences",
+        "2025",
+        "Sunlight",
+        "plant",
+        "leaves"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "181213420",
+      "source_language": "en",
+      "source_title": "Interview with scientists Graham Farquhar & Susanne von Caemmerer - Royal Medal (Biological Sciences) 2025.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Interview_with_scientists_Graham_Farquhar_%26_Susanne_von_Caemmerer_-_Royal_Medal_(Biological_Sciences)_2025.webm",
+      "source_start": 96.0,
+      "source_end": 104.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 1389519,
+      "sha256": "e2bf28bc1d6c54ab28656b546bd60a43b50fc0c6f058f893713915ff953c8416",
+      "perceptual_hash": "93716e0d2125ec7d~2486.16:81ec760723317577~2512.38:91f17e072025e47f~2512.10:93717e0f2025e47e~2501.63:93716e0d202dec7d~2496.61"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000095.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000095.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000095_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000095_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000095_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000095_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000095_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000095_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000096",
+    "title": {
+      "es": "Cómo regar la fruta de su cocina",
+      "en": "How To Regrow Fruit From Your Kitchen"
+    },
+    "description": {
+      "es": "Cómo regar la fruta de su cocina",
+      "en": "How To Regrow Fruit From Your Kitchen"
+    },
+    "tags": {
+      "es": [
+        "Cómo",
+        "regar",
+        "fruta",
+        "cocina",
+        "green",
+        "leaves",
+        "sunlight",
+        "plant"
+      ],
+      "en": [
+        "How",
+        "Regrow",
+        "Fruit",
+        "Your",
+        "Kitchen"
+      ]
+    },
+    "source": {
+      "provider": "ok_ru",
+      "provider_id": "11109757815541",
+      "source_language": "en",
+      "source_title": "How To Regrow Fruit From Your Kitchen",
+      "source_url": "https://ok.ru/video/11109757815541",
+      "source_start": 74.0,
+      "source_end": 82.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 3314928,
+      "sha256": "ece013bfd8afcafd7b063b4ca404e5b3bd68eabb82bcd29b5b25d45c19beeb8c",
+      "perceptual_hash": "b1c692693f6c9c92~6250.12:ec92c3cc19679c93~5244.31:ed9c93cf38619c82~4829.64:bcc1c699656d9493~4281.76:bc6d30b231cee299~6450.62"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000096.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000096.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000096_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000096_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000096_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000096_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000096_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000096_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000097",
+    "title": {
+      "es": "4K Noruega Aurora Borealis Norwegian aurora storm Timelapse by Franso [4K]",
+      "en": "4K Norway Aurora Borealis Norwegian aurora storm Timelapse by Franso [4K]"
+    },
+    "description": {
+      "es": "www.franso.hk\nPelícula corta en condensación auroral.",
+      "en": "www.franso.hk\nShort film at auroral condensation."
+    },
+    "tags": {
+      "es": [
+        "Noruega",
+        "Aurora",
+        "Borealis",
+        "Norwegian",
+        "storm",
+        "Timelapse",
+        "Franso",
+        "seed",
+        "germination"
+      ],
+      "en": [
+        "Norway",
+        "Aurora",
+        "Borealis",
+        "Norwegian",
+        "storm",
+        "Timelapse",
+        "Franso"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1rW411K7hX",
+      "source_language": "zh",
+      "source_title": "4K Norway Aurora Borealis 挪威极光风暴 Timelapse by FranSo [4K]",
+      "source_url": "https://www.bilibili.com/video/BV1rW411K7hX",
+      "source_start": 24.0,
+      "source_end": 32.0
+    },
+    "media": {
+      "duration_seconds": 7.999931,
+      "width": 640,
+      "height": 360,
+      "fps": 24.000208019137762,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 660903,
+      "sha256": "3e2683ba3982ee30082eaf1ebf0102db93ee585e64a66e35d388e08f88d779cd",
+      "perceptual_hash": "b12a49d2b72ceb16~905.61:d769299b9324cf12~2160.09:9592646acb36e5c9~2155.47:a5ea7254cd26595a~907.34:c5ca666e2d16c1e9~2685.26"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000097.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000097.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000097_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000097_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000097_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000097_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000097_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000097_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000098",
+    "title": {
+      "es": "Video de plantas de aguacate",
+      "en": "Video of an avocado plants"
+    },
+    "description": {
+      "es": "Video de plantas de aguacate",
+      "en": "Video of an avocado plants"
+    },
+    "tags": {
+      "es": [
+        "Video",
+        "plantas",
+        "aguacate",
+        "seed",
+        "germination",
+        "timelapse"
+      ],
+      "en": [
+        "Video",
+        "avocado",
+        "plants"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "6955616",
+      "source_language": "en",
+      "source_title": "video-of-an-avocado-plants-6955616",
+      "source_url": "https://www.pexels.com/video/video-of-an-avocado-plants-6955616/",
+      "source_start": 18.0,
+      "source_end": 26.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1973794,
+      "sha256": "955c0699d4581bd6497bdd9dd7aed28b2f48f118befafe901be6de2e22f4c345",
+      "perceptual_hash": "aed8994bc9e4660b~667.89:a8dafb6be4244b11~680.13:a0d1f34cf4349bb1~773.64:8f97d64cb4389b84~1127.26:9c94fc4db43a932c~1266.74"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000098.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000098.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000098_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000098_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000098_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000098_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000098_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000098_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000099",
+    "title": {
+      "es": "Valle, lozoya, paisaje, punto de vista, cielo, nubes, montañas, time lapse, sierra, guadarrama, invierno, nieve, timelapse, sierra de madrid",
+      "en": "Valle, Lozoa, landscape, viewpoint, sky, clouds, mountains, time lapse, saw, guadarrama, winter, snow, timelapse, madrid saw"
+    },
+    "description": {
+      "es": "Valle, lozoya, paisaje, punto de vista, cielo, nubes, montañas, time lapse, sierra, guadarrama, invierno, nieve, timelapse, sierra de madrid",
+      "en": "Valle, Lozoa, landscape, viewpoint, sky, clouds, mountains, time lapse, saw, guadarrama, winter, snow, timelapse, madrid saw"
+    },
+    "tags": {
+      "es": [
+        "Valle",
+        "lozoya",
+        "paisaje",
+        "punto",
+        "vista",
+        "cielo",
+        "nubes",
+        "montañas",
+        "time",
+        "lapse",
+        "sierra",
+        "guadarrama",
+        "seed",
+        "germination",
+        "timelapse"
+      ],
+      "en": [
+        "Valle",
+        "Lozoa",
+        "landscape",
+        "viewpoint",
+        "sky",
+        "clouds",
+        "mountains",
+        "time",
+        "lapse",
+        "saw",
+        "guadarrama",
+        "winter"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "21758",
+      "source_language": "es",
+      "source_title": "valle, lozoya, paisaje, punto de vista, cielo, nubes, montañas, time-lapse, sierra, guadarrama, invierno, nieve, timelapse, sierra de madrid",
+      "source_url": "https://pixabay.com/videos/id-21758/",
+      "source_start": 6.0,
+      "source_end": 14.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 6909172,
+      "sha256": "991fbe39bc3d38935e0186f8ddf113d0ce2b54caf0853e9b6911b9f3e2f50511",
+      "perceptual_hash": "cae22ada936b9c26~3667.24:dda40ad38a6b8c37~4179.26:dc9223ddb369912c~4039.93:f9c909f3ba6690a4~3404.26:d5e606dc9a3d70a8~3129.73"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000099.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000099.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000099_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000099_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000099_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000099_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000099_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000099_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:21:04.381894Z"
   }
 ]
