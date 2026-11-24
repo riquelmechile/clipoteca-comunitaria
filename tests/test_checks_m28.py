@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -172,7 +173,20 @@ def test_rotated_video_preserves_square(tmp_path):
             capture_output=True,
             timeout=30,
         )
-        if process.returncode == 0 and probe_video(rotated)[:2] == (720, 1280):
+        if process.returncode:
+            continue
+        metadata = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(rotated)],
+            check=True,
+            capture_output=True,
+            timeout=30,
+        )
+        stream = json.loads(metadata.stdout)["streams"][0]
+        angle = next(
+            (item["rotation"] for item in stream.get("side_data_list", []) if "rotation" in item),
+            stream.get("tags", {}).get("rotate", 0),
+        )
+        if float(angle) % 360 in (90, 270):
             break
     else:
         pytest.skip("FFmpeg cannot write a 90-degree rotation matrix")
@@ -206,3 +220,23 @@ def test_rotated_video_preserves_square(tmp_path):
     ys, xs = np.where(np.all(frame > 220, axis=2))
     assert len(xs) > 1000
     assert (xs.max() - xs.min() + 1) == pytest.approx(ys.max() - ys.min() + 1, abs=3)
+
+
+@pytest.mark.parametrize(
+    "metadata, expected",
+    [
+        ({"side_data_list": [{"rotation": -90}]}, (720, 1280)),
+        ({"tags": {"rotate": "270"}}, (720, 1280)),
+        ({"side_data_list": [{"rotation": 180}]}, (1280, 720)),
+        ({"side_data_list": [{"rotation": 0}], "tags": {"rotate": "90"}}, (1280, 720)),
+    ],
+)
+def test_probe_rotation_metadata(monkeypatch, metadata, expected):
+    from clipoteca.studio import checks
+
+    stream = {"width": 1280, "height": 720, "duration": "3", **metadata}
+    payload = json.dumps({"streams": [stream]}).encode()
+    monkeypatch.setattr(
+        checks, "_run", lambda *args, **kwargs: subprocess.CompletedProcess([], 0, payload, b"")
+    )
+    assert probe_video("unused.mp4") == (*expected, 3.0)

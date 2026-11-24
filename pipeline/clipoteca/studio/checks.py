@@ -42,9 +42,7 @@ def _run(
     return result
 
 
-def probe_video(
-    path: str | Path, *, deadline: float | None = None
-) -> tuple[int, int, float]:
+def probe_video(path: str | Path, *, deadline: float | None = None) -> tuple[int, int, float]:
     """Read effective display dimensions and duration of the first video stream."""
     import json
 

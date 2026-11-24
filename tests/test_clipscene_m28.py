@@ -593,3 +593,18 @@ def test_preview_analysis_cap(source_clip, tmp_path, monkeypatch):
     assert report["status"] == "ok"
     assert report["analyzed_s"] == 5.0
     assert report["clip"]["start"] + report["clip"]["len"] <= 5.0
+
+
+def test_global_timeout_stops_before_fetch(tmp_path, monkeypatch):
+    monkeypatch.setenv("CLIPOTECA_SCENE_TIMEOUT", "1")
+    ticks = iter([0.0, 2.0])
+    monkeypatch.setattr(clipscene.time, "monotonic", lambda: next(ticks))
+    report = clip_scene(
+        _job(),
+        {"status": "catalog", "primary": {"clip_id": "clip-a", "asset_url": "unused"}},
+        tmp_path,
+        fetch=lambda *_: pytest.fail("expired scene must not fetch"),
+        scorer=FakeScorer(),
+        ocr=lambda _: [],
+    )
+    assert report["tried"] == [{"clip_id": "clip-a", "reason": "timeout"}]

@@ -159,7 +159,7 @@ def _local_source(candidate: dict[str, Any], root: Path | None, destination: Pat
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise ClipSceneError("bad_local_path")
     try:
-        base = root.resolve(strict=True)
+        base = root
         source = base / relative
         current = base
         for part in relative.parts:
@@ -264,12 +264,12 @@ def _cuts(path: Path, deadline: float, duration: float) -> list[float]:
             "ffmpeg",
             "-hide_banner",
             "-nostdin",
+            "-t",
+            str(duration),
             "-i",
             str(path),
             "-vf",
             r"select=gt(scene\,0.3),showinfo",
-            "-t",
-            str(duration),
             "-an",
             "-f",
             "null",
@@ -347,7 +347,8 @@ def _attempt(
             int(job.get("min_short_side", 720)),
         ):
             return None, "low_resolution"
-        mode = fit_mode(duration, length)
+        analyzed_duration = min(duration, MAX_ANALYZED_SECONDS)
+        mode = fit_mode(analyzed_duration, length)
         if mode is None:
             return None, "too_short"
         frames, stamps = _preview_frames(downloaded, sw, sh, duration, deadline)
@@ -357,7 +358,6 @@ def _attempt(
         embedding = scorer.image_emb(frames)
         prompt = scorer.text_emb([job["prompt"]])[0]
         negatives = scorer.text_emb(job.get("negatives", []))
-        analyzed_duration = min(duration, MAX_ANALYZED_SECONDS)
         analyzed = {
             "emb": embedding,
             "ts": stamps,
@@ -369,15 +369,13 @@ def _attempt(
             "cuts": _cuts(downloaded, deadline, analyzed_duration),
         }
         proposals = windows(analyzed, prompt, length, nemb=negatives)
-        chosen, reason = choose_window(
-            proposals, job.get("min_sim", 0.22), job.get("min_prob", 0.5)
-        )
+        chosen, reason = choose_window(proposals, job.get("min_sim", 0.22), job.get("min_prob", 0.5))
         if chosen is None:
             return None, reason
         if chosen["score"] < job.get("min_score", 0.0):
             return None, "low_score"
         begin = chosen["start"]
-        actual_span = duration if mode == "whole" else length
+        actual_span = analyzed_duration if mode == "whole" else length
         if _ocr_positions(downloaded, begin, actual_span, duration, (0.25, 0.75), ocr, deadline):
             return None, "text_in_preview"
         focus = _make_focus(frames, stamps, begin, actual_span)
@@ -435,7 +433,9 @@ def _attempt(
             return None, "black"
         if frozen:
             return None, "frozen"
-        if _ocr_positions(rendered, 0.0, output_dur, output_dur, (0.2, 0.5, 0.8), ocr, deadline):
+        if _ocr_positions(
+            rendered, 0.0, output_dur, output_dur, (0.2, 0.5, 0.8), ocr, deadline
+        ):
             return None, "on_screen_text"
         phash = checks.mid_phash(rendered, deadline=deadline)
         if time.monotonic() >= deadline:
@@ -513,7 +513,10 @@ def clip_scene(
     skipped = set(exclude)
     if any(isinstance(item, dict) and item.get("clip_id") not in skipped for item in source):
         scorer, ocr = _initialize_evaluators(scorer, ocr)
-    resolved_root = Path(local_root).resolve() if local_root is not None else None
+    try:
+        resolved_root = Path(local_root).resolve() if local_root is not None else None
+    except (OSError, RuntimeError):
+        resolved_root = None
     for index, candidate in enumerate(source):
         if not isinstance(candidate, dict) or not isinstance(candidate.get("clip_id"), str):
             raise ClipSceneError("assignment candidate missing clip_id")
@@ -565,6 +568,7 @@ def clip_scene(
             except TimeoutError:
                 result, reason = None, "timeout"
             if result is not None:
+                analyzed_s = result.pop("_analyzed_s", None)
                 os.replace(rendered, final_clip)
                 report = {
                     "version": 1,
@@ -574,11 +578,7 @@ def clip_scene(
                     "used": "primary" if index == 0 else "backup",
                     "tried": attempts,
                     "time_s": round(time.monotonic() - started, 3),
-                    **(
-                        {"analyzed_s": result.pop("_analyzed_s")}
-                        if "_analyzed_s" in result
-                        else {}
-                    ),
+                    **({"analyzed_s": analyzed_s} if analyzed_s is not None else {}),
                 }
                 _atomic_json(root / "result.json", report)
                 return report
