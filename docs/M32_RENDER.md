@@ -29,9 +29,10 @@ El nombre de corrida es render seguido del request_id.
   válido, entrega.json registra el motivo de la escena y no se entrega MP4.
 - index descarga artefactos de scene, detecta manifiestos de importación
   no vacíos e indexa todos los clips válidos en un solo commit, aunque
-  falle assemble. Es el único job con contents: write; grupo
-  clipoteca-catalog, sin cancelar otros trabajos.
-- assemble utiliza el resultado del índice si existe, reintenta duplicados
+  falle assemble. Es el único job con contents: write; no usa una cola que
+  cancele indexados pendientes. Los conflictos de assets o SHA provocan
+  una nueva lectura, deduplicación y asignación, con seis intentos y backoff.
+- assemble no espera a index; reintenta duplicados
   hasta dos veces, ajusta, mezcla, compone y ejecuta QA. Entrega el MP4
   únicamente cuando pasan las 14 compuertas.
 
@@ -45,7 +46,8 @@ El nombre de corrida es render seguido del request_id.
 
 El [esquema de entrega](../schemas/video-delivery.schema.json) exige SHA-256,
 tamaño y duración del MP4, script_id, título, aspecto, QA, clips usados y
-su procedencia, clips indexados y tiempos. No hay video Release ni ficha
+su procedencia, clips indexados conocidos y tiempos. El índice definitivo se
+publica por separado como indexed-clips; el estado lo incorpora cuando llega. No hay video Release ni ficha
 persistente en data/videos. Los artefactos de diagnóstico pueden existir
 aunque no exista el video aprobado.
 
@@ -57,7 +59,12 @@ solo existen en el paso importador. El GITHUB_TOKEN de Actions se usa
 solo en index con contents: write. En el Worker, CLIPOTECA_DISPATCH_TOKEN
 necesita actions: read y write sobre este repositorio; CLIPOTECA_WRITE_TOKEN
 autoriza nuevas solicitudes. El id de descarga es una credencial, no debe
-registrarse ni compartirse.
+registrarse ni compartirse. Los POST de video tienen cuota propia (5 minutos
+entre solicitudes y 12 por día UTC por IP, Cache API best-effort); la cuota
+normal de importación no cambia. Tras aceptar el POST puede haber un 404
+transitorio mientras aparece el run; reintentar. La descarga admite Range,
+streaming para ZIP almacenado y fallback deflate de hasta 8 MB. El estado
+advierte si la evidencia de entrega o indexado no es legible.
 
 Promover también [propuestas/install-ffmpeg.action.yml](../propuestas/install-ffmpeg.action.yml)
 a .github/actions/install-ffmpeg/action.yml. Usa FFmpeg/FFprobe b6.1.1

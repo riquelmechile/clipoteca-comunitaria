@@ -32,10 +32,8 @@ def test_render_workflow_delivery_contract():
     assert spec["permissions"] == {"contents": "read"}
     assert jobs["index"]["permissions"] == {"contents": "write"}
     assert all("permissions" not in job for key, job in jobs.items() if key != "index")
-    assert jobs["index"]["concurrency"] == {
-        "group": "clipoteca-catalog",
-        "cancel-in-progress": "false",
-    }
+    assert "concurrency" not in jobs["index"]
+    assert "index" not in jobs["assemble"]["needs"]
     assert jobs["index"]["needs"] == "scene"
     steps = jobs["assemble"]["steps"]
     uploads = {

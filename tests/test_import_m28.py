@@ -262,17 +262,47 @@ def test_no_results_and_cli_exit_three(tmp_path, monkeypatch, capsys):
     assert json.loads(capsys.readouterr().out)["imported"] == 0
 
 
+def _assert_import_integrity(report, out):
+    for clip in report["clips"]:
+        data = (out / clip["assets"]["video"]).read_bytes()
+        digest = hashlib.sha256(data).hexdigest()
+        assert clip["sha256"] == digest
+        assert clip["size_bytes"] == len(data)
+        assert clip["imp_id"] == "imp-" + digest[:12]
+        assert clip["record"]["media"]["sha256"] == digest
+        assert clip["record"]["media"]["size_bytes"] == len(data)
+
+
+def _stable_import_report(report):
+    # FFmpeg may encode equivalent frames with different container bytes.
+    # Only byte-dependent metadata/paths and elapsed time are normalized.
+    result = copy.deepcopy(report)
+    result.pop("time_s", None)
+    for clip in result["clips"]:
+        ident = clip["imp_id"]
+        for key in ("sha256", "size_bytes"):
+            clip.pop(key)
+            clip["record"]["media"].pop(key)
+        clip["imp_id"] = "imp-content"
+        clip["local_path"] = clip["local_path"].replace(ident, "imp-content")
+        for key, value in clip["assets"].items():
+            if isinstance(value, list):
+                clip["assets"][key] = [path.replace(ident, "imp-content") for path in value]
+            else:
+                clip["assets"][key] = value.replace(ident, "imp-content")
+    return result
+
+
 def test_determinism_and_clean_reexecution(tmp_path, videos, engine):
     out = tmp_path / "again"
     catalog = _catalog(tmp_path)
     a = _import(load("job.json"), out, catalog, videos, max_results=1)
+    _assert_import_integrity(a, out)
     (out / "clips" / "orphan.mp4").write_bytes(b"garbage")
     b = _import(load("job.json"), out, catalog, videos, max_results=1)
     assert not (out / "clips" / "orphan.mp4").exists()
-    for name in ("time_s",):
-        a.pop(name, None)
-        b.pop(name, None)
-    assert a == b
+    _assert_import_integrity(b, out)
+    assert _stable_import_report(a) == _stable_import_report(b)
     for name in ("clips", "thumbs", "storyboards"):
         assert not any(p.is_symlink() for p in (out / name).rglob("*"))
 
