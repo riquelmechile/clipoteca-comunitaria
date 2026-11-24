@@ -583,3 +583,71 @@ def test_simple_queries_remove_common_qualifiers():
     job = {"title": "La lona", "prompt": "Real cinematic footage of waterproof tarpaulin"}
     assert importer.simple_queries(job, ["rain"]) == ["lona", "waterproof tarpaulin"]
     assert importer.simple_queries(job, ["lona", "waterproof tarpaulin"]) == ["waterproof"]
+
+
+@pytest.mark.parametrize("raises", [False, True])
+def test_wall_deadline_restores_handler_and_timer(raises):
+    import signal
+
+    previous = signal.getsignal(signal.SIGALRM)
+    assert signal.getitimer(signal.ITIMER_REAL) == (0, 0)
+    try:
+        with importer._wall_deadline(60):
+            assert signal.getsignal(signal.SIGALRM) != previous
+            assert signal.getitimer(signal.ITIMER_REAL)[0] > 0
+            if raises:
+                raise RuntimeError("body failed")
+    except RuntimeError:
+        assert raises
+    assert signal.getsignal(signal.SIGALRM) == previous
+    assert signal.getitimer(signal.ITIMER_REAL) == (0, 0)
+
+
+def test_wall_deadline_preserves_external_timer_and_thread():
+    import signal
+    import threading
+
+    previous = signal.getsignal(signal.SIGALRM)
+    signal.setitimer(signal.ITIMER_REAL, 60)
+    try:
+        with importer._wall_deadline(1):
+            assert signal.getsignal(signal.SIGALRM) == previous
+            assert signal.getitimer(signal.ITIMER_REAL)[0] > 10
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+    observed = []
+
+    def thread():
+        with importer._wall_deadline(10):
+            observed.append(signal.getitimer(signal.ITIMER_REAL))
+
+    worker = threading.Thread(target=thread)
+    worker.start()
+    worker.join()
+    assert observed == [(0, 0)]
+    assert signal.getsignal(signal.SIGALRM) == previous
+
+
+def test_assignment_name_prefers_rapa_nui_over_nui_cui():
+    def item(title, ident):
+        return {
+            "imp_id": ident,
+            "duration": 8,
+            "width": 1080,
+            "height": 1920,
+            "sha256": "a" * 64,
+            "size_bytes": 123,
+            "source_url": "https://example.org",
+            "local_path": f"clips/{ident}.mp4",
+            "record": {"title": {"en": title}},
+        }
+
+    job = load("job.json")
+    job["len_est"] = 5
+    job["queries"] = {"es": ["moais Rapa Nui"], "en": ["moai Rapa Nui"]}
+    result = importer._assignment(
+        job, [item("Moai Nui Cui statue", "wrong"), item("Rapa Nui moai", "right")]
+    )
+    assert result["primary"]["clip_id"] == "right"
+    assert result["primary"]["name_match"]
+    assert not result["backups"][0]["name_match"]
