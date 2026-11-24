@@ -9277,5 +9277,458 @@
       "date": "2026-11-24"
     },
     "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000140",
+    "title": {
+      "es": "Majestic perito moreno glaciar en patagonia",
+      "en": "Majestic perito moreno glacier in patagonia"
+    },
+    "description": {
+      "es": "Majestic perito moreno glaciar en patagonia",
+      "en": "Majestic perito moreno glacier in patagonia"
+    },
+    "tags": {
+      "es": [
+        "Majestic",
+        "perito",
+        "moreno",
+        "glaciar",
+        "patagonia"
+      ],
+      "en": [
+        "Majestic",
+        "perito",
+        "moreno",
+        "glacier",
+        "patagonia"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "32881615",
+      "source_language": "en",
+      "source_title": "majestic-perito-moreno-glacier-in-patagonia-32881615",
+      "source_url": "https://www.pexels.com/video/majestic-perito-moreno-glacier-in-patagonia-32881615/",
+      "source_start": 10.0,
+      "source_end": 18.06805
+    },
+    "media": {
+      "duration_seconds": 8.05805,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 6075335,
+      "sha256": "2a72d61864b3021d7f5752aa9bf84c101edfcbe32addcdfea5ab021fdda87de8",
+      "perceptual_hash": "90951d8fe2a7a1e3~2466.88:94951d8be2a5e3e1~2439.00:94950dd3e2a5e3e1~2449.21:94940dd3e0a3e76b~2519.14:94940db3eea3e562~2589.58"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000140.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000140.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000140_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000140_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000140_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000140_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000140_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000140_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T15:25:33.317386Z"
+  },
+  {
+    "id": "clip-000141",
+    "title": {
+      "es": "Vista majestuosa del glaciar en la patagonia salvaje",
+      "en": "Majestic view of glacier in wild patagonia"
+    },
+    "description": {
+      "es": "Vista majestuosa del glaciar en la patagonia salvaje",
+      "en": "Majestic view of glacier in wild patagonia"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "majestuosa",
+        "glaciar",
+        "patagonia",
+        "salvaje"
+      ],
+      "en": [
+        "Majestic",
+        "view",
+        "glacier",
+        "wild",
+        "patagonia"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "32987056",
+      "source_language": "en",
+      "source_title": "majestic-view-of-glacier-in-wild-patagonia-32987056",
+      "source_url": "https://www.pexels.com/video/majestic-view-of-glacier-in-wild-patagonia-32987056/",
+      "source_start": 8.0,
+      "source_end": 17.500817
+    },
+    "media": {
+      "duration_seconds": 9.492817,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 16603270,
+      "sha256": "613288438ab67e3c5c9e2b2f2ed361b7040a9e754e826febb21ad05122ef3d3e",
+      "perceptual_hash": "d0c866b4de590f8e~2656.25:d8c862b4d6598f8e~2704.18:d8ca66b4d4498f8e~2751.75:d9ca64b55c498dcc~2814.11:d9ca67b55c088d8e~2811.11"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000141.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000141.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000141_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000141_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000141_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000141_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000141_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000141_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T15:25:33.317386Z"
+  },
+  {
+    "id": "clip-000142",
+    "title": {
+      "es": "Majestic perito moreno glaciar en patagonia",
+      "en": "Majestic perito moreno glacier in patagonia"
+    },
+    "description": {
+      "es": "Majestic perito moreno glaciar en patagonia",
+      "en": "Majestic perito moreno glacier in patagonia"
+    },
+    "tags": {
+      "es": [
+        "Majestic",
+        "perito",
+        "moreno",
+        "glaciar",
+        "patagonia"
+      ],
+      "en": [
+        "Majestic",
+        "perito",
+        "moreno",
+        "glacier",
+        "patagonia"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "32881618",
+      "source_language": "en",
+      "source_title": "majestic-perito-moreno-glacier-in-patagonia-32881618",
+      "source_url": "https://www.pexels.com/video/majestic-perito-moreno-glacier-in-patagonia-32881618/",
+      "source_start": 10.0,
+      "source_end": 20.336983
+    },
+    "media": {
+      "duration_seconds": 10.326983,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 9943918,
+      "sha256": "a9f2a05a2202567461314814146d33992bce2131aefdab36c973086cbabc635e",
+      "perceptual_hash": "c5c7430f4b0fa9a5~1573.47:cf404b4b0f8fa987~1472.88:cd454b430f8d839f~1388.43:cd454a454f898baf~1355.47:c5474a470f898fae~1430.19"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000142.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000142.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000142_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000142_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000142_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000142_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000142_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000142_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T15:25:33.317386Z"
+  },
+  {
+    "id": "clip-000143",
+    "title": {
+      "es": "Patagonia escénica con picos nevados",
+      "en": "Scenic patagonia landscape with snowy peaks"
+    },
+    "description": {
+      "es": "Patagonia escénica con picos nevados",
+      "en": "Scenic patagonia landscape with snowy peaks"
+    },
+    "tags": {
+      "es": [
+        "Patagonia",
+        "escénica",
+        "picos",
+        "nevados"
+      ],
+      "en": [
+        "Scenic",
+        "patagonia",
+        "landscape",
+        "snowy",
+        "peaks"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35564898",
+      "source_language": "en",
+      "source_title": "scenic-patagonia-landscape-with-snowy-peaks-35564898",
+      "source_url": "https://www.pexels.com/video/scenic-patagonia-landscape-with-snowy-peaks-35564898/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 22638366,
+      "sha256": "76cd6be06b12dcd1e94887dfcc97f2918775dcb0f734fcacbde741c6bc97e2fd",
+      "perceptual_hash": "cea1a57075c8c57c~3039.60:c681f03b2ec9e56a~2718.94:d0d0bd2d20e6f539~2807.61:ccccb338325e1d93~2991.51:e7b58f1e61418ea2~4185.39"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000143.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000143.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000143_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000143_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000143_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000143_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000143_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000143_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T15:25:33.317386Z"
+  },
+  {
+    "id": "clip-000144",
+    "title": {
+      "es": "Vistas impresionantes de torres del paine chile",
+      "en": "Breathtaking views of torres del paine chile"
+    },
+    "description": {
+      "es": "Vistas impresionantes de torres del paine chile",
+      "en": "Breathtaking views of torres del paine chile"
+    },
+    "tags": {
+      "es": [
+        "Vistas",
+        "impresionantes",
+        "torres",
+        "paine",
+        "chile"
+      ],
+      "en": [
+        "Breathtaking",
+        "views",
+        "torres",
+        "paine",
+        "chile"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "39750738",
+      "source_language": "en",
+      "source_title": "breathtaking-views-of-torres-del-paine-chile-39750738",
+      "source_url": "https://www.pexels.com/video/breathtaking-views-of-torres-del-paine-chile-39750738/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 9300625,
+      "sha256": "b36761edddbeeffa0c8137cfca51abdec4a6dc876460d6ba7a7d4e05f1c4e7c0",
+      "perceptual_hash": "9b9fca0a379d2a48~3946.08:bb8fca06378d0a5a~3852.05:948de9295ac6e52d~3936.64:84a1bb6244fd3b66~4208.13:a3bb3d69ab8a10d1~4206.29"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000144.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000144.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000144_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000144_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000144_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000144_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000144_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000144_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T15:25:33.317386Z"
+  },
+  {
+    "id": "clip-000145",
+    "title": {
+      "es": "Patagonia escénica con picos nevados",
+      "en": "Scenic patagonia landscape with snowy peaks"
+    },
+    "description": {
+      "es": "Patagonia escénica con picos nevados",
+      "en": "Scenic patagonia landscape with snowy peaks"
+    },
+    "tags": {
+      "es": [
+        "Patagonia",
+        "escénica",
+        "picos",
+        "nevados"
+      ],
+      "en": [
+        "Scenic",
+        "patagonia",
+        "landscape",
+        "snowy",
+        "peaks"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35564898",
+      "source_language": "en",
+      "source_title": "scenic-patagonia-landscape-with-snowy-peaks-35564898",
+      "source_url": "https://www.pexels.com/video/scenic-patagonia-landscape-with-snowy-peaks-35564898/",
+      "source_start": 12.0,
+      "source_end": 21.738383
+    },
+    "media": {
+      "duration_seconds": 9.726383,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 8201386,
+      "sha256": "bff20febe46cb2b9deabc8be7fec8b8b12af683888d28e65bf1bc11ae55d6be4",
+      "perceptual_hash": "b2ba8f874646b3a1~4168.59:849ca5a96978de96~4454.75:a4b0b3733a4acc3d~5255.00:bbb838382b8b5a1e~5562.95:b9b92a3b91d317a0~5773.71"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000145.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000145.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000145_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000145_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000145_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000145_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000145_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000145_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T15:25:33.317386Z"
+  },
+  {
+    "id": "clip-000146",
+    "title": {
+      "es": "Vista aérea de Valparaíso s impresionante costa",
+      "en": "Aerial view of valparaiso s stunning coastline"
+    },
+    "description": {
+      "es": "Vista aérea de Valparaíso s impresionante costa",
+      "en": "Aerial view of valparaiso s stunning coastline"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "Valparaíso",
+        "impresionante",
+        "costa"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "valparaiso",
+        "stunning",
+        "coastline"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "39213473",
+      "source_language": "en",
+      "source_title": "aerial-view-of-valparaiso-s-stunning-coastline-39213473",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-valparaiso-s-stunning-coastline-39213473/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 15451831,
+      "sha256": "af9422e290f73bfbb087c06b0fc2f1d00ca5811d0aeff98bd9a84bca0c4fbbf6",
+      "perceptual_hash": "d3db69853d40a21f~3099.99:f2dbe9851d70803d~3057.74:f2dbe8a51d728071~2988.06:f2da68a51d7aa261~2914.31:d6da2ca11f78a325~2823.58"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000146.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000146.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000146_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000146_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000146_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000146_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000146_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000146_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T15:25:33.317386Z"
   }
 ]
