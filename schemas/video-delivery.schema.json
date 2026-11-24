@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clipoteca video delivery",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "script_id",
+    "title",
+    "aspect",
+    "duration_s",
+    "sha256",
+    "size_bytes",
+    "qa",
+    "scenes",
+    "clips_indexed",
+    "timings"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "script_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aspect": {
+      "enum": [
+        "9:16",
+        "16:9",
+        "1:1"
+      ]
+    },
+    "duration_s": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 60
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass",
+        "failed"
+      ],
+      "properties": {
+        "pass": {
+          "type": "boolean"
+        },
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "clip_id",
+          "origin",
+          "source",
+          "source_url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "clip_id": {
+            "type": "string",
+            "pattern": "^(?:clip-[0-9]{6}|imp-[a-f0-9]{12})$"
+          },
+          "origin": {
+            "enum": [
+              "catalog",
+              "imported"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "clips_indexed": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^clip-[0-9]{6}$"
+      }
+    },
+    "timings": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
+    }
+  }
+}
