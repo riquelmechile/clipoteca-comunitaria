@@ -1,74 +1,83 @@
-# M32: workflow de render en GitHub Actions
+# M32: render, indexado y entrega temporal
 
-`.github/workflows/render.yml` produce un video a partir de un guion. Se
-dispara a mano (`workflow_dispatch`); todavía no hay API ni tool MCP que lo
-llame (eso es M33).
+El workflow está en [.github/workflows/render.yml](../.github/workflows/render.yml).
+El Worker 3.0.0 lo despacha; las corridas reales que lo validan se registran en [ESTADO](ESTADO.md).
 
-## Entradas
-
-| Entrada | Qué es |
+| Input | Contrato |
 |---|---|
-| `script_json` | El guion completo en JSON (`schemas/video.schema.json`). El tope de GitHub para las entradas de un disparo es de 65 535 caracteres. |
-| `publish` | Apagado por defecto. Apagado = ensayo: el video queda como artefacto de la corrida y no se publica nada. Encendido = publica solo si el control de calidad aprueba. |
-| `request_id` | Opcional. Las corridas con el mismo identificador no corren a la vez: la segunda espera a la primera. |
+| script_json | Guion JSON, esquema [video.schema.json](../schemas/video.schema.json), 3–12 escenas, ≤60 segundos |
+| request_id | Obligatorio: 8–64 caracteres ASCII alfanuméricos, guion o guion bajo |
+| index_clips | Booleano, true por defecto |
+
+El Worker genera un id privado de 128 bits y despacha con request_id = SHA-256
+del id, para que los nombres públicos de Actions no revelen la credencial.
+El nombre de corrida es render seguido del request_id.
 
 ## Jobs
 
-    plan ──┬── voice ──┐
-           ├── music ──┼── assemble ── publish
-           └── scene × N ┘
-
-- **plan**: valida el guion, escribe un trabajo por escena y busca en el
-  catálogo. Rechaza de entrada un guion que estime más de 60 segundos.
-- **voice**: voz con control de pronunciación y línea de tiempo por palabra.
-- **music**: música generada sin red en Chromium.
-- **scene** (uno por escena, en paralelo): descarga el modelo de
-  evaluación verificando su suma y lo deja en caché; intenta con el catálogo. Si esa
-  escena no tiene material utilizable, prepara los recursos de traducción,
-  importa material nuevo sin publicarlo y vuelve a intentar con lo
-  importado. Una escena sin clip no detiene a las demás.
-- **assemble**: junta todo; si dos escenas eligieron el mismo clip, repite
-  la de menor puntaje excluyendo los ya usados (hasta dos rondas); exige un
-  clip por escena; ajusta, mezcla, compone, renderiza y corre las 14
-  compuertas. Si aprueba, hace un ensayo de publicación en disco. Sube el
-  video y los reportes como artefacto `video-<run_id>` aunque QA rechace,
-  para poder ver por qué.
-- **publish**: solo con `publish` encendido, QA aprobado y en `main`. Es el
-  único job con permiso de escritura y corre de a uno
-  (`concurrency: clipoteca-publish`), porque el commit al catálogo y el
-  número del Release del video son compartidos.
-
-Cada job deja su parte en el resumen de la corrida: el plan, el clip de
-cada escena con los descartes y su motivo, la tabla de compuertas con sus
-datos y los tiempos por etapa.
-
-## Seguridad
-
-- El guion es texto no confiable: llega a los pasos por variable de
-  entorno y nunca se interpola en el shell.
-- Los identificadores de escena los valida el plan y se usan siempre
-  entre comillas.
-- Las credenciales de fuentes solo se entregan al paso de importación.
-  El token con permiso de escritura solo existe en el job `publish`.
-- Las acciones de terceros están fijadas por SHA y ningún job deja el
-  token guardado en la configuración de git.
-- El job `publish` comprueba que el MP4 que recibe tenga el mismo SHA-256
-  que el que aprobó el control de calidad en `assemble`, antes de las
-  verificaciones propias del módulo de publicación.
+- plan valida guion y asigna candidatos del catálogo.
+- voice, music y scene (matriz) corren en paralelo. Por escena, si no existe
+  una coincidencia fuerte (sim ≥0,27, provisional), se importan candidatos
+  y se elige el importado válido más pertinente; el catálogo débil solo es respaldo
+  cuando no hay ningún importado válido. La primera
+  ronda reparte hasta ocho candidatos entre las consultas únicas (en, es),
+  en orden, con 600 s de presupuesto. Si ningún importado supera los filtros
+  de escena, una ronda adicional simplifica título y prompt, hasta dos
+  candidatos en 180 s. El total máximo es diez. Una coincidencia débil válida
+  del catálogo se marca fallback=true cuando resulta elegida. Sin candidato
+  válido, entrega.json registra el motivo de la escena y no se entrega MP4.
+- index descarga artefactos de scene, detecta manifiestos de importación
+  no vacíos e indexa todos los clips válidos en un solo commit, aunque
+  falle assemble. Es el único job con contents: write; no usa una cola que
+  cancele indexados pendientes. Los conflictos de assets o SHA provocan
+  una nueva lectura, deduplicación y asignación, con seis intentos y backoff.
+- assemble no espera a index; reintenta duplicados
+  hasta dos veces, ajusta, mezcla, compone y ejecuta QA. Entrega el MP4
+  únicamente cuando pasan las 14 compuertas.
 
 ## Artefactos
 
-Los intermedios (plan, voz, música y escenas) se guardan 7 días; el video
-con sus reportes, 14; el conjunto publicable, 3.
+| Nombre | Contenido | Retención |
+|---|---|---|
+| video-${request_id} | Solo video.mp4, compresión 0 | 7 días |
+| entrega-${request_id} | entrega.json, qa_report.json, render.json, timings.json disponibles | 7 días |
+| indexed-clips | index.json, mapa de IDs y nuevos clips | 7 días |
 
-## Qué está comprobado y qué no
+El [esquema de entrega](../schemas/video-delivery.schema.json) exige SHA-256,
+tamaño y duración del MP4, script_id, título, aspecto, QA, clips usados y
+su procedencia, clips indexados conocidos y tiempos. El índice definitivo se
+publica por separado como indexed-clips; el estado lo incorpora cuando llega. No hay video Release ni ficha
+persistente en data/videos. Los artefactos de diagnóstico pueden existir
+aunque no exista el video aprobado.
 
-Comprobado fuera de Actions, con los mismos comandos del job `assemble`
-ejecutados sobre una corrida real de cinco escenas: resolución de un clip
-repetido a propósito, ajuste, mezcla, composición, render, las 14
-compuertas, tiempos y ensayo de publicación.
+## Seguridad y operación
 
-Pendiente de comprobar en Actions, con una corrida real del workflow: el
-reparto en jobs y artefactos, la caché de modelos y, sobre todo, la
-importación de material nuevo dentro del flujo de video, que hasta ahora
-solo se probó con fuentes simuladas.
+Las acciones se fijan por SHA, el guion se pasa por variable de entorno
+y los IDs de escena se validan y entrecomillan. Los secretos de fuentes
+solo existen en el paso importador. El GITHUB_TOKEN de Actions se usa
+solo en index con contents: write. En el Worker, CLIPOTECA_DISPATCH_TOKEN
+necesita actions: read y write sobre este repositorio; CLIPOTECA_WRITE_TOKEN
+autoriza nuevas solicitudes. El id de descarga es una credencial, no debe
+registrarse ni compartirse. Los POST de video tienen cuota propia (5 minutos
+entre solicitudes y 12 por día UTC por IP, Cache API best-effort); la cuota
+normal de importación no cambia. Tras aceptar el POST puede haber un 404
+transitorio mientras aparece el run; reintentar. La descarga admite Range,
+streaming para ZIP almacenado y fallback deflate de hasta 8 MB. El estado
+advierte si la evidencia de entrega o indexado no es legible.
+
+La acción [install-ffmpeg](../.github/actions/install-ffmpeg/action.yml) usa FFmpeg/FFprobe b6.1.1
+fijados por SHA-256, con apt acotado como respaldo; el tiempo medido
+por escena se guarda como install_ffmpeg, aparte de catalog, import e import_retry.
+La medición del tiempo de instalación y de los tres formatos permanece
+pendiente de corrida real; no se afirma que el despliegue ya esté activo.
+
+## Primera corrida del workflow anterior
+
+[Run 45309334286](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45309334286):
+cinco escenas 9:16; cuatro resolvieron catálogo (~1 min por escena), dos
+esperaron ~17 min de instalación apt. La importación real trajo tres clips
+(Pexels, Wikimedia Commons, TILvids) en ~2,5 min tras una sola consulta
+(tarpaulin). Los tres fueron rechazados por relevancia; assemble falló con
+lona (no_candidate). No se produjo un video final. Estos datos motivan las
+dos rondas, el indexado independiente y el instalador fijo. Los resultados
+del nuevo flujo siguen pendientes de corrida real.

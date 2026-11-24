@@ -17,24 +17,20 @@
 
 ## Arquitectura
 
-Este diagrama describe el plan del servicio. De él existe hoy el workflow `render.yml`, de disparo manual y sin validar con corridas reales ([M32](M32_RENDER.md)); el Worker todavía no lo despacha. Las etapas ya integradas se detallan en [STUDIO.md](STUDIO.md).
+La propuesta de entrega debe promoverse antes de desplegar el Worker.
 
 ```
-Agente ──MCP/REST──▶ Worker ──workflow_dispatch──▶ render.yml
-                                    plan
-                                     ├─▶ voice   ┐
-                                     ├─▶ music   ├─ en paralelo (jobs separados)
-                                     └─▶ scene×N ┘  (matriz, un runner por escena)
-                                          ▼
-                       assemble: ajuste → mezcla → HTML → render → mux → QA
-                                          ▼
-                       publish: video a Release + ficha en data/videos/
-                                + clips nuevos al catálogo (un solo escritor)
+REST/MCP → Worker → render.yml
+                   plan
+                    ├─ voice ──┐
+                    ├─ music ──┼─ assemble → QA → entrega temporal
+                    └─ scene×N ┘
+                         └── index → catálogo (independiente de QA)
 ```
 
-- Los jobs se pasan archivos por artefactos de Actions.
-- Los jobs de escena no escriben en el catálogo. Un único job final publica los clips nuevos: la biblioteca crece con cada video.
-- Mismo patrón que `ingest.yml`: `request_id` determinista, registro en `data/jobs/`, estado consultable.
+Los clips importados válidos se indexan aunque no se usen o falle QA.
+El video no se guarda en Releases ni en data/videos. El id de descarga
+es aleatorio; su SHA-256 identifica la corrida pública.
 
 ## Bloque H — contrato
 
@@ -50,13 +46,13 @@ Agente ──MCP/REST──▶ Worker ──workflow_dispatch──▶ render.ym
 
 - [x] **M29 · Ajuste y mezcla (1 PR).** Ajuste de cada clip al largo real de su escena: recorta; si falta, cámara lenta ≤ 1,25×; si falta mucho, 1,2× + ping-pong; > 2,4× se reporta para re-despacho; nunca imagen congelada. Mezcla: voz 0,3 s después de cada corte, ducking de la música, golpe en cada corte, fundido final, −14 LUFS y pico real ≤ −1 dBTP. **Aceptación:** tests con clips sintéticos para los tres modos de ajuste; loudness medido con `ebur128`. **Estado:** (#92, #96) Tests en CI; tiempos de procesamiento pendientes.
 - [ ] **M30 · Composición y render (2 PR).** `studio/build_html.py` neutro: títulos por escena, subtítulos palabra a palabra, paleta, zona segura, franja del título donde hay menos sujeto. Render con `npx hyperframes@0.9.36` + GSAP en Chrome headless y mux `libx264 -preset slow -crf 20 -pix_fmt yuv420p -profile:v high`, AAC 192 k 48 kHz, `+faststart`. **Aceptación:** video real de 3 escenas renderizado en Actions; tiempo de render medido y publicado. **Estado:** hecho: compose.py y render real en CI (#95, #96, #99) / falta: fuente propia y franja de título según el sujeto.
-- [x] **M31 · QA (1 PR).** 14 compuertas: hyperframes_check, layout_playwright, file_probe, decode_clean, blackdetect, freezedetect, silencedetect, loudness, whisper_wer (≤ 0,12), subtitle_sync, clips_all_scenes, clips_unique, clips_resolution, clips_black_freeze. Si una falla, no se publica nada y el motivo queda en el job. **Aceptación:** un fixture malo por compuerta la hace fallar. **Estado:** (#97) QA y layout real en CI.
+- [x] **M31 · QA (1 PR).** 14 compuertas: hyperframes_check, layout_playwright, file_probe, decode_clean, blackdetect, freezedetect, silencedetect, loudness, whisper_wer (≤ 0,12), subtitle_sync, clips_all_scenes, clips_unique, clips_resolution, clips_black_freeze. Si una falla, no se entrega el MP4 y el motivo queda en el job; los clips válidos sí se indexan. **Aceptación:** un fixture malo por compuerta la hace fallar. **Estado:** (#97) QA y layout real en CI.
 
 ## Bloque K — servicio
 
-- [ ] **M32 · Workflow `render.yml` en paralelo + publicación (2 PR).** Jobs `plan` → `voice` ∥ `music` ∥ `scene` (matriz) → `assemble` → `publish`. Re-despacho automático de escenas fallidas hasta 2 rondas. Video en Release `video-AAAA-MM-DD-NNN` con `make_latest=false`; ficha en `data/videos/<id>.json` (guion, clips usados, reporte QA, tiempos). Los clips importados durante el video se publican al catálogo en un solo commit. **Aceptación:** video E2E por `workflow_dispatch` manual. **Estado:** hecho: módulo de publicación, esquema y tests (#100); workflow `render.yml` (#103) / falta: prueba integral en Actions con importación real.
-- [ ] **M33 · API y MCP (1–2 PR).** `POST /v1/videos` (mismo Bearer de escritura que `/v1/import`), `GET /v1/videos/{id}`; tools MCP `render_video` y `get_video_status`. OpenAPI y cuotas actualizadas. **Aceptación:** un agente MCP manda un guion de 5 escenas y recibe la URL del MP4. **Estado:** falta: endpoints y tools MCP de video.
-- [ ] **M34 · Cierre v3 (1–2 PR).** Tres videos reales de temas distintos (9:16, 16:9 y 1:1), minutos de Actions y tiempos por etapa medidos, `docs/ESTADO.md` y operación actualizados, versión 3.0.0 sincronizada en Python, Worker, OpenAPI, CLI, health y MCP. **Aceptación:** demostración E2E reproducible, CI verde. **Estado:** falta: evidencia integral y versión 3.0.0.
+- [ ] **M32 · Render y entrega.** Código de selección fuerte, indexado independiente y entrega temporal. Workflow en .github/workflows/render.yml: pendiente de corrida real.
+- [ ] **M33 · API y MCP.** Código de POST /v1/videos, GET de estado y MP4 y las dos tools MCP. Pendiente de despliegue y prueba E2E.
+- [ ] **M34 · Cierre 3.0.0.** Versión sincronizada y tres guiones válidos. Pendiente de corrida real de 9:16, 16:9 y 1:1, tiempos por etapa y minutos de Actions.
 
 ## Camino crítico
 

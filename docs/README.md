@@ -7,10 +7,10 @@ Empieza por el [README del repositorio](../README.md). Esta página ordena el re
 | Documento | Para qué sirve |
 |---|---|
 | [ESTADO.md](ESTADO.md) | Qué funciona hoy, con qué evidencia y con qué límites. Es la referencia de estado; los demás documentos no la reemplazan |
-| [STUDIO.md](STUDIO.md) | Guía del motor de video por etapas, sin servicio público de video |
+| [STUDIO.md](STUDIO.md) | Guía del motor y entrega de video |
 | [ROADMAP_V3.md](ROADMAP_V3.md) | Hitos de video, avances y pendientes |
 | [openapi.yaml](openapi.yaml) | Contrato REST `/v1` |
-| [mcp-tools.md](mcp-tools.md) | Las ocho tools del servidor MCP |
+| [mcp-tools.md](mcp-tools.md) | Las diez tools del servidor MCP |
 | [CONTRATOS_API_MCP.md](CONTRATOS_API_MCP.md) | Esquemas y metadatos compartidos por REST y MCP |
 | [ARQUITECTURA.md](ARQUITECTURA.md) | Componentes y ejecución sin servidor propio |
 | [PROVEEDORES.md](PROVEEDORES.md) | Cada fuente: endpoints, credenciales y límites técnicos |
@@ -54,5 +54,5 @@ Estos documentos describen el estado **en el momento de cada hito**. Sus cifras 
 | [M29_AJUSTE_MEZCLA.md](M29_AJUSTE_MEZCLA.md) | M29: ajuste y mezcla |
 | [M30_COMPOSICION.md](M30_COMPOSICION.md) | M30: composición y render |
 | [M31_QA.md](M31_QA.md) | M31: control de calidad |
-| [M32_PUBLICACION.md](M32_PUBLICACION.md) | M32: módulo de publicación |
-| [M32_RENDER.md](M32_RENDER.md) | M32: workflow manual que arma un video completo en Actions; sin validar con corridas reales |
+| [M32_PUBLICACION.md](M32_PUBLICACION.md) | M32: indexado y entrega |
+| [M32_RENDER.md](M32_RENDER.md) | M32: workflow de entrega propuesto; pendiente de corrida real |

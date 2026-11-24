@@ -4,6 +4,7 @@ import { dispatchIngest } from "./dispatch";
 import { submitContribution } from "./contributions";
 import { semanticSearch, type SemanticEnv } from "./semantic";
 import { quota } from "./quota";
+import { handleVideos } from "./videos";
 
 export interface RestEnv extends SemanticEnv {
   CATALOG_URL?: string;
@@ -199,6 +200,8 @@ export async function submitImport(
 }
 
 export async function handleRest(request: Request, env: RestEnv): Promise<Response | null> {
+  const videoResponse = await handleVideos(request, env);
+  if (videoResponse) return videoResponse;
   const url = new URL(request.url);
   const path = url.pathname;
   if (request.method === "GET" && /^\/v1\/jobs\//.test(path)) {

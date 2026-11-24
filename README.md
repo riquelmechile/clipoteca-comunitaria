@@ -72,31 +72,55 @@ Los mismos datos están en REST bajo `/v1`: `clips`, `clips/{id}`, `clips/{id}/s
 
 Cuando el traductor falla en un idioma, la búsqueda sigue con los idiomas que sí resultaron y deja un aviso; nunca se inventa una traducción.
 
-## En construcción: de escenas a videos (v3)
+## Video a partir de un guion (v3)
 
-La versión del repositorio es **2.0.6**; la API REST y el MCP públicos siguen siendo la biblioteca v2.
-El motor de video en `pipeline/clipoteca/studio/` ya acepta un guion en español de 3 a 12 escenas, hasta 60 segundos, en 9:16, 16:9 o 1:1.
-Planifica las escenas, sintetiza voz local con control de pronunciación, obtiene tiempos por palabra y genera música sin red.
-Selecciona un clip del catálogo por escena o importa material temporal sin publicarlo.
-Ajusta los clips, mezcla el audio y compone títulos y subtítulos palabra a palabra; renderiza MP4 y lo somete a 14 compuertas de calidad.
-El módulo de publicación puede guardar los clips usados, el video y su ficha tras aprobar QA. Un workflow manual encadena todas las etapas en GitHub Actions; todavía no está validado con corridas reales ni hay un servicio que entregue videos.
+La versión del repositorio es **3.0.0**; la versión desplegada se indica en [ESTADO.md](docs/ESTADO.md).
+El motor produce un MP4 desde un guion español de 3 a 12 escenas, hasta 60 segundos,
+en 9:16, 16:9 o 1:1. No genera el guion ni usa un modelo de lenguaje.
+Cada escena busca una coincidencia fuerte en el catálogo (sim ≥0,27, umbral provisional).
+Si no existe, importa desde las fuentes y elige el candidato válido más pertinente,
+con material válido del catálogo como respaldo. Se reparten hasta ocho candidatos
+entre las consultas y se prueban hasta dos adicionales con consultas simplificadas
+si ningún importado supera la evaluación. La biblioteca incorpora todos los
+clips importados que pasan los filtros normales de ingesta, incluso si no se usan
+en el montaje o el video falla QA. La selección ocurre en paralelo por escena.
+La voz, música, títulos y subtítulos se componen y renderizan localmente en Actions;
+las 14 compuertas deben aprobar antes de entregar el MP4.
+El video final nunca se publica en Releases ni en el catálogo.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-studio.svg" width="100%" alt="Flujo del motor v3: guion, plan, voz y tiempos, música, catálogo o importación temporal por escena; ajuste, mezcla, composición, render, QA y publicación. Las etapas sólidas existen en main; los bordes punteados marcan la API de video, que no existe, y el workflow de Actions, que existe pero no está validado con corridas reales." />
+  <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-studio.svg" width="100%" alt="Guion a MP4: plan, voz, música y escenas en paralelo, indexado separado de clips, ensamblaje y QA, entrega temporal al solicitante." />
 </p>
 
-> **Qué funciona hoy**
-> - Las etapas del motor, ejecutadas por separado desde la línea de comandos; publicación incluida, con simulación sin red.
-> - CI con pruebas del motor y ejecuciones reales de música, render de tres escenas y layout.
-> - Un workflow manual, [`render.yml`](docs/M32_RENDER.md), que reparte voz, música y un trabajo por escena en paralelo, arma el video y corre QA. Por defecto es un ensayo: no publica nada.
->
-> **Qué falta**
-> - Validar ese workflow con corridas reales: hasta ahora solo se comprobó fuera de Actions el tramo que arma, renderiza y revisa el video.
-> - Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
-> - Validar la importación de material nuevo de punta a punta dentro del flujo de video en Actions.
-> - Incrustar una tipografía propia, ajustar la franja del título a la posición del sujeto y publicar la versión 3.0.0.
+El código REST/MCP y la propuesta de workflow forman parte de esta versión.
+**Pendiente de promoción y corrida real:** instalar el workflow propuesto, desplegar
+el Worker, medir los tres formatos y comprobar las fuentes e indexado de extremo
+a extremo. No se afirma disponibilidad pública antes de ese despliegue.
 
-Consulta la [guía del motor](docs/STUDIO.md) y el [roadmap v3](docs/ROADMAP_V3.md).
+### Cómo pedir un video
+
+Después de promover el workflow y desplegar el Worker 3.0.0:
+
+```bash
+jq -n --slurpfile script docs/ejemplos/chile-vertical.json \
+  '{script:$script[0],index_clips:true}' | \
+  curl --fail-with-body -X POST "$CLIPOTECA_URL/v1/videos" \
+    -H "Authorization: Bearer $CLIPOTECA_WRITE_TOKEN" \
+    -H 'Content-Type: application/json' --data-binary @-
+```
+
+Consulta el `status_url` devuelto (reintenta si recibes un 404 transitorio)
+hasta que el estado sea `done`,
+`failed` o `expired`. Descarga el MP4 desde `file_url` cuando exista.
+En MCP, llama a `render_video` con el mismo objeto script e index_clips,
+y a `get_video_status` con el id retornado. El id es una credencial de
+descarga: mantenlo privado. Los artefactos se conservan siete días.
+La cuota de video es de una solicitud cada cinco minutos y doce por día UTC
+por IP (best-effort). El token de escritura se exige para solicitar, no para consultar o descargar
+con el identificador. El identificador de Actions es su SHA-256, no el secreto.
+
+Consulta la [guía Studio](docs/STUDIO.md), el [workflow](docs/M32_RENDER.md)
+y el [roadmap v3](docs/ROADMAP_V3.md).
 
 ## Fuentes: lo medido, no lo prometido
 
@@ -123,13 +147,13 @@ Que una fuente funcione hoy no garantiza que funcione mañana: los proveedores c
 | Entender el diseño | [Arquitectura](docs/ARQUITECTURA.md) · [Especificación completa](docs/ESPECIFICACION_COMPLETA.md) |
 | Operar o desplegar | [Despliegue](docs/DESPLIEGUE.md) · [Operación v2](docs/OPERACION_V2.md) · [Proveedores](docs/PROVEEDORES.md) |
 | Ver cómo se llegó hasta aquí | [Roadmap v1](docs/ROADMAP.md) · [Roadmap v2](docs/ROADMAP_V2.md) · [Roadmap v3](docs/ROADMAP_V3.md) · [Historial de cambios](CHANGELOG.md) |
-| Ejecutar el motor de video en construcción | [Studio](docs/STUDIO.md) · [Guion de ejemplo](docs/ejemplos/guion-minimo.json) |
+| Ejecutar el motor de video | [Studio](docs/STUDIO.md) · [Guion de ejemplo](docs/ejemplos/guion-minimo.json) |
 | Ver todo | [Índice de documentación](docs/README.md) |
 
 ## Qué no es
 
-- Todavía no es un servicio que entregue videos por API.
-- No es un buscador de videos completos: solo escenas de hasta 20 segundos.
+- La API de entrega de videos requiere promover el workflow y desplegar el Worker 3.0.0.
+- La búsqueda de biblioteca entrega clips de hasta 20 segundos; el motor compone videos de hasta 60 segundos.
 - No define todavía reglas de licencias ni de uso de los clips: conserva la procedencia factual de cada uno (fuente, URL y autor cuando existe) y deja esa decisión a quien lo usa. La licencia MIT cubre el código, no los clips de terceros.
 - No promete disponibilidad de las fuentes externas.
 

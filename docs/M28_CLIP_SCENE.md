@@ -280,3 +280,17 @@ local_root se resuelve una vez; puede estar debajo de un enlace.
 Desde el root resuelto hacia abajo se rechazan enlaces simbólicos,
 rutas absolutas, segmentos .., separadores de Windows y escapes.
 Se mantiene la verificación de tamaño y hash antes y después de copiar.
+
+## Política de cierre v3
+
+El job agrega catalog_min_sim=0.27 (provisional hasta calibrar con corridas reales).
+Una coincidencia válida con sim al menos ese umbral evita importar. En ausencia
+de coincidencia fuerte, selection conserva el mejor respaldo de catálogo y
+elige el importado válido con mayor similitud y luego puntaje visual.
+El catálogo débil se usa únicamente si no hay ningún importado válido.
+El indexado de todos los clips que pasaron ingesta es independiente de esta elección.
+
+Si ningún importado válido aparece en la primera ronda, se prueban consultas
+simplificadas en una segunda ronda. El respaldo de catálogo elegido sin
+coincidencia fuerte se marca fallback=true. Si no queda ningún clip, se
+conserva el motivo de la escena en entrega.json aun sin MP4.

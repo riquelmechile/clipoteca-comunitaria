@@ -121,11 +121,10 @@ congelacion, pHash y timeout. result.json agrega imported=true
 y local_path para un clip local seleccionado; omite asset_url
 y conserva source_url.
 
-Flujo de M32: plan -> clip_scene del catalogo -> si needs_import
-o no_candidate -> importer -> clip_scene con assignment importado
--> fit / mix / render / QA -> publicar SOLO clips efectivamente
-usados, con IDs finales y un unico commit al catalogo.
-Si falla QA no se publica material nuevo.
+Flujo de v3: plan → selección de catálogo fuerte; si no hay coincidencia
+fuerte, importer → comparar importados con catálogo → fit / mix / render / QA.
+El job index verifica e incorpora TODOS los clips importados válidos, no
+solo los usados, incluso si falla QA. El MP4 final nunca se publica.
 
 Las pruebas en test_import_m28.py prueban ingesta con FFmpeg
 sintetico, fuente falsificada, no persistencia, duplicados,
@@ -134,3 +133,18 @@ test_clipscene_m28.py cubre rutas absolutas, traversal, symlink,
 selector ambiguo y hash incorrecto con fallback.
 Los tests saltan si falta ffmpeg o cv2; no descargan modelos.
 No se cambian dependencias, workflows ni datos persistentes.
+
+## Política de búsqueda para entrega v3
+
+El workflow activa --spread-queries, que reparte el presupuesto de candidatos
+entre las consultas únicas en inglés y español en su orden original, hasta
+el tope de ocho candidatos o 600 segundos. Si no pasa la evaluación de
+escena ningún importado, --simple deriva hasta dos consultas breves del
+título y prompt sin calificativos comunes; se prueban hasta dos candidatos
+en 180 segundos. Los manifiestos de ambas rondas se conservan para indexado.
+Los defaults históricos del CLI permanecen compatibles.
+
+La prueba de reejecución compara metadatos semánticos y valida los hashes y
+tamaños reales de cada MP4 por separado. No exige que FFmpeg produzca bytes
+idénticos entre dos codificaciones equivalentes; los IDs derivados del hash
+y las rutas asociadas se normalizan solo para esa comparación.

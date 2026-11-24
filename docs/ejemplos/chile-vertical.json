@@ -1,0 +1,56 @@
+{
+  "title": "Paisajes de Chile",
+  "aspect": "9:16",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "scenes": [
+    {
+      "id": "valparaiso",
+      "type": "intro",
+      "title": "Valparaíso",
+      "say": "Valparaíso se extiende entre cerros y el mar.",
+      "query": {
+        "es": [
+          "Valparaíso puerto cerros"
+        ],
+        "en": [
+          "Valparaiso Chile colorful hills port"
+        ]
+      },
+      "prompt": "Real aerial view of colorful Valparaiso hills and Pacific port in Chile"
+    },
+    {
+      "id": "atacama",
+      "type": "fact",
+      "title": "Atacama",
+      "say": "El desierto de Atacama tiene paisajes de sal y roca.",
+      "query": {
+        "es": [
+          "desierto Atacama salar"
+        ],
+        "en": [
+          "Atacama desert salt flats Chile"
+        ]
+      },
+      "prompt": "Natural footage of Atacama desert rock formations and salt flats"
+    },
+    {
+      "id": "paine",
+      "type": "outro",
+      "title": "Torres del Paine",
+      "say": "Al sur, las Torres del Paine dominan el paisaje.",
+      "query": {
+        "es": [
+          "Torres del Paine Patagonia"
+        ],
+        "en": [
+          "Torres del Paine Chile mountains"
+        ]
+      },
+      "prompt": "Real footage of granite peaks of Torres del Paine Patagonia"
+    }
+  ]
+}

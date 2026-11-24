@@ -1,25 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 690" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 790" role="img" aria-labelledby="title desc">
 <title id="title">Studio: del guion al video</title>
-<desc id="desc">Flujo actual por CLI: guion y plan; voz y tiempos, música, clip por escena del catálogo o importación temporal; ajuste, mezcla, composición, render, QA y publicación. Con borde punteado: la API de video, que falta, y el workflow de Actions, que existe pero no está validado con una corrida real.</desc>
+<desc id="desc">Guion y plan, voz, música y selección por escena. Una rama indexa todos los clips importados válidos independientemente de QA; la otra ajusta, mezcla, compone, renderiza y entrega temporalmente el MP4 aprobado. API y workflow pendientes de despliegue.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#67F5CF" stroke-width="2"/></marker></defs>
 <style>text{font-family:system-ui,Arial,sans-serif;fill:#F1F7FF;font-size:20px}.head{font-size:28px;font-weight:700}.label{font-weight:700}.small{font-size:18px;fill:#C5D8EF}.node{fill:#101F3D;stroke:#67F5CF;stroke-width:2}.pending{fill:#101F3D;stroke:#FFB571;stroke-width:2;stroke-dasharray:7 6}.edge{fill:none;stroke:#67F5CF;stroke-width:2;marker-end:url(#arrow)}.line{fill:none;stroke:#67F5CF;stroke-width:2}.orange{fill:#FFB571}</style>
-<rect width="1000" height="690" rx="24" fill="#0B1731"/>
+<rect width="1000" height="790" rx="24" fill="#0B1731"/>
 <text x="40" y="42" class="head">Studio · del guion al video</text>
-<rect class="pending" x="40" y="62" width="440" height="60" rx="12"/><text x="60" y="88" class="label orange">API / MCP de video · falta</text><text x="60" y="110" class="small">Sin endpoints de video</text>
-<rect class="pending" x="520" y="62" width="440" height="60" rx="12"/><text x="540" y="88" class="label orange">Workflow de Actions · sin validar</text><text x="540" y="110" class="small">Existe; falta una corrida real</text>
+<rect class="pending" x="40" y="62" width="440" height="60" rx="12"/><text x="60" y="88" class="label orange">API / MCP de video</text><text x="60" y="110" class="small">API pendiente de despliegue</text>
+<rect class="pending" x="520" y="62" width="440" height="60" rx="12"/><text x="540" y="88" class="label orange">Workflow de Actions</text><text x="540" y="110" class="small">Promoción y corrida real pendientes</text>
 <rect class="node" x="40" y="154" width="420" height="68" rx="12"/><text x="60" y="181" class="label">01 · Guion</text><text x="60" y="207" class="small">Validación y límite de duración</text>
 <path class="edge" d="M460 188H535"/><rect class="node" x="540" y="154" width="420" height="68" rx="12"/><text x="560" y="181" class="label">02 · Plan</text><text x="560" y="207" class="small">Asignación por escena</text>
 <path class="line" d="M750 222V241M180 256V241H820V256M500 241V256"/>
 <rect class="node" x="40" y="256" width="280" height="124" rx="12"/><text x="60" y="285" class="label">03 · Voz y tiempos</text><text x="60" y="316" class="small">Síntesis local</text><text x="60" y="340" class="small">Pronunciación y palabras</text>
 <rect class="node" x="360" y="256" width="280" height="124" rx="12"/><text x="380" y="285" class="label">04 · Música</text><text x="380" y="316" class="small">Offline, al compás</text><text x="380" y="340" class="small">Arreglo por cortes</text>
-<rect class="node" x="680" y="256" width="280" height="124" rx="12"/><text x="700" y="285" class="label">05 · Clip por escena</text><text x="700" y="313" class="small">Catálogo</text><text x="700" y="337" class="small">Si falta: importación</text><text x="700" y="361" class="small">temporal sin publicar</text>
+<rect class="node" x="680" y="256" width="280" height="124" rx="12"/><text x="700" y="285" class="label">05 · Clip por escena</text><text x="700" y="313" class="small">Coincidencia fuerte</text><text x="700" y="337" class="small">Si no: importar y</text><text x="700" y="361" class="small">comparar candidatos</text>
 <path class="line" d="M180 380V396H820V380M500 380V396"/><path class="edge" d="M180 396V420"/>
 <rect class="node" x="40" y="425" width="200" height="70" rx="12"/><text x="55" y="453" class="label">06 · Ajuste</text><text x="55" y="478" class="small">Duración real</text>
 <path class="edge" d="M240 460H275"/><rect class="node" x="280" y="425" width="200" height="70" rx="12"/><text x="295" y="453" class="label">07 · Mezcla</text><text x="295" y="478" class="small">Voz y música</text>
 <path class="edge" d="M480 460H515"/><rect class="node" x="520" y="425" width="200" height="70" rx="12"/><text x="535" y="453" class="label">08 · Composición</text><text x="535" y="478" class="small">HTML y subtítulos</text>
 <path class="edge" d="M720 460H755"/><rect class="node" x="760" y="425" width="200" height="70" rx="12"/><text x="775" y="453" class="label">09 · Render</text><text x="775" y="478" class="small">MP4 H.264 + AAC</text>
 <path class="edge" d="M860 495V517H250V539"/>
-<rect class="node" x="40" y="544" width="420" height="78" rx="12"/><text x="60" y="574" class="label">10 · QA</text><text x="60" y="602" class="small">14 compuertas · si falla, no publicar</text>
-<path class="edge" d="M460 583H535"/><rect class="node" x="540" y="544" width="420" height="78" rx="12"/><text x="560" y="574" class="label">11 · Publicación</text><text x="560" y="602" class="small">Clips usados, MP4 y ficha final</text>
-<rect x="40" y="646" width="22" height="18" rx="4" class="node"/><text x="75" y="661" class="small">Disponible por etapas en main</text><rect x="540" y="646" width="22" height="18" rx="4" class="pending"/><text x="575" y="661" class="small">Falta o sin validar</text>
+<rect class="node" x="40" y="544" width="420" height="78" rx="12"/><text x="60" y="574" class="label">10 · QA</text><text x="60" y="602" class="small">14 compuertas · si falla, no entregar</text>
+<path class="edge" d="M460 583H535"/><rect class="node" x="540" y="544" width="420" height="78" rx="12"/><text x="560" y="574" class="label">11 · Entrega</text><text x="560" y="602" class="small">MP4 temporal · índice separado</text>
+<path class="edge" d="M960 315H980V665H960"/><rect class="node" x="40" y="646" width="920" height="78" rx="12"/><text x="60" y="676" class="label">Índice separado · todos los clips importados válidos</text><text x="60" y="704" class="small">Un commit al catálogo, incluso si falla QA o no se usa el clip</text>
+<rect x="40" y="746" width="22" height="18" rx="4" class="node"/><text x="75" y="761" class="small">Componentes del motor</text><rect x="540" y="746" width="22" height="18" rx="4" class="pending"/><text x="575" y="761" class="small">Pendiente de despliegue</text>
 </svg>

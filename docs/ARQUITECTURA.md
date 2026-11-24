@@ -34,7 +34,7 @@ Cliente de IA / aplicación externa
 - **Python 3.13:** adaptadores externos, trabajo paralelo (`asyncio`, `httpx`), traducción offline, FFmpeg/ffprobe, hashes y GitHub API.
 - **Almacenamiento:** Releases para binarios, Git para catálogo e índices. No guardar MP4 en commits ni LFS.
 - **Mensajería mínima:** `workflow_dispatch` de GitHub. El request devuelve `202 queued` y un `request_id` determinista; Actions escribe estado duradero con el mismo ID. Si un workflow no arranca, la API refleja `queued`/`unknown` y permite reintento.
-- **Concurrencia:** búsqueda concurrente limitada, **publicación del catálogo serializada** por `concurrency.group` de Actions. Escrituras con SHA actual y reintento ante conflicto 409.
+- **Concurrencia:** búsqueda concurrente limitada, publicación tradicional serializada por `concurrency.group` de Actions; Studio indexa independientemente con reservas exclusivas de assets y reintentos de deduplicación/asignación ante conflictos. Escrituras con SHA actual.
 - **Deduplicación:** 1º `provider:source_id`; 2º SHA256 de original; 3º hash perceptual de frames muestreados. La similitud dudosa nunca fusiona automáticamente dos clips distintos sin suficientes coincidencias.
 - **Ingesta idempotente:** clave `sha256(canonical_query + filters + horizon)` para trabajos; claves permanentes `provider:id` y `video_sha256` para objetos.
 - **Observabilidad:** conteos por idioma/proveedor, encontrados, archivos obtenibles, fallidos, publicados, duplicados, uso de runner; no guardar tokens o URLs firmadas en logs.
@@ -52,7 +52,7 @@ La API responde resultados existentes inmediatamente; los nuevos aparecen al ter
 - Assets: `clip_<id>.mp4`, `thumb_<id>.webp`, con nombres deterministas.
 - `data/clips.json` como listado canónico; cuando crezca, `data/index/es/*.json` y `data/index/en/*.json` para búsqueda rápida en Workers.
 - Cada publicación primero sube el video, comprueba el asset por API y **solo después** agrega la entrada al índice.
-- Publicación de estados e índices serializada; resultados de búsqueda externos se pueden paralelizar.
+- Publicación tradicional de estados e índices serializada; el indexado de Studio utiliza reintentos optimistas y no retrasa la entrega del MP4.
 
 ## Estrategia del MVP de aporte humano
 
@@ -66,12 +66,10 @@ Releases es un mecanismo de distribución de software y GitHub puede limitar pat
 
 ## Motor de video (studio)
 
-El motor v3 no es un segundo servicio desplegado. Se ejecuta por etapas,
-con archivos como contrato entre módulos: a mano desde un checkout o con
-el workflow manual [render.yml](M32_RENDER.md), que reparte las etapas en
-jobs y pasa los archivos por artefactos.
-El [job studio](../.github/workflows/ci.yml) comprueba componentes en
-Actions, con permiso de lectura; no publica videos.
+El motor v3 se ejecuta por etapas y usa archivos como contrato.
+El Worker ofrece despacho y consulta de Actions en el código 3.0.0;
+el workflow de entrega está propuesto y falta promoverlo y desplegar.
+El job studio de CI comprueba componentes con permiso de lectura.
 
 | Módulo | Responsabilidad |
 |---|---|
@@ -84,7 +82,9 @@ Actions, con permiso de lectura; no publica videos.
 | `fit`, `mix` | Ajuste a duración real, mezcla y medición de sonoridad |
 | `compose` | HTML, GSAP, render HyperFrames y mux FFmpeg |
 | `qa` | 14 compuertas; liga el resultado al hash del MP4 |
-| `publish` | Publicación verificada, ficha final y simulación local |
+| `selection` | Coincidencia fuerte o comparación entre catálogo e importados |
+| `index` | Indexado de todo material importado válido, independiente de QA |
+| `delivery` | Manifiesto local de entrega ligado a QA y a los bytes del MP4 |
 
 Los modelos de Supertonic 3, wav2vec2 fonético y CLIP ViT-B/32 ONNX int8
 se fijan por tamaño y SHA-256 en [models.json](../pipeline/clipoteca/studio/models.json),
@@ -94,17 +94,12 @@ de ejecución en [pyproject.toml](../pyproject.toml). HyperFrames 0.9.36
 y GSAP 3.15.1 se obtienen de npm; GSAP se verifica por hash y no se incluye
 en el repositorio. Tone.js 15.1.22 está incluido como bundle local.
 
-Importar una escena no escribe en Git ni en Releases: el catálogo y los
-assets son locales hasta que se apruebe QA. La publicación vuelve a validar
-el hash del video y solo incorpora material importado que se usó realmente,
-en un solo commit de catálogo; escribe la ficha del video al final.
-Requiere un escritor único.
+Importar una escena no escribe en Git ni en Releases. El job index único
+verifica y deduplica todos los clips válidos importados en un commit de catálogo,
+independiente de assemble y QA. El resultado de index se incluye en entrega.json.
+El MP4 se conserva únicamente como artefacto de Actions durante siete días.
 
-**Workflow de render:** valida el guion, ejecuta voz, música y un job por
-escena en paralelo, pasa archivos por artefactos, ensambla, repite las
-escenas que eligieron un clip repetido y publica con concurrencia
-serializada solo si se pide y QA aprueba. Existe en main pero no está
-validado con corridas reales. Falta la parte REST/MCP de video que lo
-despache.
-La [guía Studio](STUDIO.md) describe el recorrido manual actual; el
-[roadmap v3](ROADMAP_V3.md) conserva el plan.
+El Worker despacha por API con un id aleatorio de 128 bits. Para que el nombre
+público de la corrida no revele esa credencial, el request_id de Actions es
+su SHA-256. El Worker consulta jobs y artefactos por ese hash y transmite los
+bytes del MP4 sin reenviar el token a la URL firmada. Ver [M32_RENDER.md](M32_RENDER.md).

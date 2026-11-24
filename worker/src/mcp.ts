@@ -177,7 +177,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     const authorization = inbound.headers.get("authorization");
     if (authorization) headers.set("authorization", authorization);
     if (body !== undefined) headers.set("content-type", "application/json");
-    return new Request("https://clipoteca.internal" + path, {
+    return new Request(new URL(path, inbound.url), {
       method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   };
@@ -283,6 +283,36 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     annotations: { readOnlyHint: true, openWorldHint: true },
   }, async ({ request_id }) => restResult(
     toolRequest("/v1/jobs/" + request_id, "GET"), env));
+
+  server.registerTool("render_video", {
+    title: "Render a video",
+    description: "Deliver a narrated video from your own script. Spanish, 3-12 scenes, maximum 60 seconds, 9:16/16:9/1:1. Requires write Bearer. Example script: {\"title\":\"Water\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Water\",\"say\":\"El agua fluye.\",\"query\":{\"es\":[\"rio\"],\"en\":[\"river\"]},\"prompt\":\"flowing river\"},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Nubes\",\"say\":\"El agua forma nubes.\",\"query\":{\"es\":[\"nubes\"],\"en\":[\"clouds\"]},\"prompt\":\"clouds moving\"},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
+    inputSchema: z.strictObject({
+      script: z.object({
+        title: z.string(), aspect: z.enum(["9:16","16:9","1:1"]),
+        scenes: z.array(z.record(z.string(), z.unknown())).min(3).max(12),
+      }).passthrough(),
+      index_clips: z.boolean().optional(),
+    }),
+    outputSchema: z.object({
+      id: z.string(), status: z.literal("queued"), status_url: z.string(),
+    }),
+    annotations: {readOnlyHint: false, openWorldHint: true},
+  }, async (input) => restResult(toolRequest("/v1/videos", "POST", input), env));
+
+  server.registerTool("get_video_status", {
+    title: "Get video status and download URL",
+    description: "Check render stages, quality results and the private delivery URL (7 days).",
+    inputSchema: z.strictObject({id: z.string().regex(/^[a-f0-9]{32}$/)}),
+    outputSchema: z.object({
+      id: z.string(), status: z.enum(["queued","running","done","failed","expired"]),
+      stages: z.record(z.string(), z.unknown()).optional(),
+      qa: z.object({pass:z.boolean(),failed:z.array(z.string())}).optional(),
+      clips_indexed: z.array(z.string()).optional(), file_url: z.string().optional(),
+      warnings: z.array(z.string()).optional(),
+    }),
+    annotations: {readOnlyHint: true, openWorldHint: true},
+  }, async ({id}) => restResult(toolRequest("/v1/videos/" + id, "GET"), env));
 
   server.registerTool("list_sources", {
     title: "List public source statuses",

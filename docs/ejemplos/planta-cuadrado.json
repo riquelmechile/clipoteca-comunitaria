@@ -1,0 +1,56 @@
+{
+  "title": "El ciclo de una planta",
+  "aspect": "1:1",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "scenes": [
+    {
+      "id": "semilla",
+      "type": "intro",
+      "title": "Semilla",
+      "say": "Una semilla puede iniciar una nueva planta.",
+      "query": {
+        "es": [
+          "semilla germinación"
+        ],
+        "en": [
+          "seed germination timelapse"
+        ]
+      },
+      "prompt": "Real macro time-lapse of a seed sprouting"
+    },
+    {
+      "id": "hoja",
+      "type": "fact",
+      "title": "Hojas",
+      "say": "Las hojas captan luz para crecer.",
+      "query": {
+        "es": [
+          "hojas planta luz solar"
+        ],
+        "en": [
+          "green leaves sunlight plant"
+        ]
+      },
+      "prompt": "Moving close-up of green leaves illuminated by sunlight"
+    },
+    {
+      "id": "flor",
+      "type": "outro",
+      "title": "Flor",
+      "say": "Muchas plantas producen flores y nuevas semillas.",
+      "query": {
+        "es": [
+          "flor abriendo polen"
+        ],
+        "en": [
+          "flower blooming timelapse"
+        ]
+      },
+      "prompt": "Real time-lapse of a flower opening"
+    }
+  ]
+}

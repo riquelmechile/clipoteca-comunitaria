@@ -1,6 +1,6 @@
 # Contrato MCP v1 (Streamable HTTP)
 
-Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente ocho tools** con outputSchema tipado por herramienta; no usa envoltorio generico {result} ni esquemas z.unknown(). Las respuestas estructuradas contienen metadatos y enlaces, nunca bytes de video.
+Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente diez tools** con outputSchema tipado por herramienta; no usa envoltorio generico {result} ni un envoltorio generico. Las respuestas estructuradas contienen metadatos y enlaces, nunca bytes de video.
 
 | Tool | Entrada | Salida estructurada |
 |---|---|---|
@@ -11,6 +11,8 @@ Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente ocho tools** con 
 | download_clip | {clip_id} | {clip_id?, url} de GitHub Releases |
 | search_and_import | {query, aspect_ratio?, max_results?} | {request_id, status}, credencial necesaria |
 | get_job_status | {request_id} | Registro Job conforme a job.schema.json, o error MCP si 404 |
+| render_video | {script, index_clips?} (3–12 escenas, ≤60 s, 9:16/16:9/1:1) | {id,status,status_url}; Bearer de escritura |
+| get_video_status | {id} | {id,status,stages?,qa?,clips_indexed?,file_url?} |
 | list_sources | {} | {sources:[{provider,status}], kind?}, snapshot de GitHub Actions |
 
 Las solicitudes de importacion reales exigen el token configurado; las busquedas de catalogo son publicas, con cuota acotada para import_if_missing. Los valores de credenciales nunca se devuelven.
@@ -36,3 +38,17 @@ M22 r2: el campo opcional `semantic_reason` indica la causa del fallback (semant
 ## M23 script scenes
 
 `resolve_script` calls the same validated REST resolver as `POST /v1/script`. Each media includes a verified video URL, thumbnail, storyboard, duration and factual provider/source. Missing scenes never return a disguised image. Imports reuse existing import_if_missing quotas, request IDs and job statuses. See [M23_GUION.md](M23_GUION.md).
+
+## M33: entrega de video
+
+El guion completo sigue schemas/video.schema.json. Llama render_video con el
+Bearer de escritura; cuota propia de video: 1 cada 5 minutos y 12 por día UTC por IP
+(best-effort por Cache API). Consulta get_video_status
+con el id aleatorio de 128 bits hasta done, failed o expired. file_url sirve
+el MP4 aprobado durante siete días, con Range. Si aún no aparece la corrida,
+reintenta ante 404 transitorio; warnings indica evidencia no disponible.
+La entrega no espera el índice; clips_indexed se actualiza al terminar este. El id es una credencial privada; los
+nombres de Actions usan su SHA-256. El Worker necesita actions: read y write
+en CLIPOTECA_DISPATCH_TOKEN. La publicación del MP4 no existe en el contrato
+nuevo: solo se indexan los clips válidos importados. Pendiente de promoción
+y despliegue; ver [M32_RENDER.md](M32_RENDER.md).
