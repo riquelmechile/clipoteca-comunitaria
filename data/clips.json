@@ -10762,5 +10762,67 @@
     },
     "status": "published",
     "created_at": "2026-11-24T23:42:36.834295Z"
+  },
+  {
+    "id": "clip-000165",
+    "title": {
+      "es": "Una mujer mirando su smartphone",
+      "en": "A woman looking at her smartphone"
+    },
+    "description": {
+      "es": "Una mujer mirando su smartphone",
+      "en": "A woman looking at her smartphone"
+    },
+    "tags": {
+      "es": [
+        "mujer",
+        "mirando",
+        "smartphone"
+      ],
+      "en": [
+        "woman",
+        "looking",
+        "her",
+        "smartphone"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "8519477",
+      "source_language": "en",
+      "source_title": "a-woman-looking-at-her-smartphone-8519477",
+      "source_url": "https://www.pexels.com/video/a-woman-looking-at-her-smartphone-8519477/",
+      "source_start": 0.0,
+      "source_end": 7.9
+    },
+    "media": {
+      "duration_seconds": 7.9,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1841025,
+      "sha256": "3aca6bda124f7059bfe71dbddc9278e0cf9bbd24533cad7a5446380158d555e8",
+      "perceptual_hash": "ec951292dbea11cb~3621.13:ecb51092dbea11cb~3656.23:ecb5109adbaa119b~3663.69:e495529adba8519b~3556.56:e495521bdba8519b~3548.28"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000165.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000165.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000165_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000165_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000165_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000165_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000165_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000165_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T23:42:36.834295Z"
   }
 ]
