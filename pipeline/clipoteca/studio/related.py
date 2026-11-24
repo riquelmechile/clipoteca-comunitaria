@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from ..place_names import _words, aliases, query_names
-from .related_cache import cache_key, fresh, load_cache, make_entry, restore
+from .related_cache import cache_key, fresh, make_entry, restore
 
 MAX_RELATED = 8
 LOOKUP_SECONDS = 8
@@ -323,11 +323,13 @@ async def _request_json(client, url, **params):
     for attempt in range(2):
         # Cooldown is shared across all seeds using the same Wikimedia host.
         async with gate["lock"]:
-            while gate["until"] > loop.time():
+            if gate["until"] > loop.time():
                 delay = gate["until"] - loop.time()
                 if deadline is not None and loop.time() + delay >= deadline:
                     raise TimeoutError("host Retry-After exceeds remaining lookup budget")
                 await asyncio.sleep(delay)
+                if gate["until"] > loop.time():
+                    raise TimeoutError("host cooldown extended during lookup")
             remaining = deadline - loop.time() if deadline is not None else _REQUEST_SECONDS
             async with asyncio.timeout(min(_REQUEST_SECONDS, remaining)):
                 response = await client.get(url, params=params)
@@ -489,6 +491,8 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
     searches = [(seed, "en")]
     if topic in _ROOT_TOPICS:
         searches = [(f"{seed} {topic}", "en"), (seed, "en")]
+    elif seed == "torres del paine":
+        searches = [(f"{seed} national park", "en"), (seed, "en")]
     search_terms = [*searches, *((name, "en") for name in context)]
     groups = await asyncio.gather(
         *(_search_entities(client, name, lang) for name, lang in search_terms)
@@ -763,6 +767,8 @@ def _commons_root(title, variants, context):
 async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     variants = _variants(seed)
     phrases = sorted(variants)
+    if topic == "temple":
+        phrases += [f"{variant} temples" for variant in sorted(variants)]
     if context:
         phrases = [
             f"{variant}{separator}{name}"
@@ -784,7 +790,11 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
         hit["title"]
         for hit in payload.get("query", {}).get("search", [])
         if hit.get("title", "").startswith("Category:")
-        and _commons_root(hit["title"][9:], variants, context)
+        and (_commons_root(hit["title"][9:], variants, context)
+             or (topic == "temple" and any(
+                 _key(hit["title"][9:]) in {f"temples in {variant}", f"temples of {variant}",
+                                           f"buddhist temples in {variant}", f"shrines in {variant}"}
+                 for variant in variants) and not context))
     ][:3]
     if context or topic in _ROOT_TOPICS:
         # The verified root carries its own Commons category even if text search misses it.
@@ -798,11 +808,9 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             )
         else:
             roots = list(dict.fromkeys([*verified, *roots]))[:3]
-    if any("torres del paine" in variant for variant in variants):
-        roots = [root for root in roots if "national park" in _key(root) or "parque nacional" in _key(root)]
-    if not roots:
+    if not roots and roots_ready.is_set() and (not topic or wiki.get("geographic")):
         # A late verified root may still be used without waiting for it.
-        roots = wiki.get("commons_titles", [])[:3] if roots_ready.is_set() else []
+        roots = wiki.get("commons_titles", [])[:3]
     if any("torres del paine" in variant for variant in variants):
         roots = [root for root in roots if "national park" in _key(root) or "parque nacional" in _key(root)]
     if not roots:
@@ -833,10 +841,12 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             title,
         )
     )
+    topical_root = child_topic == "temple" and all(_topic_matches(child_topic, root) for root in roots)
     direct = [
         {"term": term, "origin": "commons"}
         for title in categories
-        if (term := _child_term(title[9:], root_variants)) and _topic_matches(child_topic, term)
+        if (term := _child_term(title[9:], root_variants))
+        and (topical_root or _topic_matches(child_topic, term))
     ]
     state["terms"] = direct
     # Retain completed buckets at the deadline, in fixed bucket order.
@@ -849,7 +859,7 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
             {"term": term, "origin": "commons"}
             for member in members
             if (term := _child_term(member[9:], root_variants))
-            and (_topic_matches(child_topic, term) or child_topic == "temple")
+            and (_topic_matches(child_topic, term) or _topic_matches(child_topic, title))
         ]
         # Settlement containers outrank individual landmarks.
         towns = [
@@ -927,7 +937,7 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
     response_token = _RESPONSE_CACHE.set({})
     locks_token = _REQUEST_LOCKS.set({})
     cache = {}
-    persistent = load_cache() if persistent_cache is None else persistent_cache
+    persistent = {} if persistent_cache is None else persistent_cache
     fresh_keys = set()
     stale = {}
     updates = {}

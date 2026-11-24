@@ -592,3 +592,35 @@ def test_commons_does_not_wait_for_wikidata():
         assert {"term": "Kiyomizu temple", "origin": "commons"} in job["related_terms"]
 
     asyncio.run(run())
+
+
+def test_long_retry_after_is_capped_and_commons_independent(monkeypatch):
+    from clipoteca.studio import related
+
+    async def run():
+        monkeypatch.setattr(related, "_MAX_RETRY_AFTER", 0.02)
+        attempts = 0
+
+        def response(request):
+            nonlocal attempts
+            if request.url.host == "www.wikidata.org":
+                attempts += 1
+                return httpx.Response(429, headers={"Retry-After": "30"})
+            if request.url.params.get("list") == "search":
+                return httpx.Response(200, json={"query": {"search": [
+                    {"title": "Category:Chiloe"}
+                ]}})
+            return httpx.Response(200, json={"query": {"categorymembers": [
+                {"ns": 14, "title": "Category:Castro"}
+            ]}})
+
+        job = {"queries": {"en": ["Chiloe"], "es": []}}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+            await resolve_jobs([job], client=client, timeout=0.15)
+        assert attempts >= 1
+        assert {"term": "Castro", "origin": "commons"} in job["related_terms"]
+        delays = [row["retry_after_s"] for row in job["related_diagnostic"]["errors"]
+                  if "retry_after_s" in row]
+        assert delays and max(delays) <= 0.02
+
+    asyncio.run(run())

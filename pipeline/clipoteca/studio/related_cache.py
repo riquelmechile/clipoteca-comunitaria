@@ -7,6 +7,7 @@ import os
 import tempfile
 import unicodedata
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -28,16 +29,28 @@ def _safe(value):
     )
 
 
+@lru_cache(maxsize=1)
+def _validator():
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    return Draft202012Validator(schema["$defs"]["entry"])
+
+
 def valid(entry):
     try:
-        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-        if not Draft202012Validator(schema["$defs"]["entry"]).is_valid(entry):
+        if not _validator().is_valid(entry):
             return False
         strings = [entry["seed"], *entry["context"], *entry["commons_roots"]]
         strings += [row["term"] for row in entry["terms"]]
         strings += [row["label"] for row in entry["roots"]]
         timestamp = datetime.fromisoformat(entry["date"])
-        return all(_safe(value) for value in strings) and timestamp.tzinfo is not None
+        from ..place_names import _words
+
+        normalized = [entry["seed"], *entry["context"]]
+        return (all(_safe(value) for value in strings)
+                and all(value == " ".join(_words(value)) for value in normalized)
+                and entry["context"] == sorted(set(entry["context"]))
+                and timestamp.tzinfo is not None
+                and timestamp <= datetime.now(UTC) + timedelta(minutes=5))
     except (OSError, ValueError, TypeError, KeyError):
         return False
 

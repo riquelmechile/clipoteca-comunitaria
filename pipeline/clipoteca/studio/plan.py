@@ -161,8 +161,9 @@ def write_plan(
     ]
     if resolve_related:
         from .related import resolve_jobs
+        from .related_cache import load_cache
 
-        diagnostics = asyncio.run(resolve_jobs(jobs))
+        diagnostics = asyncio.run(resolve_jobs(jobs, persistent_cache=load_cache()))
         for job, estimate, diagnostic in zip(jobs, plan["scenes"], diagnostics, strict=True):
             job["related_diagnostic"] = diagnostic
             estimate["related_diagnostic"] = diagnostic
