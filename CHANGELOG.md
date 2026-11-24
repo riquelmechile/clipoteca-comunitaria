@@ -19,6 +19,7 @@
 - M32 (PR2): publicación del video terminado (`studio/publish.py`): solo si el control de calidad aprobó esos mismos bytes, publica en un único commit los clips importados que el video usó, sube el video a un Release propio `video-AAAA-MM-DD-NNN` y escribe la ficha `data/videos/<id>.json` (esquema `schemas/video-record.schema.json`). Idempotente ante cortes y con ensayo local `--dry-run`. Sin cambio de versión.
 - CI: instalación de ffmpeg con límite de tiempo y reintentos (acción `install-ffmpeg`) y tope de 20 minutos para el job `python`, tras tres cuelgues del runner en ese paso.
 - M32 (PR1): workflow manual `render.yml`: plan → voz ∥ música ∥ un job por escena (catálogo y, si falta, importación sin publicar) → ensamblado, render y control de calidad → publicación solo si se pide y QA aprueba. Por defecto es un ensayo que deja el video como artefacto. Documentado en `docs/M32_RENDER.md`. Sin cambio de versión.
+- Documentación v3: el README, la guía nueva `docs/STUDIO.md`, el estado, la arquitectura y el roadmap describen lo que el motor de video hace hoy y lo que falta; dos diagramas nuevos (flujo por etapas y las 14 compuertas) y un test que ata los comandos, modelos y workflows documentados a lo que existe en el repositorio. Sin cambio de versión.
 
 ## 2.0.6 (descubrimiento equitativo y reparto de fuentes)
 
