@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Sequence
 
 from .catalog import Catalog, canonical_tokens
+from .place_names import query_names
 from .providers.base import (
     Adapter,
     AuthRequired,
@@ -132,7 +133,12 @@ class SearchEngine:
             return SearchResult(expansion, local, [], [], self.clock() - start)
         sem = asyncio.Semaphore(self.concurrency)
         provider_locks = {adapter.name: asyncio.Lock() for adapter in self.adapters}
-        limits = SearchLimits(self.max_pages, self.max_candidates, self.per_source_seconds)
+        limits = SearchLimits(
+            self.max_pages,
+            self.max_candidates,
+            self.per_source_seconds,
+            tuple(sorted(query_names([query]))),
+        )
         languages = ("es", "en", "zh", "ru")
         completed: dict[tuple[str, str], tuple[list[Candidate], SupportStatus, str, float]] = {}
 

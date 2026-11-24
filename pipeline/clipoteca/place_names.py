@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
+
 def _fold(text: str) -> str:
     value = unicodedata.normalize("NFKC", text).casefold()
     return "".join(
@@ -56,7 +57,11 @@ def query_names(queries):
 
 
 # Conservative documented aliases for the same geographic entity.
-_ALIAS_GROUPS = (("rapa nui", "easter island", "isla de pascua"),)
+_ALIAS_GROUPS = (
+    ("rapa nui", "easter island", "isla de pascua"),
+    ("torres del paine", "torres del paine national park"),
+    ("chiloe", "chiloe island"),
+)
 
 
 def aliases(name: str) -> tuple[str, ...]:

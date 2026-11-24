@@ -27,6 +27,7 @@ _STOP = frozenset(
     "el la los las de del en y o con por para un una al a que es vista imagen".split()
 )
 
+
 def _source_fragments(source):
     return (
         _values(source.get("source_title"))

@@ -11,12 +11,12 @@ import httpx
 
 from ..config import USER_AGENT
 from ..place_names import _words, aliases, query_names
-
 from .base import (
     Adapter,
     Candidate,
     MediaRef,
     ProviderError,
+    ProviderTimeout,
     SearchLimits,
     SupportStatus,
     detect_source_language,
@@ -44,7 +44,6 @@ def _video_category(title: str) -> bool:
     return _category_key(title).startswith("videos of ")
 
 
-
 class WikimediaCommons(Adapter):
     name = "wikimedia_commons"
     category = "public_media"
@@ -68,12 +67,21 @@ class WikimediaCommons(Adapter):
         return payload
 
     async def _place_candidates(self, term, lang, limits, found):
-        names = sorted(query_names([term]), key=lambda name: (-len(name.split()), name))
+        names = sorted(
+            set(limits.place_names) | query_names([term]),
+            key=lambda name: (-len(name.split()), name),
+        )
         roots = {}
         # Prefer exact category titles over fuzzy search hits. In particular,
         # a category for a similarly named object is not geographic evidence.
-        for name in names[:2]:
+        searched = set()
+        for name in names:
             variants = aliases(name)
+            if variants in searched:
+                continue
+            if len(searched) >= 2:
+                break
+            searched.add(variants)
             expression = " OR ".join(f'"{variant}"' for variant in variants)
             payload = await self._query(
                 list="search", srnamespace=14, srsearch=expression, srlimit=12
@@ -122,7 +130,9 @@ class WikimediaCommons(Adapter):
                 gcmlimit=min(MAX_MEMBERS, limits.max_candidates),
                 **_IMAGE_PROPS,
             )
-            for candidate in self._candidates(payload, term, lang, category=title, evidence=evidence):
+            for candidate in self._candidates(
+                payload, term, lang, category=title, evidence=evidence
+            ):
                 if candidate.origin_id not in seen:
                     found.append(candidate)
                     seen.add(candidate.origin_id)
@@ -131,7 +141,8 @@ class WikimediaCommons(Adapter):
 
     async def search(self, term: str, lang: str, limits: SearchLimits) -> list[Candidate]:
         found = []
-        if query_names([term]):
+        deadline = asyncio.get_running_loop().time() + limits.timeout_seconds
+        if limits.place_names or query_names([term]):
             try:
                 async with asyncio.timeout(min(MAX_PLACE_SECONDS, limits.timeout_seconds / 2)):
                     await self._place_candidates(term, lang, limits, found)
@@ -140,13 +151,19 @@ class WikimediaCommons(Adapter):
                 pass
         if len(found) < limits.max_candidates:
             try:
-                payload = await self._query(
-                    generator="search",
-                    gsrsearch=f"filetype:video {term}",
-                    gsrnamespace=6,
-                    gsrlimit=min(50, limits.max_candidates),
-                    **_IMAGE_PROPS,
-                )
+                remaining = deadline - asyncio.get_running_loop().time()
+                # Reserve a little time to return candidates before the engine's own timeout.
+                async with asyncio.timeout(max(0.001, remaining - 0.05)):
+                    payload = await self._query(
+                        generator="search",
+                        gsrsearch=f"filetype:video {term}",
+                        gsrnamespace=6,
+                        gsrlimit=min(50, limits.max_candidates),
+                        **_IMAGE_PROPS,
+                    )
+            except TimeoutError as exc:
+                if not found:
+                    raise ProviderTimeout("provider timeout") from exc
             except ProviderError:
                 if not found:
                     raise
