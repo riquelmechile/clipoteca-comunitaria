@@ -276,7 +276,10 @@ async def test_hls_500_segments_downloads_only_cut_window(monkeypatch, tmp_path)
         Path(command[-1]).write_bytes(b"synthetic_mp4_for_bounded_test")
         return subprocess.CompletedProcess(command, 0)
 
-    monkeypatch.setattr("clipoteca.security.hls.subprocess.run", fake_run)
+    async def fake_remux(command):
+        fake_run(command)
+
+    monkeypatch.setattr("clipoteca.security.hls._run_remux", fake_remux)
     async with async_client(handler) as client:
         result = await download_hls(
             PUBLIC + "/vod.m3u8",
@@ -315,7 +318,10 @@ async def test_hls_30_second_single_segment_is_fetched_then_trimmed(monkeypatch,
         Path(command[-1]).write_bytes(b"bounded test output")
         return subprocess.CompletedProcess(command, 0)
 
-    monkeypatch.setattr("clipoteca.security.hls.subprocess.run", fake_run)
+    async def fake_remux(command):
+        fake_run(command)
+
+    monkeypatch.setattr("clipoteca.security.hls._run_remux", fake_remux)
     async with async_client(handler) as client:
         await download_hls(
             PUBLIC + "/one.m3u8",
@@ -353,7 +359,10 @@ async def test_hls_start_offset_selects_intersecting_segments(monkeypatch, tmp_p
         Path(command[-1]).write_bytes(b"trimmed MP4")
         return subprocess.CompletedProcess(command, 0)
 
-    monkeypatch.setattr("clipoteca.security.hls.subprocess.run", fake_run)
+    async def fake_remux(command):
+        fake_run(command)
+
+    monkeypatch.setattr("clipoteca.security.hls._run_remux", fake_remux)
     async with async_client(handler) as client:
         await download_hls(
             PUBLIC + "/offset.m3u8",

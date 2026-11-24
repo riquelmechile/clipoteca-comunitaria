@@ -250,9 +250,16 @@ async def download_dash(
         try:
             await asyncio.wait_for(proc.communicate(), timeout=120)
         except TimeoutError as exc:
-            proc.kill()
+            if proc.returncode is None:
+                proc.kill()
             await proc.communicate()
             raise DownloadError("DASH mux deadline exceeded") from exc
+        except BaseException:
+            if proc.returncode is None:
+                proc.kill()
+            await proc.communicate()
+            output.unlink(missing_ok=True)
+            raise
         if proc.returncode != 0 or not output.is_file():
             raise DownloadError("DASH mux failed")
         if output.stat().st_size <= 0 or output.stat().st_size > max_bytes:

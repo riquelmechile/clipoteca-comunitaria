@@ -20,8 +20,9 @@ El nombre de corrida es render seguido del request_id.
   una coincidencia fuerte (sim ≥0,27, provisional), se importan candidatos
   y se elige el importado válido más pertinente; el catálogo débil solo es respaldo
   cuando no hay ningún importado válido. La primera
-  ronda reparte hasta ocho candidatos entre las consultas únicas (en, es),
-  en orden, con 600 s de presupuesto. Si ningún importado supera los filtros
+  ronda busca hasta ocho candidatos validos, con corte anticipado por tres
+  clips suficientes y un plazo de seguridad de 600 s. Prioriza consultas
+  especificas y Pexels, sin excluir las demas fuentes. Si ningún importado supera los filtros
   de escena, una ronda adicional simplifica título y prompt, hasta dos
   candidatos en 180 s. El total máximo es diez. Una coincidencia débil válida
   del catálogo se marca fallback=true cuando resulta elegida. Sin candidato
@@ -81,3 +82,15 @@ esperaron ~17 min de instalación apt. La importación real trajo tres clips
 lona (no_candidate). No se produjo un video final. Estos datos motivan las
 dos rondas, el indexado independiente y el instalador fijo. Los resultados
 del nuevo flujo siguen pendientes de corrida real.
+
+## Diagnostico de busqueda rapida
+
+El flujo no requiere promover un workflow nuevo: los defaults del CLI se
+aplican a ambas rondas. El manifest conserva los clips verificados al
+cortar por suficiencia, cantidad, plazo o agotamiento. Entrega y timings
+incluyen por escena y ronda los segundos y contadores del importador, con
+el motivo como clave numerica (por ejemplo,
+scene.intro.import.termination_reason.enough = 1), para mantener el contrato
+numerico del esquema de entrega. El objetivo de 1-2 min por escena con
+material disponible requiere validacion real posterior al merge; no es
+una medicion de este PR.

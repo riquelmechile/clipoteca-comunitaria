@@ -17,6 +17,24 @@ def _timings(work):
         for path in sorted(folder.glob("timing*.json")):
             for key, value in _read(path).items():
                 timings[f"scene.{folder.name}.{key}"] = value
+        for name, stage in (("import", "import"), ("import-retry", "import_retry")):
+            manifest = folder / name / "imported.json"
+            if not manifest.is_file():
+                continue
+            report = _read(manifest)
+            for key in (
+                "time_s",
+                "searches_started",
+                "searches_avoided",
+                "searches_cancelled",
+                "downloads_started",
+                "downloads_avoided",
+            ):
+                if key in report:
+                    timings[f"scene.{folder.name}.{stage}.{key}"] = report[key]
+            reason = report.get("termination_reason")
+            if reason in {"enough", "max_results", "timeout", "exhausted"}:
+                timings[f"scene.{folder.name}.{stage}.termination_reason.{reason}"] = 1
     for stage in ("voz", "musica"):
         path = work / stage / "timing.json"
         if path.is_file():

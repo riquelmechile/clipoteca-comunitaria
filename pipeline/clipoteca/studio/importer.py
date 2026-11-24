@@ -10,7 +10,9 @@ import math
 import os
 import re
 import shutil
+import signal
 import tempfile
+import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -19,11 +21,12 @@ from pathlib import Path
 from typing import Any, Callable, Sequence
 
 from ..catalog import Catalog
-from ..ingest import ingest
+from ..providers.base import SupportStatus
 from ..sources import SOURCES
 from ..storage.github import ReleaseAsset, ReleaseBatch, StorageError
 from . import library
 from .plan import _atomic_json
+from .scene_search import SceneBudget, ingest
 from .windows import fit_mode
 
 
@@ -103,6 +106,34 @@ def _atomic_copy(source: Path, destination: Path) -> None:
         os.replace(name, destination)
     finally:
         Path(name).unlink(missing_ok=True)
+
+
+class _SceneDeadline(BaseException):
+    """Interrupt synchronous media work as well as asynchronous discovery."""
+
+
+@contextmanager
+def _wall_deadline(seconds):
+    # Actions invokes this on the POSIX main thread. Do not replace a caller's
+    # existing alarm or install signal handlers in a non-main thread.
+    if (
+        not hasattr(signal, "setitimer")
+        or threading.current_thread() is not threading.main_thread()
+        or signal.getitimer(signal.ITIMER_REAL)[0]
+    ):
+        yield
+        return
+
+    def expire(_signum, _frame):
+        raise _SceneDeadline()
+
+    previous = signal.signal(signal.SIGALRM, expire)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, max(0.001, seconds))
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 @contextmanager
@@ -450,11 +481,16 @@ def import_scene(
     timeout_s: float | None = None,
     spread_queries: bool = False,
     simple: bool = False,
+    enough: int = 3,
 ) -> dict[str, Any]:
     """Search using existing ingest but keep ALL results, jobs and assets local."""
     length, fetch, queries = _validate(job, max_results, max_clips_per_source, concurrency)
+    if isinstance(enough, bool) or not isinstance(enough, int) or not 0 <= enough <= 50:
+        raise ImportSceneError("enough must be 0..50")
     if simple:
         queries = simple_queries(job, queries)
+    # Stable ties retain the original English-first order.
+    queries.sort(key=lambda term: -len(set(library._words(term)) - _QUERY_STOP))
     if timeout_s is None:
         try:
             timeout_s = float(os.environ.get("CLIPOTECA_IMPORT_TIMEOUT", "900"))
@@ -489,6 +525,13 @@ def import_scene(
     own_adapters = adapters is None
     selected = _adapters(providers) if own_adapters else adapters
     duration_cap = min(20, max(8, math.ceil(fetch) + 4))
+    budget = SceneBudget(job, writer.imported, max_results, enough, started + timeout)
+    budget.searches_planned = len(queries) * sum(
+        len(set(adapter.accepts_text_languages) & {"en", "es", "zh", "ru"})
+        for adapter in selected
+        if adapter.support_status == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
+        or adapter.support_status == SupportStatus.SUPPORTED_SEARCH_ONLY
+    )
 
     async def execute() -> None:
         try:
@@ -499,12 +542,12 @@ def import_scene(
                 if remaining <= 0:
                     failures.append("timeout")
                     break
-                if len(writer.imported) >= max_results:
+                if budget.reason():
                     break
                 tried.append(query)
-                budget = max_results - len(writer.imported)
-                if spread_queries:
-                    budget = max(1, math.ceil(budget / (len(queries) - index)))
+                # The legacy spread flag remains accepted, but never reserves slots
+                # for later queries once adequate material is available.
+                slots = max_results - budget.valid_count()
                 try:
                     report = await asyncio.wait_for(
                         ingest(
@@ -513,7 +556,8 @@ def import_scene(
                             repository="local/local",
                             token="",
                             job_root=stage / "jobs",
-                            max_results=budget,
+                            max_results=slots,
+                            scene_budget=budget,
                             max_clips_per_source=max_clips_per_source,
                             concurrency=concurrency,
                             # No aspect filter: clip-scene reframes any orientation to the
@@ -545,8 +589,13 @@ def import_scene(
                 await _close_adapters(selected)
 
     with _no_remote_writes():
-        asyncio.run(execute())
+        try:
+            with _wall_deadline(timeout - (time.monotonic() - started)):
+                asyncio.run(execute())
+        except _SceneDeadline:
+            failures.append("timeout")
 
+    reason = "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
     imported: list[dict[str, Any]] = []
     seen_digests: set[str] = set()
     for record in writer.imported:
@@ -566,6 +615,12 @@ def import_scene(
         "errors": sorted(set(failures)),
         "rejections": dict(sorted(rejections.items())),
         "time_s": round(time.monotonic() - started, 3),
+        "termination_reason": reason,
+        "searches_started": budget.searches_started,
+        "searches_avoided": max(0, budget.searches_planned - budget.searches_started),
+        "searches_cancelled": budget.searches_cancelled,
+        "downloads_started": budget.downloads_started,
+        "downloads_avoided": len(budget.discovered - budget.attempted),
     }
     _atomic_json(out / "imported.json", report)
     _atomic_json(out / "assignment.json", assignment)
@@ -582,6 +637,7 @@ def main(argv: list[str] | None = None) -> int:
     scene.add_argument("--out", type=Path, required=True)
     scene.add_argument("--providers")
     scene.add_argument("--max-results", type=int, default=3)
+    scene.add_argument("--enough", type=int, default=3)
     scene.add_argument("--spread-queries", action="store_true")
     scene.add_argument("--simple", action="store_true")
     scene.add_argument("--timeout", type=float)
@@ -596,6 +652,7 @@ def main(argv: list[str] | None = None) -> int:
             max_results=args.max_results,
             spread_queries=args.spread_queries,
             simple=args.simple,
+            enough=args.enough,
             timeout_s=args.timeout,
         )
     except (OSError, ImportSceneError, ValueError, TypeError) as exc:
@@ -606,6 +663,12 @@ def main(argv: list[str] | None = None) -> int:
                 "id": result["id"],
                 "status": result["status"],
                 "imported": len(result["clips"]),
+                "termination_reason": result["termination_reason"],
+                "time_s": result["time_s"],
+                "searches_started": result["searches_started"],
+                "searches_avoided": result["searches_avoided"],
+                "downloads_started": result["downloads_started"],
+                "downloads_avoided": result["downloads_avoided"],
             },
             ensure_ascii=False,
         )

@@ -158,6 +158,7 @@ def test_happy_two_real_ffmpeg_imports_and_manifest(tmp_path, videos, engine):
     result = _import(load("job.json"), out, _catalog(tmp_path), videos, max_results=2)
     assert result["status"] == "ok", result
     assert len(result["clips"]) == 2, result
+    assert result["termination_reason"] == "max_results"
     assert result["queries_tried"] == ["rain movement"]
     manifest = json.loads((out / "imported.json").read_text())
     assert manifest == result
@@ -238,6 +239,7 @@ def test_no_results_and_cli_exit_three(tmp_path, monkeypatch, capsys):
         embedding_encoder=NoEncoder(),
     )
     assert result["status"] == "no_results"
+    assert result["termination_reason"] == "exhausted"
     assert result["clips"] == []
     assert json.loads((empty / "assignment.json").read_text())["status"] == "needs_import"
     job_path = tmp_path / "job.json"
@@ -364,7 +366,9 @@ def test_timeout_keeps_already_imported(tmp_path, monkeypatch):
     )
     assert result["status"] == "ok"
     assert "timeout" in result["errors"]
+    assert result["termination_reason"] == "timeout"
     assert len(result["clips"]) == 1
+    assert not (tmp_path / "timeout" / ".ingest-local").exists()
 
 
 def test_bad_job_types_and_cli_error(tmp_path):
@@ -552,7 +556,7 @@ def test_real_failures_stay_errors_without_leaking_payloads(
     assert "example.org" not in json.dumps(result)
 
 
-def test_spread_queries_reserves_budget(tmp_path, monkeypatch):
+def test_spread_queries_does_not_reserve_budget(tmp_path, monkeypatch):
     job = load("job.json")
     job["queries"] = {"en": ["rain", "storm"], "es": ["lluvia", "tormenta"]}
     calls = []
@@ -571,7 +575,7 @@ def test_spread_queries_reserves_budget(tmp_path, monkeypatch):
         spread_queries=True,
     )
     assert report["queries_tried"] == ["rain", "storm", "lluvia", "tormenta"]
-    assert calls[0] == ("rain", 2)
+    assert calls[0] == ("rain", 8)
     assert len(calls) == 4
 
 
