@@ -116,6 +116,7 @@ def scene_job(script: VideoScript, scene: SceneSpec, est: dict[str, Any]) -> dic
         "negatives": NEG.copy(),
         "min_sim": 0.22,
         "min_prob": 0.5,
+        "min_score": 0.0,
         "top_n": 4,
         "min_short_side": 720,
     }
