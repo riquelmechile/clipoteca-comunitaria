@@ -368,6 +368,9 @@ def _collect(work, created):
         root = path.parent
         manifest = _read(_local(root, "imported.json"))
         for entry in manifest["clips"]:
+            # Fallback material only fills a scene; it never grows the catalogue.
+            if entry.get("fallback"):
+                continue
             identifier = entry["imp_id"]
             record, assets = _imported(root, identifier, entry)
             urls = [f"https://example.invalid/{i}" for i in range(len(assets))]
