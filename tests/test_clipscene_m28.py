@@ -702,3 +702,31 @@ def test_evaluators_initialized_only_once_after_verification(tmp_path, monkeypat
         "low_score",
         "low_score",
     ]
+
+
+def test_imported_proper_name_wins_after_visual_validity(tmp_path, monkeypatch):
+    source = tmp_path / "clip.mp4"
+    source.write_bytes(b"verified")
+    wrong = _candidate(source, "wrong")
+    right = _candidate(source, "right")
+    for candidate in (wrong, right):
+        candidate.pop("asset_url")
+        candidate["local_path"] = "clip.mp4"
+    wrong["name_match"] = False
+    right["name_match"] = True
+    monkeypatch.setattr(clipscene, "_initialize_evaluators", lambda *args: (None, None))
+
+    def attempt(job, candidate, downloaded, rendered, scorer, ocr, deadline):
+        rendered.write_bytes(candidate["clip_id"].encode())
+        sim = 0.3 if candidate["name_match"] else 0.8
+        return {"clip_id": candidate["clip_id"], "imported": True, "sim": sim, "score": sim}, ""
+
+    monkeypatch.setattr(clipscene, "_attempt", attempt)
+    report = clip_scene(
+        {**_job(), "catalog_min_sim": 0.27},
+        {"status": "imported", "primary": wrong, "backups": [right]},
+        tmp_path / "out",
+        local_root=tmp_path,
+    )
+    assert report["clip"]["clip_id"] == "right"
+    assert (tmp_path / "out" / "clip.mp4").read_bytes() == b"right"

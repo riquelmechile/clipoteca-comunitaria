@@ -279,14 +279,22 @@ def detect_scenes(
 
 
 async def _ffmpeg_scenes_async(
-    source: Path, *, start: float, max_window: float,
-    prefer_scenedetect: bool, runner: Callable | None,
+    source: Path,
+    *,
+    start: float,
+    max_window: float,
+    prefer_scenedetect: bool,
+    runner: Callable | None,
 ) -> list[Scene]:
     if runner is not None:
         # Explicit test/integration override; no real subprocess owned by this function.
         return await asyncio.to_thread(
-            _ffmpeg_scenes, source, start=start, max_window=max_window,
-            prefer_scenedetect=prefer_scenedetect, runner=runner,
+            _ffmpeg_scenes,
+            source,
+            start=start,
+            max_window=max_window,
+            prefer_scenedetect=prefer_scenedetect,
+            runner=runner,
         )
     if prefer_scenedetect:
         detected = await asyncio.to_thread(
@@ -297,7 +305,10 @@ async def _ffmpeg_scenes_async(
     command = _ffmpeg_command(source, start=start, window=max_window)
     try:
         proc = await asyncio.create_subprocess_exec(
-            *command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=safe_media_env()
+            *command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            env=safe_media_env(),
         )
     except OSError as exc:
         raise SceneDetectionError("ffmpeg detection could not complete") from exc

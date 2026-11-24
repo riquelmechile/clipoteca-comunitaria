@@ -538,7 +538,9 @@ async def ingest(
                     localized = localize_candidate(
                         candidate,
                         translator=translator,
-                        include_query_tags=candidate.provider != "community",
+                        # Temporary scene candidates must not acquire fabricated
+                        # proper-name evidence from their own discovery query.
+                        include_query_tags=candidate.provider != "community" and not scene_budget,
                         on_query_tag_warning=note_query_tag_warning,
                     )
                     if scene_budget:

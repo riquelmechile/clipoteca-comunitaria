@@ -243,15 +243,14 @@ def _caption_chunks(
         duration = round(max(min(0.3, next_start - start - 0.002), end - start), 3)
         if not math.isfinite(duration) or duration <= 0:
             raise ComposeError("caption timing is invalid")
+        estimated_size = int((width - 8) / units([word for word, _, _ in group]))
         chunks.append(
             {
                 "words": group,
                 "start": start,
                 "end": start + duration,
                 "duration": duration,
-                "font_size": max(30, min(cap_font, int((width - 8) / units(
-                    [word for word, _, _ in group]
-                )))),
+                "font_size": max(30, min(cap_font, estimated_size)),
             }
         )
     return chunks

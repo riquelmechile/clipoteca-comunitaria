@@ -142,13 +142,18 @@ async def test_cutoff_cancels_inflight_and_avoids_new_batches(
     assert budget.downloads_started == len(writer.imported)
     assert len(budget.discovered - budget.attempted) == 5 - len(writer.imported)
 
+
 def test_relevance_and_digest_dedupe():
     settings = job()
     settings["queries"] = {
-        "en": ["rainy night city street neon"], "es": ["calle ciudad noche lluvia neon"]
+        "en": ["rainy night city street neon"],
+        "es": ["calle ciudad noche lluvia neon"],
     }
-    records = [record("Night sky time lapse"), record("Street food vendor"),
-               record("City traffic aerial")]
+    records = [
+        record("Night sky time lapse"),
+        record("Street food vendor"),
+        record("City traffic aerial"),
+    ]
     budget = scene_search.SceneBudget(settings, records, 8, 3, 100, clock=lambda: 0)
     assert not any(budget.good(item) for item in records)
     settings["queries"] = {"es": ["moais Rapa Nui"], "en": ["Rapa Nui moai"]}

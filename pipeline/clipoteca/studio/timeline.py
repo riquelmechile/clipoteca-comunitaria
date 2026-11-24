@@ -15,7 +15,11 @@ from typing import Any
 import numpy as np
 
 from .script import (
-    MAX_VIDEO_SECONDS, VideoScript, parse_video_script, rendered_scene_length, script_id,
+    MAX_VIDEO_SECONDS,
+    VideoScript,
+    parse_video_script,
+    rendered_scene_length,
+    script_id,
 )
 from .textnorm import norm_words, wer
 

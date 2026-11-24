@@ -571,6 +571,7 @@ def test_render_fake_hyperframes_and_exact_mux_args_and_stale_report(
     assert not (root / "render.json").exists()
     assert not output.exists()
 
+
 @pytest.mark.parametrize("aspect", ["9:16", "16:9", "1:1"])
 def test_long_caption_groups_have_width_budget(aspect):
     from clipoteca.studio.compose import CONFIG, _caption_chunks
