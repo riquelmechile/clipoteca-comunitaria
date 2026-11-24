@@ -2711,5 +2711,1529 @@
     },
     "status": "published",
     "created_at": "2026-11-24T03:45:36.042226Z"
+  },
+  {
+    "id": "clip-000042",
+    "title": {
+      "es": "SOFIA descubre agua en una superficie iluminada por el Sol de la Luna (reel de recursos de vídeo)",
+      "en": "SOFIA Discovers Water on a Sunlit Surface of the Moon (Video Resource Reel)"
+    },
+    "description": {
+      "es": "Científicos usando el telescopio de la NASA en un avión, el Observatorio Estratosférico de Astronomía Infrarroja, descubrieron agua en una superficie iluminada por el sol de la Luna por primera vez. SOFIA es un avión Boeing 747SP modificado que permite a los astrónomos estudiar el sistema solar y más allá de formas que no son posibles con telescopios terrestres. El agua molecular, H2O, fue encontrada en Clavius Crater, uno de los mayores cráteres visibles desde la Tierra en el hemisferio sur de la Luna. Este descubrimiento indica que el agua puede ser distribuida a través de la superficie lunar, y no limitada a lugares fríos y sombreados.",
+      "en": "Scientists using NASA’s telescope on an airplane, the Stratospheric Observatory for Infrared Astronomy, discovered water on a sunlit surface of the Moon for the first time. SOFIA is a modified Boeing 747SP aircraft that allows astronomers to study the solar system and beyond in ways that are not possible with ground-based telescopes. Molecular water, H2O, was found in Clavius Crater, one of the largest craters visible from Earth in the Moon’s southern hemisphere. This discovery indicates that water may be distributed across the lunar surface, and not limited to cold, shadowed places."
+    },
+    "tags": {
+      "es": [
+        "SOFIA",
+        "descubre",
+        "agua",
+        "superficie",
+        "iluminada",
+        "Sol",
+        "Luna",
+        "reel",
+        "recursos",
+        "vídeo",
+        "Terreno",
+        "cráteres"
+      ],
+      "en": [
+        "SOFIA",
+        "Discovers",
+        "Water",
+        "Sunlit",
+        "Surface",
+        "Moon",
+        "Video",
+        "Resource",
+        "Reel",
+        "Ground",
+        "craters"
+      ]
+    },
+    "source": {
+      "provider": "nasa",
+      "provider_id": "ARC-20201026-AAV3259-SOFIA-MoonWater-ResourceReel-NASAWeb",
+      "source_language": "en",
+      "source_title": "SOFIA Discovers Water on a Sunlit Surface of the Moon (Video Resource Reel)",
+      "source_url": "https://images.nasa.gov/details/ARC-20201026-AAV3259-SOFIA-MoonWater-ResourceReel-NASAWeb",
+      "source_start": 27.1,
+      "source_end": 36.1
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 1159822,
+      "sha256": "1208537affddfe3682e3b8d97aedd9613bbecddb9d3e11d10a486eca69a175a0",
+      "perceptual_hash": "817a2d01fc9faac5~4063.70:817e0521fc9eaac7~4111.84:817e0521fdbaa8c7~4154.76:807e05717dbaaac3~4196.04:807e01797dbaaac3~4193.42"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000042.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000042.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000042_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000042_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000042_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000042_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000042_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000042_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000043",
+    "title": {
+      "es": "NASA 1969 APOLLO 12 SATURN V LAUNCH, LUNAR LANDING, MOON WALK, ECLIPSE",
+      "en": "NASA 1969 APOLLO 12 SATURN V LAUNCH, LUNAR LANDING, MOON WALK, ECLIPSE"
+    },
+    "description": {
+      "es": "NASA 1969 APOLLO 12 SATURN V LAUNCH, LUNAR LANDING, MOON WALK, ECLIPSE",
+      "en": "NASA 1969 APOLLO 12 SATURN V LAUNCH, LUNAR LANDING, MOON WALK, ECLIPSE"
+    },
+    "tags": {
+      "es": [
+        "NASA",
+        "1969",
+        "APOLLO",
+        "SATURN",
+        "LAUNCH",
+        "LUNAR",
+        "LANDING",
+        "MOON",
+        "WALK",
+        "ECLIPSE",
+        "surface"
+      ],
+      "en": [
+        "NASA",
+        "1969",
+        "APOLLO",
+        "SATURN",
+        "LAUNCH",
+        "LUNAR",
+        "LANDING",
+        "MOON",
+        "WALK",
+        "ECLIPSE"
+      ]
+    },
+    "source": {
+      "provider": "internet_archive",
+      "provider_id": "86164-nasa-space-footage",
+      "source_language": "en",
+      "source_title": "NASA 1969 APOLLO 12 SATURN V LAUNCH, LUNAR LANDING, MOON WALK, ECLIPSE 86164",
+      "source_url": "https://archive.org/details/86164-nasa-space-footage",
+      "source_start": 764.0,
+      "source_end": 773.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 844,
+      "height": 480,
+      "fps": 18.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 725403,
+      "sha256": "1df99ef71c67c2bb3386a4f41c90857312f4eea4e99575c4c4e2cc4b55b112ba",
+      "perceptual_hash": "c1c0da1e96d3669b~5207.21:c1c0ca9b66d3e366~3438.28:c1c0da1be4d36e1e~5642.09:c0c09a1fe4d36d9e~6289.79:c0c0da1ecdf26b1e~5635.33"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000043.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000043.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000043_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000043_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000043_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000043_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000043_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000043_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000044",
+    "title": {
+      "es": "NASA Payload LMS Deploys on Lunar Surface to Study Moon's Interior",
+      "en": "NASA Payload LMS Deploys on Lunar Surface to Study Moon’s Interior"
+    },
+    "description": {
+      "es": "Un instrumento científico a bordo de Firefly Aerospace’s Blue Ghost Mission 1 es la primera aplicación extraterrestre del Lunar Magnetotelluric Sounder (LMS). El instrumento es una de las 10 descargas de la NASA a bordo de Firefly Aerospace Blue Ghost Mission 1 lander como parte de la iniciativa CLPS (Commercial Lunar Payload Services) de la agencia. Después de aterrizar en la Luna 2 de marzo, el Lander Blue Ghost desplegó cuatro electrodos LMS tethered y un mástil de 2 metros para iniciar las operaciones lunares de los instrumentos para arrojar luz sobre la diferenciación y la historia térmica de la Luna. El comienzo de este vídeo muestra el momento en que el magnetómetro se implementa a través de un mástil extensible. El instrumento LMS expulsa uno de sus electrodos por cable a la superficie lunar, alcanzando una distancia de hasta 60 pies. El instrumento medirá voltajes a través de pares opuestos de electrodos, al igual que las sondas de un voltímetro convencional. El método magnetotelluric revela un perfil vertical de la conductividad eléctrica, proporcionando información sobre la temperatura y composición de los materiales penetrados en el interior lunar. Estos instrumentos permitirán que la NASA y sus socios estudien el interior profundo de la Luna a profundidades de hasta 700 millas, dos tercios del camino al centro lunar. LMS y sus instrumentos de ciencia y tecnología de la NASA a bordo del lander funcionarán en la Luna, cerca de una característica volcánica llamada Mons Latreille dentro de Mare Crisium, durante aproximadamente 14 días terrestres, o aproximadamente un día lunar. Southwest Research Institute con sede en San Antonio construyó la electrónica central para LMS y lidera la investigación científica. El Goddard Space Flight Center de la NASA en Greenbelt, Maryland, proporcionó el magnetómetro LMS para medir los campos magnéticos y Heliospace Corp. proporcionó los electrodos utilizados para medir los campos eléctricos, así como los lanzadores de mástil y electrodos magnetómetro. La Oficina del Programa de Misiones Planetarias en el Centro de Vuelo Espacial Marshall de la NASA en Huntsville, Alabama, gestiona el desarrollo de siete de las 10 cargas de pago CLPS a bordo de la cubierta lunar del fantasma azul de Firefly, incluyendo LMS. Video cortesía Firefly Aerospace.",
+      "en": "A science instrument aboard Firefly Aerospace’s Blue Ghost Mission 1 is the first extraterrestrial application of the Lunar Magnetotelluric Sounder (LMS). The instrument is one of 10 NASA payloads aboard Firefly Aerospace’s Blue Ghost Mission 1 lander as part of the agency’s CLPS (Commercial Lunar Payload Services) initiative. After landing on the Moon March 2, the Blue Ghost lander deployed four tethered LMS electrodes and a 2-meter mast to commence the instruments' lunar operations to shed light on the differentiation and thermal history of the Moon. The beginning of this video shows the moment the magnetometer is deployed via an extendable mast. The LMS instrument ejects one of its cable-trailing electrodes onto the lunar surface, reaching a distance up to 60 feet. The instrument will measure voltages across opposite pairs of electrodes, much like the probes of a conventional voltmeter. The magnetotelluric method reveals a vertical profile of the electrical conductivity, providing insight into the temperature and composition of the penetrated materials in the lunar interior. These instruments will allow NASA and its partners to study the deep interior of the Moon to depths of up to 700 miles, two-thirds of the way to the lunar center. LMS and its companion NASA science and technology instruments aboard the lander will operate on the Moon, near a volcanic feature called Mons Latreille within Mare Crisium, for approximately 14 Earth days, or roughly one lunar day. Southwest Research Institute based in San Antonio built the central electronics for LMS and leads the science investigation. NASA’s Goddard Space Flight Center in Greenbelt, Maryland, provided the LMS magnetometer to measure the magnetic fields, and Heliospace Corp. provided the electrodes used to measure the electrical fields, as well as the magnetometer mast and electrode launchers. The Planetary Missions Program Office at NASA’s Marshall Space Flight Center in Huntsville, Alabama, manages the development for seven of the 10 CLPS payloads aboard Firefly’s Blue Ghost lunar lander, including LMS. Video courtesy Firefly Aerospace."
+    },
+    "tags": {
+      "es": [
+        "NASA",
+        "Payload",
+        "LMS",
+        "Deploys",
+        "Lunar",
+        "Surface",
+        "Study",
+        "Moon",
+        "Interior"
+      ],
+      "en": [
+        "NASA",
+        "Payload",
+        "LMS",
+        "Deploys",
+        "Lunar",
+        "Surface",
+        "Study",
+        "Moon",
+        "Interior"
+      ]
+    },
+    "source": {
+      "provider": "nasa",
+      "provider_id": "LMS_CLPS_BROLL",
+      "source_language": "en",
+      "source_title": "NASA Payload LMS Deploys on Lunar Surface to Study Moon’s Interior",
+      "source_url": "https://images.nasa.gov/details/LMS_CLPS_BROLL",
+      "source_start": 40.0,
+      "source_end": 49.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 960,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 664825,
+      "sha256": "35be626dc2db8061d9363c359e505599a1f44bb8fa6eaf5c0315e1a038dffcf3",
+      "perceptual_hash": "93526dd92d91a995~6517.33:93426dd92d95a995~6310.80:93426dd92d95a995~6308.11:93426dd92d95a995~6296.00:93426dd92d95a995~6300.81"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000044.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000044.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000044_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000044_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000044_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000044_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000044_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000044_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000045",
+    "title": {
+      "es": "Una nave espacial en el campo",
+      "en": "A space craft on the field"
+    },
+    "description": {
+      "es": "Una nave espacial en el campo",
+      "en": "A space craft on the field"
+    },
+    "tags": {
+      "es": [
+        "nave",
+        "espacial",
+        "campo",
+        "Moon",
+        "lunar",
+        "surface",
+        "NASA"
+      ],
+      "en": [
+        "space",
+        "craft",
+        "field"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "7615679",
+      "source_language": "en",
+      "source_title": "a-space-craft-on-the-field-7615679",
+      "source_url": "https://www.pexels.com/video/a-space-craft-on-the-field-7615679/",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 3705025,
+      "sha256": "5d6dd48ac8f1ac0c924a7840a2a479a733d140c7e14a12b0e10885bcb6bc52f6",
+      "perceptual_hash": "a72beb22fb007a85~3008.24:a72beb28eb00768d~3130.30:a72beb20eb0876c9~3196.61:a72beb20eb08768d~3223.83:a72beb20eb08768d~3240.01"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000045.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000045.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000045_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000045_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000045_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000045_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000045_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000045_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000046",
+    "title": {
+      "es": "¿La luna puede ponerse en contacto con el mes?",
+      "en": "Moon can get in touch with month?"
+    },
+    "description": {
+      "es": "Después de más de una década, se hizo evidente hoy que el fondo de la luna no es el objeto, sino la escala!\n\n1. Ciclo mensual 29,5 días\nDe luna llena a luna nueva a luna llena, un ciclo de unos 29,5 días. Así es como los antiguos siguen los 29.5 días de actividad celestial.\n\n2. La mayoría de la esencia de la Luna: medida\nEl sol nos dice el tiempo de cada día, y la luna nos dice el tiempo de cada mes - a los ojos de los antiguos, la luna es una medida de tiempo!\n\n3. Comprender la “medición”, una línea de palabras pasa directamente por:\n-Meter: Medición, arroz\n- Amén.",
+      "en": "After more than a decade, it became clear today that the bottom of the moon is not the object, but the scale!\n\n1. Monthly cycle 29.5 days\nFrom full moon to new moon to full moon, a cycle of about 29.5 days. That's how the ancients keep track of the 29.5 days of celestial activity.\n\n🔹 2. Moon 's most essence: measure\nThe sun tells us the time of each day, and the moon tells us the time of each month -- in the eyes of the ancients, the moon is a measure of time!\n\n3. Understanding “measurement”, a line of words goes directly through:\n-Meter: Measurement, rice\n-immense:"
+    },
+    "tags": {
+      "es": [
+        "luna",
+        "puede",
+        "ponerse",
+        "contacto",
+        "mes",
+        "Moon",
+        "lunar",
+        "surface",
+        "NASA"
+      ],
+      "en": [
+        "Moon",
+        "can",
+        "get",
+        "touch",
+        "month"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1p9yDz5EVQ",
+      "source_language": "zh",
+      "source_title": "moon 竟然和 month 可以扯上联系？？！！",
+      "source_url": "https://www.bilibili.com/video/BV1p9yDz5EVQ",
+      "source_start": 38.0,
+      "source_end": 47.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 720,
+      "height": 1280,
+      "fps": 25.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 455861,
+      "sha256": "63d3b73b1c473840f95b065611b5d3c2046cbb1d62066c4dc4a1a6e05151cebf",
+      "perceptual_hash": "ecb94493cc371cb2~3031.23:ec9964d38d361cb2~3044.73:ec9b64d38c361cb2~3062.23:ec996693ab1618b6~3202.71:ecbb44938c361cb6~2981.88"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000046.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000046.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000046_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000046_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000046_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000046_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000046_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000046_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000047",
+    "title": {
+      "es": "Geotermia, cráteres, vapor, noche, luna, naturaleza, paisaje, volcánico, térmico, caliente, superficie, tierra, energía, neblina, ai generado",
+      "en": "Geothermia, craters, steam, night, moon, nature, landscape, volcanic, thermal, hot, surface, earth, energy, fog, aig generated"
+    },
+    "description": {
+      "es": "Geotermia, cráteres, vapor, noche, luna, naturaleza, paisaje, volcánico, térmico, caliente, superficie, tierra, energía, neblina, ai generado",
+      "en": "Geothermia, craters, steam, night, moon, nature, landscape, volcanic, thermal, hot, surface, earth, energy, fog, aig generated"
+    },
+    "tags": {
+      "es": [
+        "Geotermia",
+        "cráteres",
+        "vapor",
+        "noche",
+        "luna",
+        "naturaleza",
+        "paisaje",
+        "volcánico",
+        "térmico",
+        "caliente",
+        "superficie",
+        "tierra"
+      ],
+      "en": [
+        "Geothermia",
+        "craters",
+        "steam",
+        "night",
+        "moon",
+        "nature",
+        "landscape",
+        "volcanic",
+        "thermal",
+        "hot",
+        "surface",
+        "earth"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "348034",
+      "source_language": "es",
+      "source_title": "geotermia, cráteres, vapor, noche, luna, naturaleza, paisaje, volcánico, térmico, caliente, superficie, tierra, energía, neblina, ai generado",
+      "source_url": "https://pixabay.com/videos/id-348034/",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2799450,
+      "sha256": "707f8749d176e6682ba28d46087896605b15ffc6e411c02fba84af3b7d97e5f1",
+      "perceptual_hash": "d911cfdf2c60660e~2110.16:d911cfdf2c60e40e~2186.35:d911cfdf2c60642e~2128.96:d911cbdd2c446c6e~2091.28:d911c3dd2c646c6e~2070.67"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000047.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000047.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000047_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000047_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000047_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000047_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000047_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000047_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000048",
+    "title": {
+      "es": "Juntas de vidrio de suelo tapizado ANTE Introducción a la química: Vidrio",
+      "en": "Tapered ground glass joints | Introduction to chemistry: Glassware"
+    },
+    "description": {
+      "es": "Juntas de vidrio de suelo tapizado ANTE Introducción a la química: Vidrio",
+      "en": "Tapered ground glass joints | Introduction to chemistry: Glassware"
+    },
+    "tags": {
+      "es": [
+        "Juntas",
+        "vidrio",
+        "suelo",
+        "tapizado",
+        "ANTE",
+        "Introducción",
+        "química",
+        "Terreno",
+        "luna",
+        "cráteres"
+      ],
+      "en": [
+        "Tapered",
+        "ground",
+        "glass",
+        "joints",
+        "Introduction",
+        "chemistry",
+        "Glassware",
+        "moon",
+        "craters"
+      ]
+    },
+    "source": {
+      "provider": "peertube",
+      "provider_id": "786953da-2b11-403a-9456-566433c9af6e",
+      "source_language": "en",
+      "source_title": "Tapered ground glass joints | Introduction to chemistry: Glassware",
+      "source_url": "https://diode.zone/videos/watch/786953da-2b11-403a-9456-566433c9af6e",
+      "source_start": 14.0,
+      "source_end": 23.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 50.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 5128845,
+      "sha256": "bd424e634df6db1304f579890380f29df00390050070744297e352daf6679064",
+      "perceptual_hash": "a1eb9e9609e28e39~3078.74:a4ed9b928cf18f30~3054.32:a4eb3b96cca1921d~3120.97:a5eb9e9208f18a3d~3151.56:a1ebb69418f28e39~3104.85"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000048.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000048.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000048_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000048_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000048_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000048_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000048_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000048_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000049",
+    "title": {
+      "es": "Vista cinematográfica de la superficie lunar bajo cielo estrellado",
+      "en": "Cinematic view of lunar surface under starry sky"
+    },
+    "description": {
+      "es": "Vista cinematográfica de la superficie lunar bajo cielo estrellado",
+      "en": "Cinematic view of lunar surface under starry sky"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "cinematográfica",
+        "superficie",
+        "lunar",
+        "bajo",
+        "cielo",
+        "estrellado",
+        "Luna",
+        "cráteres"
+      ],
+      "en": [
+        "Cinematic",
+        "view",
+        "lunar",
+        "surface",
+        "under",
+        "starry",
+        "sky",
+        "moon",
+        "craters"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "37001328",
+      "source_language": "en",
+      "source_title": "cinematic-view-of-lunar-surface-under-starry-sky-37001328",
+      "source_url": "https://www.pexels.com/video/cinematic-view-of-lunar-surface-under-starry-sky-37001328/",
+      "source_start": 2.0,
+      "source_end": 10.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 20314479,
+      "sha256": "e70a34130a75976107372ac0fc382e11aa7d40973a05fffcdbff8294a4cd80de",
+      "perceptual_hash": "906b27e5da952e61~3955.59:910e6be0df9d4a61~4188.51:852d6ae93e8aca6a~4961.60:910e49da1b99d93b~6044.37:d17a78fc70c0e06e~7285.28"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000049.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000049.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000049_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000049_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000049_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000049_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000049_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000049_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000050",
+    "title": {
+      "es": "Vídeo 4k de la actividad superficial del Sol.ogv",
+      "en": "4k video of the Sun's surface activity.ogv"
+    },
+    "description": {
+      "es": "Vídeo 4k de la actividad superficial del Sol.ogv",
+      "en": "4k video of the Sun's surface activity.ogv"
+    },
+    "tags": {
+      "es": [
+        "Vídeo",
+        "actividad",
+        "superficial",
+        "Sol",
+        "ogv",
+        "Sun",
+        "solar",
+        "surface",
+        "NASA"
+      ],
+      "en": [
+        "video",
+        "Sun",
+        "surface",
+        "activity",
+        "ogv"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "38172511",
+      "source_language": "en",
+      "source_title": "4k video of the Sun's surface activity.ogv",
+      "source_url": "https://commons.wikimedia.org/wiki/File:4k_video_of_the_Sun%27s_surface_activity.ogv",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3231271,
+      "sha256": "270780083b3a837cc94021a408c9de7c003437647a3a43c1842075c8fb7873b9",
+      "perceptual_hash": "c5cc44a91a37b65b~2771.73:c5cc46291a37b64f~2909.95:c5ce46291a33b74b~3030.10:c5ce4e291a33b70b~3173.54:c4ce4e291a33b74b~3360.99"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000050.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000050.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000050_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000050_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000050_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000050_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000050_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000050_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000051",
+    "title": {
+      "es": "Solar Surfing ← Un concepto inteligente para mantener el sol estudiando nave espacial segura",
+      "en": "Solar Surfing | A Clever Concept for Keeping Sun Studying Spacecraft Safe"
+    },
+    "description": {
+      "es": "Solar Surfing ← Un concepto inteligente para mantener el sol estudiando nave espacial segura",
+      "en": "Solar Surfing | A Clever Concept for Keeping Sun Studying Spacecraft Safe"
+    },
+    "tags": {
+      "es": [
+        "Solar",
+        "Surfing",
+        "concepto",
+        "inteligente",
+        "mantener",
+        "sol",
+        "estudiando",
+        "nave",
+        "espacial",
+        "segura",
+        "Sun",
+        "surface",
+        "NASA"
+      ],
+      "en": [
+        "Solar",
+        "Surfing",
+        "Clever",
+        "Concept",
+        "Keeping",
+        "Sun",
+        "Studying",
+        "Spacecraft",
+        "Safe"
+      ]
+    },
+    "source": {
+      "provider": "peertube",
+      "provider_id": "d3833d8b-19ab-4225-b5bd-005cc2524511",
+      "source_language": "en",
+      "source_title": "Solar Surfing | A Clever Concept for Keeping Sun-Studying Spacecraft Safe",
+      "source_url": "https://tilvids.com/videos/watch/d3833d8b-19ab-4225-b5bd-005cc2524511",
+      "source_start": 80.0,
+      "source_end": 89.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4280381,
+      "sha256": "3566defc00c098343e643ca98e45804c051f671884a296bb1253d0afbbdcddcd",
+      "perceptual_hash": "cf3034035bcdf4cc~3615.66:c45f4a38c59d7ac8~2788.36:c51f4a38c59d7ac8~2968.92:cc8c278dcd27dd21~4275.64:d88dd96698669966~2127.19"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000051.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000051.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000051_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000051_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000051_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000051_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000051_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000051_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000052",
+    "title": {
+      "es": "Galaxia, calor, hidrógeno, luz, movimiento, naturaleza, planeta, disparo, solar, espacio, esfera, chapoteo, salpicar, estrella, sol, luz de sol, superficie, universo",
+      "en": "Galaxy, heat, hydrogen, light, movement, nature, planet, shooting, solar, space, sphere, pounding, star, sun, sunlight, surface, universe"
+    },
+    "description": {
+      "es": "Galaxia, calor, hidrógeno, luz, movimiento, naturaleza, planeta, disparo, solar, espacio, esfera, chapoteo, salpicar, estrella, sol, luz de sol, superficie, universo",
+      "en": "Galaxy, heat, hydrogen, light, movement, nature, planet, shooting, solar, space, sphere, pounding, star, sun, sunlight, surface, universe"
+    },
+    "tags": {
+      "es": [
+        "Galaxia",
+        "calor",
+        "hidrógeno",
+        "luz",
+        "movimiento",
+        "naturaleza",
+        "planeta",
+        "disparo",
+        "solar",
+        "espacio",
+        "esfera",
+        "chapoteo",
+        "Sol",
+        "estrella",
+        "superficie"
+      ],
+      "en": [
+        "Galaxy",
+        "heat",
+        "hydrogen",
+        "light",
+        "movement",
+        "nature",
+        "planet",
+        "shooting",
+        "solar",
+        "space",
+        "sphere",
+        "pounding",
+        "sun",
+        "star",
+        "surface"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "56995",
+      "source_language": "es",
+      "source_title": "galaxia, calor, hidrógeno, luz, movimiento, naturaleza, planeta, disparo, solar, espacio, esfera, chapoteo, salpicar, estrella, sol, luz de sol, superficie, universo",
+      "source_url": "https://pixabay.com/videos/id-56995/",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4285812,
+      "sha256": "413e83ffa08fc737c1d5591deb7e81c6b64eded74ab3ff60ba2c49bc8f95d4ca",
+      "perceptual_hash": "904f7c91cf3c7087~4491.03:a51b6de08f3d7086~4448.97:b11e68e49f3d7086~4371.76:c11f68c59b697493~4663.25:e11e69e59e1d7092~4188.84"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000052.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000052.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000052_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000052_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000052_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000052_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000052_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000052_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000053",
+    "title": {
+      "es": "Sol brillante con animación solar vibrante",
+      "en": "Glowing sun with vibrant solar flares animation"
+    },
+    "description": {
+      "es": "Sol brillante con animación solar vibrante",
+      "en": "Glowing sun with vibrant solar flares animation"
+    },
+    "tags": {
+      "es": [
+        "Sol",
+        "brillante",
+        "animación",
+        "solar",
+        "vibrante",
+        "estrella",
+        "superficie"
+      ],
+      "en": [
+        "Glowing",
+        "sun",
+        "vibrant",
+        "solar",
+        "flares",
+        "animation",
+        "star",
+        "surface"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35771740",
+      "source_language": "en",
+      "source_title": "glowing-sun-with-vibrant-solar-flares-animation-35771740",
+      "source_url": "https://www.pexels.com/video/glowing-sun-with-vibrant-solar-flares-animation-35771740/",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 5557711,
+      "sha256": "73e2ad82035a9af511c32995871166b396680b11e21ea7a1c3c6f12da8b0491e",
+      "perceptual_hash": "c6c619336c9d3966~6246.03:93666c9938977964~6423.52:c6cc19cd6c336533~5655.01:93b64cc93d333964~6126.68:939e6c686c333167~6449.75"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000053.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000053.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000053_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000053_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000053_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000053_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000053_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000053_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000054",
+    "title": {
+      "es": "Cómo vamos a la Luna 4K",
+      "en": "How We Are Going to the Moon 4K"
+    },
+    "description": {
+      "es": "Mientras Apolo puso los primeros pasos en la Luna, Artemis abre la puerta para que la humanidad trabaje de manera sostenible y viva en otro mundo por primera vez. Utilizando la superficie lunar como un terreno de prueba para vivir en Marte, este próximo capítulo en exploración establecerá para siempre nuestra presencia en las estrellas. ■ Estamos volviendo a la Luna – para quedarse – ¡y así es como vamos! La actriz Kelly Marie Tran de “Star Wars: The Rise of Skywalker” prestó su voz a este proyecto.",
+      "en": "While Apollo placed the first steps on the Moon, Artemis opens the door for humanity to sustainably work and live on another world for the first time. Using the lunar surface as a proving ground for living on Mars, this next chapter in exploration will forever establish our presence in the stars.  ✨   We are returning to the Moon – to stay –  and this is how we are going!    Actress Kelly Marie Tran of “Star Wars: The Rise of Skywalker” lent her voice to this project."
+    },
+    "tags": {
+      "es": [
+        "Cómo",
+        "vamos",
+        "Luna",
+        "Superficie",
+        "estrella"
+      ],
+      "en": [
+        "How",
+        "Going",
+        "Moon",
+        "Surface",
+        "star"
+      ]
+    },
+    "source": {
+      "provider": "nasa",
+      "provider_id": "NHQ_2019_1219_How We Are Going to the Moon - 4K",
+      "source_language": "en",
+      "source_title": "How We Are Going to the Moon - 4K",
+      "source_url": "https://images.nasa.gov/details/NHQ_2019_1219_How%20We%20Are%20Going%20to%20the%20Moon%20-%204K",
+      "source_start": 102.0,
+      "source_end": 111.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4311439,
+      "sha256": "c00ea5509ab0c178dcfc16a508d11927622b4d6d56037898c8b1210a4b1a3fbd",
+      "perceptual_hash": "9964cc71963333cd~4003.72:a8a90f5ad096f70e~4431.51:d80f73c68cb92336~3588.32:c9197646c99933d6~3703.63:d81d66c699996336~3264.83"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000054.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000054.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000054_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000054_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000054_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000054_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000054_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000054_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000055",
+    "title": {
+      "es": "La Estrella De Belén Pelicula Infantil",
+      "en": "The Star of Bethlehem Movie Kids"
+    },
+    "description": {
+      "es": "La Estrella De Belén Pelicula Infantil",
+      "en": "The Star of Bethlehem Movie Kids"
+    },
+    "tags": {
+      "es": [
+        "Estrella",
+        "Belén",
+        "Pelicula",
+        "Infantil",
+        "Sol",
+        "superficie"
+      ],
+      "en": [
+        "Star",
+        "Bethlehem",
+        "Movie",
+        "Kids",
+        "sun",
+        "surface"
+      ]
+    },
+    "source": {
+      "provider": "internet_archive",
+      "provider_id": "la-estrella-de-belen-pelicula-infantil",
+      "source_language": "es",
+      "source_title": "La Estrella De Belén Pelicula Infantil",
+      "source_url": "https://archive.org/details/la-estrella-de-belen-pelicula-infantil",
+      "source_start": 668.0,
+      "source_end": 677.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 720,
+      "height": 388,
+      "fps": 25.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 1021076,
+      "sha256": "c964841e37af9670a4bbbe64b967708d334fb77f8c8c138298398b4576dd9b30",
+      "perceptual_hash": "8ccbd5b41a436771~2138.56:a0110b5c71df5f87~3116.20:e9a4070bba72fa92~1863.61:e260bd6d927c986c~2871.73:c446b96a8728df39~3710.58"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000055.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000055.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000055_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000055_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000055_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000055_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000055_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000055_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000056",
+    "title": {
+      "es": "Energía solar, energías renovables, panel solar, sun, amarillo, día soleado, paneles fotovoltaicos, sistema solar, ecológica, tecnología, ciencia, nubes, paisaje, paisaje natural",
+      "en": "Solar, renewable energy, solar panel, sun, yellow, sunny day, photovoltaic panels, solar system, ecological, technology, science, clouds, landscape, natural landscape"
+    },
+    "description": {
+      "es": "Energía solar, energías renovables, panel solar, sun, amarillo, día soleado, paneles fotovoltaicos, sistema solar, ecológica, tecnología, ciencia, nubes, paisaje, paisaje natural",
+      "en": "Solar, renewable energy, solar panel, sun, yellow, sunny day, photovoltaic panels, solar system, ecological, technology, science, clouds, landscape, natural landscape"
+    },
+    "tags": {
+      "es": [
+        "Energía",
+        "solar",
+        "energías",
+        "renovables",
+        "panel",
+        "sun",
+        "amarillo",
+        "día",
+        "soleado",
+        "paneles",
+        "fotovoltaicos",
+        "sistema",
+        "surface",
+        "NASA"
+      ],
+      "en": [
+        "Solar",
+        "renewable",
+        "energy",
+        "panel",
+        "sun",
+        "yellow",
+        "sunny",
+        "day",
+        "photovoltaic",
+        "panels",
+        "system",
+        "ecological"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "14609",
+      "source_language": "es",
+      "source_title": "energía solar, energías renovables, panel solar, sun, amarillo, día soleado, paneles fotovoltaicos, sistema solar, ecológica, tecnología, ciencia, nubes, paisaje, paisaje natural",
+      "source_url": "https://pixabay.com/videos/id-14609/",
+      "source_start": 12.0,
+      "source_end": 21.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 563133,
+      "sha256": "e3f7a71b0579926f659a1c2da46612498aae70f1bfc2390e813c29f30b56590e",
+      "perceptual_hash": "e9d9d6a603153959~2671.18:c9d9dea6061d2978~2665.17:cdd1f6a603153978~2666.92:c9d9f6a206353978~2664.21:c9d9dea6031d3958~2642.12"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000056.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000056.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000056_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000056_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000056_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000056_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000056_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000056_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000057",
+    "title": {
+      "es": "Vivid animación de superficie solar y bengalas",
+      "en": "Vivid animation of solar surface and flares"
+    },
+    "description": {
+      "es": "Vivid animación de superficie solar y bengalas",
+      "en": "Vivid animation of solar surface and flares"
+    },
+    "tags": {
+      "es": [
+        "Vivid",
+        "animación",
+        "superficie",
+        "solar",
+        "bengalas",
+        "Sun",
+        "surface",
+        "NASA"
+      ],
+      "en": [
+        "Vivid",
+        "animation",
+        "solar",
+        "surface",
+        "flares"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "40751695",
+      "source_language": "en",
+      "source_title": "vivid-animation-of-solar-surface-and-flares-40751695",
+      "source_url": "https://www.pexels.com/video/vivid-animation-of-solar-surface-and-flares-40751695/",
+      "source_start": 0.0,
+      "source_end": 9.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 12118750,
+      "sha256": "e4c44e37fde86142f47207886ca7ec826a0fa6a0f183e4a494be92072d60f70b",
+      "perceptual_hash": "cb73342763863699~5055.88:deb3642c369233c9~4293.67:dfc67033231826db~3670.01:cfc4302d639b9339~3465.47:db646499331ec633~3787.29"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000057.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000057.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000057_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000057_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000057_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000057_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000057_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000057_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000058",
+    "title": {
+      "es": "¿Qué es un Eclipse Solar? por la NASA Space Place",
+      "en": "What is a Solar Eclipse? by NASA Space Place"
+    },
+    "description": {
+      "es": "https://www.youtube.com/watch?v=nBN3jheTBG0\nUn eclipse solar ocurre cuando, en el momento correcto, la luna pasa entre el sol y la Tierra.\n\nhttps://spaceplace.nasa.gov\nhttps://www.youtube.com/channel/UCMRzqb0rmcil3OxeVFVRIMw",
+      "en": "https://www.youtube.com/watch?v=nBN3jheTBG0\nA solar eclipse happens when, at just the right moment, the moon passes between the sun and Earth.\n\nhttps://spaceplace.nasa.gov\nhttps://www.youtube.com/channel/UCMRzqb0rmcil3OxeVFVRIMw"
+    },
+    "tags": {
+      "es": [
+        "Qué",
+        "Eclipse",
+        "Solar",
+        "NASA",
+        "Space",
+        "Place",
+        "Earth",
+        "orbit",
+        "view"
+      ],
+      "en": [
+        "What",
+        "Solar",
+        "Eclipse",
+        "NASA",
+        "Space",
+        "Place"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1uv411p7fH",
+      "source_language": "en",
+      "source_title": "What is a Solar Eclipse? by NASA Space Place",
+      "source_url": "https://www.bilibili.com/video/BV1uv411p7fH",
+      "source_start": 100.0,
+      "source_end": 108.0
+    },
+    "media": {
+      "duration_seconds": 7.999959,
+      "width": 640,
+      "height": 360,
+      "fps": 30.00015282808369,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 332600,
+      "sha256": "00086440878287b58278dd358b187d62010c9de66fe1f823eaa55b29dd5a7d64",
+      "perceptual_hash": "f601fc03a3dc81fc~425.82:d4603d633f33071d~7281.61:c4603e632f731b1d~7218.22:c4603c633e731f1d~7263.88:d4603c633e73073d~4583.12"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000058.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000058.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000058_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000058_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000058_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000058_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000058_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000058_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000059",
+    "title": {
+      "es": "nave espacial majestuosa orbitando la tierra al amanecer",
+      "en": "Majestic spaceship orbiting earth at sunrise"
+    },
+    "description": {
+      "es": "nave espacial majestuosa orbitando la tierra al amanecer",
+      "en": "Majestic spaceship orbiting earth at sunrise"
+    },
+    "tags": {
+      "es": [
+        "nave",
+        "espacial",
+        "majestuosa",
+        "orbitando",
+        "tierra",
+        "amanecer",
+        "Earth",
+        "orbit",
+        "view",
+        "NASA"
+      ],
+      "en": [
+        "Majestic",
+        "spaceship",
+        "orbiting",
+        "earth",
+        "sunrise"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "33497216",
+      "source_language": "en",
+      "source_title": "majestic-spaceship-orbiting-earth-at-sunrise-33497216",
+      "source_url": "https://www.pexels.com/video/majestic-spaceship-orbiting-earth-at-sunrise-33497216/",
+      "source_start": 4.0,
+      "source_end": 12.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 4058421,
+      "sha256": "0a6d67938bf20ee3fe35039331ec328b884c9297e6a3a553f4cc7868bd538db9",
+      "perceptual_hash": "cc0d72ad186fb24d~7816.35:911b64eeb10bfca1~7228.15:b3174c27f98b8c34~4680.43:b5b0cfc5031e119f~3445.67:a5b69ec989939638~3023.74"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000059.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000059.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000059_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000059_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000059_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000059_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000059_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000059_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000060",
+    "title": {
+      "es": "Día de la Tierra 2023: estudiando la Tierra desde el espacio",
+      "en": "Earth Day 2023: studying Earth from space"
+    },
+    "description": {
+      "es": "Celebra con nosotros el Día de la Tierra el 22 de abril y aprende cómo la NASA estudia nuestro planeta natal desde el espacio. Edil Sepúlveda Carlo, científico de la Tierra del Centro de Vuelo Espacial Goddard de la NASA, nos habla sobre algunos de los hallazgos obtenidos usando datos de los satélites que observan la Tierra. Estos datos son indispensables para investigaciones científicas, la toma de decisiones y el establecimiento de medidas que ayuden a mitigar el cambio climático.  #nasa #díadelatierra   Crédito de video: Centro de Vuelo Espacial Goddard de la NASA. Director, productor y editor: Pedro Cota (NASA GSFC). Talento: Edil Sepúlveda Carlo (NASA GSFC). Crédito de música: Universal Production Music.",
+      "en": "He celebrates with us Earth Day on April 22 and learns how NASA studies our native planet from space. Edil Sepúlveda Carlo, an Earth scientist at NASA's Goddard Space Flight Center, tells us about some of the findings obtained using satellite data that observe the Earth. These data are vital for scientific research, decision-making and measures to help mitigate climate change. # nasa # dadelatierra video credit: NASA Goddard Space Flight Center. Director, producer and editor: Pedro Cota (NASA GSFC). Talent: Edil Sepúlveda Carlo (NASA GSFC). Music credit: Universal Production Music."
+    },
+    "tags": {
+      "es": [
+        "Día",
+        "Tierra",
+        "2023",
+        "estudiando",
+        "desde",
+        "espacio"
+      ],
+      "en": [
+        "Earth",
+        "Day",
+        "2023",
+        "studying",
+        "space"
+      ]
+    },
+    "source": {
+      "provider": "nasa",
+      "provider_id": "V1_EarthDay2023_EdilSepulveda_nocaptions",
+      "source_language": "es",
+      "source_title": "Día de la Tierra 2023: estudiando la Tierra desde el espacio",
+      "source_url": "https://images.nasa.gov/details/V1_EarthDay2023_EdilSepulveda_nocaptions",
+      "source_start": 228.0,
+      "source_end": 236.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 2150442,
+      "sha256": "4f89df47608f70900c46845cc662dafd957feb8c968918e75aea017f81c1814c",
+      "perceptual_hash": "cbcd383965663436~2870.95:d3e9d064c13e64cb~6587.62:dfe98076c51a62c9~6704.41:dfe9d036c41972c1~6721.15:c3e9d476c11b36c2~6445.55"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000060.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000060.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000060_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000060_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000060_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000060_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000060_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000060_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000061",
+    "title": {
+      "es": "SDO Transit Septiembre 2015",
+      "en": "SDO Transit September 2015"
+    },
+    "description": {
+      "es": "El 13 de septiembre de 2015, como el Observatorio de Dinámica Solar de la NASA, o SDO, mantuvo su constante reloj en el sol, su vista fue fotobombada no una vez, sino dos veces. Así como la luna entró en el campo de visión de SDO en un camino para cruzar el sol, la Tierra entró en la imagen, bloqueando completamente la vista de SDO. Cuando la órbita de SDO finalmente surgió de detrás de la Tierra, la luna estaba acabando su viaje a través de la cara del sol. Aunque SDO ve decenas de eclipses de la Tierra y varios tránsitos lunares cada año, esta es la primera vez que los dos han coincidido. La órbita de SDO generalmente nos da una visión sin obstáculos del sol, pero la revolución de la Tierra alrededor del sol significa que la órbita de SDO pasa dos veces al año detrás de la Tierra, durante dos o tres semanas a la vez. Durante estas fases, la Tierra bloquea la vista del sol por parte de SDO desde unos minutos a más de una hora cada día. El contorno de la Tierra parece borroso, mientras que la luna es cristalina. Esto es porque, mientras que el planeta mismo bloquea completamente la luz del sol, la atmósfera de la Tierra es una barrera incompleta, bloqueando diferentes cantidades de luz a diferentes alturas. Sin embargo, la luna no tiene atmósfera, así que durante el tránsito podemos ver los bordes nítidos del horizonte de la luna.",
+      "en": "On Sept. 13, 2015, as NASA’s Solar Dynamics Observatory, or SDO, kept up its constant watch on the sun, its view was photobombed not once, but twice. Just as the moon came into SDO’s field of view on a path to cross the sun, Earth entered the picture, blocking SDO’s view completely. When SDO's orbit finally emerged from behind Earth, the moon was just completing its journey across the sun’s face. Though SDO sees dozens of Earth eclipses and several lunar transits each year, this is the first time ever that the two have coincided.  SDO’s orbit usually gives us unobstructed views of the sun, but Earth’s revolution around the sun means that SDO’s orbit passes behind Earth twice each year, for two to three weeks at a time. During these phases, Earth blocks SDO’s view of the sun for anywhere from a few minutes to over an hour once each day.  Earth’s outline looks fuzzy, while the moon’s is crystal-clear. This is because—while the planet itself completely blocks the sun's light—Earth’s atmosphere is an incomplete barrier, blocking different amounts of light at different altitudes. However, the moon has no atmosphere, so during the transit we can see the crisp edges of the moon's horizon."
+    },
+    "tags": {
+      "es": [
+        "SDO",
+        "Transit",
+        "Septiembre",
+        "2015",
+        "Earth",
+        "orbit",
+        "view",
+        "NASA"
+      ],
+      "en": [
+        "SDO",
+        "Transit",
+        "September",
+        "2015"
+      ]
+    },
+    "source": {
+      "provider": "nasa",
+      "provider_id": "GSFC_20150914_SDO_m11993_transit",
+      "source_language": "en",
+      "source_title": "SDO Transit - September 2015",
+      "source_url": "https://images.nasa.gov/details/GSFC_20150914_SDO_m11993_transit",
+      "source_start": 42.0,
+      "source_end": 50.0
+    },
+    "media": {
+      "duration_seconds": 8.0,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 1323093,
+      "sha256": "ae07b497b202546ba0eb5b5d0b8cc720c5668f4c84ab283ac671620756a51014",
+      "perceptual_hash": "88b3764c4d4f465d~1500.47:ac5a15ad4ab45da6~3136.31:a5695b964a965a95~6406.83:a46d5b965a925ab2~6952.46:a4695b9659925ab6~6856.37"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000061.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000061.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000061_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000061_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000061_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000061_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000061_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000061_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000062",
+    "title": {
+      "es": "Ambiente, planetas, nasa, transformación, marte, tierra, mármol azul, mundo, sistema planetario, universo, prestados, exploración, tecnología, ciencia, explorar, orbita, vista del espacio, nubes",
+      "en": "Environment, planets, nasa, transformation, marte, earth, blue marble, world, planetary system, universe, borrowing, exploration, technology, science, exploration, orbit, space view, clouds"
+    },
+    "description": {
+      "es": "Ambiente, planetas, nasa, transformación, marte, tierra, mármol azul, mundo, sistema planetario, universo, prestados, exploración, tecnología, ciencia, explorar, orbita, vista del espacio, nubes",
+      "en": "Environment, planets, nasa, transformation, marte, earth, blue marble, world, planetary system, universe, borrowing, exploration, technology, science, exploration, orbit, space view, clouds"
+    },
+    "tags": {
+      "es": [
+        "Ambiente",
+        "planetas",
+        "nasa",
+        "transformación",
+        "marte",
+        "tierra",
+        "mármol",
+        "azul",
+        "mundo",
+        "sistema",
+        "planetario",
+        "universo",
+        "Earth",
+        "orbit",
+        "view"
+      ],
+      "en": [
+        "Environment",
+        "planets",
+        "nasa",
+        "transformation",
+        "marte",
+        "earth",
+        "blue",
+        "marble",
+        "world",
+        "planetary",
+        "system",
+        "universe"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "205",
+      "source_language": "es",
+      "source_title": "ambiente, planetas, nasa, transformación, marte, tierra, mármol azul, mundo, sistema planetario, universo, prestados, exploración, tecnología, ciencia, explorar, orbita, vista del espacio, nubes",
+      "source_url": "https://pixabay.com/videos/id-205/",
+      "source_start": 0.0,
+      "source_end": 6.466667
+    },
+    "media": {
+      "duration_seconds": 6.466667,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 1409527,
+      "sha256": "c4c5101ba12bd6b69b688b8f850b06f89bed837ea7fc9ee7de5ba144f1119e23",
+      "perceptual_hash": "cc83340c5b7b2e3e~3947.94:cc83360c537f263e~4299.23:cc83370c537d343e~4291.83:ccc3371c476cb03e~4313.66:c95d083f2237f386~3467.83"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000062.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000062.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000062_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000062_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000062_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000062_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000062_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000062_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:03:47.391164Z"
   }
 ]
