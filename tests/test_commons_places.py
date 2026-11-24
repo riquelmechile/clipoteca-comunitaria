@@ -60,9 +60,7 @@ async def test_geographic_results_first_and_alias_evidence():
             assert library.name_match(record, [query], source_only=True)
             assert library.sufficient_query_match(record, [query])
         assert not library.name_match(record, ["Perito Moreno"], source_only=True)
-    categories = [
-        call["gcmtitle"] for call in calls if call.get("generator") == "categorymembers"
-    ]
+    categories = [call["gcmtitle"] for call in calls if call.get("generator") == "categorymembers"]
     assert categories.index("Category:Videos of Easter Island") < categories.index(
         "Category:Architecture of Easter Island"
     )
@@ -77,7 +75,9 @@ async def test_text_fallback(mode):
         params = request.url.params
         calls.append(params)
         if params.get("list") == "search":
-            payload = {"error": {"code": "maxlag"}} if mode == "error" else {"query": {"search": []}}
+            payload = (
+                {"error": {"code": "maxlag"}} if mode == "error" else {"query": {"search": []}}
+            )
             return httpx.Response(200, json=payload)
         assert params["generator"] == "search"
         return httpx.Response(200, json=_FIXTURE["text"])
