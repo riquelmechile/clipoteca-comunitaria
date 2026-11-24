@@ -57,6 +57,59 @@
       "country_only": false
     },
     {
+      "seed": "atacama",
+      "context": [],
+      "place": true,
+      "topic": "desert",
+      "date": "2026-11-24T23:16:55.505443+00:00",
+      "terms": [
+        {
+          "term": "La Silla Observatory",
+          "origin": "commons"
+        },
+        {
+          "term": "Reserva Nacional de Fauna Andina Eduardo Avaroa",
+          "origin": "commons"
+        },
+        {
+          "term": "El Tatio",
+          "origin": "commons"
+        },
+        {
+          "term": "Ojos del Salado",
+          "origin": "commons"
+        },
+        {
+          "term": "San Pedro de Atacama",
+          "origin": "commons"
+        },
+        {
+          "term": "Chajnantor plateau",
+          "origin": "commons"
+        },
+        {
+          "term": "Salar de Atacama",
+          "origin": "commons"
+        },
+        {
+          "term": "Cordillera de la Sal",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q47141",
+          "label": "Desierto de Atacama"
+        }
+      ],
+      "commons_roots": [
+        "Category:Atacama Desert"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
       "seed": "chiloe",
       "context": [
         "chile"
@@ -435,6 +488,61 @@
       "place": true,
       "topic": null,
       "date": "2026-11-24T21:04:34.545134+00:00",
+      "terms": [
+        {
+          "term": "Cordillera del Paine",
+          "origin": "commons"
+        },
+        {
+          "term": "Cuernos del Paine",
+          "origin": "commons"
+        },
+        {
+          "term": "Ascencio Valley",
+          "origin": "commons"
+        },
+        {
+          "term": "Grey Lake",
+          "origin": "commons"
+        },
+        {
+          "term": "Grey Glacier",
+          "origin": "commons"
+        },
+        {
+          "term": "Salto Grande",
+          "origin": "commons"
+        },
+        {
+          "term": "Pehoe Lake",
+          "origin": "commons"
+        },
+        {
+          "term": "Tyndall Glacier",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q901646",
+          "label": "Parque Nacional Torres del Paine"
+        }
+      ],
+      "commons_roots": [
+        "Category:Torres del Paine National Park"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "torres del paine",
+      "context": [
+        "chile"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T23:16:55.505149+00:00",
       "terms": [
         {
           "term": "Cordillera del Paine",
