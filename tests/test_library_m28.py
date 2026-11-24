@@ -8,8 +8,15 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from clipoteca.place_names import query_names
 from clipoteca.studio.clipscore import ClipScoreError, ClipScorer, MEAN, STD
-from clipoteca.studio.library import assign_scenes, candidates, load_catalog, text_score
+from clipoteca.studio.library import (
+    assign_scenes,
+    candidates,
+    load_catalog,
+    sufficient_query_match,
+    text_score,
+)
 
 
 FIXTURE = Path(__file__).parent / "fixtures/m28/catalogo.json"
@@ -103,10 +110,13 @@ def test_assign_scenes_rarer_first_and_no_primary_duplicates() -> None:
     assert assign_scenes(jobs, _index(), top_n=4) == answers
 
 
-def test_needs_import_is_explicit_and_no_network() -> None:
+def test_no_text_match_uses_catalog_fallback_without_network() -> None:
     impossible = _job("elefantes cósmicos", "cosmic elephants")
     impossible["id"] = "missing"
-    assert assign_scenes([impossible], _index()) == [{"id": "missing", "status": "needs_import"}]
+    assignment = assign_scenes([impossible], _index())[0]
+    assert assignment["id"] == "missing"
+    assert assignment["status"] == "catalog"
+    assert assignment["primary"]["fallback"] is True
 
 
 def test_clipscore_requires_only_local_files(tmp_path: Path) -> None:
@@ -253,3 +263,49 @@ def test_candidate_resolution_exception_for_same_orientation(tmp_path: Path) -> 
     assert len(candidates(horizontal, catalog)) == 1
     vertical = {**horizontal, "aspect": "9:16"}
     assert candidates(vertical, catalog) == []
+
+
+REAL_CATALOG = Path(__file__).parents[1] / "data" / "clips.json"
+
+
+def test_known_chile_places_are_separate_entities() -> None:
+    assert query_names(["Santiago Chile city"]) == {"santiago", "chile"}
+    assert query_names(["Santiago Chile skyline Andes"]) == {"santiago", "chile", "andes"}
+    assert "grey glacier" not in query_names(["Grey"])
+    for query in (
+        "Valparaíso",
+        "Torres del Paine",
+        "Chiloé",
+        "Atacama",
+        "Easter Island moai",
+    ):
+        assert query_names([query])
+
+
+def test_real_catalog_chile_queries_keep_candidates() -> None:
+    catalog = load_catalog(REAL_CATALOG)
+    queries = (
+        "Santiago Chile city",
+        "Valparaíso",
+        "Torres del Paine",
+        "Chiloé",
+        "Atacama",
+        "Easter Island moai",
+    )
+    ranked = {query: candidates(_job(query, query), catalog) for query in queries}
+    assert all(ranked[query] for query in queries)
+    assert "clip-000118" in {item["clip_id"] for item in ranked["Santiago Chile city"]}
+
+
+def test_santiago_title_passes_text_gate() -> None:
+    clip = {
+        "title": "Aerial view of santiago de chile city",
+        "source": {"source_title": "Santiago skyline"},
+    }
+    assert sufficient_query_match(clip, ["Santiago Chile city"])
+
+
+def test_assignment_uses_quality_fallback_instead_of_needs_import() -> None:
+    assignment = assign_scenes([_job("Zzyzx Unknown", "Zzyzx Unknown")], _index())[0]
+    assert assignment["status"] == "catalog"
+    assert assignment["primary"]["fallback"] is True

@@ -39,6 +39,8 @@ class SceneBudget:
     visual_cache: dict[str, bool] = field(default_factory=dict)
     commons_consulted: bool = False
     commons_exhausted: bool = False
+    rejections: dict[str, int] = field(default_factory=dict)
+    rejected: set[tuple[str, str]] = field(default_factory=set)
 
     @property
     def place(self):
@@ -70,7 +72,25 @@ class SceneBudget:
     def valid_count(self):
         return sum(1 for _ in self._unique_valid())
 
+    def _reject(self, record, reason):
+        digest = str(record.get("media", {}).get("sha256") or record.get("id") or id(record))
+        key = (digest.lower(), reason)
+        if key not in self.rejected:
+            self.rejected.add(key)
+            self.rejections[reason] = self.rejections.get(reason, 0) + 1
+
     def good(self, record):
+        media = record["media"]
+        length = float(self.job["len_est"])
+        if (
+            media["duration_seconds"] < 0.42 * length
+            or fit_mode(media["duration_seconds"], length) is None
+        ):
+            self._reject(record, "too_short")
+            return False
+        if min(media["width"], media["height"]) < self.job.get("min_short_side", 720):
+            self._reject(record, "low_resolution")
+            return False
         # Searchable query terms are never evidence; check actual source/title.
         queries = self.job["queries"]
         relevant = library.sufficient_query_match(record, queries["es"] + queries["en"])
@@ -86,11 +106,13 @@ class SceneBudget:
             queries["en"],
             [],
         )
-        if not (self.valid(record) and relevant and (score > 0 or score == unpenalized)):
+        if not (relevant and (score > 0 or score == unpenalized)):
+            self._reject(record, "text_gate")
             return False
-        digest = str(record["media"].get("sha256") or id(record)).lower()
+        digest = str(media.get("sha256") or id(record)).lower()
         if digest not in self.visual_cache:
             if self.clock() >= self.deadline or self.visual_match is None:
+                self._reject(record, "timeout_before_check")
                 return False
             self.visual_cache[digest] = bool(self.visual_match(record))
         return self.visual_cache[digest]

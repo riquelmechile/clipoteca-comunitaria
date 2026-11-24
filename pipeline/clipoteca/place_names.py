@@ -30,6 +30,8 @@ _PLACE_NAMES = (
     "chiloe",
     "perito moreno",
     "patagonia",
+    "chile",
+    "andes",
     "santiago",
     "antofagasta",
     "punta arenas",
@@ -48,14 +50,12 @@ def query_names(queries):
     names = set()
     for query in queries:
         folded = " ".join(_words(query))
-        if query.strip() == "Grey":
-            names.add("grey glacier")
-        for name in _PLACE_NAMES:
-            if f" {name} " in f" {folded} ":
-                names.add(name)
-        # Internal capitalized proper names; sentence-initial single words
-        # are ambiguous, so require a known entity or a multi-word sequence.
-        if not query.isupper():
+        known = {name for name in _PLACE_NAMES if f" {name} " in f" {folded} "}
+        names.update(known)
+        # Known entities are kept separately: "Santiago Chile city" means
+        # Santiago plus Chile, never the invented entity "Santiago Chile".
+        # Unknown multi-word names remain supported when no known place occurs.
+        if not known and not query.isupper():
             for match in _NAME_SEQUENCE.finditer(query):
                 names.add(" ".join(_words(match.group())))
     return {
