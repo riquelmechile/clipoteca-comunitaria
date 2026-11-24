@@ -82,6 +82,10 @@ def _valid_job(job: Any, assignment: Any) -> tuple[str, float]:
         raise ClipSceneError("job.len_fetch must be positive")
     for key, default in (("min_sim", 0.22), ("min_prob", 0.5), ("min_score", 0.0)):
         _threshold(job, key, default)
+    if "catalog_min_sim" in job:
+        _threshold(job, "catalog_min_sim", 0.27)
+        if not 0 <= job["catalog_min_sim"] <= 1:
+            raise ClipSceneError("job.catalog_min_sim must be between 0 and 1")
     status = assignment.get("status")
     if status not in {"catalog", "needs_import", "imported"}:
         raise ClipSceneError("assignment.status must be catalog, imported or needs_import")
@@ -512,6 +516,8 @@ def clip_scene(
     source += list(assignment.get("backups", []))
     skipped = set(exclude)
     evaluators_ready = False
+    ranked = "catalog_min_sim" in job
+    best = None
     try:
         resolved_root = Path(local_root).resolve() if local_root is not None else None
     except (OSError, RuntimeError):
@@ -571,7 +577,6 @@ def clip_scene(
                 result, reason = None, "timeout"
             if result is not None:
                 analyzed_s = result.pop("_analyzed_s", None)
-                os.replace(rendered, final_clip)
                 report = {
                     "version": 1,
                     "id": scene_id,
@@ -582,11 +587,31 @@ def clip_scene(
                     "time_s": round(time.monotonic() - started, 3),
                     **({"analyzed_s": analyzed_s} if analyzed_s is not None else {}),
                 }
+                if ranked:
+                    imported = result.get("imported", False)
+                    report["source"] = "imported" if imported else "catalog"
+                    report["catalog_strong"] = not imported and (
+                        result["sim"] >= job["catalog_min_sim"]
+                    )
+                    if best is None or (result["sim"], result["score"]) > (
+                        best["clip"]["sim"], best["clip"]["score"]
+                    ):
+                        os.replace(rendered, final_clip)
+                        best = report
+                    if report["catalog_strong"]:
+                        break
+                    continue
+                os.replace(rendered, final_clip)
                 _atomic_json(root / "result.json", report)
                 return report
             attempts.append({"clip_id": cid, "reason": reason})
             if reason == "timeout" and time.monotonic() >= deadline:
                 break
+    if best is not None:
+        best["tried"] = attempts
+        best["time_s"] = round(time.monotonic() - started, 3)
+        _atomic_json(root / "result.json", best)
+        return best
     report = {
         "version": 1,
         "id": scene_id,

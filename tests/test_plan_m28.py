@@ -97,6 +97,7 @@ def test_scene_job_exact_contract_and_negative_prompts() -> None:
             "min_sim",
             "min_prob",
             "min_score",
+            "catalog_min_sim",
             "top_n",
             "min_short_side",
         ]
@@ -106,6 +107,7 @@ def test_scene_job_exact_contract_and_negative_prompts() -> None:
         assert job["min_sim"] == 0.22
         assert job["min_prob"] == 0.5
         assert job["min_score"] == 0.0
+        assert job["catalog_min_sim"] == 0.27
         assert job["top_n"] == 4
         assert job["min_short_side"] == 720
 
