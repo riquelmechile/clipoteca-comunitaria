@@ -69,8 +69,8 @@ advierte si la evidencia de entrega o indexado no es legible.
 La acción [install-ffmpeg](../.github/actions/install-ffmpeg/action.yml) usa FFmpeg/FFprobe b6.1.1
 fijados por SHA-256, con apt acotado como respaldo; el tiempo medido
 por escena se guarda como install_ffmpeg, aparte de catalog, import e import_retry.
-La medición del tiempo de instalación y de los tres formatos permanece
-pendiente de corrida real; no se afirma que el despliegue ya esté activo.
+El workflow está activo y se usó en las corridas reales de los tres formatos
+(ver [ESTADO.md](ESTADO.md)); la instalación fijada de FFmpeg tarda segundos.
 
 ## Primera corrida del workflow anterior
 

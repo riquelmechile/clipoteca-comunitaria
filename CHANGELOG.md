@@ -1,6 +1,15 @@
 # Historial de cambios
 
-## 3.0.0 (pendiente de promoción y corrida real)
+## 3.0.0 (2026-11-24)
+
+Motor de video: un guion se convierte en un MP4 con voz, música, clips y subtítulos,
+y los clips nuevos que encuentra quedan indexados en el catálogo.
+
+- Términos relacionados por escena: si el término principal no alcanza, la búsqueda se amplía con lugares y puntos de interés del mismo sitio (comunas, parques, lagos, monumentos) obtenidos de Wikimedia Commons y Wikidata, ordenados por notoriedad. El guion puede mandar los suyos en `query.related`. Los resultados se guardan en `data/related_terms.json` para no depender de la red en cada corrida.
+- Una escena nunca queda sin clip: si nada supera los umbrales se usa el mejor candidato disponible, marcado como respaldo y listado en `warnings` de la entrega y del estado. Los clips de respaldo no se indexan.
+- Curaduría del catálogo: estado `retired` con motivo y fecha, bloqueo de reimportación por URL de origen y etiquetas buscables tomadas solo de la metadata propia del clip; la consulta que lo encontró queda como procedencia.
+- Corte de búsqueda por resultados pertinentes (texto y similitud visual), no por cantidad descargada; el filtro de texto se aplica antes de descargar.
+- Indexado independiente por clip, con errores saneados por clip y publicación conjunta de catálogo y términos relacionados.
 
 - Commons: búsqueda acotada por categorías geográficas, alias y prioridad por escena, con respaldo textual y procedencia explícita.
 
@@ -13,7 +22,7 @@
 - Indexado de todos los clips importados válidos, independiente de selección final y QA; un commit de catálogo.
 - Búsqueda repartida (8 candidatos, 600 s) y segunda ronda simplificada (2, 180 s), respaldo explícito y diagnósticos de escenas sin MP4. Instalador FFmpeg fijo con medición separada.
 - REST y MCP de video, estado por etapa y descarga de artefacto; versión sincronizada y tres guiones de ejemplo.
-- Pendiente: promover workflow y acción FFmpeg, desplegar Worker y medir tres corridas reales.
+- Workflow `render.yml` y acción `install-ffmpeg` promovidos, Worker desplegado y corridas reales aprobadas en 9:16, 16:9 y 1:1 (ver [docs/ESTADO.md](docs/ESTADO.md)).
 
 ## Historial de desarrollo v3
 

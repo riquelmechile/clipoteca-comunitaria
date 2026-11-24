@@ -50,9 +50,9 @@ es aleatorio; su SHA-256 identifica la corrida pública.
 
 ## Bloque K — servicio
 
-- [ ] **M32 · Render y entrega.** Código de selección fuerte, indexado independiente y entrega temporal. Workflow en .github/workflows/render.yml: pendiente de corrida real.
-- [ ] **M33 · API y MCP.** Código de POST /v1/videos, GET de estado y MP4 y las dos tools MCP. Pendiente de despliegue y prueba E2E.
-- [ ] **M34 · Cierre 3.0.0.** Versión sincronizada y tres guiones válidos. Pendiente de corrida real de 9:16, 16:9 y 1:1, tiempos por etapa y minutos de Actions.
+- [x] **M32 · Render y entrega.** Selección fuerte, indexado independiente y entrega temporal. Workflow en .github/workflows/render.yml, probado con corridas reales.
+- [x] **M33 · API y MCP.** POST /v1/videos, GET de estado y MP4 y las dos tools MCP, desplegados y probados de punta a punta.
+- [x] **M34 · Cierre 3.0.0.** Versión sincronizada, tres guiones válidos y corridas reales aprobadas en 9:16, 16:9 y 1:1. Publicada como v3.0.0.
 
 ## Camino crítico
 

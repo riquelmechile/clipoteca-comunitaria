@@ -50,5 +50,5 @@ reintenta ante 404 transitorio; warnings indica evidencia no disponible.
 La entrega no espera el índice; clips_indexed se actualiza al terminar este. El id es una credencial privada; los
 nombres de Actions usan su SHA-256. El Worker necesita actions: read y write
 en CLIPOTECA_DISPATCH_TOKEN. La publicación del MP4 no existe en el contrato
-nuevo: solo se indexan los clips válidos importados. Pendiente de promoción
-y despliegue; ver [M32_RENDER.md](M32_RENDER.md).
+nuevo: solo se indexan los clips válidos importados. Ver
+[M32_RENDER.md](M32_RENDER.md).
