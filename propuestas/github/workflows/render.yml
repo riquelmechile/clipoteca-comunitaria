@@ -268,6 +268,10 @@ jobs:
               line += f". Descartados: {tried}"
           print(line)
           PY
+      - name: Confirm a usable clip exists
+        run: |
+          python3 -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))["status"]=="ok" else 1)' "work/scenes/$SCENE/result.json"
+          test -s "work/scenes/$SCENE/clip.mp4"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -527,7 +531,16 @@ jobs:
             [[ "$name" =~ ^[A-Za-z0-9_-]{1,64}$ ]] || exit 2
             mv "$folder" "work/scenes/$name"
           done
+      - name: Detect imported clips
+        id: imports
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, pathlib
+          present = any(json.loads(p.read_text()).get("clips") for p in pathlib.Path("work/scenes").glob("*/import/imported.json"))
+          print("present=" + str(present).lower())
+          PY
       - name: Index verified imported clips
+        if: steps.imports.outputs.present == 'true'
         id: index
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

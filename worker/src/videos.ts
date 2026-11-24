@@ -11,12 +11,12 @@ const error = (code: string, status: number) => json({error: {code}}, status);
 const object = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value));
 
-type Run = {id:number; display_title:string; status:string; conclusion:string|null};
+type Run = {id:number; display_title:string; status:string; conclusion:string|null; updated_at?:string};
 type Job = {name:string; status:string; conclusion:string|null;
   steps?: {name:string; status:string; conclusion:string|null}[]};
 type Artifact = {id:number; name:string; expired:boolean; size_in_bytes:number};
 type Context = {base:string; token:string};
-type Delivery = {qa:{pass:boolean;failed:string[]}; clips_indexed:string[]};
+type Delivery = {qa?:{pass:boolean;failed:string[]}; clips_indexed?:string[]};
 function context(env: RestEnv): Context | null {
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   const token = env.CLIPOTECA_DISPATCH_TOKEN;
@@ -97,7 +97,7 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
     return error("dispatch_unavailable", response.status === 429 ? 429 : 503);
   }
   await remember(id);
-  return json({id, status:"queued", status_url:"/v1/videos/" + id}, 202);
+  return json({id, status:"queued", status_url:new URL("/v1/videos/" + id, request.url).href}, 202);
 }
 async function pageRows<T>(ctx: Context, path: string, key: string): Promise<T[]> {
   const all: T[] = [];
@@ -125,6 +125,10 @@ function member(rows: Artifact[], name: string) {
   return rows.find(row => row.name === name && Number.isSafeInteger(row.id));
 }
 function expired(row?: Artifact) { return row?.expired === true; }
+function expiredRun(run: Run) {
+  return run.status === "completed" && run.conclusion === "success" &&
+    Boolean(run.updated_at && Date.now() - Date.parse(run.updated_at) > 7 * 86400_000);
+}
 async function archive(ctx: Context, artifact: Artifact, limit: number): Promise<ArrayBuffer> {
   if (artifact.expired || !Number.isFinite(artifact.size_in_bytes) ||
       artifact.size_in_bytes > limit || artifact.size_in_bytes < 1) {
@@ -152,26 +156,48 @@ function stage(job?: Job) {
   return job ? {status:job.status, conclusion:job.conclusion} :
     {status:"queued", conclusion:null};
 }
-async function status(ctx: Context, run: Run, id: string, rows: Artifact[]) {
+async function status(ctx: Context, run: Run, id: string, rows: Artifact[], request: Request) {
   const jobs = await pageRows<Job>(ctx, "/actions/runs/" + run.id + "/jobs", "jobs");
   const scenes = jobs.filter(job => /^scene(?:\s|\(|$)/.test(job.name));
   const assemble = jobs.find(job => job.name === "assemble");
   const video = member(rows, "video-" + id);
   const evidence = member(rows, "entrega-" + id);
-  let delivery: Delivery | undefined;
+  let delivery: Delivery = {};
   if (evidence && !expired(evidence)) {
-    const bytes = await zipEntry(await archive(ctx, evidence, 2_000_000), "entrega.json", 1_000_000);
+    const buffer = await archive(ctx, evidence, 2_000_000);
+    try {
+      const bytes = await zipEntry(buffer, "entrega.json", 1_000_000);
+      const data: unknown = JSON.parse(new TextDecoder().decode(bytes));
+      if (object(data) && object(data.qa) && typeof data.qa.pass === "boolean" &&
+          Array.isArray(data.qa.failed) && data.qa.failed.every(x=>typeof x==="string") &&
+          Array.isArray(data.clips_indexed) && data.clips_indexed.every(x=>typeof x==="string")) {
+        delivery = {qa:{pass:data.qa.pass, failed:data.qa.failed}, clips_indexed:data.clips_indexed};
+      } else throw new Error("invalid delivery evidence");
+    } catch (exc) {
+      // An incomplete assembly may upload reports but not the manifest.
+      if (video || !(exc instanceof Error) || exc.message !== "missing zip member") throw exc;
+      try {
+        const bytes = await zipEntry(buffer, "qa_report.json", 1_000_000);
+        const qa: unknown = JSON.parse(new TextDecoder().decode(bytes));
+        if (object(qa) && typeof qa.pass === "boolean" && Array.isArray(qa.failed) &&
+            qa.failed.every(x=>typeof x==="string")) {
+          delivery.qa = {pass:qa.pass, failed:qa.failed};
+        }
+      } catch { /* No QA report exists when assembly failed earlier. */ }
+    }
+  }
+  const indexed = member(rows, "indexed-clips");
+  if (!delivery.clips_indexed && indexed && !expired(indexed)) {
+    const bytes = await zipEntry(await archive(ctx,indexed,1_000_000),"index.json",500_000);
     const data: unknown = JSON.parse(new TextDecoder().decode(bytes));
-    if (object(data) && object(data.qa) && typeof data.qa.pass === "boolean" &&
-        Array.isArray(data.qa.failed) && data.qa.failed.every(x=>typeof x==="string") &&
-        Array.isArray(data.clips_indexed) && data.clips_indexed.every(x=>typeof x==="string")) {
-      delivery = {qa:{pass:data.qa.pass, failed:data.qa.failed}, clips_indexed:data.clips_indexed};
-    } else throw new Error("invalid delivery evidence");
+    if (object(data) && Array.isArray(data.indexed) && data.indexed.every(x=>typeof x==="string")) {
+      delivery.clips_indexed = data.indexed;
+    }
   }
   const file = Boolean(video && !expired(video) && delivery?.qa.pass);
   const state = run.status !== "completed" ?
     (["queued","waiting","requested","pending"].includes(run.status) ? "queued" : "running") :
-    file ? "done" : expired(video) || (!video && run.conclusion === "success" && expired(evidence))
+    file ? "done" : expired(video) || (!video && (expiredRun(run) || expired(evidence)))
       ? "expired" : "failed";
   return json({
     id, status:state, stages:{
@@ -182,7 +208,7 @@ async function status(ctx: Context, run: Run, id: string, rows: Artifact[]) {
       qa:stage(assemble?.steps?.find(j=>j.name==="Quality control (14 gates)") as Job | undefined),
       index:stage(jobs.find(j=>j.name==="index")),
     },
-    ...(delivery ?? {}), ...(file ? {file_url:"/v1/videos/" + id + "/file"} : {}),
+    ...delivery, ...(file ? {file_url:new URL("/v1/videos/" + id + "/file",request.url).href} : {}),
   });
 }
 
@@ -212,9 +238,9 @@ export async function handleVideos(request: Request, env: RestEnv): Promise<Resp
         ? json({id,status:"queued"}) : error("video_not_found", 404);
     }
     const rows = await artifacts(ctx, run);
-    if (!match![2]) return await status(ctx, run, id, rows);
+    if (!match![2]) return await status(ctx, run, id, rows, request);
     const video = member(rows, "video-" + id);
-    if (expired(video)) return error("video_expired", 410);
+    if (expired(video) || (!video && expiredRun(run))) return error("video_expired", 410);
     if (!video) return error("video_not_available", 404);
     const bytes = await zipEntry(await archive(ctx, video, MAX_ARCHIVE), "video.mp4", 100_000_000);
     return new Response(bytes, {headers:{

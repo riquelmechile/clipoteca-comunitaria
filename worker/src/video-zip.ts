@@ -4,7 +4,7 @@ export const MAX_ARCHIVE = MAX_VIDEO + 1_000_000;
 
 export async function zipEntry(
   buffer: ArrayBuffer, wanted: string, limit: number,
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
   let end = -1;
