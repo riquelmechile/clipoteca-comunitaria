@@ -42,7 +42,7 @@ El paquete sigue en **2.0.6**. El código de v3 está en el repositorio, no en e
 | M29 | Ajuste al tiempo real, mezcla medida | [Ajuste y mezcla](M29_AJUSTE_MEZCLA.md) | [test_fit_m29.py](../tests/test_fit_m29.py), [test_mix_m29.py](../tests/test_mix_m29.py) |
 | M30 | HTML con títulos y subtítulos, render MP4 | [Composición](M30_COMPOSICION.md) | [test_compose_m30.py](../tests/test_compose_m30.py), render real de tres escenas |
 | M31 | 14 compuertas QA, reporte ligado al SHA del MP4 | [QA](M31_QA.md) | [test_qa_m31.py](../tests/test_qa_m31.py), layout real en Chromium |
-| M32 (parcial) | Publicación verificada de clips usados, MP4 y ficha; simulación local | [Publicación](M32_PUBLICACION.md) | [test_publish_m32.py](../tests/test_publish_m32.py), API simulada sin red |
+| M32 (parcial) | Publicación verificada de clips usados, MP4 y ficha; simulación local. Workflow manual que encadena las etapas, sin validar con corridas reales | [Publicación](M32_PUBLICACION.md), [Workflow](M32_RENDER.md) | [test_publish_m32.py](../tests/test_publish_m32.py), API simulada sin red |
 
 El [job studio](../.github/workflows/ci.yml) instala el extra y ejecuta estos tests; sus pruebas reales son de componentes, no una prueba integral de producción.
 
@@ -60,7 +60,7 @@ Los dos casos locales de M30 usaron HyperFrames 0.9.36 y GSAP 3.15.1. No son una
 
 ### Qué falta
 
-- Workflow de video en Actions que encadene las etapas, reintente escenas y serialice la publicación.
+- Validar con corridas reales el workflow [render.yml](M32_RENDER.md), que ya encadena las etapas, repite escenas con clip repetido y serializa la publicación. Fuera de Actions solo se comprobó el tramo que arma, renderiza y revisa el video.
 - Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
 - Importar material nuevo dentro del flujo de video y validarlo de punta a punta en Actions.
 - Tipografía propia incrustada y franja de título adaptada al sujeto.

@@ -162,7 +162,36 @@ def test_documented_repository_version_matches_package():
 
 def test_pending_video_api_not_advertised():
     forbidden = ("/v1/videos", "render_video", "get_video_status")
-    for path in (ROOT / "README.md", DOCS / "STUDIO.md"):
+    for path in (
+        ROOT / "README.md",
+        DOCS / "STUDIO.md",
+        DOCS / "ESTADO.md",
+        DOCS / "ARQUITECTURA.md",
+    ):
         for line in _text(path).splitlines():
             if any(name in line for name in forbidden):
                 assert "todavía no" in line.lower() or "falta" in line.lower(), (path, line)
+
+
+def test_documented_model_downloads_are_real_models():
+    manifest = json.loads(_text(STUDIO / "models.json"))["models"]
+    guide = _text(DOCS / "STUDIO.md")
+    names = re.findall(r"ensure_model\('([^']+)'\)", guide)
+    assert names and set(names) <= set(manifest), names
+    # clip-scene never downloads its model: the walkthrough must fetch it before the first scene.
+    scorer = _text(STUDIO / "clipscene.py")
+    if "ensure_model" not in scorer:
+        walkthrough = guide.split("set -eu", 1)[1]
+        fetch = walkthrough.index("ensure_model('clip-vit-b32')")
+        assert fetch < walkthrough.index("clipoteca.studio.clipscene")
+
+
+def test_documented_workflows_exist():
+    for path in (
+        ROOT / "README.md",
+        DOCS / "STUDIO.md",
+        DOCS / "ESTADO.md",
+        DOCS / "ARQUITECTURA.md",
+    ):
+        for name in re.findall(r"`([a-z0-9-]+\.yml)`", _text(path)):
+            assert (ROOT / ".github" / "workflows" / name).is_file(), (path, name)

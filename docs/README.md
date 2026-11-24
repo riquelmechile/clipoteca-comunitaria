@@ -54,4 +54,5 @@ Estos documentos describen el estado **en el momento de cada hito**. Sus cifras 
 | [M29_AJUSTE_MEZCLA.md](M29_AJUSTE_MEZCLA.md) | M29: ajuste y mezcla |
 | [M30_COMPOSICION.md](M30_COMPOSICION.md) | M30: composición y render |
 | [M31_QA.md](M31_QA.md) | M31: control de calidad |
-| [M32_PUBLICACION.md](M32_PUBLICACION.md) | M32: módulo de publicación, sin workflow integrado |
+| [M32_PUBLICACION.md](M32_PUBLICACION.md) | M32: módulo de publicación |
+| [M32_RENDER.md](M32_RENDER.md) | M32: workflow manual que arma un video completo en Actions; sin validar con corridas reales |

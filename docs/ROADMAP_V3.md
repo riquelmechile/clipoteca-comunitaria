@@ -17,7 +17,7 @@
 
 ## Arquitectura
 
-Este diagrama describe el plan del servicio, no un workflow disponible hoy. Las etapas ya integradas se detallan en [STUDIO.md](STUDIO.md).
+Este diagrama describe el plan del servicio. De él existe hoy el workflow `render.yml`, de disparo manual y sin validar con corridas reales ([M32](M32_RENDER.md)); el Worker todavía no lo despacha. Las etapas ya integradas se detallan en [STUDIO.md](STUDIO.md).
 
 ```
 Agente ──MCP/REST──▶ Worker ──workflow_dispatch──▶ render.yml
@@ -54,7 +54,7 @@ Agente ──MCP/REST──▶ Worker ──workflow_dispatch──▶ render.ym
 
 ## Bloque K — servicio
 
-- [ ] **M32 · Workflow `render.yml` en paralelo + publicación (2 PR).** Jobs `plan` → `voice` ∥ `music` ∥ `scene` (matriz) → `assemble` → `publish`. Re-despacho automático de escenas fallidas hasta 2 rondas. Video en Release `video-AAAA-MM-DD-NNN` con `make_latest=false`; ficha en `data/videos/<id>.json` (guion, clips usados, reporte QA, tiempos). Los clips importados durante el video se publican al catálogo en un solo commit. **Aceptación:** video E2E por `workflow_dispatch` manual. **Estado:** hecho: módulo de publicación, esquema y tests (#100) / falta: render.yml, re-despacho de escenas y prueba integral en Actions.
+- [ ] **M32 · Workflow `render.yml` en paralelo + publicación (2 PR).** Jobs `plan` → `voice` ∥ `music` ∥ `scene` (matriz) → `assemble` → `publish`. Re-despacho automático de escenas fallidas hasta 2 rondas. Video en Release `video-AAAA-MM-DD-NNN` con `make_latest=false`; ficha en `data/videos/<id>.json` (guion, clips usados, reporte QA, tiempos). Los clips importados durante el video se publican al catálogo en un solo commit. **Aceptación:** video E2E por `workflow_dispatch` manual. **Estado:** hecho: módulo de publicación, esquema y tests (#100); workflow `render.yml` (#103) / falta: prueba integral en Actions con importación real.
 - [ ] **M33 · API y MCP (1–2 PR).** `POST /v1/videos` (mismo Bearer de escritura que `/v1/import`), `GET /v1/videos/{id}`; tools MCP `render_video` y `get_video_status`. OpenAPI y cuotas actualizadas. **Aceptación:** un agente MCP manda un guion de 5 escenas y recibe la URL del MP4. **Estado:** falta: endpoints y tools MCP de video.
 - [ ] **M34 · Cierre v3 (1–2 PR).** Tres videos reales de temas distintos (9:16, 16:9 y 1:1), minutos de Actions y tiempos por etapa medidos, `docs/ESTADO.md` y operación actualizados, versión 3.0.0 sincronizada en Python, Worker, OpenAPI, CLI, health y MCP. **Aceptación:** demostración E2E reproducible, CI verde. **Estado:** falta: evidencia integral y versión 3.0.0.
 

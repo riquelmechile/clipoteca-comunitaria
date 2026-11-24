@@ -79,18 +79,19 @@ El motor de video en `pipeline/clipoteca/studio/` ya acepta un guion en español
 Planifica las escenas, sintetiza voz local con control de pronunciación, obtiene tiempos por palabra y genera música sin red.
 Selecciona un clip del catálogo por escena o importa material temporal sin publicarlo.
 Ajusta los clips, mezcla el audio y compone títulos y subtítulos palabra a palabra; renderiza MP4 y lo somete a 14 compuertas de calidad.
-El módulo de publicación puede guardar los clips usados, el video y su ficha tras aprobar QA; todavía no hay un flujo de video integrado en producción.
+El módulo de publicación puede guardar los clips usados, el video y su ficha tras aprobar QA. Un workflow manual encadena todas las etapas en GitHub Actions; todavía no está validado con corridas reales ni hay un servicio que entregue videos.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-studio.svg" width="100%" alt="Flujo del motor v3: guion, plan, voz y tiempos, música, catálogo o importación temporal por escena; ajuste, mezcla, composición, render, QA y publicación. Las etapas sólidas existen en main; los bordes punteados marcan la API de video y la orquestación Actions aún ausentes." />
+  <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-studio.svg" width="100%" alt="Flujo del motor v3: guion, plan, voz y tiempos, música, catálogo o importación temporal por escena; ajuste, mezcla, composición, render, QA y publicación. Las etapas sólidas existen en main; los bordes punteados marcan la API de video, que no existe, y el workflow de Actions, que existe pero no está validado con corridas reales." />
 </p>
 
 > **Qué funciona hoy**
 > - Las etapas del motor, ejecutadas por separado desde la línea de comandos; publicación incluida, con simulación sin red.
 > - CI con pruebas del motor y ejecuciones reales de música, render de tres escenas y layout.
+> - Un workflow manual, [`render.yml`](docs/M32_RENDER.md), que reparte voz, música y un trabajo por escena en paralelo, arma el video y corre QA. Por defecto es un ensayo: no publica nada.
 >
 > **Qué falta**
-> - Encadenar las etapas en un workflow de GitHub Actions, con reintentos de escenas y publicación serializada.
+> - Validar ese workflow con corridas reales: hasta ahora solo se comprobó fuera de Actions el tramo que arma, renderiza y revisa el video.
 > - Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
 > - Validar la importación de material nuevo de punta a punta dentro del flujo de video en Actions.
 > - Incrustar una tipografía propia, ajustar la franja del título a la posición del sujeto y publicar la versión 3.0.0.

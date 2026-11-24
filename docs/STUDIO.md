@@ -3,9 +3,10 @@
 Studio transforma un guion en español en un MP4, con voz local, música y
 un clip real por escena. Está en main como etapas ejecutables; la versión
 del repositorio sigue siendo 2.0.6. No es el servicio público de clips v2.
-Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`. Falta el workflow que conecta todas las etapas.
+Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
+El workflow manual [render.yml](M32_RENDER.md) conecta todas las etapas en GitHub Actions; falta validarlo con corridas reales.
 
-![Flujo actual por etapas, con API y orquestación pendientes](../assets/clipoteca-studio.svg)
+![Flujo por etapas; la API de video falta y el workflow de Actions está sin validar](../assets/clipoteca-studio.svg)
 
 ## Requisitos
 
@@ -50,6 +51,20 @@ nombres, tamaños, SHA-256 y URLs de los modelos:
 Los modelos verificados se guardan por defecto en `.cache/studio-models`;
 se puede elegir otro directorio con `CLIPOTECA_STUDIO_MODELS`.
 La descarga inicial de modelos y de los clips del catálogo necesita red.
+
+No todas las etapas descargan su modelo. La voz baja sola Supertonic 3
+(unos 129 MB) y el modelo fonético (unos 357 MB), y Whisper se descarga
+al usarlo. El modelo CLIP (unos 156 MB entre sus tres archivos) **no se
+descarga solo**: `clipscene` espera encontrarlo ya en la carpeta de
+modelos. Este comando lo baja del Release `models-v1` y verifica sus
+SHA-256:
+
+```bash
+uv run --no-sync python -c "from clipoteca.studio import models; models.ensure_model('clip-vit-b32')"
+```
+
+Sin ese paso, `clipscene` no puede evaluar ningún candidato y la escena
+termina sin clip aunque el catálogo tenga material.
 Tone.js 15.1.22 está incluido en el repositorio; su render musical es offline.
 HyperFrames 0.9.36 se ejecuta vía npx; GSAP 3.15.1 se descarga de npm,
 se verifica por hash y no está incluido en el repo.
@@ -118,6 +133,8 @@ uv run --no-sync python -m clipoteca.studio.voice render --script build/video/gu
 uv run --no-sync python -m clipoteca.studio.timeline --script build/video/guion.json --voice build/video/voice --out build/video/timeline.json
 uv run --no-sync python -m clipoteca.studio.music render --plan build/video/plan.json --out build/video/music
 uv run --no-sync python -m clipoteca.studio.music track --music build/video/music --timeline build/video/timeline.json --out build/video/music.wav
+# El modelo que evalúa los clips no se descarga solo:
+uv run --no-sync python -c "from clipoteca.studio import models; models.ensure_model('clip-vit-b32')"
 for id in intro nubes lluvia; do
   scene="build/video/scenes/$id"
   if uv run --no-sync python -m clipoteca.studio.clipscene --job "$scene/job.json" --assignment "$scene/assignment.json" --out "$scene"; then
@@ -141,7 +158,9 @@ uv run --no-sync python -m clipoteca.studio.publish --work build/video --dry-run
 La voz, la música y el material de escenas pueden prepararse por separado;
 la mezcla necesita la línea de tiempo real. Si fit indica que un clip
 es demasiado corto o QA detecta duplicados, selecciona otro candidato
-y repite las etapas dependientes. No hay re-despacho automático hoy.
+y repite las etapas dependientes. En este recorrido manual no hay
+re-despacho automático; el workflow sí repite la escena de menor puntaje
+cuando dos eligen el mismo clip.
 El código 3 de clip-scene indica escena sin resultado válido, no éxito.
 
 La última línea simula la publicación: deja el catálogo resultante,
@@ -197,8 +216,10 @@ y su contexto están en [ESTADO.md](ESTADO.md).
 
 ## Límites conocidos y pendiente
 
-- Sin workflow integral, sin API de video ni tools MCP de video, sin versión 3.0.0.
+- El workflow [render.yml](M32_RENDER.md) existe pero no está validado con corridas reales; fuera de Actions solo se comprobó el tramo que arma, renderiza y revisa el video.
+- Sin API de video ni tools MCP de video, sin versión 3.0.0.
 - Falta verificar importación de material nuevo dentro de un video completo en Actions.
+- QA no mide si el clip corresponde al tema de la escena: un video puede aprobar las 14 compuertas con una toma poco pertinente.
 - No hay tipografía propia incrustada ni colocación de la franja del título según el sujeto.
 - La mejor toma de voz puede quedar bajo umbral; QA final no lo convierte en éxito.
 - Falta la tabla completa de voz, las mediciones por mood y las de ajuste y mezcla.

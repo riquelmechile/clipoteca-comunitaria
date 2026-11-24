@@ -66,8 +66,10 @@ Releases es un mecanismo de distribución de software y GitHub puede limitar pat
 
 ## Motor de video (studio)
 
-El motor v3 no es un segundo servicio desplegado. Hoy se ejecuta desde un
-checkout por etapas, con archivos locales como contrato entre módulos.
+El motor v3 no es un segundo servicio desplegado. Se ejecuta por etapas,
+con archivos como contrato entre módulos: a mano desde un checkout o con
+el workflow manual [render.yml](M32_RENDER.md), que reparte las etapas en
+jobs y pasa los archivos por artefactos.
 El [job studio](../.github/workflows/ci.yml) comprueba componentes en
 Actions, con permiso de lectura; no publica videos.
 
@@ -98,9 +100,11 @@ el hash del video y solo incorpora material importado que se usó realmente,
 en un solo commit de catálogo; escribe la ficha del video al final.
 Requiere un escritor único.
 
-**Plan, no implementado como workflow:** despachar un trabajo de render,
-ejecutar voz, música y escenas en paralelo, pasar archivos por artefactos,
-ensamblar, reintentar escenas fallidas y publicar con concurrencia
-serializada. REST/MCP de video y el workflow que une las etapas faltan.
+**Workflow de render:** valida el guion, ejecuta voz, música y un job por
+escena en paralelo, pasa archivos por artefactos, ensambla, repite las
+escenas que eligieron un clip repetido y publica con concurrencia
+serializada solo si se pide y QA aprueba. Existe en main pero no está
+validado con corridas reales. Falta la parte REST/MCP de video que lo
+despache.
 La [guía Studio](STUDIO.md) describe el recorrido manual actual; el
 [roadmap v3](ROADMAP_V3.md) conserva el plan.
