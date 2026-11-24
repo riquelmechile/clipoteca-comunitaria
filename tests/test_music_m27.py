@@ -252,53 +252,165 @@ def test_render_head_rejects_external_request_even_with_audio(
     class FakeRoute:
         request = types.SimpleNamespace(url="https://example.invalid/track")
 
-        def abort(self) -> None:
+        async def abort(self):
             state["aborted"] = True
 
-        def continue_(self) -> None:
+        async def continue_(self):
             raise AssertionError("network was allowed")
 
     class FakePage:
-        def set_default_timeout(self, value: int) -> None:
+        def set_default_timeout(self, value):
             assert value > 0
 
-        def route(self, pattern: str, callback) -> None:
+        async def route(self, pattern, callback):
             assert pattern == "**/*"
             self.callback = callback
 
-        def goto(self, url: str, **kwargs) -> None:
+        async def goto(self, url, **kwargs):
             assert url.startswith("file://")
-            self.callback(FakeRoute())
+            await self.callback(FakeRoute())
 
-        def evaluate(self, expression: str, arguments: object) -> str:
+        async def evaluate(self, expression, arguments):
             return "aGVsbG8="
 
     class FakeBrowser:
-        def new_page(self):
+        async def new_page(self):
             return FakePage()
 
-        def close(self):
+        async def close(self):
             state["closed"] = True
 
     browser = FakeBrowser()
 
     class FakePlaywrightContext:
-        def __enter__(self):
+        async def __aenter__(self):
             return types.SimpleNamespace(
-                chromium=types.SimpleNamespace(launch=lambda **kwargs: browser)
+                chromium=types.SimpleNamespace(launch=lambda **kwargs: async_browser())
             )
 
-        def __exit__(self, *args) -> None:
+        async def __aexit__(self, *args):
             pass
 
-    fake_module = types.ModuleType("playwright.sync_api")
-    fake_module.sync_playwright = FakePlaywrightContext  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "playwright.sync_api", fake_module)
+    async def async_browser():
+        return browser
+
+    fake_module = types.ModuleType("playwright.async_api")
+    fake_module.async_playwright = FakePlaywrightContext
+    monkeypatch.setitem(sys.modules, "playwright.async_api", fake_module)
 
     with pytest.raises(music.MusicError, match="blocked 1 external"):
         music.render_head(music.music_plan(PLAN), tmp_path)
     assert state == {"closed": True, "aborted": True}
     assert not (tmp_path / "head.wav").exists()
+
+
+@pytest.mark.parametrize(
+    "url,approved",
+    [
+        ("file://otherhost/x", False),
+        ("file:///etc/passwd", False),
+        ("https://example.com/video.mp4", False),
+        ("data:text/plain,a", False),
+        ("file:///tmp/random-asset", False),
+    ],
+)
+def test_network_rejects_external_or_nonlocal_urls(url, approved, tmp_path):
+    assert music._allowed_asset(url, tmp_path) is approved
+    # Sonnet review: none of the cases above failed when the host check was removed, because
+    # their paths were outside the allowed folders anyway. These point INSIDE them.
+    inside = music.HTML_FILE.resolve().as_uri()
+    assert music._allowed_asset(inside, tmp_path)
+    for host in ("otrohost", "localhost", "127.0.0.1"):
+        assert not music._allowed_asset(inside.replace("file://", f"file://{host}", 1), tmp_path)
+    assert not music._allowed_asset(inside + "?x=1", tmp_path)
+    assert not music._allowed_asset(inside + "#frag", tmp_path)
+    escape = (tmp_path / "sub" / ".." / ".." / "fuera.wav").as_posix()
+    assert not music._allowed_asset("file://" + escape, tmp_path)
+    assert music._allowed_asset(music.HTML_FILE.resolve().as_uri(), tmp_path)
+    candidate = tmp_path / "bed.wav"
+    assert music._allowed_asset(candidate.resolve().as_uri(), tmp_path)
+
+
+def test_music_render_full_deadline_includes_evaluate(monkeypatch, tmp_path):
+    import asyncio
+    import sys
+    import types
+
+    closed = []
+    entered_evaluate = []
+
+    class Page:
+        def set_default_timeout(self, _ms):
+            pass
+
+        async def route(self, *_args):
+            pass
+
+        async def goto(self, *_args, **_kwargs):
+            pass
+
+        async def evaluate(self, *_args):
+            entered_evaluate.append(True)
+            await asyncio.Event().wait()
+
+    class Browser:
+        async def new_page(self):
+            return Page()
+
+        async def close(self):
+            closed.append(True)
+
+    class Playwright:
+        async def __aenter__(self):
+            async def launch(**_kwargs):
+                return Browser()
+
+            return types.SimpleNamespace(chromium=types.SimpleNamespace(launch=launch))
+
+        async def __aexit__(self, *_args):
+            pass
+
+    fake = types.ModuleType("playwright.async_api")
+    fake.async_playwright = Playwright
+    monkeypatch.setitem(sys.modules, "playwright.async_api", fake)
+    monkeypatch.setenv("CLIPOTECA_MUSIC_TIMEOUT", "0.04")
+    with pytest.raises(music.MusicError, match="total timeout"):
+        music.render_head(music.music_plan(PLAN), tmp_path)
+    assert closed == [True]
+    assert entered_evaluate == [True]
+
+
+def test_import_error_and_missing_chromium_are_actionable(monkeypatch, tmp_path):
+    import sys
+    import types
+
+    monkeypatch.setitem(sys.modules, "playwright.async_api", None)
+    with pytest.raises(music.MusicError, match="studio extra.*playwright install chromium"):
+        music.render_head(music.music_plan(PLAN), tmp_path)
+
+    class Playwright:
+        async def __aenter__(self):
+            async def failed_launch(**_kwargs):
+                raise RuntimeError("missing-browser")
+
+            return types.SimpleNamespace(chromium=types.SimpleNamespace(launch=failed_launch))
+
+        async def __aexit__(self, *_args):
+            pass
+
+    fake = types.ModuleType("playwright.async_api")
+    fake.async_playwright = Playwright
+    monkeypatch.setitem(sys.modules, "playwright.async_api", fake)
+    with pytest.raises(music.MusicError, match="Chromium unavailable.*playwright install chromium"):
+        music.render_head(music.music_plan(PLAN), tmp_path)
+
+
+def test_music_bed_float_exact_multiple_tolerance():
+    data = json.loads(json.dumps(PLAN))
+    data["bpm"] = data["music"]["bpm"] = 100
+    data["total_est"] = 1.9200000000000004
+    data["scenes"][1]["start_est"] = 1.2
+    assert music.music_plan(data)["bed_s"] == pytest.approx(8.4)
 
 
 @pytest.mark.parametrize("mood", ["upbeat", "chill", "epic"])

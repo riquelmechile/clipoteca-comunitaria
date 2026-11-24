@@ -9,6 +9,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -154,6 +155,8 @@ def _validate(script: VideoScript, timeline: Any, clips_dir: Path, mix: Path):
             if b < a or voice + b > start + length + 0.03:
                 raise ComposeError(f"timeline.scenes[{index}].words[{j}]: out of scene")
         src = clips_dir / f"{ids[index]}.mp4"
+        if src.is_symlink() or any(parent.is_symlink() for parent in src.parents):
+            raise ComposeError(f"symlink clip forbidden for scene {ids[index]}")
         if not src.is_file() or not src.stat().st_size:
             raise ComposeError(f"missing clip for scene {ids[index]}")
         clips[ids[index]] = src
@@ -442,26 +445,63 @@ def build_composition(
     out_dir: str | Path,
     gsap_path: str | Path,
 ) -> dict[str, Any]:
-    """Build fully local HTML/media graph; input validates before any output."""
+    """Stage the complete HF tree off to the side; publish or roll back as a unit."""
     clips_path, mix, gsap = Path(clips_dir), Path(mix_path), Path(gsap_path)
     total, beat, rows, clips = _validate(script, timeline, clips_path, mix)
     if not gsap.is_file() or not gsap.stat().st_size:
         raise ComposeError("missing GSAP asset")
+    if (
+        gsap.stat().st_size != GSAP_FILE_SIZE
+        or hashlib.sha256(gsap.read_bytes()).hexdigest() != GSAP_FILE_SHA
+    ):
+        raise ComposeError("GSAP SHA-256 or size mismatch")
     markup, chunks = _html(script, rows, total, beat)
     root = Path(out_dir)
-    hf = root / "hf"
-    _atomic(hf / "index.html", markup)
-    _atomic(hf / "hyperframes.json", _json_bytes(HYPERFRAMES_CONFIG))
-    _atomic(hf / "meta.json", _json_bytes({"id": "clipoteca", "name": "clipoteca"}))
-    _atomic(hf / "package.json", _json_bytes({"name": "hf", "private": True, "type": "module"}))
-    _atomic(hf / "assets" / "gsap.min.js", gsap.read_bytes())
-    _atomic(hf / "assets" / "mix.wav", mix.read_bytes())
-    for scene_id, path in clips.items():
-        _atomic(hf / "assets" / "clips" / f"{scene_id}.mp4", path.read_bytes())
-    _atomic(root / "chunks.json", _json_bytes(chunks))
+    if root.is_symlink() or (root / "hf").is_symlink():
+        raise ComposeError("unsafe composition destination")
+    root.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".hf-build-", dir=root.parent) as folder:
+        staged = Path(folder)
+        target = staged / "hf"
+        _atomic(target / "index.html", markup)
+        _atomic(target / "hyperframes.json", _json_bytes(HYPERFRAMES_CONFIG))
+        _atomic(target / "meta.json", _json_bytes({"id": "clipoteca", "name": "clipoteca"}))
+        _atomic(
+            target / "package.json", _json_bytes({"name": "hf", "private": True, "type": "module"})
+        )
+        _atomic(target / "assets" / "gsap.min.js", gsap.read_bytes())
+        _atomic(target / "assets" / "mix.wav", mix.read_bytes())
+        for scene_id, path in clips.items():
+            _atomic(target / "assets" / "clips" / f"{scene_id}.mp4", path.read_bytes())
+        _atomic(staged / "chunks.json", _json_bytes(chunks))
+
+        created_root = not root.exists()
+        root.mkdir(parents=True, exist_ok=True)
+        hf = root / "hf"
+        previous = staged / "previous-hf"
+        had_previous = hf.exists()
+        if had_previous:
+            os.replace(hf, previous)
+        try:
+            os.replace(target, hf)
+            _atomic(root / "chunks.json", (staged / "chunks.json").read_bytes())
+        except Exception:
+            if hf.is_dir():
+                shutil.rmtree(hf)
+            else:
+                hf.unlink(missing_ok=True)
+            if had_previous:
+                os.replace(previous, hf)
+            elif created_root:
+                try:
+                    root.rmdir()
+                except OSError:
+                    pass
+            raise
+
     width, height = CONFIG[script.aspect]["size"]
     return {
-        "hf": str(hf),
+        "hf": str(root / "hf"),
         "scenes": list(clips),
         "total": total,
         "chunks": len(chunks),
@@ -539,6 +579,8 @@ def render_video(
 ) -> dict[str, Any]:
     """Render then mux in a private directory; publish only if ffprobe gates pass."""
     hf, destination = Path(hf_dir), Path(out_path)
+    # A retry must never leave the previous successful receipt as current truth.
+    destination.with_name("render.json").unlink(missing_ok=True)
     total, width, height = _render_metadata(hf)
     if not isinstance(timeout, int) or timeout <= 0:
         raise ComposeError("render timeout must be a positive integer")

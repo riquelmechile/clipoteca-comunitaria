@@ -36,6 +36,13 @@ def _scene_id(value: object) -> str:
     return value
 
 
+def _safe_stderr(value: str) -> str:
+    """Remove filesystem paths before reporting a failed media process."""
+    result = value.replace(str(Path.cwd().resolve()), "<project>")
+    result = result.replace(str(Path(tempfile.gettempdir()).resolve()), "<temporary>")
+    return re.sub(r"(?<![A-Za-z0-9])/[^ ]+", "<path>", result)[-200:]
+
+
 def _run(argv: list[str], timeout: int = _TIMEOUT) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
@@ -59,11 +66,11 @@ def probe_duration(path: str | Path) -> float:
             "stream=duration,nb_frames,avg_frame_rate",
             "-of",
             "json",
-            str(source),
+            str(source.resolve()),
         ]
     )
     if process.returncode:
-        raise FitError(f"ffprobe failed: {process.stderr[-200:]}")
+        raise FitError(f"ffprobe failed: {_safe_stderr(process.stderr)}")
     try:
         streams = json.loads(process.stdout)["streams"]
         stream = streams[0]
@@ -126,7 +133,16 @@ def fit_clip(src: str | Path, dst: str | Path, length: float) -> dict[str, float
     os.close(fd)
     temporary = Path(tmp_name)
     try:
-        argv = ["ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error", "-y", "-i", str(source)]
+        argv = [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(source.resolve()),
+        ]
         if plan["mode"] == "trim":
             argv.extend(["-vf", "fps=30,format=yuv420p"])
         elif plan["mode"] == "slow":
@@ -165,12 +181,12 @@ def fit_clip(src: str | Path, dst: str | Path, length: float) -> dict[str, float
                 "yuv420p",
                 "-r",
                 "30",
-                str(temporary),
+                str(temporary.resolve()),
             ]
         )
         process = _run(argv)
         if process.returncode:
-            raise FitError(f"fit ffmpeg failed: {process.stderr[-200:]}")
+            raise FitError(f"fit ffmpeg failed: {_safe_stderr(process.stderr)}")
         out_s = probe_duration(temporary)
         if out_s < Lr - 1 / 30 - 1e-4 or out_s > Lr + 0.2 + 1e-4:
             raise FitError(f"fit duration mismatch: expected {Lr:.3f}, got {out_s:.3f}")
@@ -228,7 +244,11 @@ def main(argv: list[str] | None = None) -> int:
             json.loads(args.timeline.read_text(encoding="utf-8")), args.clips, args.out
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
-        parser.exit(2, f"fit: {exc}\n")
+        print(json.dumps({"status": "error", "error": type(exc).__name__}))
+        # The module's own messages are already path-free and say what to fix.
+        reason = str(exc) if isinstance(exc, FitError) else "invalid input"
+        parser.exit(2, f"fit: {type(exc).__name__}: {reason}\n")
+    print(json.dumps(report, ensure_ascii=False))
     return 3 if report["failed"] else 0
 
 

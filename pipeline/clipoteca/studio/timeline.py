@@ -172,13 +172,21 @@ def _atomic_json(path: Path, data: object) -> None:
         Path(tmp).unlink(missing_ok=True)
 
 
-def build_timeline(script: VideoScript, voice_dir: str | Path, transcriber: Any) -> dict[str, Any]:
+def build_timeline(
+    script: VideoScript,
+    voice_dir: str | Path,
+    transcriber: Any,
+    *,
+    output_path: str | Path | None = None,
+) -> dict[str, Any]:
     """Quantize real WAV scene durations to beats, without target stretching."""
     folder = Path(voice_dir)
     report_path = folder / "voice.json"
     if not report_path.is_file():
         raise ValueError("voice.json not found")
     voice_report = json.loads(report_path.read_text(encoding="utf-8"))
+    if "script_id" in voice_report and voice_report["script_id"] != script_id(script):
+        raise ValueError("voice.json script_id does not match the video script")
     beat = 60 / script.music.bpm
     scenes: list[dict[str, Any]] = []
     current = 0.0
@@ -203,7 +211,7 @@ def build_timeline(script: VideoScript, voice_dir: str | Path, transcriber: Any)
         )
         extra = 1.2 if scene.type == "outro" else 0.6
         minimum = 3.5 if scene.type == "outro" else 4 * beat
-        pulses = max(math.ceil((duration + extra) / beat), math.ceil(minimum / beat))
+        pulses = max(math.ceil((duration + extra) / beat - 1e-9), math.ceil(minimum / beat - 1e-9))
         length = round(pulses * beat, 6)
         scenes.append(
             {
@@ -235,7 +243,7 @@ def build_timeline(script: VideoScript, voice_dir: str | Path, transcriber: Any)
         "total": round(current, 6),
         "cuts": [scene["start"] for scene in scenes[1:]],
     }
-    _atomic_json(folder / "timeline.json", result)
+    _atomic_json(Path(output_path) if output_path is not None else folder / "timeline.json", result)
     return result
 
 
@@ -248,16 +256,19 @@ def main(argv: list[str] | None = None) -> int:
     script = parse_video_script(json.loads(args.script.read_text(encoding="utf-8")))
     try:
         from faster_whisper import WhisperModel
+        from huggingface_hub import snapshot_download
+
         from . import models
 
         spec = models.model_spec("whisper")
-        transcriber = WhisperModel(
-            spec["repo"], revision=spec["revision"], compute_type=spec["compute_type"]
-        )
-        timeline = build_timeline(script, args.voice, transcriber)
-        _atomic_json(args.out, timeline)
+        pinned = snapshot_download(repo_id=spec["repo"], revision=spec["revision"])
+        transcriber = WhisperModel(pinned, compute_type=spec["compute_type"])
+        build_timeline(script, args.voice, transcriber, output_path=args.out)
     except (FileNotFoundError, ValueError, KeyError) as exc:
         parser.error(str(exc))
+    except OSError as exc:
+        # e.g. --out pointing at a directory: a usage error, not a traceback.
+        parser.error(f"cannot write the timeline: {type(exc).__name__}")
     return 0
 
 

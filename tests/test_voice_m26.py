@@ -21,7 +21,7 @@ def _script() -> VideoScript:
         aspect="9:16",
         language="es",
         music=MusicSpec(mood="upbeat", bpm=120),
-        voice=VoiceSpec(voice="F1", speed=1.2, lexicon={}),
+        voice=VoiceSpec(voice="F1", speed=1.2, lexicon={"V6": "ve seis"}),
         scenes=(
             SceneSpec(
                 id="fact-1",
@@ -72,7 +72,11 @@ class WerScorer:
 
 
 def test_lexicon_longest_and_token_bounds() -> None:
-    assert apply_lexicon("RS3 V10 xV6", DEFAULT_LEXICON) == "erre ese tres ve diez xV6"
+    assert (
+        apply_lexicon("RS3 V10 xV6", {"RS3": "erre ese tres", "V10": "ve diez"})
+        == "erre ese tres ve diez xV6"
+    )
+    assert apply_lexicon("RS3 V10 xV6", DEFAULT_LEXICON) == "RS3 V10 xV6"
     assert apply_lexicon("V6", {}) == "V6"
 
 
@@ -137,7 +141,7 @@ def test_render_merges_default_and_script_lexicon(tmp_path: Path) -> None:
         aspect=script.aspect,
         language=script.language,
         music=script.music,
-        voice=VoiceSpec(voice="F1", speed=1.2, lexicon={"Motor": "Propulsor"}),
+        voice=VoiceSpec(voice="F1", speed=1.2, lexicon={"Motor": "Propulsor", "V6": "ve seis"}),
         scenes=script.scenes,
     )
     report = render_script(custom, tmp_path / "custom", FakeEngine(), FakeScorer([0.05]))
@@ -239,7 +243,7 @@ def test_optional_real_engine() -> None:
         ("101", "ciento uno"),
         ("1.001", "mil uno"),
         ("21", "veintiuno"),
-        ("31 personas", "treinta y uno personas"),
+        ("31 personas", "treinta y una personas"),
         ("ñandú sin cifras", "ñandú sin cifras"),
         (
             "999.999.999.999",

@@ -128,3 +128,28 @@ de este PR.
 | Tiempo real de ajuste trim/slow/pingpong | Pendiente de medir en Actions |
 | Tiempo de mezcla y normalización | Pendiente de medir en Actions |
 | Métricas del ejemplo con archivos definitivos | Pendiente de medir en Actions |
+
+
+## Segunda vuelta A: rutas, diagnóstico y publicación de mezcla
+
+FFprobe y FFmpeg reciben rutas resueltas a absolutas en los
+comandos de ajuste, resampling, análisis y mezcla, incluso cuando
+el directorio o archivo empieza con signo menos. Los mensajes
+de subprocess no publican rutas absolutas del proyecto o del
+sistema de archivos temporal: se sustituyen por indicadores
+neutros antes de producir FitError o MixError.
+
+Al empezar un intento de mezcla se invalida el mix.json anterior.
+La compuerta de sonoridad y formato se valida mientras el WAV final
+y el JSON están todavía en el directorio temporal. Se escribe
+mix.json primero a un archivo temporal, luego se reemplaza mix.wav
+y por último mix.json. Si el segundo reemplazo falla, se restaura
+el WAV anterior, si existía, o se elimina el nuevo. Nunca queda un
+nuevo mix.wav como éxito sin el recibo correspondiente. Si falla
+la compuerta, no se publica ningún artefacto nuevo y los temporales
+se limpian automáticamente.
+
+Las CLIs conservan los mismos argumentos y códigos de salida,
+y además informan en stdout JSON de resultados (fit.json o mix.json)
+al aprobar, o un objeto status=error y clase de error al rechazar.
+Los contratos y campos de fit.json y mix.json se mantienen idénticos.

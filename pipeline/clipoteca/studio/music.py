@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import base64
 import hashlib
 import json
@@ -117,7 +118,7 @@ def music_plan(plan: dict[str, Any]) -> dict[str, Any]:
     loop_len = 16 * beat
     head_s = round(intro_end + 2 * loop_len, 3)
     loop_start = intro_end + loop_len
-    bed_s = round(math.ceil((total * 1.25 + 6) / beat) * beat, 3)
+    bed_s = round(math.ceil((total * 1.25 + 6) / beat - 1e-9) * beat, 3)
     key_parts = [
         mood,
         str(bpm),
@@ -170,54 +171,68 @@ def _write_wav(path: Path, audio: np.ndarray, rate: int = SAMPLE_RATE) -> None:
     _atomic_bytes(path, _wav_bytes(audio, rate))
 
 
-def render_head(mp: dict[str, Any], out_dir: str | Path) -> None:
-    """Render once in isolated Chromium; fail if any external request is attempted."""
-    from playwright.sync_api import sync_playwright
-
-    output = Path(out_dir)
-    output.mkdir(parents=True, exist_ok=True)
-    limit_ms = round(
-        _number(
-            float(os.environ.get("CLIPOTECA_MUSIC_TIMEOUT", "180")),
-            "CLIPOTECA_MUSIC_TIMEOUT",
-            positive=True,
-        )
-        * 1000
-    )
-    blocked: list[str] = []
-
-    def intercept(route: Any) -> None:
-        url = route.request.url
-        parsed = urlsplit(url)
-        local = Path(unquote(parsed.path)).resolve() if parsed.scheme == "file" else None
-        if (
-            parsed.scheme == "file"
-            and local is not None
-            and local.is_relative_to(ASSET_DIR.resolve())
-        ):
-            route.continue_()
-        else:
-            blocked.append(url)
-            route.abort()
-
+def _allowed_asset(url: str, output: Path) -> bool:
+    """Only hostless file URLs inside the music assets or output directory."""
     try:
-        with sync_playwright() as playwright:
+        parsed = urlsplit(url)
+        if parsed.scheme != "file" or parsed.netloc or parsed.query or parsed.fragment:
+            return False
+        local = Path(unquote(parsed.path)).resolve()
+        return any(local.is_relative_to(root.resolve()) for root in (ASSET_DIR, output))
+    except (ValueError, OSError):
+        return False
+
+
+async def _render_head_async(
+    mp: dict[str, Any],
+    output: Path,
+    timeout_s: float,
+) -> None:
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError as exc:
+        raise MusicError(
+            "Playwright unavailable; install the studio extra and run 'playwright install chromium'"
+        ) from exc
+
+    blocked = 0
+
+    async def intercept(route: Any) -> None:
+        nonlocal blocked
+        if _allowed_asset(route.request.url, output):
+            await route.continue_()
+        else:
+            blocked += 1
+            await route.abort()
+
+    async def render() -> None:
+        async with async_playwright() as playwright:
             launch: dict[str, Any] = {
                 "headless": True,
                 "args": [
                     "--autoplay-policy=no-user-gesture-required",
                     "--allow-file-access-from-files",
                 ],
-                "timeout": limit_ms,
+                "timeout": max(1, round(timeout_s * 1000)),
             }
             if os.environ.get("CLIPOTECA_CHROME"):
                 launch["executable_path"] = os.environ["CLIPOTECA_CHROME"]
-            browser = playwright.chromium.launch(**launch)
             try:
-                page = browser.new_page()
-                page.set_default_timeout(limit_ms)
-                page.route("**/*", intercept)
-                page.goto(HTML_FILE.resolve().as_uri(), wait_until="load", timeout=limit_ms)
+                browser = await playwright.chromium.launch(**launch)
+            except Exception as exc:
+                raise MusicError(
+                    "Chromium unavailable; install the studio extra and run "
+                    "'playwright install chromium'"
+                ) from exc
+            try:
+                page = await browser.new_page()
+                page.set_default_timeout(max(1, round(timeout_s * 1000)))
+                await page.route("**/*", intercept)
+                await page.goto(
+                    HTML_FILE.resolve().as_uri(),
+                    wait_until="load",
+                    timeout=max(1, round(timeout_s * 1000)),
+                )
                 timeline = {
                     "bpm": mp["bpm"],
                     "beat": mp["beat"],
@@ -229,26 +244,46 @@ def render_head(mp: dict[str, Any], out_dir: str | Path) -> None:
                         {"start": mp["head_s"] + 60},
                     ],
                 }
-                bed_b64 = page.evaluate(
+                bed_b64 = await page.evaluate(
                     "([T,M])=>render(T,M)",
-                    [
-                        timeline,
-                        {"mood": mp["mood"], "transpose": 0},
-                    ],
+                    [timeline, {"mood": mp["mood"], "transpose": 0}],
                 )
-                hit_b64 = page.evaluate("(M)=>renderHit(M)", {"mood": mp["mood"], "transpose": 0})
+                hit_b64 = await page.evaluate(
+                    "(M)=>renderHit(M)", {"mood": mp["mood"], "transpose": 0}
+                )
                 if blocked:
-                    raise MusicError(f"offline render blocked {len(blocked)} external request(s)")
+                    raise MusicError(f"offline render blocked {blocked} external request(s)")
                 if not isinstance(bed_b64, str) or not isinstance(hit_b64, str):
                     raise MusicError("offline composer returned no WAV")
                 _atomic_bytes(output / "head.wav", base64.b64decode(bed_b64, validate=True))
                 _atomic_bytes(output / "hit.wav", base64.b64decode(hit_b64, validate=True))
             finally:
-                browser.close()
+                # Cleanup must also be bounded when evaluation was cancelled.
+                try:
+                    await asyncio.wait_for(browser.close(), timeout=1.0)
+                except (Exception, asyncio.CancelledError):
+                    pass
+
+    try:
+        await asyncio.wait_for(render(), timeout=timeout_s)
+    except TimeoutError as exc:
+        raise MusicError("offline music rendering exceeded total timeout") from exc
     except MusicError:
         raise
     except Exception as exc:
-        raise MusicError(f"offline music rendering failed: {type(exc).__name__}: {exc}") from exc
+        raise MusicError(f"offline music rendering failed: {type(exc).__name__}") from exc
+
+
+def render_head(mp: dict[str, Any], out_dir: str | Path) -> None:
+    """Bound the complete Chromium lifetime, including both evaluations."""
+    output = Path(out_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    try:
+        seconds = float(os.environ.get("CLIPOTECA_MUSIC_TIMEOUT", "180"))
+    except ValueError as exc:
+        raise MusicError("CLIPOTECA_MUSIC_TIMEOUT must be numeric") from exc
+    timeout_s = _number(seconds, "CLIPOTECA_MUSIC_TIMEOUT", positive=True)
+    asyncio.run(_render_head_async(mp, output, timeout_s))
 
 
 def write_bed(out_dir: str | Path, loop_start: float, loop_len: float, length: float) -> Path:

@@ -2,25 +2,12 @@
 
 from __future__ import annotations
 
+import calendar
 import re
 import unicodedata
 from collections.abc import Mapping, Sequence
 
-_NUMBER_WORDS = {
-    3: "tres",
-    4: "cuatro",
-    5: "cinco",
-    6: "seis",
-    7: "siete",
-    8: "ocho",
-    10: "diez",
-    12: "doce",
-}
 DEFAULT_LEXICON = {
-    **{f"RS{i}": f"erre ese {_NUMBER_WORDS[i]}" for i in range(3, 8)},
-    **{f"V{i}": f"ve {_NUMBER_WORDS[i]}" for i in (6, 8, 10, 12)},
-    "DTM": "de te eme",
-    "TDI": "te de i",
     "4x4": "cuatro por cuatro",
     "km/h": "kilometros por hora",
 }
@@ -70,7 +57,163 @@ _HUNDREDS = (
     "ochocientos",
     "novecientos",
 )
-_NUMBERS = re.compile(r"(?<![\w])\d+(?:[.,]\d+)*(?: ?%)?(?![\w])")
+# Deliberately closed list. The singular/plural forms are both supported.
+_FEMININE = {
+    "persona",
+    "hora",
+    "vez",
+    "semana",
+    "tonelada",
+    "milla",
+    "hectárea",
+    "especie",
+    "libra",
+    "caloría",
+    "página",
+    "ciudad",
+    "mujer",
+    "niña",
+    "casa",
+    "cosa",
+    "parte",
+    "vida",
+    "isla",
+    "lengua",
+    "estrella",
+    "galaxia",
+    "noche",
+    "personas",
+    "horas",
+    "veces",
+    "semanas",
+    "toneladas",
+    "millas",
+    "hectáreas",
+    "especies",
+    "libras",
+    "calorías",
+    "páginas",
+    "ciudades",
+    "mujeres",
+    "niñas",
+    "casas",
+    "cosas",
+    "partes",
+    "vidas",
+    "islas",
+    "lenguas",
+    "estrellas",
+    "galaxias",
+    "noches",
+}
+# Words that clearly do not introduce a noun (keep the uncontracted cardinal).
+_NON_NOUNS = {
+    "de",
+    "del",
+    "a",
+    "al",
+    "en",
+    "por",
+    "para",
+    "con",
+    "sin",
+    "sobre",
+    "entre",
+    "y",
+    "o",
+    "u",
+    "que",
+    "como",
+    "cuando",
+    "donde",
+    "si",
+    "es",
+    "son",
+    "fue",
+    "ser",
+    "era",
+    "fueron",
+    "está",
+    "están",
+    "hay",
+    # Adverbs and connectors: "queda 1 más" is "uno más", never "un más".
+    "más",
+    "menos",
+    "también",
+    "tampoco",
+    "ya",
+    "no",
+    "solo",
+    "pero",
+    "ni",
+    "aquí",
+    "ahí",
+    "allí",
+    "hoy",
+    "ayer",
+    "mañana",
+    "antes",
+    "después",
+    "cada",
+}
+_ORDINAL_M = (
+    "",
+    "primero",
+    "segundo",
+    "tercero",
+    "cuarto",
+    "quinto",
+    "sexto",
+    "séptimo",
+    "octavo",
+    "noveno",
+    "décimo",
+)
+_ORDINAL_F = (
+    "",
+    "primera",
+    "segunda",
+    "tercera",
+    "cuarta",
+    "quinta",
+    "sexta",
+    "séptima",
+    "octava",
+    "novena",
+    "décima",
+)
+_MONTHS = (
+    "",
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+)
+# A single ordered matcher prevents a later numeric pass from partially rewriting
+# dates, ordinal suffixes, fractions or clock notation.
+_TOKEN = re.compile(
+    r"(?<!\w)(?:"
+    r"(?P<usd>US\$\s*\d+(?:[.,]\d+)*|USD\s+\d+(?:[.,]\d+)*)"
+    r"|(?P<clp>\$\s*\d+(?:[.,]\d+)*)"
+    r"|(?P<eur_pre>€\s*\d+(?:[.,]\d+)*)"
+    r"|(?P<date>\d{1,2}/\d{1,2}/\d{4})"
+    r"|(?P<time>\d{1,2}:\d{2})"
+    r"|(?P<ordinal>(?:10|[1-9])(?:er|º|ª))"
+    r"|(?P<fraction>\d+/\d+)"
+    r"|(?P<eur_post>\d+(?:[.,]\d+)*\s+€)"
+    r"|(?P<range>(?<!-)\d+(?:[.,]\d+)*-\d+(?:[.,]\d+)*(?!-)(?:\s?%)?)"
+    r"|(?P<negative>-\d+(?:[.,]\d+)*(?:\s?%)?)"
+    r"|(?P<number>\d+(?:[.,]\d+)*(?:\s?%)?)"
+    r")(?!\w)"
+)
 
 
 def apply_lexicon(text: str, lexicon: Mapping[str, str] | None = None) -> str:
@@ -126,7 +269,26 @@ def _cardinal(value: int) -> str:
     return before + (" " + _under_million(rest) if rest else "")
 
 
-def _spell_number(value: str) -> str:
+def _feminine_one(words: str) -> str:
+    if words.endswith("veintiuno"):
+        return words[:-9] + "veintiuna"
+    if words.endswith(" y uno"):
+        return words[:-6] + " y una"
+    if words.endswith("uno"):
+        return words[:-3] + "una"
+    return words
+
+
+def _following_word(text: str, end: int) -> str | None:
+    # A punctuation mark stops the apocope, except whitespace before a noun.
+    match = re.match(r"\s+([^\W\d_]+)\b", text[end:], re.UNICODE)
+    if not match:
+        return None
+    value = match.group(1).casefold()
+    return value if value not in _NON_NOUNS else None
+
+
+def _spell_number(value: str, next_word: str | None = None) -> str:
     percentage = value.endswith("%")
     original = value[:-1].rstrip() if percentage else value
     if original.count(",") > 1 or ("," in original and "." in original):
@@ -154,23 +316,118 @@ def _spell_number(value: str) -> str:
         return value
     words = _cardinal(number)
     if fraction:
-        fractional = int(fraction)
-        if fractional > 999_999_999_999:
-            return value
-        words += " coma " + _cardinal(fractional)
+        if len(fraction) >= 3 or fraction.startswith("0"):
+            spoken = " ".join(_UNITS[int(digit)] for digit in fraction)
+        else:
+            spoken = _cardinal(int(fraction))
+        words += " coma " + spoken
+    elif not percentage and number % 10 == 1 and number % 100 != 11 and next_word:
+        # Do not contract an isolated cardinal or one before punctuation.
+        words = _feminine_one(words) if next_word in _FEMININE else _apocope(words)
     return words + (" por ciento" if percentage else "")
 
 
-def spell_numbers(text: str, lang: str = "es") -> str:
-    """Expand Spanish numbers to spoken words; preserve unrelated text exactly.
+def _protected_identifier(text: str, start: int, end: int) -> bool:
+    # The numeric fragment of clip-000023, 2026-11-23, H264 and v2.0.6 is not prose; a plain
+    # number after a word ("COVID-19", "F-16") is, and the voice garbles digits left as digits.
+    if start >= 2 and text[start - 1] == "-" and text[start - 2].isalnum():
+        digits = text[start:end]
+        if text[start - 2].isdigit() or (len(digits) > 1 and digits.startswith("0")):
+            return True
+    if end < len(text) and re.match(r"-[0-9]", text[end:]):
+        return True
+    if (
+        start >= 1
+        and text[start - 1] == "/"
+        and re.search(r"[A-Za-z][A-Za-z0-9_]*/$", text[:start])
+    ):
+        return True
+    if start >= 1 and text[start - 1] == ".":
+        prefix = re.search(r"[A-Za-z_]\w*(?:\.\d+)*\.$", text[:start])
+        if prefix:
+            return True
+    return False
 
-    Dot followed by a group of three digits denotes thousands; a final dot
-    followed by one or two digits denotes decimals. Comma denotes decimals.
-    Unrecognised formats and values above 999,999,999,999 remain untouched.
-    """
+
+def _token_words(match: re.Match[str], text: str) -> str:
+    raw = match.group()
+    if _protected_identifier(text, match.start(), match.end()):
+        return raw
+    kind = match.lastgroup
+    if kind == "date":
+        day, month, year = (int(x) for x in raw.split("/"))
+        if not 1 <= month <= 12 or not 1 <= day <= calendar.monthrange(year, month)[1]:
+            return raw
+        return f"{_cardinal(day)} de {_MONTHS[month]} de {_cardinal(year)}"
+    if kind == "time":
+        hour, minute = (int(x) for x in raw.split(":"))
+        if hour > 23 or minute > 59:
+            return raw
+        if minute == 0:
+            return f"{_cardinal(hour)} en punto"
+        if minute < 10:
+            return f"{_cardinal(hour)} cero {_cardinal(minute)}"
+        return f"{_cardinal(hour)} {_cardinal(minute)}"
+    if kind == "fraction":
+        above, below = (int(x) for x in raw.split("/"))
+        if below == 0:
+            return raw
+        if (above, below) == (1, 2):
+            noun = _following_word(text, match.end())
+            if noun is None:
+                return "un medio"
+            return "media" if noun in _FEMININE else "medio"
+        if (above, below) == (1, 3):
+            return "un tercio"
+        if below == 4:
+            if above == 1:
+                return "un cuarto"
+            return f"{_cardinal(above)} cuartos"
+        return f"{_cardinal(above)} sobre {_cardinal(below)}"
+    if kind == "ordinal":
+        value = int(raw[:-2] if raw.endswith("er") else raw[:-1])
+        if raw.endswith("er"):
+            return "primer" if value == 1 else _apocope(_ORDINAL_M[value])
+        return _ORDINAL_F[value] if raw.endswith("ª") else _ORDINAL_M[value]
+    if kind in {"usd", "clp", "eur_pre", "eur_post"}:
+        numeral = re.search(r"\d+(?:[.,]\d+)*", raw).group()
+        unit = {"usd": "dólares", "clp": "pesos", "eur_pre": "euros", "eur_post": "euros"}[kind]
+        words = _spell_number(numeral, unit)
+        # "$1.500 pesos" already names its unit: do not say it twice.
+        said = re.match(r"\s+([^\W\d_]+)", text[match.end() :])
+        if said and said.group(1).casefold() in {
+            "peso",
+            "pesos",
+            "dólar",
+            "dólares",
+            "euro",
+            "euros",
+        }:
+            return words
+        if words == "un":
+            unit = {"dólares": "dólar", "pesos": "peso", "euros": "euro"}[unit]
+        return f"{words} {unit}"
+    if kind == "range":
+        percent = raw.endswith("%")
+        low, high = raw.rstrip("%").rstrip().split("-")
+        if any(len(part) > 1 and part.startswith("0") for part in (low, high)):
+            return raw
+        if percent:
+            return f"{_spell_number(low)} a {_spell_number(high)} por ciento"
+        # "10-20 metros", "1990-2000", "5-0": Spanish reads all of them as "diez a veinte".
+        return f"{_spell_number(low)} a {_spell_number(high, _following_word(text, match.end()))}"
+    if kind == "negative" and (match.start() == 0 or text[match.start() - 1].isspace()):
+        return "menos " + _spell_number(raw[1:], _following_word(text, match.end()))
+    if kind == "negative":
+        return raw
+    return _spell_number(raw, _following_word(text, match.end()))
+
+
+def spell_numbers(text: str, lang: str = "es") -> str:
+    """Expand Spanish prices, dates, clocks and numerals without changing IDs."""
     if lang != "es":
         return text
-    return _NUMBERS.sub(lambda match: _spell_number(match.group()), text)
+    return _TOKEN.sub(lambda match: _token_words(match, text), text)
 
 
 def norm_words(value: str, lang: str = "es") -> list[str]:

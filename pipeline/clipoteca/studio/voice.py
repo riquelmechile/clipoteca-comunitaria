@@ -16,7 +16,7 @@ from typing import Any, Protocol
 import numpy as np
 
 from . import models
-from .script import VideoScript, parse_video_script
+from .script import VideoScript, parse_video_script, script_id
 from .textnorm import DEFAULT_LEXICON, apply_lexicon, norm_words, spell_numbers, wer
 
 VOICES = ["M1", "M2", "M3", "M4", "M5", "F1", "F2", "F3", "F4", "F5"]
@@ -360,6 +360,8 @@ def render_script(
     total = sum(durations.values())
     elapsed = time.monotonic() - started
     report = {
+        # Lets the timeline refuse a voice rendered for a different script.
+        "script_id": script_id(script),
         "engine": "sherpa-onnx-supertonic3",
         "model": {"name": "supertonic3", "sha256": engine.model_sha},
         "voice": script.voice.voice,

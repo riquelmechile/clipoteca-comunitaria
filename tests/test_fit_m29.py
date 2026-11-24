@@ -176,3 +176,46 @@ def test_fit_all_bad_timeline_rejects_without_side_effect(tmp_path: Path) -> Non
     with pytest.raises(FitError, match="timeline.scenes"):
         fit_all({}, tmp_path, tmp_path / "output")
     assert not (tmp_path / "output").exists()
+
+
+@pytest.mark.skipif(not FFMPEG, reason="ffmpeg/ffprobe unavailable")
+def test_fit_paths_beginning_dash_are_absolute_in_media_process(tmp_path, monkeypatch):
+    folder = tmp_path / "-x"
+    folder.mkdir()
+    source = folder / "moving.mp4"
+    _moving(source, 2.0)
+    monkeypatch.chdir(tmp_path)
+    result = fit_clip(Path("-x/moving.mp4"), Path("-x/out.mp4"), 1.0)
+    assert result["mode"] == "trim"
+    assert (folder / "out.mp4").is_file()
+
+
+def test_fit_stderr_sanitized_and_cli_json(tmp_path, monkeypatch, capsys):
+    import clipoteca.studio.fit as module
+
+    source = tmp_path / "private-secret.mp4"
+    source.write_bytes(b"not an mp4")
+
+    def runner(argv, timeout=180):
+        return subprocess.CompletedProcess(argv, 1, "", f"file {source} invalid")
+
+    monkeypatch.setattr(module, "_run", runner)
+    with pytest.raises(FitError) as failure:
+        probe_duration(source)
+    assert str(tmp_path) not in str(failure.value)
+    assert str(source) not in str(failure.value)
+    assert "<temporary>" in str(failure.value) or "<path>" in str(failure.value)
+
+    timeline = tmp_path / "timeline.json"
+    timeline.write_text(json.dumps({"scenes": []}))
+    output = tmp_path / "fitted"
+    assert main(["--timeline", str(timeline), "--clips", str(tmp_path), "--out", str(output)]) == 0
+    assert json.loads(capsys.readouterr().out) == {"scenes": {}, "failed": {}}
+    timeline.write_text(json.dumps({}))
+    with pytest.raises(SystemExit) as exception:
+        main(["--timeline", str(timeline), "--clips", str(tmp_path), "--out", str(output)])
+    assert exception.value.code == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "error",
+        "error": "FitError",
+    }

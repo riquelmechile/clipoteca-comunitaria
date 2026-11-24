@@ -146,3 +146,26 @@ termina sin colgarse en unos 10 minutos con 2 núcleos.
 
 En Actions, el job studio renderiza de verdad un vídeo de tres escenas
 en cada PR (paso «Real HyperFrames render»): 35 s en la primera corrida.
+
+
+## Segunda vuelta A: composición transaccional y reporte de render
+
+La construcción rechaza clips MP4 que sean symlinks o atraviesen un
+directorio symlink, y verifica el tamaño y SHA-256 fijados de GSAP
+antes de escribir el proyecto. Todos los archivos de hf/ y
+chunks.json se preparan en un directorio temporal hermano.
+Solo una vez completos se hace el renombrado de hf/. Si ya
+había un hf/ válido, se conserva como backup hasta que la
+nueva composición y chunks.json estén confirmados; ante un error
+se restaura el anterior y no quedan directorios de staging.
+Los contratos de video por escena, HTML, assets y chunks no cambian.
+
+render_video invalida render.json previo al inicio de un nuevo
+intento. Si HyperFrames, FFmpeg o FFprobe fallan, no queda
+un reporte viejo de éxito de una ejecución anterior.
+El comando de mux conserva libx264 slow, crf 20,
+maxrate 10M, bufsize 20M, AAC 192k y las demás
+opciones previas. La constante FONT no cambió.
+Las pruebas de composición incluyen un runner falso que
+comprueba los argumentos exactos del mux y render.json,
+además de symlinks y errores a mitad de construcción.
