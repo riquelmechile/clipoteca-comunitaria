@@ -118,7 +118,10 @@ def localize_candidate(
     candidate: Candidate,
     *,
     translator: Callable[[str, str, str], str] | None = None,
+    include_query_tags: bool = False,
+    on_query_tag_warning: Callable[[str, str], None] | None = None,
 ) -> LocalizedMetadata:
+    # Legacy keywords are accepted for callers, but discovery tags are never indexed.
     original = candidate.source_title.strip()
     if not original:
         raise MetadataTranslationError("source title missing")
