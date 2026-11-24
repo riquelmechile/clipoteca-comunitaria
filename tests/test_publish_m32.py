@@ -4,10 +4,12 @@ import hashlib
 import json
 from datetime import UTC, date, datetime
 
+import httpx
 import pytest
 
 from clipoteca.catalog import Catalog
-from clipoteca.studio import index
+from clipoteca.studio import delivery, index
+from clipoteca.studio.script import parse_video_script, script_id
 
 DAY = date(2026, 1, 2)
 NOW = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
@@ -205,3 +207,178 @@ def test_dry_run(setup, capsys):
     result = json.loads(capsys.readouterr().out)
     assert len(result["clips"]) == 3
     assert not (root / "data/videos").exists()
+
+
+class FakeGitHub:
+    """Just enough of the REST API to run the REAL storage, catalogue writer."""
+
+    def __init__(self, catalog):
+        self.catalog = json.dumps(catalog, indent=2) + "\n"
+        self.catalog_sha = "s0"
+        self.releases = []
+        self.blobs = {}
+        self.calls = []
+        self.serial = 100
+        self.fail_once = None
+
+    def _next(self):
+        self.serial += 1
+        return self.serial
+
+    def handler(self, request):
+        import base64
+        import re
+
+        method, url, path = request.method, str(request.url), request.url.path
+        self.calls.append((method, path))
+        if self.fail_once and self.fail_once(request):
+            self.fail_once = None
+            return httpx.Response(500)
+        if url.startswith("https://github.com/") and method == "GET":
+            found = url in self.blobs
+            return httpx.Response(200 if found else 404, content=self.blobs.get(url, b""))
+        if path == f"/repos/{REPO}/contents/data/clips.json":
+            if method == "GET":
+                content = base64.b64encode(self.catalog.encode()).decode()
+                body = {"sha": self.catalog_sha, "encoding": "base64", "content": content}
+                return httpx.Response(200, json=body)
+            body = json.loads(request.content)
+            if body["sha"] != self.catalog_sha:
+                return httpx.Response(409)
+            self.catalog = base64.b64decode(body["content"]).decode()
+            self.catalog_sha = f"s{self._next()}"
+            return httpx.Response(200, json={"commit": {"sha": "c1"}})
+        if path == f"/repos/{REPO}/releases":
+            if method == "GET":
+                page = int(request.url.params.get("page", 1))
+                per = int(request.url.params.get("per_page", 30))
+                return httpx.Response(200, json=self.releases[(page - 1) * per : page * per])
+            body = json.loads(request.content)
+            if any(item["tag_name"] == body["tag_name"] for item in self.releases):
+                return httpx.Response(422)
+            assert body["make_latest"] == "false" and not body["draft"]
+            ident = self._next()
+            upload = f"https://uploads.github.com/repos/{REPO}/releases/{ident}/assets"
+            release = {
+                "id": ident,
+                "tag_name": body["tag_name"],
+                "draft": False,
+                "prerelease": False,
+                "assets": [],
+                "upload_url": upload + "{?name,label}",
+            }
+            self.releases.append(release)
+            return httpx.Response(201, json=release)
+        listing = re.fullmatch(rf"/repos/{REPO}/releases/(\d+)/assets", path)
+        if listing and method == "GET":
+            release = next(x for x in self.releases if x["id"] == int(listing.group(1)))
+            first = int(request.url.params.get("page", 1)) == 1
+            return httpx.Response(200, json=release["assets"] if first else [])
+        if request.url.host == "uploads.github.com":
+            release = next(x for x in self.releases if x["id"] == int(path.split("/")[5]))
+            name = request.url.params["name"]
+            link = f"https://github.com/{REPO}/releases/download/{release['tag_name']}/{name}"
+            asset = {
+                "id": self._next(),
+                "name": name,
+                "size": len(request.content),
+                "state": "uploaded",
+                "browser_download_url": link,
+            }
+            release["assets"].append(asset)
+            self.blobs[link] = request.content
+            return httpx.Response(201, json=asset)
+        removal = re.fullmatch(rf"/repos/{REPO}/releases/assets/(\d+)", path)
+        if removal and method == "DELETE":
+            for release in self.releases:
+                release["assets"] = [
+                    a for a in release["assets"] if a["id"] != int(removal.group(1))
+                ]
+            return httpx.Response(204)
+        raise AssertionError((method, url))
+
+    def index(self, work):
+        from clipoteca.catalog import GitHubCatalogWriter
+
+        client = httpx.Client(
+            transport=httpx.MockTransport(self.handler),
+            headers={"Authorization": "Bearer " + TOKEN},
+            follow_redirects=True,
+        )
+        return index.index_clips(
+            work,
+            repository=REPO,
+            token=TOKEN,
+            storage=index.GitHubReleaseStorage(REPO, token=TOKEN, client=client),
+            writer=GitHubCatalogWriter(REPO, TOKEN, client=client),
+            today=DAY,
+            now=NOW,
+        )
+
+    def writes(self, since=0):
+        return [call for call in self.calls[since:] if call[0] in {"POST", "PUT", "DELETE"}]
+
+def test_real_clients_index_once_and_never_publish_video(setup):
+    work, _, entries, _, _ = setup
+    github = FakeGitHub([catalogue_record(1), catalogue_record(2)])
+    first = github.index(work)
+    assert len(first["indexed"]) == 3
+    assert set(first["clips"]) == {entry["imp_id"] for entry in entries}
+    assert len([call for call in github.writes() if call[0] == "PUT"]) == 1
+    assert all("video-" not in release["tag_name"] for release in github.releases)
+    assert all("/data/videos" not in path for _, path in github.calls)
+    assert TOKEN not in github.catalog + json.dumps(first)
+    seen = len(github.calls)
+    again = github.index(work)
+    assert again["indexed"] == [] and again["clips"] == first["clips"]
+    assert github.writes(seen) == []
+
+
+def test_delivery_records_failed_qa_and_all_indexed_clips(setup):
+    work, root, entries, _, writer = setup
+    result = run(setup)
+    script = {
+        "title": "El ciclo del agua",
+        "aspect": "9:16",
+        "language": "es",
+        "music": {"mood": "chill", "bpm": 120},
+        "scenes": [
+            {
+                "id": name,
+                "type": kind,
+                "title": name,
+                "say": "El agua cambia.",
+                "query": {"es": ["agua"], "en": ["water"]},
+                "prompt": "Natural flowing water",
+            }
+            for name, kind in (("a", "intro"), ("b", "fact"), ("c", "outro"))
+        ],
+    }
+    put(work / "guion.json", script)
+    for name, entry in (("a", entries[0]), ("b", entries[2])):
+        put(work / "scenes" / name / "result.json", {
+            "status": "ok", "clip": {"clip_id": entry["imp_id"], "imported": True}
+        })
+    put(work / "scenes/c/result.json", {
+        "status": "ok", "clip": {"clip_id": "clip-000001"}
+    })
+    video = b"synthetic video"
+    (work / "video.mp4").write_bytes(video)
+    put(work / "render.json", {"duration_s": 8, "size_bytes": len(video)})
+    put(work / "qa_report.json", {
+        "script_id": script_id(parse_video_script(script)),
+        "video": {"size_bytes": len(video), "sha256": hashlib.sha256(video).hexdigest()},
+        "pass": False,
+        "failed": ["audio"],
+    })
+    put(work / "timings.json", {"render": 2})
+    manifest = delivery.build_delivery(work, writer.path)
+    assert manifest["qa"] == {"pass": False, "failed": ["audio"]}
+    assert manifest["clips_indexed"] == result["indexed"]
+    assert [row["origin"] for row in manifest["scenes"]] == ["imported", "imported", "catalog"]
+    assert manifest["scenes"][0]["clip_id"] == result["clips"][entries[0]["imp_id"]]
+    assert not (root / "data/videos").exists()
+    (work / "video.mp4").write_bytes(b"changed")
+    with pytest.raises(ValueError, match="mismatch"):
+        delivery.build_delivery(work, writer.path)
+    assert not (work / "entrega.json").exists()

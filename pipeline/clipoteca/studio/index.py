@@ -303,7 +303,6 @@ class DryStorage:
 
 
 
-
 def _collect(work, created):
     imports = {}
     for path in sorted((work / "scenes").glob("*/import/imported.json")):
