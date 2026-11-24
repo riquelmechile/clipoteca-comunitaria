@@ -68,3 +68,14 @@ def test_lookup_failure_preserves_explicit_and_bounds_terms():
     asyncio.run(run())
     job = {"queries": {"en": ["river"], "related": {"es": [str(i) for i in range(20)]}}}
     assert len(related_terms(job)) == MAX_RELATED
+
+
+def test_related_gate_matches_real_metadata_not_injected_tags():
+    from clipoteca.studio.library import sufficient_query_match
+
+    terms = [{"term": "Castro", "origin": "wikidata"}]
+    clip = {"title": {"es": "Palafitos de Castro"}}
+    assert sufficient_query_match(clip, ["Chilo\u00e9"], terms)
+    assert not sufficient_query_match(
+        {"title": {"es": "Costa"}, "tags": {"es": ["Castro"]}}, ["Chilo\u00e9"], terms
+    )

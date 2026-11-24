@@ -14,6 +14,7 @@ from ..providers.base import SupportStatus
 from ..translate.argos import QUALITY_TRANSLATION_REASONS, public_translation_error
 from ..translate.expand import expand_query
 from . import library
+from .related import primary_queries, related_terms
 from .windows import fit_mode
 
 _LANGUAGES = ("en", "es", "zh", "ru")
@@ -84,7 +85,15 @@ class SceneBudget:
     def text_good(self, record):
         # Searchable query terms are never evidence; check actual source/title.
         queries = self.job["queries"]
-        relevant = library.sufficient_query_match(record, queries["es"] + queries["en"])
+        primary = primary_queries(queries)
+        if not library.sufficient_query_match(record, primary):
+            match = library.related_match(record, related_terms(self.job))
+            if match is None:
+                return False
+            score, _ = library.text_score(record, [match["term"]], [], self.job.get("avoid", []))
+            unpenalized, _ = library.text_score(record, [match["term"]], [], [])
+            return score > 0 or score == unpenalized
+        relevant = True
         score, _ = library.text_score(
             {"title": record.get("title"), "source": record.get("source")},
             queries["es"],
@@ -99,6 +108,13 @@ class SceneBudget:
         )
         return relevant and (score > 0 or score == unpenalized)
 
+    def provenance(self, query):
+        terms = primary_queries(self.job["queries"])
+        match = next((row for row in related_terms(self.job) if row["term"] == query), None)
+        if match and terms:
+            return {"found_by_query": query, "related_to": terms[0]}
+        return {"found_by_query": query} if related_terms(self.job) else {}
+
     def candidate_text_good(self, candidate, localized):
         key = candidate.origin_id
         if key not in self.text_checked:
@@ -111,7 +127,9 @@ class SceneBudget:
                         if candidate.metadata and name in candidate.metadata
                     }
                 )
-            self.text_checked[key] = self.text_good({"title": localized.title, "source": source})
+            self.text_checked[key] = self.text_good(
+                {"title": localized.title, "description": localized.description, "source": source}
+            )
             if not self.text_checked[key]:
                 self._reject({"id": key}, "text_gate")
         return self.text_checked[key]
