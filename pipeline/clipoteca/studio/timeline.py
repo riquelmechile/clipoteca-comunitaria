@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
-import math
 import os
 import re
 import tempfile
@@ -15,7 +14,9 @@ from typing import Any
 
 import numpy as np
 
-from .script import MAX_VIDEO_SECONDS, VideoScript, parse_video_script, script_id
+from .script import (
+    MAX_VIDEO_SECONDS, VideoScript, parse_video_script, rendered_scene_length, script_id,
+)
 from .textnorm import norm_words, wer
 
 
@@ -209,10 +210,7 @@ def build_timeline(
             script.language,
             transcriber,
         )
-        extra = 1.2 if scene.type == "outro" else 0.6
-        minimum = 3.5 if scene.type == "outro" else 4 * beat
-        pulses = max(math.ceil((duration + extra) / beat - 1e-9), math.ceil(minimum / beat - 1e-9))
-        length = round(pulses * beat, 6)
+        length = rendered_scene_length(duration, scene.type, beat)
         scenes.append(
             {
                 "id": scene.id,

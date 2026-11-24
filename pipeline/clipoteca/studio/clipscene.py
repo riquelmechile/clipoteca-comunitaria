@@ -595,18 +595,21 @@ def clip_scene(
                     )
                     if imported:
                         result["name_match"] = bool(candidate.get("name_match"))
-                    if best is None or (
-                        imported and best["clip"].get("imported", False)
-                        and result["name_match"] != best["clip"].get("name_match", False)
-                        and result["name_match"]
-                    ) or (
-                        not (
-                            imported and best["clip"].get("imported", False)
-                            and result["name_match"] != best["clip"].get("name_match", False)
-                        )
-                        and (result["sim"], result["score"]) >
-                        (best["clip"]["sim"], best["clip"]["score"])
-                    ):
+                    prefer = best is None
+                    if best is not None:
+                        previous = best["clip"]
+                        if imported and previous.get("imported", False):
+                            prefer = (
+                                result["name_match"], result["sim"], result["score"]
+                            ) > (
+                                previous.get("name_match", False),
+                                previous["sim"], previous["score"],
+                            )
+                        else:
+                            prefer = (result["sim"], result["score"]) > (
+                                previous["sim"], previous["score"]
+                            )
+                    if prefer:
                         os.replace(rendered, final_clip)
                         best = report
                     if report["catalog_strong"]:

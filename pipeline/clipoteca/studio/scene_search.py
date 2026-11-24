@@ -68,13 +68,21 @@ class SceneBudget:
         relevant = library.sufficient_query_match(record, queries["es"] + queries["en"])
         score, _ = library.text_score(
             {"title": record.get("title"), "source": record.get("source")},
-            queries["es"], queries["en"], self.job.get("avoid", []),
+            queries["es"],
+            queries["en"],
+            self.job.get("avoid", []),
+        )
+        unpenalized, _ = library.text_score(
+            {"title": record.get("title"), "source": record.get("source")},
+            queries["es"],
+            queries["en"],
+            [],
         )
         return (
             self.valid(record)
             and record["media"]["duration_seconds"] >= self.job["len_fetch"]
             and relevant
-            and (score > 0 or not self.job.get("avoid"))
+            and (score > 0 or score == unpenalized)
         )
 
     def reason(self):

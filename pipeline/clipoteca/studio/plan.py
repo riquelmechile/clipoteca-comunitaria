@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import re
 import tempfile
@@ -18,6 +17,7 @@ from .script import (
     VideoScript,
     estimate_durations,
     parse_video_script,
+    rendered_scene_length,
     script_id,
 )
 
@@ -52,9 +52,7 @@ def estimate_scenes(script: VideoScript) -> list[dict[str, Any]]:
     started = 0.0
     for scene in script.scenes:
         duration = durations[scene.id]
-        extra = 1.2 if scene.type == "outro" else 0.5
-        length = math.ceil((duration + extra) / beat - 1e-9) * beat
-        length = max(3.5 if scene.type == "outro" else 4 * beat, length)
+        length = rendered_scene_length(duration, scene.type, beat)
         rounded = round(length, 3)
         result.append(
             {

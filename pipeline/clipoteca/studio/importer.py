@@ -119,19 +119,29 @@ def _wall_deadline(seconds):
     if (
         not hasattr(signal, "setitimer")
         or threading.current_thread() is not threading.main_thread()
-        or signal.getitimer(signal.ITIMER_REAL)[0]
+        or any(signal.getitimer(signal.ITIMER_REAL))
     ):
         yield
         return
 
+    active = True
+
     def expire(_signum, _frame):
-        raise _SceneDeadline()
+        if active:
+            raise _SceneDeadline()
 
     previous = signal.signal(signal.SIGALRM, expire)
     try:
-        signal.setitimer(signal.ITIMER_REAL, max(0.001, seconds))
-        yield
+        try:
+            signal.setitimer(signal.ITIMER_REAL, max(0.001, seconds))
+            yield
+        finally:
+            active = False
+            signal.setitimer(signal.ITIMER_REAL, 0)
     finally:
+        # The outer guard also runs if the alarm interrupts entry into the
+        # inner finally. Ignore any already-dispatched alarm during cleanup.
+        active = False
         try:
             signal.setitimer(signal.ITIMER_REAL, 0)
         finally:

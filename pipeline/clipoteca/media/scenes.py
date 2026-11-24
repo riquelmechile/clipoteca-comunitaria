@@ -278,6 +278,51 @@ def detect_scenes(
     )
 
 
+async def _ffmpeg_scenes_async(
+    source: Path, *, start: float, max_window: float,
+    prefer_scenedetect: bool, runner: Callable | None,
+) -> list[Scene]:
+    if runner is not None:
+        # Explicit test/integration override; no real subprocess owned by this function.
+        return await asyncio.to_thread(
+            _ffmpeg_scenes, source, start=start, max_window=max_window,
+            prefer_scenedetect=prefer_scenedetect, runner=runner,
+        )
+    if prefer_scenedetect:
+        detected = await asyncio.to_thread(
+            _detect_with_scenedetect, source, start=start, max_window=max_window
+        )
+        if detected is not None:
+            return detected
+    command = _ffmpeg_command(source, start=start, window=max_window)
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=safe_media_env()
+        )
+    except OSError as exc:
+        raise SceneDetectionError("ffmpeg detection could not complete") from exc
+    try:
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=180)
+    except BaseException as exc:
+        if proc.returncode is None:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
+        await proc.communicate()
+        if isinstance(exc, TimeoutError):
+            raise SceneDetectionError("ffmpeg detection could not complete") from exc
+        raise
+    if proc.returncode:
+        raise SceneDetectionError("ffmpeg scene detection failed")
+    log = stderr.decode(errors="replace")
+    duration = _duration(log)
+    end = start + max_window if duration is None else min(start + max_window, duration)
+    if end <= start:
+        raise SceneDetectionError("source has no video in requested window")
+    return normalize_scenes(parse_cuts(log, start=start), start=start, end=end)
+
+
 async def detect_scenes_async(
     source: str | Path,
     *,
@@ -303,8 +348,7 @@ async def detect_scenes_async(
         path = Path(source)
         if not path.is_file():
             raise SceneDetectionError("local source does not exist")
-        return await asyncio.to_thread(
-            _ffmpeg_scenes,
+        return await _ffmpeg_scenes_async(
             path,
             start=start,
             max_window=max_window,
@@ -332,8 +376,7 @@ async def detect_scenes_async(
                 )
             except (DownloadError, UnsafeMediaURL) as exc:
                 raise SceneDetectionError("remote media unavailable") from exc
-            return await asyncio.to_thread(
-                _ffmpeg_scenes,
+            return await _ffmpeg_scenes_async(
                 local,
                 start=start,
                 max_window=max_window,
