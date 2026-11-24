@@ -9924,5 +9924,73 @@
     },
     "status": "published",
     "created_at": "2026-11-24T17:04:33.137242Z"
+  },
+  {
+    "id": "clip-000153",
+    "title": {
+      "es": "Impresionante vista aérea del cañón del desierto de atacama",
+      "en": "Stunning aerial view of atacama desert canyon"
+    },
+    "description": {
+      "es": "Impresionante vista aérea del cañón del desierto de atacama",
+      "en": "Stunning aerial view of atacama desert canyon"
+    },
+    "tags": {
+      "es": [
+        "Impresionante",
+        "vista",
+        "aérea",
+        "cañón",
+        "desierto",
+        "atacama"
+      ],
+      "en": [
+        "Stunning",
+        "aerial",
+        "view",
+        "atacama",
+        "desert",
+        "canyon"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "32990838",
+      "source_language": "en",
+      "source_title": "stunning-aerial-view-of-atacama-desert-canyon-32990838",
+      "source_url": "https://www.pexels.com/video/stunning-aerial-view-of-atacama-desert-canyon-32990838/",
+      "source_start": 8.0,
+      "source_end": 17.951267,
+      "found_by_query": "Atacama desert Chile"
+    },
+    "media": {
+      "duration_seconds": 9.943267,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 6964348,
+      "sha256": "8d108c380479098cfa894d30228a157519aba4e8aa10bacf76b4432c45f186ab",
+      "perceptual_hash": "81f6da35f20e7063~2365.40:8bfcdab1c23d600d~2592.24:8bf0ddf08e716318~2790.78:8ae5f9e70c634e30~2940.89:82cdf3ed38665c60~2992.52"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000153.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000153.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000153_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000153_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000153_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000153_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000153_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000153_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T19:29:41.510760Z"
   }
 ]
