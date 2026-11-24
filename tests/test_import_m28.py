@@ -653,3 +653,26 @@ def test_assignment_name_prefers_rapa_nui_over_nui_cui():
     assert result["primary"]["clip_id"] == "right"
     assert result["primary"]["name_match"]
     assert not result["backups"][0]["name_match"]
+
+
+def test_irrelevant_candidate_is_never_downloaded(tmp_path, videos, engine):
+    entries = load("candidatos.json")
+    entries.insert(
+        0,
+        {
+            "provider": "pexels",
+            "provider_id": "irrelevant",
+            "source_title": "sports car",
+            "source_url": "https://pexels.example.org/source/irrelevant",
+        },
+    )
+    result = _import(
+        load("job.json"), tmp_path / "gate", _catalog(tmp_path), videos,
+        entries=entries, max_results=2,
+    )
+    assert result["status"] == "ok"
+    assert result["rejections"]["text_gate"] >= 1
+    assert result["downloads_started"] == 2
+    assert result["downloads_completed"] == 2
+    assert result["text_evaluated"] >= 3
+    assert result["evaluated_count"] >= 2
