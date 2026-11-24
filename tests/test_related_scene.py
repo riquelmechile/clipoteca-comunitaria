@@ -1,28 +1,126 @@
-"""Offline Wikidata/Commons related discovery and explicit term precedence."""
+"""Offline tests with realistic Wikimedia response shapes and synthetic child results."""
 
 import asyncio
 
 import httpx
 
-from clipoteca.studio.related import MAX_RELATED, related_terms, resolve_jobs
+from clipoteca.studio.related import (
+    MAX_RELATED,
+    related_search_query,
+    related_terms,
+    resolve_jobs,
+    seeds,
+)
+
+
+def _claim(qid):
+    return {
+        "mainsnak": {
+            "snaktype": "value",
+            "datavalue": {"type": "wikibase-entityid", "value": {"id": qid}},
+        }
+    }
+
+
+def _entity(label, kind, *, links=20, country=None, coordinates=True):
+    claims = {"P31": [_claim(kind)]}
+    if country:
+        claims["P17"] = [_claim(country)]
+    if coordinates:
+        claims["P625"] = [
+            {
+                "mainsnak": {
+                    "snaktype": "value",
+                    "datavalue": {
+                        "type": "globecoordinate",
+                        "value": {"latitude": 1, "longitude": 1},
+                    },
+                }
+            }
+        ]
+    return {
+        "labels": {"en": {"language": "en", "value": label}},
+        "claims": claims,
+        "sitelinks": {f"wiki{i}": {"title": label} for i in range(links)},
+    }
+
+
+def _hit(qid, label, match, description=""):
+    return {
+        "id": qid,
+        "label": label,
+        "description": description,
+        "match": {"type": "alias", "language": "en", "text": match},
+    }
 
 
 def test_related_wikidata_fixtures_and_render_cache():
+    # Chiloé and Kyoto homonyms are based on the reported live wbsearchentities
+    # results. Child bindings and claim details are synthetic, not a live capture.
     calls = []
+    entities = {
+        "Q504449": _entity("Chiloe Island", "Q23442", links=60, country="Q298"),
+        "Q201267": _entity("Chiloe Province", "Q56061", links=30, country="Q298"),
+        "Q177608": _entity("Chiloe Archipelago", "Q33837", links=20, country="Q298"),
+        "Q54832215": _entity("Chiloe constituency", "Q56061", links=100),
+        "Q14625303": _entity("Chiloe", "Q16521", links=100, coordinates=False),
+        "Q900001": _entity("Easter Island", "Q23442", links=100, country="Q298"),
+        "Q900002": _entity("Rapa Nui", "Q7366", links=120, coordinates=False),
+        "Q34600": _entity("Kyoto", "Q515", links=100),
+        "Q120730": _entity("Kyoto Prefecture", "Q56061", links=70),
+        "Q900003": _entity("Kyoto", "Q482994", links=200, coordinates=False),
+        "Q2887": _entity("Santiago", "Q515", links=100, country="Q298"),
+        "Q900004": _entity("Santiago", "Q515", links=150, country="Q30"),
+        "Q298": _entity("Chile", "Q6256", links=200),
+    }
+    search = {
+        "chiloe": [
+            _hit("Q504449", "Chiloe Island", "Chiloe"),
+            _hit("Q201267", "Chiloe Province", "Chiloe"),
+            _hit("Q177608", "Chiloe Archipelago", "Chiloe"),
+            _hit("Q54832215", "Chiloe constituency", "Chiloe", "electoral constituency"),
+            _hit("Q14625303", "Chiloe", "Chiloe", "genus of insects"),
+        ],
+        "rapa nui": [
+            _hit("Q900001", "Easter Island", "Rapa Nui"),
+            _hit("Q900002", "Rapa Nui", "Rapa Nui", "song"),
+        ],
+        "kyoto": [
+            _hit("Q34600", "Kyoto", "Kyoto"),
+            _hit("Q120730", "Kyoto Prefecture", "Kyoto"),
+            _hit("Q900003", "Kyoto", "Kyoto", "album"),
+        ],
+        "santiago": [
+            _hit("Q2887", "Santiago", "Santiago"),
+            _hit("Q900004", "Santiago", "Santiago"),
+        ],
+        "chile": [_hit("Q298", "Chile", "Chile")],
+    }
 
     def response(request):
         params = request.url.params
-        calls.append((request.url.host, params.get("search")))
-        if request.url.host == "www.wikidata.org":
-            search = params["search"]
-            qid = "Q1" if search == "chiloe" else "Q2"
-            return httpx.Response(200, json={"search": [{"id": qid, "label": search}]})
-        if request.url.host == "query.wikidata.org":
-            terms = (
-                ["Castro", "Ancud", "Chonchi", "Dalcahue"]
-                if "wd:Q1" in params["query"]
-                else ["Hanga Roa", "Ahu Tongariki", "Rano Raraku", "Anakena"]
-            )
+        host = request.url.host
+        calls.append((host, params.get("action"), params.get("search")))
+        if host == "www.wikidata.org":
+            if params.get("action") == "wbsearchentities":
+                return httpx.Response(200, json={"search": search.get(params["search"], [])})
+            ids = params["ids"].split("|")
+            return httpx.Response(200, json={"entities": {qid: entities[qid] for qid in ids}})
+        if host == "query.wikidata.org":
+            query = params["query"]
+            if "wd:Q504449" in query:
+                assert all(f"wd:{qid}" in query for qid in ("Q201267", "Q177608"))
+                assert "wd:Q14625303" not in query and "wd:Q54832215" not in query
+                terms = ["Castro", "Ancud", "Chonchi", "Dalcahue"]
+            elif "wd:Q900001" in query:
+                assert "wd:Q900002" not in query
+                terms = ["Hanga Roa", "Ahu Tongariki", "Rano Raraku", "Anakena"]
+            elif "wd:Q34600" in query:
+                assert "wd:Q120730" in query and "wd:Q900003" not in query
+                terms = ["Fushimi Inari", "Kinkaku-ji", "Kiyomizu-dera"]
+            else:
+                assert "wd:Q2887" in query and "wd:Q900004" not in query
+                terms = ["Providencia", "Cerro San Cristobal", "Plaza de Armas"]
             return httpx.Response(
                 200,
                 json={"results": {"bindings": [{"itemLabel": {"value": t}} for t in terms]}},
@@ -34,9 +132,12 @@ def test_related_wikidata_fixtures_and_render_cache():
             {"queries": {"es": ["Chilo\u00e9"], "en": []}},
             {"queries": {"es": [], "en": ["Easter Island"]}},
             {"queries": {"es": ["Chilo\u00e9"], "en": [], "related": {"es": ["Palafitos"]}}},
+            {"queries": {"es": [], "en": ["Kyoto temples"]}},
+            {"queries": {"es": [], "en": ["Santiago Chile city"]}},
+            {"queries": {"es": [], "en": ["specialty coffee barista"]}},
         ]
         async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
-            await resolve_jobs(jobs, client=client)
+            diagnostics = await resolve_jobs(jobs, client=client)
         assert [row["term"] for row in related_terms(jobs[0])] == [
             "Castro",
             "Ancud",
@@ -50,7 +151,85 @@ def test_related_wikidata_fixtures_and_render_cache():
             "Anakena",
         ]
         assert related_terms(jobs[2])[0] == {"term": "Palafitos", "origin": "script"}
-        assert calls.count(("www.wikidata.org", "chiloe")) == 2
+        assert [row["term"] for row in related_terms(jobs[3])] == [
+            "Fushimi Inari",
+            "Kinkaku-ji",
+            "Kiyomizu-dera",
+        ]
+        assert related_terms(jobs[4])[0]["term"] == "Providencia"
+        assert related_terms(jobs[5]) == []
+        assert diagnostics[4]["roots"] == [{"qid": "Q2887", "label": "Santiago"}]
+        assert calls.count(("www.wikidata.org", "wbsearchentities", "chiloe")) == 2
+        assert related_search_query(jobs[0], "Castro") == "Castro Chilo\u00e9"
+        assert related_search_query(jobs[1], "Hanga Roa") == "Hanga Roa Easter Island"
+        assert related_search_query(jobs[4], "Providencia") == "Providencia santiago chile"
+        assert seeds({"en": ["Santiago Chile city"], "es": ["Chile"]}) == ("santiago",)
+
+    asyncio.run(run())
+
+
+def test_commons_filters_meta_and_descends_into_landmark_categories():
+    # Meta titles are from the reported live run; children model categorymembers.
+    direct = [
+        "Aerial photographs of Easter Island",
+        "Ahu in Easter Island",
+        "Books about Easter Island",
+        "Culture of Easter Island",
+        "Earthquakes in Easter Island",
+        "Geography of Easter Island",
+        "Geology of Easter Island",
+        "2016 Easter Island earthquake",
+        "Easter Island in art",
+        "Easter Island by media type",
+        "Hare Moas",
+        "Hanga Roa",
+    ]
+    members = {
+        "Category:Easter Island": direct,
+        "Category:Ahu in Easter Island": ["Ahu Tongariki", "Ahu Akivi", "Books about Ahu"],
+        "Category:Geography of Easter Island": ["Rano Raraku", "Anakena", "Rano Kau"],
+    }
+
+    def response(request):
+        if request.url.host != "commons.wikimedia.org":
+            return httpx.Response(503)
+        params = request.url.params
+        if params.get("list") == "search":
+            return httpx.Response(
+                200,
+                json={"query": {"search": [{"ns": 14, "title": "Category:Easter Island"}]}},
+            )
+        children = [
+            {"ns": 14, "title": f"Category:{title}"}
+            for title in members.get(params["cmtitle"], [])
+        ]
+        return httpx.Response(200, json={"query": {"categorymembers": children}})
+
+    async def run():
+        job = {"queries": {"en": ["Easter Island"], "es": []}}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+            await resolve_jobs([job], client=client)
+        terms = {row["term"] for row in related_terms(job)}
+        assert {"Ahu Tongariki", "Ahu Akivi", "Rano Raraku", "Anakena", "Hanga Roa"} <= terms
+        assert terms.isdisjoint(set(direct) - {"Hare Moas", "Hanga Roa"})
+        assert all(row["origin"] == "commons" for row in related_terms(job))
+
+    asyncio.run(run())
+
+
+def test_lookup_deadline_keeps_explicit_terms():
+    async def response(_request):
+        await asyncio.sleep(10)
+        return httpx.Response(200, json={})
+
+    async def run():
+        job = {"queries": {"en": ["Chiloe"], "es": [], "related": {"es": ["Castro"]}}}
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+            await resolve_jobs([job], client=client, timeout=0.02)
+        assert loop.time() - start < 1
+        assert related_terms(job) == [{"term": "Castro", "origin": "script"}]
 
     asyncio.run(run())
 
@@ -79,7 +258,6 @@ def test_related_gate_matches_real_metadata_not_injected_tags():
     assert not sufficient_query_match(
         {"title": {"es": "Costa"}, "tags": {"es": ["Castro"]}}, ["Chilo\u00e9"], terms
     )
-
 
 
 def test_catalog_related_term_and_primary_tie():
