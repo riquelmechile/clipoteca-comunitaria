@@ -216,7 +216,7 @@ def _upload(storage, release, asset, name, uploaded=None):
     return storage.verify_asset(name, size, digest, release.id)
 
 
-def _publish_clips(storage, writer, imports, day, created, repository, token):
+def _publish_clips(storage, writer, imports, day, created, repository, token, related_entries=None):
     catalog, _ = writer.read_catalog()
     working = Catalog(catalog.clips)
     mapping, reused, incoming, verified, uploaded = {}, [], [], {}, []
@@ -257,7 +257,8 @@ def _publish_clips(storage, writer, imports, day, created, repository, token):
             mapping[imp_id] = identifier
         if incoming:
             if isinstance(writer, GitHubCatalogWriter):
-                writer.update(incoming, verified_assets=verified, retries=0)
+                writer.update(incoming, verified_assets=verified, retries=0,
+                              **({"related_entries": related_entries} if related_entries else {}))
             else:
                 writer.update(incoming, verified_assets=verified)
     except Exception as exc:
@@ -301,10 +302,10 @@ def _retryable(exc):
     return isinstance(exc, RuntimeError) and "catalogue conflict" in str(exc)
 
 
-def _publish_with_retry(storage, writer, imports, day, created, repository, token):
+def _publish_with_retry(storage, writer, imports, day, created, repository, token, related_entries=None):
     for attempt in range(6):
         try:
-            return _publish_clips(storage, writer, imports, day, created, repository, token)
+            return _publish_clips(storage, writer, imports, day, created, repository, token, related_entries)
         except Exception as exc:
             if not _retryable(exc) or attempt == 5:
                 raise
@@ -325,6 +326,12 @@ class DryWriter:
         self.catalog.merge(incoming)
         self.catalog.save(self.path)
         return "dry"
+
+    def update_related(self, entries):
+        from .related_cache import load_cache, merge_entries, save_cache
+
+        path = self.path.with_name("related_terms.json")
+        save_cache(path, merge_entries(load_cache(path), entries))
 
 
 class DryStorage:
@@ -482,6 +489,23 @@ def _error(exc, imp_id=None):
     return error
 
 
+def _collect_related(work, token):
+    from .related_cache import merge_entries
+
+    entries = {}
+    for scene in sorted((work / "scenes").glob("*")):
+        try:
+            job = _read(_local(scene, "job.json"))
+            rows = job.get("related_cache_entries", [])
+            if not isinstance(rows, list):
+                continue
+            rows = [row for row in rows if not token or token not in json.dumps(row)]
+            entries = merge_entries(entries, rows)
+        except (OSError, ValueError, TypeError, AttributeError):
+            continue
+    return list(entries.values())
+
+
 def index_clips(work_dir, *, repository, token, storage=None, writer=None, today=None, now=None):
     """Verify every input before publishing valid clips independently of video."""
     work = Path(work_dir)
@@ -495,6 +519,7 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
         raise
     except Exception as exc:
         raise PublishError("invalid index input") from exc
+    entries = _collect_related(work, token)
     owned = []
     try:
         mapping, reused, indexed = {}, [], []
@@ -508,7 +533,7 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
             for imp_id, item in imports.items():
                 try:
                     found, existing, published = _publish_with_retry(
-                        storage, writer, {imp_id: item}, day, created, repository, token
+                        storage, writer, {imp_id: item}, day, created, repository, token, entries
                     )
                 except Exception as exc:
                     errors.append(_error(exc, imp_id))
@@ -516,6 +541,14 @@ def index_clips(work_dir, *, repository, token, storage=None, writer=None, today
                 mapping.update(found)
                 reused.extend(existing)
                 indexed.extend(published)
+        if entries:
+            if writer is None:
+                writer = GitHubCatalogWriter(repository, token)
+                owned.append(writer.client)
+            try:
+                writer.update_related(entries)
+            except Exception as exc:
+                errors.append(_error(exc))
         result = {
             "version": 1,
             "clips": mapping,
