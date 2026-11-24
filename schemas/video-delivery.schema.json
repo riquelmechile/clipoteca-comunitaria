@@ -173,6 +173,9 @@
               "found_by_query": {
                 "type": "string",
                 "minLength": 1
+              },
+              "related_diagnostic": {
+                "$ref": "#/$defs/related_diagnostic"
               }
             }
           },
@@ -226,6 +229,9 @@
                     }
                   }
                 }
+              },
+              "related_diagnostic": {
+                "$ref": "#/$defs/related_diagnostic"
               }
             }
           }
@@ -310,5 +316,126 @@
         }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "related_diagnostic": {
+      "type": "object",
+      "required": [
+        "seeds",
+        "roots",
+        "commons_roots",
+        "terms_by_origin",
+        "errors",
+        "timeouts",
+        "providers",
+        "elapsed_s",
+        "batch_elapsed_s",
+        "status"
+      ],
+      "properties": {
+        "seeds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "qid",
+              "label"
+            ],
+            "properties": {
+              "qid": {
+                "type": "string",
+                "pattern": "^Q[1-9][0-9]*$"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "commons_roots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "terms_by_origin": {
+          "type": "object",
+          "required": [
+            "script",
+            "wikidata",
+            "commons"
+          ],
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "provider",
+              "seed",
+              "error",
+              "http_status"
+            ],
+            "properties": {
+              "provider": {
+                "enum": [
+                  "wikidata",
+                  "commons"
+                ]
+              },
+              "seed": {
+                "type": "string"
+              },
+              "error": {
+                "type": "string"
+              },
+              "http_status": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "timeouts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elapsed_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "batch_elapsed_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "error",
+            "no_entity"
+          ]
+        }
+      }
+    }
+  }
 }

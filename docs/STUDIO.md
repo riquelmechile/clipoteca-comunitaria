@@ -292,7 +292,7 @@ típico ni una validación posterior en producción.
 - El plan permanece offline por defecto. En el render real se debe agregar
   `--resolve-related` al comando existente de `clipoteca.studio.plan` de
   `.github/workflows/render.yml` (sin otros cambios). El plan comparte una cache
-  por render y un presupuesto de 6 segundos por semilla, con hasta cuatro semillas concurrentes; los plazos de busqueda de clips no cambian.
+  por render y un presupuesto de 6 segundos por semilla, cuatro semillas concurrentes y un tope total de 25 segundos. Los plazos de busqueda de clips no cambian.
 - La primera ronda conserva el 60% del presupuesto de importacion cuando hay
   relacionados; estos usan el resto con descubrimiento concurrente y escrituras
   locales seriales. El retry usa relacionados, o consultas simplificadas no
@@ -314,3 +314,14 @@ uv run --no-sync python scripts/smoke_related.py --batch "Chiloé" "Easter Islan
 Imprime por consulta las semillas, raices Wikidata (QID y etiqueta), categorias
 raiz de Commons, terminos con origen, errores/timeouts por proveedor y latencia del lote. Los tests usan transportes HTTP
 simulados y no demuestran los resultados actuales de los servicios externos.
+
+### Robustez de expansion relacionada
+
+El plan escribe `related_diagnostic` en cada job y escena de plan.json, y una
+linea JSON por escena en el log. El mismo objeto se conserva en entrega.json
+para escenas exitosas o fallidas (incluye raices, terminos por origen, errores
+HTTP, timeouts, intentos y tiempos). No se modifica el workflow: ya copia job.json.
+La expansion limita Wikimedia a tres peticiones simultaneas por host, respeta
+Retry-After (incluyendo maxlag), reintenta una vez y comparte respuestas exitosas
+dentro del render. Los seeds vacios por errores tienen una segunda oportunidad
+si queda presupuesto; los vacios sin errores no se repiten.

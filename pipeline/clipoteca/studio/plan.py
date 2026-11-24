@@ -162,7 +162,15 @@ def write_plan(
     if resolve_related:
         from .related import resolve_jobs
 
-        asyncio.run(resolve_jobs(jobs))
+        diagnostics = asyncio.run(resolve_jobs(jobs))
+        for job, estimate, diagnostic in zip(jobs, plan["scenes"], diagnostics, strict=True):
+            job["related_diagnostic"] = diagnostic
+            estimate["related_diagnostic"] = diagnostic
+            # A single machine-readable line per scene, retained in Actions logs.
+            print(
+                "related " + json.dumps({"scene": job["id"], **diagnostic}, ensure_ascii=True),
+                flush=True,
+            )
     assignments = None
     if catalog_path is not None:
         from .library import assign_scenes, load_catalog
