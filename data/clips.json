@@ -9795,5 +9795,70 @@
     },
     "status": "published",
     "created_at": "2026-11-24T17:04:33.137242Z"
+  },
+  {
+    "id": "clip-000151",
+    "title": {
+      "es": "Torres de nieve Majestic cubiertas de patagonia",
+      "en": "Majestic snow covered towers in patagonia"
+    },
+    "description": {
+      "es": "Torres de nieve Majestic cubiertas de patagonia",
+      "en": "Majestic snow covered towers in patagonia"
+    },
+    "tags": {
+      "es": [
+        "Torres",
+        "nieve",
+        "Majestic",
+        "cubiertas",
+        "patagonia"
+      ],
+      "en": [
+        "Majestic",
+        "snow",
+        "covered",
+        "towers",
+        "patagonia"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "30240555",
+      "source_language": "en",
+      "source_title": "majestic-snow-covered-towers-in-patagonia-30240555",
+      "source_url": "https://www.pexels.com/video/majestic-snow-covered-towers-in-patagonia-30240555/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3557479,
+      "sha256": "551e091260b3566a4bbcc346e74d63f1af72d8f09450357dd7551779bb711bff",
+      "perceptual_hash": "d5b3813ee22ae3c8~1893.38:d5b3c11ee608a3e9~2014.23:d5b3c11ae608abe9~2015.09:d5b3c11de6888ae9~2184.26:d5b3c11dd68c8e61~2239.37"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000151.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000151.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000151_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000151_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000151_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000151_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000151_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000151_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T17:04:33.137242Z"
   }
 ]
