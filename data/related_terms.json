@@ -1,4 +1,551 @@
 {
   "version": 1,
-  "entries": []
+  "entries": [
+    {
+      "seed": "atacama",
+      "context": [
+        "chile"
+      ],
+      "place": true,
+      "topic": "desert",
+      "date": "2026-11-24T21:04:21.139895+00:00",
+      "terms": [
+        {
+          "term": "La Silla Observatory",
+          "origin": "commons"
+        },
+        {
+          "term": "Reserva Nacional de Fauna Andina Eduardo Avaroa",
+          "origin": "commons"
+        },
+        {
+          "term": "El Tatio",
+          "origin": "commons"
+        },
+        {
+          "term": "Ojos del Salado",
+          "origin": "commons"
+        },
+        {
+          "term": "San Pedro de Atacama",
+          "origin": "commons"
+        },
+        {
+          "term": "Chajnantor plateau",
+          "origin": "commons"
+        },
+        {
+          "term": "Salar de Atacama",
+          "origin": "commons"
+        },
+        {
+          "term": "Cordillera de la Sal",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q47141",
+          "label": "Desierto de Atacama"
+        }
+      ],
+      "commons_roots": [
+        "Category:Atacama Desert"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "chiloe",
+      "context": [
+        "chile"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:34.544627+00:00",
+      "terms": [
+        {
+          "term": "Chonchi",
+          "origin": "commons"
+        },
+        {
+          "term": "Ancud",
+          "origin": "commons"
+        },
+        {
+          "term": "Castro",
+          "origin": "commons"
+        },
+        {
+          "term": "Dalcahue",
+          "origin": "commons"
+        },
+        {
+          "term": "Chilo\u00e9 National Park",
+          "origin": "commons"
+        },
+        {
+          "term": "Isla Lemuy",
+          "origin": "commons"
+        },
+        {
+          "term": "Quinchao",
+          "origin": "commons"
+        },
+        {
+          "term": "Iglesia de San Javier",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q504449",
+          "label": "Isla Grande de Chilo\u00e9"
+        },
+        {
+          "qid": "Q177608",
+          "label": "Archipi\u00e9lago de Chilo\u00e9"
+        },
+        {
+          "qid": "Q201267",
+          "label": "Chilo\u00e9"
+        }
+      ],
+      "commons_roots": [
+        "Category:Chilo\u00e9 Island",
+        "Category:Chilo\u00e9 Archipelago"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "patagonia",
+      "context": [
+        "chile",
+        "hielo sur"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:34.546079+00:00",
+      "terms": [
+        {
+          "term": "Tierra del Fuego",
+          "origin": "commons"
+        },
+        {
+          "term": "Valdivian temperate rainforest",
+          "origin": "commons"
+        },
+        {
+          "term": "Ays\u00e9n Region",
+          "origin": "commons"
+        },
+        {
+          "term": "Magallanes y la Ant\u00e1rtica Chilena Region",
+          "origin": "commons"
+        },
+        {
+          "term": "Patagonian Steppe",
+          "origin": "commons"
+        },
+        {
+          "term": "Torres del Paine National Park",
+          "origin": "commons"
+        },
+        {
+          "term": "Neuqu\u00e9n Province",
+          "origin": "commons"
+        },
+        {
+          "term": "Magellanic Subpolar Forests Ecoregion",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q1507",
+          "label": "Patagonia"
+        },
+        {
+          "qid": "Q6066209",
+          "label": "Patagonia chilena"
+        }
+      ],
+      "commons_roots": [
+        "Category:Patagonia",
+        "Category:Patagonia, Chile"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "patagonia",
+      "context": [
+        "chile",
+        "torres del paine"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:34.545599+00:00",
+      "terms": [
+        {
+          "term": "Tierra del Fuego",
+          "origin": "commons"
+        },
+        {
+          "term": "Valdivian temperate rainforest",
+          "origin": "commons"
+        },
+        {
+          "term": "Ays\u00e9n Region",
+          "origin": "commons"
+        },
+        {
+          "term": "Magallanes y la Ant\u00e1rtica Chilena Region",
+          "origin": "commons"
+        },
+        {
+          "term": "Patagonian Steppe",
+          "origin": "commons"
+        },
+        {
+          "term": "Torres del Paine National Park",
+          "origin": "commons"
+        },
+        {
+          "term": "Neuqu\u00e9n Province",
+          "origin": "commons"
+        },
+        {
+          "term": "Magellanic Subpolar Forests Ecoregion",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q1507",
+          "label": "Patagonia"
+        },
+        {
+          "qid": "Q6066209",
+          "label": "Patagonia chilena"
+        }
+      ],
+      "commons_roots": [
+        "Category:Patagonia",
+        "Category:Patagonia, Chile"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "rapa nui",
+      "context": [],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:34.543978+00:00",
+      "terms": [
+        {
+          "term": "Moai in Rano Raraku area",
+          "origin": "commons"
+        },
+        {
+          "term": "Ahu Tongariki",
+          "origin": "commons"
+        },
+        {
+          "term": "Rano Kau",
+          "origin": "commons"
+        },
+        {
+          "term": "Rano Raraku",
+          "origin": "commons"
+        },
+        {
+          "term": "Ahu Akivi",
+          "origin": "commons"
+        },
+        {
+          "term": "A Vere",
+          "origin": "commons"
+        },
+        {
+          "term": "Puna Pau",
+          "origin": "commons"
+        },
+        {
+          "term": "Ahu Vinapu",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q14452",
+          "label": "Isla de Pascua"
+        },
+        {
+          "qid": "Q36746",
+          "label": "Rapa Nui"
+        },
+        {
+          "qid": "Q1763364",
+          "label": "Parque Nacional Rapa Nui"
+        }
+      ],
+      "commons_roots": [
+        "Category:Baster Island",
+        "Category:Rapa Nui language",
+        "Category:Rapa Nui National Park"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "santiago",
+      "context": [
+        "andes",
+        "chile"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:21.138888+00:00",
+      "terms": [
+        {
+          "term": "Barrio Lastarria",
+          "origin": "commons"
+        },
+        {
+          "term": "Barrio Yungay",
+          "origin": "commons"
+        },
+        {
+          "term": "Mapocho River",
+          "origin": "commons"
+        },
+        {
+          "term": "Barrio Brasil",
+          "origin": "commons"
+        },
+        {
+          "term": "Zanj\u00f3n de la Aguada",
+          "origin": "commons"
+        },
+        {
+          "term": "Casa Central de la Pontificia Universidad Cat\u00f3lica de Chile",
+          "origin": "commons"
+        },
+        {
+          "term": "Monumento a Bernardo O'Higgins",
+          "origin": "commons"
+        },
+        {
+          "term": "N\u00facleo Ochagav\u00eda",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q2887",
+          "label": "Santiago de Chile"
+        },
+        {
+          "qid": "Q188002",
+          "label": "Santiago"
+        }
+      ],
+      "commons_roots": [
+        "Category:Santiago de Chile",
+        "Category:Santiago (commune)"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "santiago",
+      "context": [
+        "chile"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:21.140404+00:00",
+      "terms": [
+        {
+          "term": "Barrio Lastarria",
+          "origin": "commons"
+        },
+        {
+          "term": "Barrio Yungay",
+          "origin": "commons"
+        },
+        {
+          "term": "Mapocho River",
+          "origin": "commons"
+        },
+        {
+          "term": "Barrio Brasil",
+          "origin": "commons"
+        },
+        {
+          "term": "Zanj\u00f3n de la Aguada",
+          "origin": "commons"
+        },
+        {
+          "term": "Casa Central de la Pontificia Universidad Cat\u00f3lica de Chile",
+          "origin": "commons"
+        },
+        {
+          "term": "Monumento a Bernardo O'Higgins",
+          "origin": "commons"
+        },
+        {
+          "term": "N\u00facleo Ochagav\u00eda",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q2887",
+          "label": "Santiago de Chile"
+        },
+        {
+          "qid": "Q188002",
+          "label": "Santiago"
+        }
+      ],
+      "commons_roots": [
+        "Category:Santiago de Chile",
+        "Category:Santiago (commune)"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "torres del paine",
+      "context": [
+        "chile",
+        "patagonia"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:34.545134+00:00",
+      "terms": [
+        {
+          "term": "Cordillera del Paine",
+          "origin": "commons"
+        },
+        {
+          "term": "Cuernos del Paine",
+          "origin": "commons"
+        },
+        {
+          "term": "Ascencio Valley",
+          "origin": "commons"
+        },
+        {
+          "term": "Grey Lake",
+          "origin": "commons"
+        },
+        {
+          "term": "Grey Glacier",
+          "origin": "commons"
+        },
+        {
+          "term": "Salto Grande",
+          "origin": "commons"
+        },
+        {
+          "term": "Pehoe Lake",
+          "origin": "commons"
+        },
+        {
+          "term": "Tyndall Glacier",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q901646",
+          "label": "Parque Nacional Torres del Paine"
+        }
+      ],
+      "commons_roots": [
+        "Category:Torres del Paine National Park"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
+      "seed": "valparaiso",
+      "context": [
+        "chile"
+      ],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-24T21:04:21.140889+00:00",
+      "terms": [
+        {
+          "term": "Vi\u00f1a del Mar",
+          "origin": "commons"
+        },
+        {
+          "term": "Conc\u00f3n",
+          "origin": "commons"
+        },
+        {
+          "term": "Quintero",
+          "origin": "commons"
+        },
+        {
+          "term": "Casablanca",
+          "origin": "commons"
+        },
+        {
+          "term": "Puchuncav\u00ed",
+          "origin": "commons"
+        },
+        {
+          "term": "Valpara\u00edso desde sus 42 cerros",
+          "origin": "commons"
+        },
+        {
+          "term": "Laguna Verde",
+          "origin": "commons"
+        },
+        {
+          "term": "Caleta Portales",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q33986",
+          "label": "Valpara\u00edso"
+        },
+        {
+          "qid": "Q219458",
+          "label": "Regi\u00f3n de Valpara\u00edso"
+        },
+        {
+          "qid": "Q721744",
+          "label": "Valpara\u00edso"
+        }
+      ],
+      "commons_roots": [
+        "Category:Valpara\u00edso",
+        "Category:Valpara\u00edso Region",
+        "Category:Valpara\u00edso Province"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    }
+  ]
 }

@@ -581,6 +581,11 @@ jobs:
               for name in ("import", "import-retry")
               for p in pathlib.Path("work/scenes").glob(f"*/{name}/imported.json")
           )
+          # New related-term expansions are published even without new clips.
+          present = present or any(
+              json.loads(p.read_text()).get("related_cache_entries")
+              for p in pathlib.Path("work/scenes").glob("*/job.json")
+          )
           print("present=" + str(present).lower())
           PY
       - name: Index verified imported clips
