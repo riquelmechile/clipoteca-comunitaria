@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from ..place_names import _words, aliases, query_names
+from .related_cache import cache_key, fresh, load_cache, make_entry, restore
 
 MAX_RELATED = 8
 LOOKUP_SECONDS = 8
@@ -221,7 +222,7 @@ def seeds(queries):
         if named:
             seed = named[0]
         else:
-            seed = _key(term)
+            seed = _key(term.split(",", 1)[0])
             # "Kyoto temples" and analogous queries should resolve Kyoto itself.
             while True:
                 shortened = _SCENE_QUALIFIERS.sub("", seed).strip()
@@ -903,7 +904,8 @@ def _provider_terms(wiki, commons):
     return groups
 
 
-async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeout=BATCH_SECONDS):
+async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeout=BATCH_SECONDS,
+                       persistent_cache=None):
     """Independent seed budgets, one bounded batch, a second chance for errored seeds."""
     timeout = min(LOOKUP_SECONDS, timeout)
     batch_timeout = min(BATCH_SECONDS, batch_timeout)
@@ -925,6 +927,10 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
     response_token = _RESPONSE_CACHE.set({})
     locks_token = _REQUEST_LOCKS.set({})
     cache = {}
+    persistent = load_cache() if persistent_cache is None else persistent_cache
+    fresh_keys = set()
+    stale = {}
+    updates = {}
     tasks = []
     semaphore = asyncio.Semaphore(SEED_CONCURRENCY)
 
@@ -1029,9 +1035,17 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
                     topic = _topic(queries, seed)
                     key = (seed, context, place, topic)
                     keys.append(key)
-                    cache.setdefault(key, ({}, {}))
+                    if key not in cache:
+                        entry = persistent.get(cache_key(key))
+                        if entry and fresh(entry):
+                            cache[key] = restore(entry)
+                            fresh_keys.add(key)
+                        else:
+                            cache[key] = ({}, {})
+                            if entry:
+                                stale[key] = entry
             keys_by_job.append(keys)
-        await phase(list(cache))
+        await phase([key for key in cache if key not in fresh_keys])
         # Retry only a scene that has no terms and actual errors; an empty clean
         # lookup is a valid result. Shared keys are retried at most once.
         retries = []
@@ -1040,15 +1054,27 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
                 continue
             for key in keys:
                 wiki, commons = cache[key]
-                if (wiki.get("errors") or commons.get("errors")) and key not in retries:
+                if key not in fresh_keys and (wiki.get("errors") or commons.get("errors")) and key not in retries:
                     retries.append(key)
         if loop.time() < deadline:
             await phase(retries)
 
+        for key, (wiki, commons) in cache.items():
+            if key in fresh_keys:
+                continue
+            entry = make_entry(key, wiki, commons)
+            if entry:
+                updates[key] = entry
+            elif key in stale and (wiki.get("errors") or commons.get("errors")):
+                saved_wiki, saved_commons = restore(stale[key])
+                for state, saved in ((wiki, saved_wiki), (commons, saved_commons)):
+                    state.update(saved)
+                    state["cache_stale"] = True
         diagnostics = []
         for job, keys in zip(jobs, keys_by_job, strict=True):
             states = scene_states(keys)
             job["related_terms"] = terms(job, keys)
+            job["related_cache_entries"] = [updates[key] for key in keys if key in updates]
             for (seed, _, _, _), wiki, commons in states:
                 if wiki.get("geographic") or commons.get("geographic"):
                     job["related_parent"] = _parent_label(
@@ -1077,6 +1103,9 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeo
             ]
             diagnostic = {
                 "seeds": [key[0] for key in keys],
+                "cache_hits": [key[0] for key in keys if key in fresh_keys],
+                "cache_stale": [key[0] for key, wiki, commons in states
+                                if wiki.get("cache_stale") or commons.get("cache_stale")],
                 "roots": [root for _, wiki, _ in states for root in wiki.get("roots", [])],
                 "commons_roots": [
                     root for _, _, commons in states for root in commons.get("commons_roots", [])
