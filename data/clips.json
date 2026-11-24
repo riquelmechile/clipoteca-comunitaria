@@ -4235,5 +4235,1669 @@
     },
     "status": "published",
     "created_at": "2026-11-24T04:03:47.391164Z"
+  },
+  {
+    "id": "clip-000063",
+    "title": {
+      "es": "Impresionante vista aérea de ciudad y río",
+      "en": "Stunning aerial view of city and river"
+    },
+    "description": {
+      "es": "Impresionante vista aérea de ciudad y río",
+      "en": "Stunning aerial view of city and river"
+    },
+    "tags": {
+      "es": [
+        "Impresionante",
+        "vista",
+        "aérea",
+        "ciudad",
+        "río",
+        "Chiloé",
+        "isla"
+      ],
+      "en": [
+        "Stunning",
+        "aerial",
+        "view",
+        "city",
+        "river",
+        "Chile",
+        "island"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "30022604",
+      "source_language": "en",
+      "source_title": "stunning-aerial-view-of-city-and-river-30022604",
+      "source_url": "https://www.pexels.com/video/stunning-aerial-view-of-city-and-river-30022604/",
+      "source_start": 6.0,
+      "source_end": 17.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 12472051,
+      "sha256": "270aaccf6eb5408cfbef76abc4fc8f2e2c950b09f231420dd58222698b343f71",
+      "perceptual_hash": "c0bdc28fb987fc40~4280.79:c0bfc28f8897f862~4281.40:c0bdc28f899ff070~4294.45:c0b9c68e9b97f070~4269.02:c0b9c68e9b977870~4309.46"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000063.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000063.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000063_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000063_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000063_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000063_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000063_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000063_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000064",
+    "title": {
+      "es": "Viena, víspera, centro, austria, arquitectura, opera, ópera estatal, cafetería, opera house, histórico",
+      "en": "Vienna, Old Age, Center, South Africa, architecture, opera, state opera, cafeteria, opera house, historic"
+    },
+    "description": {
+      "es": "Viena, víspera, centro, austria, arquitectura, opera, ópera estatal, cafetería, opera house, histórico",
+      "en": "Vienna, Old Age, Center, South Africa, architecture, opera, state opera, cafeteria, opera house, historic"
+    },
+    "tags": {
+      "es": [
+        "Viena",
+        "víspera",
+        "centro",
+        "austria",
+        "arquitectura",
+        "opera",
+        "ópera",
+        "estatal",
+        "cafetería",
+        "house",
+        "histórico",
+        "Chiloe",
+        "stilt",
+        "houses"
+      ],
+      "en": [
+        "Vienna",
+        "Old",
+        "Age",
+        "Center",
+        "South",
+        "Africa",
+        "architecture",
+        "opera",
+        "state",
+        "cafeteria",
+        "house",
+        "historic"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "13392",
+      "source_language": "es",
+      "source_title": "viena, víspera, centro, austria, arquitectura, opera, ópera estatal, cafetería, opera house, histórico",
+      "source_url": "https://pixabay.com/videos/id-13392/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3827132,
+      "sha256": "28ca3c10e07def1a903719e72e3a0be7453b9c531b6db95f2753d3a3667bacd9",
+      "perceptual_hash": "8ad545aa66d9cc39~2126.49:9a82559d8b6e20fb~2316.39:9aba2255655531dd~2126.48:d99bea829923dd88~1750.35:d995ff6c06d82283~1647.56"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000064.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000064.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000064_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000064_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000064_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000064_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000064_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000064_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000065",
+    "title": {
+      "es": "Mujer, mar, rocas, playa, isla, día festivo, naturaleza",
+      "en": "Women, sea, rocks, beach, island, public holidays, nature"
+    },
+    "description": {
+      "es": "Mujer, mar, rocas, playa, isla, día festivo, naturaleza",
+      "en": "Women, sea, rocks, beach, island, public holidays, nature"
+    },
+    "tags": {
+      "es": [
+        "Mujer",
+        "mar",
+        "rocas",
+        "playa",
+        "isla",
+        "día",
+        "festivo",
+        "naturaleza",
+        "Chiloé"
+      ],
+      "en": [
+        "Women",
+        "sea",
+        "rocks",
+        "beach",
+        "island",
+        "public",
+        "holidays",
+        "nature",
+        "Chile"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "148597",
+      "source_language": "es",
+      "source_title": "mujer, mar, rocas, playa, isla, día festivo, naturaleza",
+      "source_url": "https://pixabay.com/videos/id-148597/",
+      "source_start": 18.0,
+      "source_end": 26.416667
+    },
+    "media": {
+      "duration_seconds": 8.416667,
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3169838,
+      "sha256": "4441e8554831d533c3cab716775a99badfb65398d97649fcd766aee6583c9cb5",
+      "perceptual_hash": "c8e59b132fccb432~5003.09:c8ed92322fcdb512~5114.88:c8c996324fcdf036~5178.01:c5c996324badf036~5195.84:c5c9b63242cde517~5159.38"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000065.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000065.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000065_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000065_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000065_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000065_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000065_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000065_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000066",
+    "title": {
+      "es": "Vista panorámica de la ciudad costera",
+      "en": "Scenic waterfront view of coastal town"
+    },
+    "description": {
+      "es": "Vista panorámica de la ciudad costera",
+      "en": "Scenic waterfront view of coastal town"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "panorámica",
+        "ciudad",
+        "costera",
+        "Chiloé",
+        "palafitos"
+      ],
+      "en": [
+        "Scenic",
+        "waterfront",
+        "view",
+        "coastal",
+        "town",
+        "Chile",
+        "pallet"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35331397",
+      "source_language": "en",
+      "source_title": "scenic-waterfront-view-of-coastal-town-35331397",
+      "source_url": "https://www.pexels.com/video/scenic-waterfront-view-of-coastal-town-35331397/",
+      "source_start": 4.0,
+      "source_end": 15.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 20603550,
+      "sha256": "6408c364613bbad66fc7bd28b44a6682684bb0cb02b2f593d3883dfddfca6f70",
+      "perceptual_hash": "eefe3023034adca5~3128.43:cbc326041c5fdbaa~3368.24:d6c43e0939f4f489~3361.61:c9c93b1332f1ed82~3473.66:d2f27e3404e0cab7~3464.63"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000066.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000066.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000066_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000066_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000066_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000066_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000066_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000066_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000067",
+    "title": {
+      "es": "Una casa en el agua con un muelle en el fondo",
+      "en": "A house on the water with a pier in the background"
+    },
+    "description": {
+      "es": "Una casa en el agua con un muelle en el fondo",
+      "en": "A house on the water with a pier in the background"
+    },
+    "tags": {
+      "es": [
+        "casa",
+        "agua",
+        "muelle",
+        "fondo",
+        "Chiloe",
+        "stilt",
+        "houses"
+      ],
+      "en": [
+        "house",
+        "water",
+        "pier",
+        "background"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "16199471",
+      "source_language": "en",
+      "source_title": "a-house-on-the-water-with-a-pier-in-the-background-16199471",
+      "source_url": "https://www.pexels.com/video/a-house-on-the-water-with-a-pier-in-the-background-16199471/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 720,
+      "height": 1280,
+      "fps": 60.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 6952912,
+      "sha256": "722a9d9d10f3184ea60f287f3ea1a31ea20c9c368e817eb50946352736650b0a",
+      "perceptual_hash": "b9b0464f383cc3e3~3590.24:b1a5464f3839c3e3~3530.92:f1a5465e3829c3e6~3498.14:f1a5465a382dc3e6~3449.70:f1854e5a3921c3de~3476.26"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000067.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000067.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000067_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000067_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000067_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000067_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000067_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000067_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000068",
+    "title": {
+      "es": "Bandurria en Chiloé Silvestre.webm",
+      "en": "Banduria in Chile"
+    },
+    "description": {
+      "es": "Bandurria en Chiloé Silvestre.webm",
+      "en": "Banduria in Chile"
+    },
+    "tags": {
+      "es": [
+        "Bandurria",
+        "Chiloé",
+        "Silvestre",
+        "webm",
+        "Chiloe",
+        "island",
+        "Chile"
+      ],
+      "en": [
+        "Banduria",
+        "Chile"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "170318300",
+      "source_language": "es",
+      "source_title": "Bandurria en Chiloé Silvestre.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Bandurria_en_Chilo%C3%A9_Silvestre.webm",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 720,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4717464,
+      "sha256": "7399d8446995d11dd075a3b20852efdf34653bd2615e09479928b624de081177",
+      "perceptual_hash": "c6a14f1e48fe3165~3103.58:f8c5e6c89d2229e9~2896.62:ce493a850b1665df~2371.10:e6b0a1f2806b7379~2216.33:c85197344cbd6753~2132.26"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000068.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000068.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000068_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000068_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000068_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000068_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000068_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000068_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000069",
+    "title": {
+      "es": "Evaluación y cosecha de la cosecha de Chile",
+      "en": "Hatch Chile Pepper Assessment and Harvest"
+    },
+    "description": {
+      "es": "Evaluación y cosecha de chile.",
+      "en": "Hatch chile pepper assessment and harvest."
+    },
+    "tags": {
+      "es": [
+        "Evaluación",
+        "cosecha",
+        "Chile"
+      ],
+      "en": [
+        "Hatch",
+        "Chile",
+        "Pepper",
+        "Assessment",
+        "Harvest"
+      ]
+    },
+    "source": {
+      "provider": "nasa",
+      "provider_id": "KSC-20200115-MH-GEB02_0001-Pepper_Assessment_and_Harvest-3240938",
+      "source_language": "en",
+      "source_title": "Hatch Chile Pepper Assessment and Harvest",
+      "source_url": "https://images.nasa.gov/details/KSC-20200115-MH-GEB02_0001-Pepper_Assessment_and_Harvest-3240938",
+      "source_start": 41.4,
+      "source_end": 52.4
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4073941,
+      "sha256": "ecd8f881805ef9c69b7536df3a2c19a736a03bda42cbcd90b965f1f36e5f3a28",
+      "perceptual_hash": "97818d9cddca4e16~2292.50:90e1e1c8cd4f4e5e~2603.44:92e1e9accf4f0e06~2611.56:8fd3702e438d943e~2166.58:8d489e0fe368f81e~3022.27"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000069.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000069.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000069_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000069_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000069_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000069_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000069_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000069_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000070",
+    "title": {
+      "es": "cerdo de lana, cerdo, lencería, agricultura, ganado",
+      "en": "Wool pig, pig, piglet, agriculture, livestock"
+    },
+    "description": {
+      "es": "cerdo de lana, cerdo, lencería, agricultura, ganado",
+      "en": "Wool pig, pig, piglet, agriculture, livestock"
+    },
+    "tags": {
+      "es": [
+        "cerdo",
+        "lana",
+        "lencería",
+        "agricultura",
+        "ganado"
+      ],
+      "en": [
+        "Wool",
+        "pig",
+        "piglet",
+        "agriculture",
+        "livestock"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "72323",
+      "source_language": "en",
+      "source_title": "wool pig, pig, piglet, agriculture, livestock",
+      "source_url": "https://pixabay.com/videos/id-72323/",
+      "source_start": 2.0,
+      "source_end": 11.68
+    },
+    "media": {
+      "duration_seconds": 9.68,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 11078132,
+      "sha256": "f60a1570c2d4f36a1207b61ca35aae7e337ae269331bfed1a416d4af1702e483",
+      "perceptual_hash": "a4a6ded5cb4185f0~3974.48:adbcc6e18761c2c5~4032.61:b9acdef7c5120145~3807.55:d3a1fcfa4b0283cc~3753.76:d3f1fce285068b1c~3657.57"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000070.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000070.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000070_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000070_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000070_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000070_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000070_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000070_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000071",
+    "title": {
+      "es": "Patagonista de nieve impresionante",
+      "en": "Breathtaking patagonian snow capped mountainscape"
+    },
+    "description": {
+      "es": "Patagonista de nieve impresionante",
+      "en": "Breathtaking patagonian snow capped mountainscape"
+    },
+    "tags": {
+      "es": [
+        "Patagonista",
+        "nieve",
+        "impresionante",
+        "Patagonia",
+        "glacier",
+        "Chile"
+      ],
+      "en": [
+        "Breathtaking",
+        "patagonian",
+        "snow",
+        "capped",
+        "mountainscape"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "30340790",
+      "source_language": "en",
+      "source_title": "breathtaking-patagonian-snow-capped-mountainscape-30340790",
+      "source_url": "https://www.pexels.com/video/breathtaking-patagonian-snow-capped-mountainscape-30340790/",
+      "source_start": 2.0,
+      "source_end": 13.246567
+    },
+    "media": {
+      "duration_seconds": 11.244567,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 7031209,
+      "sha256": "06523bb8dfdf38eb07d2f1da57b5ba56b8f57dc7254897f5735a2b521d502650",
+      "perceptual_hash": "c597e02ea66c196d~2167.93:cadab425f2678d24~1778.14:e2d9b624b9728536~1526.44:e3d8b624b9708c76~1570.44:e2d9b624f9628572~1591.26"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000071.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000071.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000071_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000071_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000071_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000071_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000071_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000071_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000072",
+    "title": {
+      "es": "Vista aérea impresionante de perito moreno glaciar",
+      "en": "Breathtaking aerial view of perito moreno glacier"
+    },
+    "description": {
+      "es": "Vista aérea impresionante de perito moreno glaciar",
+      "en": "Breathtaking aerial view of perito moreno glacier"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "impresionante",
+        "perito",
+        "moreno",
+        "glaciar",
+        "Patagonia",
+        "Chile"
+      ],
+      "en": [
+        "Breathtaking",
+        "aerial",
+        "view",
+        "perito",
+        "moreno",
+        "glacier"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "32881652",
+      "source_language": "en",
+      "source_title": "breathtaking-aerial-view-of-perito-moreno-glacier-32881652",
+      "source_url": "https://www.pexels.com/video/breathtaking-aerial-view-of-perito-moreno-glacier-32881652/",
+      "source_start": 0.0,
+      "source_end": 12.0
+    },
+    "media": {
+      "duration_seconds": 11.995317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 10460441,
+      "sha256": "2b5e93e744a53d006711554b1e5de664207c79693256004669f973556ac50565",
+      "perceptual_hash": "83c1c129b9d0f27f~3821.20:83c1412bb5f0f33e~3758.20:83c14babb4f0b51e~3784.33:83c16badf0f0b45a~3770.92:83c12badf0f092cf~3631.12"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000072.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000072.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000072_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000072_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000072_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000072_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000072_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000072_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000073",
+    "title": {
+      "es": "Órbita Cerro Torre con nombres de ruta, renderizado de terreno 3D PeakNav. webm",
+      "en": "Cerro Torre orbit with path names, PeakNav 3D terrain render.webm"
+    },
+    "description": {
+      "es": "Órbita Cerro Torre con nombres de ruta, renderizado de terreno 3D PeakNav. webm",
+      "en": "Cerro Torre orbit with path names, PeakNav 3D terrain render.webm"
+    },
+    "tags": {
+      "es": [
+        "Órbita",
+        "Cerro",
+        "Torre",
+        "nombres",
+        "ruta",
+        "renderizado",
+        "terreno",
+        "PeakNav",
+        "webm",
+        "glacier",
+        "ice",
+        "Chile"
+      ],
+      "en": [
+        "Cerro",
+        "Torre",
+        "orbit",
+        "path",
+        "names",
+        "PeakNav",
+        "terrain",
+        "render",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "202096433",
+      "source_language": "en",
+      "source_title": "Cerro Torre orbit with path names, PeakNav 3D terrain render.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Cerro_Torre_orbit_with_path_names,_PeakNav_3D_terrain_render.webm",
+      "source_start": 0.0,
+      "source_end": 12.0
+    },
+    "media": {
+      "duration_seconds": 12.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 17393367,
+      "sha256": "7eb7be21a5a357136b61d2030381f1fd10b802bffb09cd509e623a8594a4a2f8",
+      "perceptual_hash": "dc28131ffc7a61c2~3400.14:e36eb885811a6b6b~2617.24:f3059af0470f3e70~2397.20:bc4993fd6c51142d~1982.15:b34ecc1ba74e18c5~1832.92"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000073.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000073.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000073_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000073_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000073_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000073_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000073_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000073_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000074",
+    "title": {
+      "es": "Glaciares Tracy y Farquhar en el Norte de Groenlandia",
+      "en": "Tracy and Farquhar Glaciers in North West Greenland"
+    },
+    "description": {
+      "es": "Glaciares Tracy y Farquhar en el Norte de Groenlandia",
+      "en": "Tracy and Farquhar Glaciers in North West Greenland"
+    },
+    "tags": {
+      "es": [
+        "Glaciares",
+        "Tracy",
+        "Farquhar",
+        "Norte",
+        "Groenlandia",
+        "glacier",
+        "ice",
+        "Chile"
+      ],
+      "en": [
+        "Tracy",
+        "Farquhar",
+        "Glaciers",
+        "North",
+        "West",
+        "Greenland"
+      ]
+    },
+    "source": {
+      "provider": "peertube",
+      "provider_id": "9457c933-95b2-4516-8878-ff3314f8159b",
+      "source_language": "en",
+      "source_title": "Tracy and Farquhar Glaciers in North West Greenland",
+      "source_url": "https://tilvids.com/videos/watch/9457c933-95b2-4516-8878-ff3314f8159b",
+      "source_start": 106.0,
+      "source_end": 118.0
+    },
+    "media": {
+      "duration_seconds": 12.0,
+      "width": 512,
+      "height": 512,
+      "fps": 1.0,
+      "aspect_ratio": "1:1",
+      "orientation": "square",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 301111,
+      "sha256": "81f205558978e38cba6e2e2da5e9bf2e8febc3f23824ef8186a7c7f833a0cdb4",
+      "perceptual_hash": "888c3593b64e1fd6~1472.29:889c39b1f65ed642~1443.55:8c0c30b3f35e4e5e~1229.85:889c7193be52cfd0~1244.30:889cd493b646ccde~1361.22"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000074.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000074.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000074_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000074_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000074_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000074_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000074_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000074_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000075",
+    "title": {
+      "es": "Órbita Cerro Torre con nombres de ruta, renderizado de terreno 3D PeakNav, vertical. webm",
+      "en": "Cerro Torre orbit with path names, PeakNav 3D terrain render, vertical.webm"
+    },
+    "description": {
+      "es": "Órbita Cerro Torre con nombres de ruta, renderizado de terreno 3D PeakNav, vertical. webm",
+      "en": "Cerro Torre orbit with path names, PeakNav 3D terrain render, vertical.webm"
+    },
+    "tags": {
+      "es": [
+        "Órbita",
+        "Cerro",
+        "Torre",
+        "nombres",
+        "ruta",
+        "renderizado",
+        "terreno",
+        "PeakNav",
+        "vertical",
+        "webm",
+        "Patagonia",
+        "glacier",
+        "Chile"
+      ],
+      "en": [
+        "Cerro",
+        "Torre",
+        "orbit",
+        "path",
+        "names",
+        "PeakNav",
+        "terrain",
+        "render",
+        "vertical",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "202096460",
+      "source_language": "en",
+      "source_title": "Cerro Torre orbit with path names, PeakNav 3D terrain render, vertical.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Cerro_Torre_orbit_with_path_names,_PeakNav_3D_terrain_render,_vertical.webm",
+      "source_start": 12.0,
+      "source_end": 24.0
+    },
+    "media": {
+      "duration_seconds": 12.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 15378232,
+      "sha256": "b0d8b364e00b8a70008106d28315277576bbaad0614fab20d64348480874b3a8",
+      "perceptual_hash": "871a6815cf8935cf~3209.48:817f3860cf3b6643~3605.67:ce393bd8e00b11f6~3523.24:cf700964ee06d94f~4102.93:a41f2cdac7308e7c~4313.54"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000075.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000075.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000075_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000075_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000075_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000075_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000075_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000075_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000076",
+    "title": {
+      "es": "Vista aérea dramática de los lobos marinos en la costa rocosa",
+      "en": "Dramatic aerial view of sea lions on rocky coast"
+    },
+    "description": {
+      "es": "Vista aérea dramática de los lobos marinos en la costa rocosa",
+      "en": "Dramatic aerial view of sea lions on rocky coast"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "dramática",
+        "lobos",
+        "marinos",
+        "costa",
+        "rocosa",
+        "Isla",
+        "Pascua",
+        "moái"
+      ],
+      "en": [
+        "Dramatic",
+        "aerial",
+        "view",
+        "sea",
+        "lions",
+        "rocky",
+        "coast"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "36758613",
+      "source_language": "en",
+      "source_title": "dramatic-aerial-view-of-sea-lions-on-rocky-coast-36758613",
+      "source_url": "https://www.pexels.com/video/dramatic-aerial-view-of-sea-lions-on-rocky-coast-36758613/",
+      "source_start": 16.0,
+      "source_end": 25.458767
+    },
+    "media": {
+      "duration_seconds": 9.442767,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 17335778,
+      "sha256": "24153cf0a16fdb780f9ea5169bee9f05b2983310a31e6eef70223e5ef0451fa0",
+      "perceptual_hash": "aad2350d799bd294~2850.87:dad50b7ab2a628cc~2613.76:d0a55bf42e4d41f2~2522.37:915be66cd8b28aca~2275.25:9846eef086cd2575~2365.01"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000076.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000076.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000076_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000076_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000076_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000076_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000076_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000076_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000077",
+    "title": {
+      "es": "Drone video de nuestra señora de nui cui estatua en d ng nai vietnam",
+      "en": "Drone video of our lady of nui cui statue in d ng nai vietnam"
+    },
+    "description": {
+      "es": "Drone video de nuestra señora de nui cui estatua en d ng nai vietnam",
+      "en": "Drone video of our lady of nui cui statue in d ng nai vietnam"
+    },
+    "tags": {
+      "es": [
+        "Drone",
+        "video",
+        "nuestra",
+        "señora",
+        "nui",
+        "cui",
+        "estatua",
+        "nai",
+        "vietnam",
+        "Rapa",
+        "statues"
+      ],
+      "en": [
+        "Drone",
+        "video",
+        "our",
+        "lady",
+        "nui",
+        "cui",
+        "statue",
+        "nai",
+        "vietnam"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "15627170",
+      "source_language": "en",
+      "source_title": "drone-video-of-our-lady-of-nui-cui-statue-in-d-ng-nai-vietnam-15627170",
+      "source_url": "https://www.pexels.com/video/drone-video-of-our-lady-of-nui-cui-statue-in-d-ng-nai-vietnam-15627170/",
+      "source_start": 30.0,
+      "source_end": 38.671667
+    },
+    "media": {
+      "duration_seconds": 8.65865,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3491233,
+      "sha256": "2d103e9cb7cc8287780b107c890f3947ee1edcf1e39c5228e543c1e86be05045",
+      "perceptual_hash": "98f31953e64c3c9c~4105.88:8db70d16d119a3d5~4078.24:8ca709a6f65c87f0~3885.67:ceb209e6e409ece3~3734.11:e4a309e6dc59f60c~3587.43"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000077.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000077.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000077_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000077_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000077_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000077_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000077_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000077_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000078",
+    "title": {
+      "es": "Una mariposa blanca sentada en algunas hojas verdes",
+      "en": "A white butterfly sitting on some green leaves"
+    },
+    "description": {
+      "es": "Una mariposa blanca sentada en algunas hojas verdes",
+      "en": "A white butterfly sitting on some green leaves"
+    },
+    "tags": {
+      "es": [
+        "mariposa",
+        "blanca",
+        "sentada",
+        "algunas",
+        "hojas",
+        "verdes",
+        "Rapa",
+        "Nui"
+      ],
+      "en": [
+        "white",
+        "butterfly",
+        "sitting",
+        "some",
+        "green",
+        "leaves"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "28157957",
+      "source_language": "en",
+      "source_title": "a-white-butterfly-sitting-on-some-green-leaves-28157957",
+      "source_url": "https://www.pexels.com/video/a-white-butterfly-sitting-on-some-green-leaves-28157957/",
+      "source_start": 0.0,
+      "source_end": 9.843167
+    },
+    "media": {
+      "duration_seconds": 9.843167,
+      "width": 1080,
+      "height": 1920,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3820359,
+      "sha256": "538271fda6605b947df003906827faf7141a6915b3f722e2d68e8b90007e2e17",
+      "perceptual_hash": "90de27259b996267~2558.04:90db6d24b3d0e8ec~2395.56:90cb6464bb986f65~2678.28:95c86267399dcb32~2469.28:95c96623999d6336~2458.10"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000078.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000078.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000078_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000078_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000078_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000078_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000078_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000078_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000079",
+    "title": {
+      "es": "Disfrute de la vista de un pico de montaña desde el camping",
+      "en": "Enjoy the view of a mountain peak from the camping site"
+    },
+    "description": {
+      "es": "Disfrute de la vista de un pico de montaña desde el camping",
+      "en": "Enjoy the view of a mountain peak from the camping site"
+    },
+    "tags": {
+      "es": [
+        "Disfrute",
+        "vista",
+        "pico",
+        "montaña",
+        "desde",
+        "camping",
+        "Easter",
+        "Island",
+        "moai"
+      ],
+      "en": [
+        "Enjoy",
+        "view",
+        "mountain",
+        "peak",
+        "camping",
+        "site"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "4434227",
+      "source_language": "en",
+      "source_title": "enjoy-the-view-of-a-mountain-peak-from-the-camping-site-4434227",
+      "source_url": "https://www.pexels.com/video/enjoy-the-view-of-a-mountain-peak-from-the-camping-site-4434227/",
+      "source_start": 2.0,
+      "source_end": 12.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 7924176,
+      "sha256": "83475324428508fe2f1eaabb955aa7a8a2df22fe28ee5f47c85a576a9ee7ae2c",
+      "perceptual_hash": "d5d7222eaa917097~185.64:828ce07f3f1e8762~8178.52:aa97d8782e93c869~6240.73:eed916730ce11e31~4105.90:ffd03708e18e00ef~4616.82"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000079.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000079.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000079_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000079_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000079_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000079_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000079_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000079_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000080",
+    "title": {
+      "es": "Descripción del producto solidificación de impresora 3D de iSLA 550 en MidRisk, Suzhou",
+      "en": "Product description 3D printer solidification of iSLA 550 in MidRisk, Suzhou"
+    },
+    "description": {
+      "es": "La solidificación ligera (SLA) es una tecnología de impresión 3D de alta velocidad y alta precisión. Las partes se imprimen mediante láser UV y polímeros fotosensibilizados líquidos UV - \"resinas fotosensibilizadas\". Controla los rayos láser para escanear el lado líquido de la resina, de modo que el lado líquido de la resina esté solidificado para formar la sección transversal de las partes escaneadas. Una capa de solidificación es seguida por una capa de resina líquida en la membrana recién formada y sigue siendo escaneada para que se solidifique e integre en el frente de las partes preconsolidadas. De esta manera, crece capa por capa, para que las partes estéreo completas puedan ser impresas.",
+      "en": "Light solidification (SLA) is a high-speed, high-precision 3D printing technology. The parts are printed using UV lasers and liquid UV solidified photo-sensitized polymers - \"photo-sensitized resins\". Controls laser beams to scan the liquid side of the resin, so that the liquid side of the resin is solidified to form the cross-section of the scanned parts. A layer of solidification is followed by a layer of liquid resin on the newly formed membrane and continues to be scanned so that it is solidified and integrated into the front of the pre-consolidated parts. In this way, it grows layer by layer, so that complete stereo parts can be printed."
+    },
+    "tags": {
+      "es": [
+        "Descripción",
+        "producto",
+        "solidificación",
+        "impresora",
+        "iSLA",
+        "550",
+        "MidRisk",
+        "Suzhou",
+        "Pascua",
+        "moái"
+      ],
+      "en": [
+        "Product",
+        "description",
+        "printer",
+        "solidification",
+        "iSLA",
+        "550",
+        "MidRisk",
+        "Suzhou"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1i24y1o7Xq",
+      "source_language": "zh",
+      "source_title": "产品介绍 | 苏州中瑞iSLA550光固化3D打印机",
+      "source_url": "https://www.bilibili.com/video/BV1i24y1o7Xq",
+      "source_start": 106.0,
+      "source_end": 116.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 640,
+      "height": 360,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 928738,
+      "sha256": "a476885fb62ecefb10e1d1a116305655b8840faeec68595990f568f278045a79",
+      "perceptual_hash": "c09f7a3e1fb8809a~2713.77:80fe6a3e7b98918a~2486.17:81ab78b496c69e93~3732.50:825ae0e574f63a93~3412.94:8a4e6cb414df6a8d~2451.70"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000080.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000080.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000080_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000080_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000080_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000080_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000080_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000080_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000081",
+    "title": {
+      "es": "BBC documental Rapa Nui",
+      "en": "BBC documentary Rapa Nui"
+    },
+    "description": {
+      "es": "BBC documental Rapa Nui",
+      "en": "BBC documentary Rapa Nui"
+    },
+    "tags": {
+      "es": [
+        "BBC",
+        "documental",
+        "Rapa",
+        "Nui",
+        "statues"
+      ],
+      "en": [
+        "BBC",
+        "documentary",
+        "Rapa",
+        "Nui"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1zJ4m1u7UF",
+      "source_language": "zh",
+      "source_title": "BBC纪录片 Rapa Nui（英语配音）",
+      "source_url": "https://www.bilibili.com/video/BV1zJ4m1u7UF",
+      "source_start": 4.0,
+      "source_end": 14.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 640,
+      "height": 360,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 864935,
+      "sha256": "a7f461147be3f1b47c3f5dae3125b5a26cb2232cdbb8cef682e7a3bde5b6c1b1",
+      "perceptual_hash": "d26db21c4f633398~959.67:f50e0ae1cd9f68c2~1416.02:c72b80ccfdf54e80~1201.29:d22d1db286ed781c~1316.38:a0b057c9c9d5e4b5~7597.63"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000081.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000081.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000081_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000081_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000081_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000081_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000081_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000081_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000082",
+    "title": {
+      "es": "Ojos mirando el cielo.webm",
+      "en": "Eyes looking at the sky.webm"
+    },
+    "description": {
+      "es": "Ojos mirando el cielo.webm",
+      "en": "Eyes looking at the sky.webm"
+    },
+    "tags": {
+      "es": [
+        "Ojos",
+        "mirando",
+        "cielo",
+        "webm",
+        "Easter",
+        "Island",
+        "moai"
+      ],
+      "en": [
+        "Eyes",
+        "looking",
+        "sky",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "106617993",
+      "source_language": "en",
+      "source_title": "Eyes looking at the sky.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Eyes_looking_at_the_sky.webm",
+      "source_start": 50.0,
+      "source_end": 60.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 12165298,
+      "sha256": "ac0ca52af55d64abcb08b4fdae0f2f811c61e4401bf2b1a138f93c085a5453d3",
+      "perceptual_hash": "dad9c94b0a3296dc~3083.54:e4e40c8efd35b470~4355.14:94072c7067cd9aed~2687.25:f691535233e5449b~3354.28:fcbc11d05a1a73c5~3698.10"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000082.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000082.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000082_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000082_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000082_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000082_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000082_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000082_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000083",
+    "title": {
+      "es": "Chile coche cable santiago",
+      "en": "Chile cable car santiago"
+    },
+    "description": {
+      "es": "Chile coche cable santiago",
+      "en": "Chile cable car santiago"
+    },
+    "tags": {
+      "es": [
+        "Chile",
+        "coche",
+        "cable",
+        "santiago",
+        "skyline"
+      ],
+      "en": [
+        "Chile",
+        "cable",
+        "car",
+        "santiago"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "20453024",
+      "source_language": "en",
+      "source_title": "chile-cable-car-santiago-20453024",
+      "source_url": "https://www.pexels.com/video/chile-cable-car-santiago-20453024/",
+      "source_start": 2.0,
+      "source_end": 11.476667
+    },
+    "media": {
+      "duration_seconds": 9.476133,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 5364557,
+      "sha256": "331ca25dbdb07eecf3cd3bfec93605ddf2a397416cf7149826d2eac225bc86a0",
+      "perceptual_hash": "a67d19e626c91966~915.16:e6d95926e459b164~864.27:84f9db640699a66e~1344.38:f680dbe04799463e~1728.36:e8965ba4d873a41b~1758.84"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000083.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000083.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000083_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000083_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000083_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000083_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000083_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000083_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000084",
+    "title": {
+      "es": "Poder para el pueblo Tom Morello en vivo, Santiago de Chile 6/6/2023",
+      "en": "Power to the People Tom Morello en vivo, Santiago de Chile 6/6/2023"
+    },
+    "description": {
+      "es": "Poder para el pueblo Tom Morello en vivo, Santiago de Chile 6/6/2023",
+      "en": "Power to the People Tom Morello en vivo, Santiago de Chile 6/6/2023"
+    },
+    "tags": {
+      "es": [
+        "Poder",
+        "pueblo",
+        "Tom",
+        "Morello",
+        "vivo",
+        "Santiago",
+        "Chile",
+        "2023",
+        "city"
+      ],
+      "en": [
+        "Power",
+        "People",
+        "Tom",
+        "Morello",
+        "vivo",
+        "Santiago",
+        "Chile",
+        "2023"
+      ]
+    },
+    "source": {
+      "provider": "peertube",
+      "provider_id": "06793cdc-76a6-485e-8c5a-f78eb27629f0",
+      "source_language": "en",
+      "source_title": "Power to the People - Tom Morello en vivo, Santiago de Chile 6/6/2023",
+      "source_url": "https://diode.zone/videos/watch/06793cdc-76a6-485e-8c5a-f78eb27629f0",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 13051727,
+      "sha256": "49ed8e296a04712c1c6f7f7c4d90f80f113338c7ee6a621f83dd0d744c252569",
+      "perceptual_hash": "cc9cc831b1cbc766~2051.79:cc8dcc30b36ba276~1557.57:9999997ee6008d6d~1631.53:d991c16ce42d6d6c~1667.51:d3938364e42d6d6c~1604.42"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000084.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000084.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000084_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000084_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000084_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000084_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000084_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000084_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000085",
+    "title": {
+      "es": "Ciudad, atardecer, naranja",
+      "en": "City, sunset, naranja"
+    },
+    "description": {
+      "es": "Ciudad, atardecer, naranja",
+      "en": "City, sunset, naranja"
+    },
+    "tags": {
+      "es": [
+        "Ciudad",
+        "atardecer",
+        "naranja",
+        "Santiago",
+        "Chile",
+        "city"
+      ],
+      "en": [
+        "City",
+        "sunset",
+        "naranja"
+      ]
+    },
+    "source": {
+      "provider": "pixabay",
+      "provider_id": "58764",
+      "source_language": "en",
+      "source_title": "city, sunset, naranja",
+      "source_url": "https://pixabay.com/videos/id-58764/",
+      "source_start": 18.0,
+      "source_end": 29.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 2048,
+      "height": 858,
+      "fps": 25.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 3568637,
+      "sha256": "ba191488532357b5455ae0f5e5cc9dd1120bfce20f8c366a44a111f79e1293eb",
+      "perceptual_hash": "9bd24a9bc421bfc4~5269.14:88c86aa8e61597f7~5427.36:85e526a5651af9b1~5098.00:d0b13392720d75bb~4776.04:c6b639d96d02728d~4361.13"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000085.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000085.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000085_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000085_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000085_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000085_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000085_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000085_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
+  },
+  {
+    "id": "clip-000086",
+    "title": {
+      "es": "El abstracto Beijing ZBAA CTR replays",
+      "en": "The abstract Beijing ZBAA CTR replays"
+    },
+    "description": {
+      "es": "Ruta activa: Shanghai Rainbow Bridge (ZSSS) &gt; &gt; Beijing Dashing (ZBAD)/Tianjin Coast Sea (ZBTJ)\nFecha de actividad: 2026-11-14\nAsiento regulado: ZBAA CTR\nFrecuencia de control: 133.025\nPortal de la plataforma Skyline Fly League: https://home.skylineflyleague.cn/\nCanal oficial de discordia: https://discord.gg/wmtFehwmKX\nGrupo oficial: https://qm.qq.com/q/uQwnCT5U",
+      "en": "Active route: Shanghai Rainbow Bridge (ZSSS) &gt; &gt; Beijing Dashing (ZBAD)/Tianjin Coast Sea (ZBTJ)\nDate of activity: 2026-11-14\nRegulated seat: ZBAA CTR\nControl frequency: 133.025\nSkyline Fly League platform portal: https://home.skylineflyleague.cn/\nOfficial Discord channel: https://discord.gg/wmtFehwmKX\nOfficial group: https://qm.qq.com/q/uQwnCT5U"
+    },
+    "tags": {
+      "es": [
+        "abstracto",
+        "Beijing",
+        "ZBAA",
+        "CTR",
+        "replays",
+        "Santiago",
+        "Chile",
+        "skyline"
+      ],
+      "en": [
+        "abstract",
+        "Beijing",
+        "ZBAA",
+        "CTR",
+        "replays"
+      ]
+    },
+    "source": {
+      "provider": "bilibili",
+      "provider_id": "BV1WgsV6gEMq",
+      "source_language": "zh",
+      "source_title": "【SKYline日常活动管制回放】抽象的北京区调-ZBAA_CTR缩时回放",
+      "source_url": "https://www.bilibili.com/video/BV1WgsV6gEMq",
+      "source_start": 30.0,
+      "source_end": 41.0
+    },
+    "media": {
+      "duration_seconds": 10.999998,
+      "width": 1280,
+      "height": 720,
+      "fps": 30.000006696430066,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 991871,
+      "sha256": "c60d68df2e005f7cac10a0154950ed76f7361bbe255878e08d33fa54e5c1577d",
+      "perceptual_hash": "c9e2e07e986e9166~250.78:c9e0e07eb86e9166~253.14:c9e3a57e9c6e9060~298.38:cbf3a06ab9669862~300.06:8bf3ec7a0146b8f0~361.37"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000086.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000086.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000086_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000086_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000086_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000086_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000086_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000086_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T04:10:19.151774Z"
   }
 ]
