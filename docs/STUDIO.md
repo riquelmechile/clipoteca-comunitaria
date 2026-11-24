@@ -283,8 +283,12 @@ típico ni una validación posterior en producción.
 ### Busqueda relacionada (v3)
 
 - El motor considera hasta ocho terminos distintos por escena, primero los del guion,
-  despues Wikidata (entidad exacta, relaciones de ubicacion/partes/alias) y Commons
-  (subcategorias de una categoria raiz exacta). Las consultas fallidas se omiten.
+  despues Wikidata (desambiguacion por coordenadas/clase geografica, pais y
+  notoriedad; hasta tres raices relacionadas; hijos por ubicacion/partes) y Commons
+  (subcategorias de lugares, filtrando categorias meta y eventos fechados).
+  Las consultas fallidas se omiten. Para nombres ambiguos se consulta el termino
+  junto al lugar padre (por ejemplo, Castro Chiloe), sin modificar tags ni
+  rebajar el gate visual. `related_queries` registra la consulta efectiva.
 - El plan permanece offline por defecto. En el render real se debe agregar
   `--resolve-related` al comando existente de `clipoteca.studio.plan` de
   `.github/workflows/render.yml` (sin otros cambios). El plan comparte una cache
@@ -300,3 +304,13 @@ típico ni una validación posterior en producción.
   corresponde. `timings.json` mantiene valores numericos: claves
   `scene.ID.related_terms.ORIGEN.TERMINO` y `scene.ID.matched_query.TERMINO` valen 1.
 - El Worker requiere redeploy para anunciar el nuevo campo opcional en MCP.
+
+Prueba de red manual (fuera del CI):
+
+```sh
+uv run --no-sync python scripts/smoke_related.py "Chiloé" "Easter Island" "Kyoto temples" "Santiago Chile city"
+```
+
+Imprime por consulta las semillas, raices Wikidata (QID y etiqueta), categorias
+raiz de Commons, terminos con origen y latencia. Los tests usan transportes HTTP
+simulados y no demuestran los resultados actuales de los servicios externos.

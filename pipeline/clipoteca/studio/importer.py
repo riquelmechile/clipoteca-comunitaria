@@ -26,7 +26,7 @@ from ..sources import SOURCES
 from ..storage.github import ReleaseAsset, ReleaseBatch, StorageError
 from . import library
 from .plan import _atomic_json
-from .related import related_terms, resolve_jobs
+from .related import related_search_query, related_terms, resolve_jobs
 from .scene_search import SceneBudget, ingest, ingest_related
 from .windows import fit_mode
 
@@ -491,7 +491,10 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
     else:
         scored.sort(
             key=lambda x: (
-                not x["name_match"], -x["score"], abs(x["duration"] - length), x["clip_id"]
+                not x["name_match"],
+                -x["score"],
+                abs(x["duration"] - length),
+                x["clip_id"],
             )
         )
     return {
@@ -803,6 +806,11 @@ def import_scene(
         "queries_tried": tried,
         "related_terms": [row for row in related_terms(job) if row["term"] in tried],
         "related_terms_available": related_terms(job),
+        "related_queries": {
+            term: related_search_query(job, term)
+            for term in tried
+            if any(row["term"] == term for row in related_terms(job))
+        },
         "clips": imported,
         "errors": sorted(set(failures)),
         "rejections": dict(sorted(rejections.items())),

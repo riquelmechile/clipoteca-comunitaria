@@ -14,7 +14,7 @@ from ..providers.base import SupportStatus
 from ..translate.argos import QUALITY_TRANSLATION_REASONS, public_translation_error
 from ..translate.expand import expand_query
 from . import library
-from .related import primary_queries, related_terms
+from .related import primary_queries, related_parent, related_search_query, related_terms
 from .windows import fit_mode
 
 _LANGUAGES = ("en", "es", "zh", "ru")
@@ -110,9 +110,16 @@ class SceneBudget:
 
     def provenance(self, query):
         terms = primary_queries(self.job["queries"])
-        match = next((row for row in related_terms(self.job) if row["term"] == query), None)
+        match = next(
+            (
+                row
+                for row in related_terms(self.job)
+                if related_search_query(self.job, row["term"]) == query
+            ),
+            None,
+        )
         if match and terms:
-            return {"found_by_query": query, "related_to": terms[0]}
+            return {"found_by_query": query, "related_to": related_parent(self.job) or terms[0]}
         return {"found_by_query": query} if related_terms(self.job) else {}
 
     def candidate_text_good(self, candidate, localized):
@@ -318,7 +325,6 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
     return IngestReport(last, status, tuple(ids), tuple(errors))
 
 
-
 async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs):
     """Parallel discovery across distinct terms; serialize every ingest/catalog write."""
     writer = kwargs["writer"]
@@ -336,23 +342,24 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
     last = "scene-related"
     index = 0
 
-    for query in queries:
+    for term in queries:
         if scene_budget.reason():
             break
+        query = related_search_query(scene_budget.job, term)
         expansion = expand_query(query, translator=kwargs.get("translator"))
         invalid = any(
             (not expansion.terms.get(lang) or lang in expansion.errors)
             and (
                 expansion.terms.get(lang)
-                or (public_translation_error(expansion.errors.get(lang, "")) or "").rsplit(
-                    ":", 1
-                )[-1]
+                or (public_translation_error(expansion.errors.get(lang, "")) or "").rsplit(":", 1)[
+                    -1
+                ]
                 not in QUALITY_TRANSLATION_REASONS
             )
             for lang in _LANGUAGES
         )
         if invalid:
-            on_query(query)
+            on_query(term)
             report = await _ingest(
                 query,
                 adapters,
@@ -366,23 +373,23 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
             errors.extend(report.errors)
             statuses.append(report.status)
         else:
-            expansions.append((query, expansion))
+            expansions.append((term, query, expansion))
 
     plan = [
-        (query, expansion, adapter, lang)
+        (term, query, expansion, adapter, lang)
         for lang in _LANGUAGES
         for adapter in ordered
-        for query, expansion in expansions
+        for term, query, expansion in expansions
         if expansion.terms.get(lang) and lang in adapter.accepts_text_languages
     ]
     if scene_budget.place and not any(
         adapter.name == "wikimedia_commons" and adapter.support_status in _SEARCHABLE
-        for _, _, adapter, _ in plan
+        for _, _, _, adapter, _ in plan
     ):
         scene_budget.commons_exhausted = True
 
-    async def discover(query, expansion, adapter, lang):
-        on_query(query)
+    async def discover(term, query, expansion, adapter, lang):
+        on_query(term)
         if adapter.support_status in _SEARCHABLE:
             scene_budget.searches_started += 1
         try:
@@ -406,7 +413,7 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
         batch = plan[offset : offset + concurrency]
         tasks = [asyncio.create_task(discover(*entry)) for entry in batch]
         try:
-            for (query, _, adapter, _), task in zip(batch, tasks, strict=True):
+            for (_, query, _, adapter, _), task in zip(batch, tasks, strict=True):
                 if scene_budget.reason():
                     break
                 result = await task

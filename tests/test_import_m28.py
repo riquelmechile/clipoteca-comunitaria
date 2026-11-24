@@ -682,7 +682,6 @@ def test_irrelevant_candidate_is_never_downloaded(tmp_path, videos, engine):
     assert result["evaluated_count"] >= 2
 
 
-
 def test_related_retry_does_not_repeat_primary_queries(tmp_path, monkeypatch):
     job = load("job.json")
     job["queries"] = {

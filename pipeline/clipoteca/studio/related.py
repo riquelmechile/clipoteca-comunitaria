@@ -528,7 +528,9 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
             job["related_terms"] = merge_terms(job["queries"], *groups)
             for (seed, _, _), wiki, commons in states:
                 if wiki.get("geographic") or commons.get("geographic"):
-                    job["related_parent"] = seed
+                    job["related_parent"] = _parent_label(
+                        job["queries"], seed, _context(job["queries"], seed)
+                    )
                     break
             diagnostics.append(
                 {
@@ -554,20 +556,33 @@ def related_terms(job):
     return merge_terms(job["queries"], job.get("related_terms", []))
 
 
+def _parent_label(queries, seed, context=()):
+    variants = _variants(seed)
+    parent = next(
+        (query for query in primary_queries(queries) if _key(query) in variants),
+        seed,
+    )
+    if context and not any(f" {name} " in f" {_key(parent)} " for name in context):
+        parent = " ".join((parent, *context))
+    return parent
+
+
+def related_parent(job):
+    parent = job.get("related_parent")
+    if parent:
+        return parent
+    queries = job["queries"]
+    names = seeds(queries)
+    if names and any(query_names([query]) for query in primary_queries(queries)):
+        return _parent_label(queries, names[0], _context(queries, names[0]))
+    return None
+
+
 def related_search_query(job, term):
     """Qualify an ambiguous related name with its parent; never alter clip metadata."""
-    parent = job.get("related_parent")
-    if not parent:
-        queries = job["queries"]
-        names = seeds(queries)
-        if names and any(query_names([query]) for query in primary_queries(queries)):
-            parent = names[0]
+    parent = related_parent(job)
     if not parent:
         return term
-    for query in primary_queries(job["queries"]):
-        if _key(query) == _key(parent):
-            parent = query
-            break
     if any(f" {variant} " in f" {_key(term)} " for variant in _variants(parent)):
         return term
     return f"{term} {parent}"
