@@ -42,9 +42,12 @@ M22 r2: el campo opcional `semantic_reason` indica la causa del fallback (semant
 ## M33: entrega de video
 
 El guion completo sigue schemas/video.schema.json. Llama render_video con el
-Bearer de escritura; comparte cuota con importaciones. Consulta get_video_status
+Bearer de escritura; cuota propia de video: 1 cada 5 minutos y 12 por día UTC por IP
+(best-effort por Cache API). Consulta get_video_status
 con el id aleatorio de 128 bits hasta done, failed o expired. file_url sirve
-el MP4 aprobado durante siete días. El id es una credencial privada; los
+el MP4 aprobado durante siete días, con Range. Si aún no aparece la corrida,
+reintenta ante 404 transitorio; warnings indica evidencia no disponible.
+La entrega no espera el índice; clips_indexed se actualiza al terminar este. El id es una credencial privada; los
 nombres de Actions usan su SHA-256. El Worker necesita actions: read y write
 en CLIPOTECA_DISPATCH_TOKEN. La publicación del MP4 no existe en el contrato
 nuevo: solo se indexan los clips válidos importados. Pendiente de promoción

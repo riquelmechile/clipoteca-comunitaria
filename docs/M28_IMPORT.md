@@ -143,3 +143,8 @@ escena ningún importado, --simple deriva hasta dos consultas breves del
 título y prompt sin calificativos comunes; se prueban hasta dos candidatos
 en 180 segundos. Los manifiestos de ambas rondas se conservan para indexado.
 Los defaults históricos del CLI permanecen compatibles.
+
+La prueba de reejecución compara metadatos semánticos y valida los hashes y
+tamaños reales de cada MP4 por separado. No exige que FFmpeg produzca bytes
+idénticos entre dos codificaciones equivalentes; los IDs derivados del hash
+y las rutas asociadas se normalizan solo para esa comparación.

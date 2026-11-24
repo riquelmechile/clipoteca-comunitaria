@@ -13,14 +13,20 @@ Valida rutas, tamaños y SHA-256 del MP4, miniaturas y storyboards
 regulares y no vacíos (hasta 5 MiB por preview). Deduplica por SHA
 y Catalog.find_duplicate contra el catálogo y entre escenas; reserva
 IDs, sube assets verificados al Release de lotes y ejecuta una sola
-actualización del catálogo. Si falla, revierte únicamente assets nuevos
-no referenciados por un catálogo observado. Un reintento reutiliza
+actualización del catálogo. La simulación local revierte los assets nuevos si falla; en remoto las
+reservas se conservan para no borrar assets de un escritor concurrente. Un reintento reutiliza
 registros existentes. index.json contiene clips (mapa provisional a
 definitivo), reused_clips e indexed. La simulación escribe solo en disco.
 
 M28 no conserva hashes originales de previews: se calculan al indexar
 y se verifica el asset remoto. No hay reglas nuevas de licencias.
-La escritura requiere un único job serializado con contents: write.
+Cada corrida tiene su propio job con contents: write, sin cola cancelable.
+Se reserva cada nombre mediante POST exclusivo; si hay conflicto de nombre,
+ID o SHA, se relee el catálogo, se deduplica y se reasignan IDs (hasta seis
+intentos, backoff). Los escritores antiguos mantienen su grupo serializado;
+el PUT sigue protegido por SHA. Las reservas remotas no se borran ante errores
+porque otro escritor podría haberlas adoptado. El reintento usa otro ID;
+los artefactos de escena permiten reejecutar el job durante siete días.
 
     python -m clipoteca.studio.delivery --work work --catalog data/clips.json
 

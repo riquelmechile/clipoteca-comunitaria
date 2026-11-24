@@ -34,7 +34,7 @@ Cliente de IA / aplicación externa
 - **Python 3.13:** adaptadores externos, trabajo paralelo (`asyncio`, `httpx`), traducción offline, FFmpeg/ffprobe, hashes y GitHub API.
 - **Almacenamiento:** Releases para binarios, Git para catálogo e índices. No guardar MP4 en commits ni LFS.
 - **Mensajería mínima:** `workflow_dispatch` de GitHub. El request devuelve `202 queued` y un `request_id` determinista; Actions escribe estado duradero con el mismo ID. Si un workflow no arranca, la API refleja `queued`/`unknown` y permite reintento.
-- **Concurrencia:** búsqueda concurrente limitada, **publicación del catálogo serializada** por `concurrency.group` de Actions. Escrituras con SHA actual y reintento ante conflicto 409.
+- **Concurrencia:** búsqueda concurrente limitada, publicación tradicional serializada por `concurrency.group` de Actions; Studio indexa independientemente con reservas exclusivas de assets y reintentos de deduplicación/asignación ante conflictos. Escrituras con SHA actual.
 - **Deduplicación:** 1º `provider:source_id`; 2º SHA256 de original; 3º hash perceptual de frames muestreados. La similitud dudosa nunca fusiona automáticamente dos clips distintos sin suficientes coincidencias.
 - **Ingesta idempotente:** clave `sha256(canonical_query + filters + horizon)` para trabajos; claves permanentes `provider:id` y `video_sha256` para objetos.
 - **Observabilidad:** conteos por idioma/proveedor, encontrados, archivos obtenibles, fallidos, publicados, duplicados, uso de runner; no guardar tokens o URLs firmadas en logs.
@@ -52,7 +52,7 @@ La API responde resultados existentes inmediatamente; los nuevos aparecen al ter
 - Assets: `clip_<id>.mp4`, `thumb_<id>.webp`, con nombres deterministas.
 - `data/clips.json` como listado canónico; cuando crezca, `data/index/es/*.json` y `data/index/en/*.json` para búsqueda rápida en Workers.
 - Cada publicación primero sube el video, comprueba el asset por API y **solo después** agrega la entrada al índice.
-- Publicación de estados e índices serializada; resultados de búsqueda externos se pueden paralelizar.
+- Publicación tradicional de estados e índices serializada; el indexado de Studio utiliza reintentos optimistas y no retrasa la entrega del MP4.
 
 ## Estrategia del MVP de aporte humano
 

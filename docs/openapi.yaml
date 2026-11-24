@@ -4,7 +4,8 @@ info:
   version: 3.0.0
   description: |
     Public catalogue/search and Issue contributions. Authenticated imports use
-    a write bearer token. Video rendering uses the same token and quota; a private
+    a write bearer token. Video rendering uses the same token but a separate best-effort quota (one per
+    five minutes, 12 per UTC day per IP); a private
     capability ID authorizes status and file access. MCP uses Streamable HTTP.
 components:
   securitySchemes:
@@ -51,6 +52,7 @@ components:
             failed: {type: array, items: {type: string}}
         clips_indexed: {type: array, items: {type: string}}
         file_url: {type: string, format: uri}
+        warnings: {type: array, items: {type: string}}
     Filters:
       type: object
       additionalProperties: false
@@ -439,7 +441,7 @@ paths:
         "400": {description: Invalid request}
         "401": {description: Write token required}
         "413": {description: Request too large}
-        "429": {description: Shared import quota or upstream rate limit}
+        "429": {description: Video quota (one per 5 minutes, 12 per UTC day per IP) or upstream rate limit}
         "503": {description: Actions unavailable}
   /v1/videos/{id}:
     get:
@@ -454,7 +456,7 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/VideoStatus"}
         "400": {description: Invalid capability ID}
-        "404": {description: Video not found}
+        "404": {description: Video not found; may be transient after POST, retry status}
         "503": {description: Actions unavailable}
   /v1/videos/{id}/file:
     get:
@@ -462,9 +464,12 @@ paths:
       security: []
       parameters:
         - {name: id, in: path, required: true, schema: {type: string, pattern: "^[a-f0-9]{32}$"}}
+        - {name: Range, in: header, required: false, schema: {type: string}}
       responses:
+        "206": {description: Partial MP4 response, Content-Range and Content-Length}
+        "416": {description: Unsatisfiable or unsupported multiple byte ranges}
         "200":
-          description: Approved MP4, retained for seven days
+          description: Approved MP4, retained for seven days; supports single byte range
           content:
             video/mp4:
               schema: {type: string, format: binary}

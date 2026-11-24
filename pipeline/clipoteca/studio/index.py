@@ -242,9 +242,10 @@ def _publish_clips(storage, writer, imports, day, created, repository, token):
             else:
                 writer.update(incoming, verified_assets=verified)
     except Exception as exc:
-        # Contested writes may share a name with a legacy ingest writer. Never delete
-        # a reservation on a conflict; the next attempt re-reads the remote catalogue.
-        if _retryable(exc):
+        # Legacy ingest may adopt identical named bytes while we are uploading.
+        # In real concurrent storage, never delete reservations on errors, including
+        # ambiguous PUT outcomes. The next attempt re-reads and picks a fresh ID.
+        if isinstance(storage, IndexStorage) or _retryable(exc):
             raise
         # A lost PUT response can mean the optimistic commit actually succeeded.
         # Never delete assets referenced by an observed committed catalogue.

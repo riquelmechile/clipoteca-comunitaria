@@ -181,9 +181,11 @@ El código 3 de clip-scene indica escena sin resultado válido, no éxito.
 
 El indexado local se ejecuta antes de montaje/QA: deja el catálogo y
 assets bajo build/indexado; no escribe en GitHub. En una corrida real
-el job index serializado incorpora todos los clips válidos importados.
+el job index independiente incorpora todos los clips válidos importados,
+con reintentos por conflicto y sin bloquear assemble.
 El reporte entrega.json liga el MP4 a QA e identifica los clips usados
-y los indexados. Solo se entrega el MP4 si QA aprueba; nunca se publica
+y los indexados conocidos; indexed-clips complementa el estado cuando acaba
+el índice remoto. Solo se entrega el MP4 si QA aprueba; nunca se publica
 el video en Releases. El ejemplo manual no mide tiempos por etapa
 (el JSON vacío solo indica que no se midieron).
 Consulta [M32](M32_RENDER.md).

@@ -109,12 +109,14 @@ jq -n --slurpfile script docs/ejemplos/chile-vertical.json \
     -H 'Content-Type: application/json' --data-binary @-
 ```
 
-Consulta el `status_url` devuelto hasta que el estado sea `done`,
+Consulta el `status_url` devuelto (reintenta si recibes un 404 transitorio)
+hasta que el estado sea `done`,
 `failed` o `expired`. Descarga el MP4 desde `file_url` cuando exista.
 En MCP, llama a `render_video` con el mismo objeto script e index_clips,
 y a `get_video_status` con el id retornado. El id es una credencial de
 descarga: mantenlo privado. Los artefactos se conservan siete días.
-El token de escritura se exige para solicitar, no para consultar o descargar
+La cuota de video es de una solicitud cada cinco minutos y doce por día UTC
+por IP (best-effort). El token de escritura se exige para solicitar, no para consultar o descargar
 con el identificador. El identificador de Actions es su SHA-256, no el secreto.
 
 Consulta la [guía Studio](docs/STUDIO.md), el [workflow](docs/M32_RENDER.md)

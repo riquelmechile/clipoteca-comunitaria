@@ -286,7 +286,8 @@ Se mantiene la verificación de tamaño y hash antes y después de copiar.
 El job agrega catalog_min_sim=0.27 (provisional hasta calibrar con corridas reales).
 Una coincidencia válida con sim al menos ese umbral evita importar. En ausencia
 de coincidencia fuerte, selection conserva el mejor respaldo de catálogo y
-compara con los importados válidos por similitud, luego puntaje visual.
+elige el importado válido con mayor similitud y luego puntaje visual.
+El catálogo débil se usa únicamente si no hay ningún importado válido.
 El indexado de todos los clips que pasaron ingesta es independiente de esta elección.
 
 Si ningún importado válido aparece en la primera ronda, se prueban consultas
