@@ -36,18 +36,12 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
     (root / "result.json").unlink(missing_ok=True)
     (root / "clip.mp4").unlink(missing_ok=True)
     if phase in ("catalog", "rerun"):
-        catalog = runner(
-            job, _read(root / "assignment.json"), folders["catalog"], exclude=exclude
-        )
+        catalog = runner(job, _read(root / "assignment.json"), folders["catalog"], exclude=exclude)
     else:
         catalog = _read(folders["catalog"] / "result.json")
     imported = None
     assignment = root / "import" / "assignment.json"
-    if (
-        phase != "catalog"
-        and not catalog.get("catalog_strong")
-        and assignment.is_file()
-    ):
+    if phase != "catalog" and not catalog.get("catalog_strong") and assignment.is_file():
         imported = runner(
             job,
             _read(assignment),
@@ -79,7 +73,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         result = select_scene(args.scene, args.phase, exclude=args.exclude)
-    except (ClipSceneError, OSError, ValueError, KeyError):
+    except ClipSceneError as exc:
+        parser.exit(2, f"selection: {exc}\n")
+    except (OSError, ValueError, KeyError):
         parser.exit(2, "selection: cannot evaluate scene or invalid input\n")
     return 0 if result["status"] == "ok" else 3
 

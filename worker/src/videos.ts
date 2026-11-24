@@ -200,7 +200,7 @@ async function status(ctx: Context, run: Run, id: string, rid: string, rows: Art
       delivery.clips_indexed = data.indexed;
     }
   }
-  const file = Boolean(video && !expired(video) && delivery?.qa.pass);
+  const file = Boolean(video && !expired(video) && delivery.qa?.pass);
   const state = run.status !== "completed" ?
     (["queued","waiting","requested","pending"].includes(run.status) ? "queued" : "running") :
     file ? "done" : expired(video) || (!video && (expiredRun(run) || expired(evidence)))

@@ -1,4 +1,4 @@
-"""M32 publication contract: synthetic bytes and local or mocked GitHub APIs."""
+"""M32 indexing and delivery contract: synthetic bytes and local or mocked GitHub APIs."""
 
 import hashlib
 import json
@@ -96,8 +96,6 @@ def catalogue_record(index):
         "thumbnail_url": "https://example.invalid/thumb",
     }
     return record
-
-
 
 
 class Writer(index.DryWriter):
