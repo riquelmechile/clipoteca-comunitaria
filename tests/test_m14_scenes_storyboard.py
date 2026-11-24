@@ -271,12 +271,18 @@ def test_antialiased_drawtext_is_rejected_but_mandelbrot_survives(tmp_path):
         )
         return target
 
-    title = render(
-        "title.mp4",
-        "color=c=gray:s=320x180:r=12,"
-        "drawtext=text='TITLE':fontcolor=white:fontsize=54:borderw=2:"
-        "bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2",
-    )
+    # Static ffmpeg builds have no fontconfig: name a font file when the runner has one.
+    font = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    fontfile = f"fontfile={font}:" if font.is_file() else ""
+    try:
+        title = render(
+            "title.mp4",
+            "color=c=gray:s=320x180:r=12,"
+            f"drawtext={fontfile}text='TITLE':fontcolor=white:fontsize=54:borderw=2:"
+            "bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2",
+        )
+    except subprocess.CalledProcessError as exc:
+        pytest.skip(f"ffmpeg cannot draw text here: {exc.stderr.strip()[-160:]}")
     texture = render("texture.mp4", "mandelbrot=size=320x180:rate=12")
     with pytest.raises(SceneQualityRejected, match="minimum quality"):
         rank_scene_windows(title)
