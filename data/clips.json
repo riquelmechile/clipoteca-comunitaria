@@ -10435,5 +10435,70 @@
     },
     "status": "published",
     "created_at": "2026-11-24T23:20:09.941399Z"
+  },
+  {
+    "id": "clip-000160",
+    "title": {
+      "es": "Cerrar v\u00eddeo de una persona escribiendo en un papel",
+      "en": "Close up video of a person writing on a paper"
+    },
+    "description": {
+      "es": "Cerrar v\u00eddeo de una persona escribiendo en un papel",
+      "en": "Close up video of a person writing on a paper"
+    },
+    "tags": {
+      "es": [
+        "Cerrar",
+        "v\u00eddeo",
+        "persona",
+        "escribiendo",
+        "papel"
+      ],
+      "en": [
+        "Close",
+        "video",
+        "person",
+        "writing",
+        "paper"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "8125994",
+      "source_language": "en",
+      "source_title": "close-up-video-of-a-person-writing-on-a-paper-8125994",
+      "source_url": "https://www.pexels.com/video/close-up-video-of-a-person-writing-on-a-paper-8125994/",
+      "source_start": 6.0,
+      "source_end": 15.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1584008,
+      "sha256": "d0267073958d8417a603e613811e6b4d11a49a6d019263e581dea6c62f8c8b39",
+      "perceptual_hash": "f337d8a064992ad6~2565.12:f337d8a064992ad6~2569.34:f337d82464996ad4~2546.41:f337d824c498ead4~2508.25:f337d824c498ead4~2501.49"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000160.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000160.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000160_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000160_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000160_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000160_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000160_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000160_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T23:20:09.941399Z"
   }
 ]
