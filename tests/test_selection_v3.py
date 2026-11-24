@@ -16,7 +16,8 @@ def row(sim, score, *, strong=False):
     [
         (row(0.27, 1, strong=True), row(0.9, 9), "catalog"),
         (row(0.2424, 2.44), row(0.4, 1), "imported"),
-        (row(0.26, 3), row(0.25, 9), "catalog"),
+        (row(0.25, 3), row(0.23, 1), "imported"),
+        (row(0.26, 3), row(0.25, 9), "imported"),
         (row(0.25, 1), None, "catalog"),
         ({"status": "fail"}, row(0.3, 2), "imported"),
         (row(0.25, 1), {"status": "fail"}, "catalog"),

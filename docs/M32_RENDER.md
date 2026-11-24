@@ -19,7 +19,8 @@ El nombre de corrida es render seguido del request_id.
 - plan valida guion y asigna candidatos del catálogo.
 - voice, music y scene (matriz) corren en paralelo. Por escena, si no existe
   una coincidencia fuerte (sim ≥0,27, provisional), se importan candidatos
-  y se compara por similitud, con el catálogo válido como respaldo. La primera
+  y se elige el importado válido más pertinente; el catálogo débil solo es respaldo
+  cuando no hay ningún importado válido. La primera
   ronda reparte hasta ocho candidatos entre las consultas únicas (en, es),
   en orden, con 600 s de presupuesto. Si ningún importado supera los filtros
   de escena, una ronda adicional simplifica título y prompt, hasta dos

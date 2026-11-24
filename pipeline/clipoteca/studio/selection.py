@@ -11,17 +11,14 @@ from .clipscene import ClipSceneError, _atomic_json, clip_scene
 
 
 def choose_result(catalog, imported=None):
-    """Choose the most pertinent valid clip; visual score is the tie-breaker."""
+    """Prefer strong catalogue, then valid imports, then weak catalogue."""
     if catalog.get("status") == "ok" and catalog.get("catalog_strong"):
         return "catalog", catalog
-    valid = [
-        (name, row)
-        for name, row in (("catalog", catalog), ("imported", imported))
-        if row is not None and row.get("status") == "ok"
-    ]
-    if not valid:
-        return "imported" if imported is not None else "catalog", imported or catalog
-    return max(valid, key=lambda pair: (pair[1]["clip"]["sim"], pair[1]["clip"]["score"]))
+    if imported is not None and imported.get("status") == "ok":
+        return "imported", imported
+    if catalog.get("status") == "ok":
+        return "catalog", catalog
+    return "imported" if imported is not None else "catalog", imported or catalog
 
 
 def _read(path):
