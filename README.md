@@ -72,6 +72,32 @@ Los mismos datos están en REST bajo `/v1`: `clips`, `clips/{id}`, `clips/{id}/s
 
 Cuando el traductor falla en un idioma, la búsqueda sigue con los idiomas que sí resultaron y deja un aviso; nunca se inventa una traducción.
 
+## En construcción: de escenas a videos (v3)
+
+La versión del repositorio es **2.0.6**; la API REST y el MCP públicos siguen siendo la biblioteca v2.
+El motor de video en `pipeline/clipoteca/studio/` ya acepta un guion en español de 3 a 12 escenas, hasta 60 segundos, en 9:16, 16:9 o 1:1.
+Planifica las escenas, sintetiza voz local con control de pronunciación, obtiene tiempos por palabra y genera música sin red.
+Selecciona un clip del catálogo por escena o importa material temporal sin publicarlo.
+Ajusta los clips, mezcla el audio y compone títulos y subtítulos palabra a palabra; renderiza MP4 y lo somete a 14 compuertas de calidad.
+El módulo de publicación puede guardar los clips usados, el video y su ficha tras aprobar QA. Un workflow manual encadena todas las etapas en GitHub Actions; todavía no está validado con corridas reales ni hay un servicio que entregue videos.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-studio.svg" width="100%" alt="Flujo del motor v3: guion, plan, voz y tiempos, música, catálogo o importación temporal por escena; ajuste, mezcla, composición, render, QA y publicación. Las etapas sólidas existen en main; los bordes punteados marcan la API de video, que no existe, y el workflow de Actions, que existe pero no está validado con corridas reales." />
+</p>
+
+> **Qué funciona hoy**
+> - Las etapas del motor, ejecutadas por separado desde la línea de comandos; publicación incluida, con simulación sin red.
+> - CI con pruebas del motor y ejecuciones reales de música, render de tres escenas y layout.
+> - Un workflow manual, [`render.yml`](docs/M32_RENDER.md), que reparte voz, música y un trabajo por escena en paralelo, arma el video y corre QA. Por defecto es un ensayo: no publica nada.
+>
+> **Qué falta**
+> - Validar ese workflow con corridas reales: hasta ahora solo se comprobó fuera de Actions el tramo que arma, renderiza y revisa el video.
+> - Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
+> - Validar la importación de material nuevo de punta a punta dentro del flujo de video en Actions.
+> - Incrustar una tipografía propia, ajustar la franja del título a la posición del sujeto y publicar la versión 3.0.0.
+
+Consulta la [guía del motor](docs/STUDIO.md) y el [roadmap v3](docs/ROADMAP_V3.md).
+
 ## Fuentes: lo medido, no lo prometido
 
 Medición del 22 de noviembre de 2026 desde GitHub Actions sobre `main`, con las pruebas en vivo [45082009984](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45082009984) (búsqueda en cuatro idiomas) y [45082001946](https://github.com/riquelmechile/clipoteca-comunitaria/actions/runs/45082001946) (descarga real de un video por fuente).
@@ -97,10 +123,12 @@ Que una fuente funcione hoy no garantiza que funcione mañana: los proveedores c
 | Entender el diseño | [Arquitectura](docs/ARQUITECTURA.md) · [Especificación completa](docs/ESPECIFICACION_COMPLETA.md) |
 | Operar o desplegar | [Despliegue](docs/DESPLIEGUE.md) · [Operación v2](docs/OPERACION_V2.md) · [Proveedores](docs/PROVEEDORES.md) |
 | Ver cómo se llegó hasta aquí | [Roadmap v1](docs/ROADMAP.md) · [Roadmap v2](docs/ROADMAP_V2.md) · [Roadmap v3](docs/ROADMAP_V3.md) · [Historial de cambios](CHANGELOG.md) |
+| Ejecutar el motor de video en construcción | [Studio](docs/STUDIO.md) · [Guion de ejemplo](docs/ejemplos/guion-minimo.json) |
 | Ver todo | [Índice de documentación](docs/README.md) |
 
 ## Qué no es
 
+- Todavía no es un servicio que entregue videos por API.
 - No es un buscador de videos completos: solo escenas de hasta 20 segundos.
 - No define todavía reglas de licencias ni de uso de los clips: conserva la procedencia factual de cada uno (fuente, URL y autor cuando existe) y deja esa decisión a quien lo usa. La licencia MIT cubre el código, no los clips de terceros.
 - No promete disponibilidad de las fuentes externas.

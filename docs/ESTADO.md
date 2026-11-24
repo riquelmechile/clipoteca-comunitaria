@@ -5,6 +5,8 @@ El Worker desplegado permanece en **2.0.5** hasta un despliegue autorizado; no s
 redespliega en este cambio.
 Esta página es la referencia de estado del proyecto. Todo lo que afirma tiene una ejecución enlazada; lo que no se midió, se dice.
 
+La v3 está en construcción; ver [estado del motor](#motor-de-video-v3-en-main-sin-publicar-versión).
+
 ## Resumen
 
 | | |
@@ -26,6 +28,44 @@ Esta página es la referencia de estado del proyecto. Todo lo que afirma tiene u
 | Archivos de video | GitHub Releases |
 
 Ninguna máquina personal ni servidor propio forma parte del servicio.
+
+## Motor de video (v3), en main sin publicar versión
+
+El paquete sigue en **2.0.6**. El código de v3 está en el repositorio, no en el contrato público REST/MCP. La ejecución actual es etapa por etapa mediante CLI; consulta [STUDIO.md](STUDIO.md).
+
+| Hito | Qué entrega | Documento | Verificación en el árbol |
+|---|---|---|---|
+| M25 | Guion estricto, ID determinista; 3–12 escenas, español y tres formatos | [Roadmap](ROADMAP_V3.md) | [test_video_script_m25.py](../tests/test_video_script_m25.py) |
+| M26 | Voz local, normalización de cifras, pronunciación, tiempos por palabra | [Voz](M26_VOZ.md) | [test_voice_m26.py](../tests/test_voice_m26.py), [test_timeline_m26.py](../tests/test_timeline_m26.py), [test_textnorm_r2.py](../tests/test_textnorm_r2.py) |
+| M27 | Música offline, arreglo al compás | [Música](M27_MUSICA.md) | [test_music_m27.py](../tests/test_music_m27.py), render real de música en CI |
+| M28 | Plan, selección, encuadre, filtros, importación temporal | [Clip-scene](M28_CLIP_SCENE.md), [Importación](M28_IMPORT.md) | [test_plan_m28.py](../tests/test_plan_m28.py), [test_clipscene_m28.py](../tests/test_clipscene_m28.py), [test_import_m28.py](../tests/test_import_m28.py) |
+| M29 | Ajuste al tiempo real, mezcla medida | [Ajuste y mezcla](M29_AJUSTE_MEZCLA.md) | [test_fit_m29.py](../tests/test_fit_m29.py), [test_mix_m29.py](../tests/test_mix_m29.py) |
+| M30 | HTML con títulos y subtítulos, render MP4 | [Composición](M30_COMPOSICION.md) | [test_compose_m30.py](../tests/test_compose_m30.py), render real de tres escenas |
+| M31 | 14 compuertas QA, reporte ligado al SHA del MP4 | [QA](M31_QA.md) | [test_qa_m31.py](../tests/test_qa_m31.py), layout real en Chromium |
+| M32 (parcial) | Publicación verificada de clips usados, MP4 y ficha; simulación local. Workflow manual que encadena las etapas, sin validar con corridas reales | [Publicación](M32_PUBLICACION.md), [Workflow](M32_RENDER.md) | [test_publish_m32.py](../tests/test_publish_m32.py), API simulada sin red |
+
+El [job studio](../.github/workflows/ci.yml) instala el extra y ejecuta estos tests; sus pruebas reales son de componentes, no una prueba integral de producción.
+
+### Mediciones disponibles
+
+| Caso | Resultado | Contexto y fuente |
+|---|---|---|
+| Voz F1 | 137 caracteres en 7,47 s; aproximadamente 0,31 s de cómputo por segundo de audio | Supertonic real, velocidad 1,2; máquina y fecha no especificadas en [M26](M26_VOZ.md) |
+| Pronunciación F1 | «2.847 metros»: PER 0,16–0,21 con dígitos, 0,07–0,08 con palabras; «1960 … 9,5 grados»: 0,21–0,22 frente a 0,02–0,05 | Velocidades 1,2 y 1,05; máquina y fecha no especificadas en [M26](M26_VOZ.md) |
+| Guion de 4 escenas, 9:16, clips del catálogo | 18,6 s; render 142 s, mux 18 s, 33,9 MB | 23 de noviembre de 2026, máquina de 2 núcleos, sin tope de bitrate; [M30](M30_COMPOSICION.md) |
+| Carga de 4 escenas de 15 s, 9:16 | 60 s; render 402 s, mux 192 s, 54,6 MB | 23 de noviembre de 2026, misma máquina, clips repetidos y tope de bitrate 10 Mbps; [M30](M30_COMPOSICION.md) |
+| Render real de 3 escenas en CI | 35 s en la primera corrida | GitHub Actions, evidencia consignada en [M30](M30_COMPOSICION.md) (sin ID ni fecha separada) |
+
+Los dos casos locales de M30 usaron HyperFrames 0.9.36 y GSAP 3.15.1. No son una medida de latencia del futuro servicio. No hay tiempos/RMS publicados por mood en [M27](M27_MUSICA.md), ni mediciones completas de ajuste y mezcla en [M29](M29_AJUSTE_MEZCLA.md), ni tabla completa de las diez voces.
+
+### Qué falta
+
+- Validar con corridas reales el workflow [render.yml](M32_RENDER.md), que ya encadena las etapas, repite escenas con clip repetido y serializa la publicación. Fuera de Actions solo se comprobó el tramo que arma, renderiza y revisa el video.
+- Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
+- Importar material nuevo dentro del flujo de video y validarlo de punta a punta en Actions.
+- Tipografía propia incrustada y franja de título adaptada al sujeto.
+- Validación integral de los tres formatos, tiempos y costos por etapa, y versión 3.0.0.
+- Hashes de miniaturas/storyboards desde M28 y reserva de ID para storyboards huérfanos tras rollback (ver [M32](M32_PUBLICACION.md)).
 
 ## Verificación de la versión 2.0.6
 

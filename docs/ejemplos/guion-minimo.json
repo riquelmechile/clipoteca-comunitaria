@@ -1,0 +1,56 @@
+{
+  "title": "El ciclo del agua",
+  "aspect": "9:16",
+  "language": "es",
+  "music": {
+    "mood": "chill",
+    "bpm": 120
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Agua en movimiento",
+      "say": "El agua cambia de lugar y de estado.",
+      "query": {
+        "es": [
+          "rio agua"
+        ],
+        "en": [
+          "flowing river"
+        ]
+      },
+      "prompt": "A natural flowing river"
+    },
+    {
+      "id": "nubes",
+      "type": "fact",
+      "title": "Tres estados",
+      "say": "El agua puede estar en 3 estados.",
+      "query": {
+        "es": [
+          "nubes cielo"
+        ],
+        "en": [
+          "clouds sky"
+        ]
+      },
+      "prompt": "Moving clouds above a landscape"
+    },
+    {
+      "id": "lluvia",
+      "type": "outro",
+      "title": "Vuelve a caer",
+      "say": "La lluvia devuelve agua a la tierra.",
+      "query": {
+        "es": [
+          "lluvia bosque"
+        ],
+        "en": [
+          "rain forest"
+        ]
+      },
+      "prompt": "Rain falling on a forest"
+    }
+  ]
+}

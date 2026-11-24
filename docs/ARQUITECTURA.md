@@ -63,3 +63,48 @@ La API responde resultados existentes inmediatamente; los nuevos aparecen al ter
 ## Riesgos de plataforma a evaluar antes de escalar
 
 Releases es un mecanismo de distribución de software y GitHub puede limitar patrones de uso excesivos. No es almacenamiento multimedia infinito garantizado. Objetivo de costo $0 es condicional: acciones gratuitas en repos públicos estándar, Workers dentro de cuota y proveedores sin costes externos. Si hay restricciones, el adaptador `storage` se cambia sin afectar a MCP/API.
+
+## Motor de video (studio)
+
+El motor v3 no es un segundo servicio desplegado. Se ejecuta por etapas,
+con archivos como contrato entre módulos: a mano desde un checkout o con
+el workflow manual [render.yml](M32_RENDER.md), que reparte las etapas en
+jobs y pasa los archivos por artefactos.
+El [job studio](../.github/workflows/ci.yml) comprueba componentes en
+Actions, con permiso de lectura; no publica videos.
+
+| Módulo | Responsabilidad |
+|---|---|
+| `script` | Validación, defaults, ID determinista y estimación |
+| `plan`, `library` | Plan por escena y asignación local del catálogo |
+| `voice`, `phon`, `textnorm`, `timeline` | Síntesis local, control de pronunciación, cifras y tiempos por palabra |
+| `music` | Música offline con Chromium y arreglo a la línea de tiempo |
+| `clipscene`, `clipscore`, `windows`, `framing`, `checks` | Selección de tramo, encuadre, OCR, calidad y conflictos entre escenas |
+| `importer` | Ingesta temporal si falta material, con escritores locales |
+| `fit`, `mix` | Ajuste a duración real, mezcla y medición de sonoridad |
+| `compose` | HTML, GSAP, render HyperFrames y mux FFmpeg |
+| `qa` | 14 compuertas; liga el resultado al hash del MP4 |
+| `publish` | Publicación verificada, ficha final y simulación local |
+
+Los modelos de Supertonic 3, wav2vec2 fonético y CLIP ViT-B/32 ONNX int8
+se fijan por tamaño y SHA-256 en [models.json](../pipeline/clipoteca/studio/models.json),
+con assets del Release `models-v1`; Whisper small tiene revisión fija
+en Hugging Face e inferencia int8. El extra `studio` fija las versiones
+de ejecución en [pyproject.toml](../pyproject.toml). HyperFrames 0.9.36
+y GSAP 3.15.1 se obtienen de npm; GSAP se verifica por hash y no se incluye
+en el repositorio. Tone.js 15.1.22 está incluido como bundle local.
+
+Importar una escena no escribe en Git ni en Releases: el catálogo y los
+assets son locales hasta que se apruebe QA. La publicación vuelve a validar
+el hash del video y solo incorpora material importado que se usó realmente,
+en un solo commit de catálogo; escribe la ficha del video al final.
+Requiere un escritor único.
+
+**Workflow de render:** valida el guion, ejecuta voz, música y un job por
+escena en paralelo, pasa archivos por artefactos, ensambla, repite las
+escenas que eligieron un clip repetido y publica con concurrencia
+serializada solo si se pide y QA aprueba. Existe en main pero no está
+validado con corridas reales. Falta la parte REST/MCP de video que lo
+despache.
+La [guía Studio](STUDIO.md) describe el recorrido manual actual; el
+[roadmap v3](ROADMAP_V3.md) conserva el plan.
