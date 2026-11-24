@@ -309,6 +309,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
       stages: z.record(z.string(), z.unknown()).optional(),
       qa: z.object({pass:z.boolean(),failed:z.array(z.string())}).optional(),
       clips_indexed: z.array(z.string()).optional(), file_url: z.string().optional(),
+      warnings: z.array(z.string()).optional(),
     }),
     annotations: {readOnlyHint: true, openWorldHint: true},
   }, async ({id}) => restResult(toolRequest("/v1/videos/" + id, "GET"), env));

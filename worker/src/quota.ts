@@ -22,8 +22,21 @@ export async function quota(request: Request, scope: string): Promise<boolean> {
       .map(n => n.toString(16).padStart(2, "0")).join("");
     const key = new Request("https://clipoteca.invalid/_quota/" + scope + "/" + id);
     if (await cache.match(key)) return false;
+    if (scope === "video") {
+      const now = new Date();
+      const day = now.toISOString().slice(0, 10);
+      const daily = new Request(key.url + "/" + day);
+      const prior = await cache.match(daily);
+      const count = prior ? Number(await prior.clone().text()) : 0;
+      if (!Number.isInteger(count) || count < 0 || count >= 12) return false;
+      const midnight = Date.parse(day + "T00:00:00Z") + 86400000;
+      const ttl = Math.max(1, Math.ceil((midnight - now.getTime()) / 1000));
+      await cache.put(daily, new Response(String(count + 1), {
+        headers: {"cache-control": "public, max-age=" + ttl},
+      }));
+    }
     await cache.put(key, new Response("1", {
-      headers: {"cache-control": "public, max-age=15"},
+      headers: {"cache-control": "public, max-age=" + (scope === "video" ? 300 : 15)},
     }));
     return true;
   } catch {

@@ -91,7 +91,7 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
   }
   const script = JSON.stringify(raw.script);
   if (script.length > 60_000) return error("body_too_large", 413);
-  if (!await quota(request, "import")) return error("rate_limited", 429);
+  if (!await quota(request, "video")) return error("rate_limited", 429);
   const id = Array.from(crypto.getRandomValues(new Uint8Array(16)),
     b => b.toString(16).padStart(2,"0")).join("");
   const response = await github(ctx, "/actions/workflows/render.yml/dispatches", {
