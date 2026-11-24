@@ -33,6 +33,78 @@ def _values(value: object) -> list[str]:
     return []
 
 
+# Known geographic entities plus explicit multi-word title-cased names in queries.
+# Match full token sequences, never a single component such as "Nui".
+_STOP = frozenset(
+    "a an the of in on at and or with from for to is by as footage video view "
+    "el la los las de del en y o con por para un una al a que es vista imagen".split()
+)
+_PLACE_NAMES = (
+    "rapa nui",
+    "easter island",
+    "isla de pascua",
+    "valparaiso",
+    "atacama",
+    "torres del paine",
+    "paine",
+    "chiloe",
+    "perito moreno",
+    "patagonia",
+    "santiago",
+    "antofagasta",
+    "punta arenas",
+)
+_NAME_SEQUENCE = re.compile(r"\b[A-Z\u00c0-\u00de][\w]+(?:\s+[A-Z\u00c0-\u00de][\w]+)+")
+
+
+def query_names(queries):
+    names = set()
+    for query in queries:
+        folded = " ".join(_words(query))
+        for name in _PLACE_NAMES:
+            if f" {name} " in f" {folded} ":
+                names.add(name)
+        # Internal capitalized proper names; sentence-initial single words
+        # are ambiguous, so require a known entity or a multi-word sequence.
+        if not query.isupper():
+            for match in _NAME_SEQUENCE.finditer(query):
+                names.add(" ".join(_words(match.group())))
+    return {
+        name
+        for name in names
+        if not any(name != other and f" {name} " in f" {other} " for other in names)
+    }
+
+
+def name_match(clip, queries, *, source_only=False):
+    names = query_names(queries)
+    if not names:
+        return False
+    fragments = _values(clip.get("title"))
+    if not source_only:
+        fragments += _values(clip.get("description")) + _values(clip.get("tags"))
+    source = clip.get("source") or {}
+    fragments += _values(source.get("source_title"))
+    return any(
+        f" {name} " in f" {' '.join(_words(fragment))} " for name in names for fragment in fragments
+    )
+
+
+def sufficient_query_match(clip, queries):
+    source = clip.get("source") or {}
+    fragments = _values(clip.get("title")) + _values(source.get("source_title"))
+    tokens = {word for fragment in fragments for word in _words(fragment)}
+    names = query_names(queries)
+    if names and not name_match(clip, queries, source_only=True):
+        return False
+    for query in queries:
+        terms = set(_words(query)) - _STOP
+        required = 1 if len(terms) <= 2 else 2
+        if terms and len(terms & tokens) >= required:
+            return True
+    return False
+
+
 def _valid_clip(clip: object) -> bool:
     if not isinstance(clip, dict) or not isinstance(clip.get("id"), str):
         return False

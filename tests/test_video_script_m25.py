@@ -257,3 +257,12 @@ def test_parsed_script_survives_asdict_and_deepcopy() -> None:
         script.voice.lexicon["nuevo"] = "valor"  # type: ignore[index]
     with pytest.raises(AttributeError):
         script.voice.lexicon._data = {}  # type: ignore[misc]
+
+
+def test_render_estimate_includes_timeline_padding_and_beats():
+    from clipoteca.studio.plan import build_plan
+
+    script = parse_video_script(read_fixture("valid_full.json"))
+    estimate = estimate_durations(script, include_render=True)
+    assert estimate["render_total"] == build_plan(script)["total_est"]
+    assert estimate["render_total"] > estimate["total"]

@@ -299,3 +299,40 @@ async def test_remote_ssrf_rejected_without_network():
 
         with pytest.raises(UnsafeMediaURL):
             await detect_scenes_async("https://localhost/secret.mp4", client=client)
+
+
+@pytest.mark.asyncio
+async def test_async_scene_detection_cancellation_reaps_child(tmp_path, monkeypatch):
+    import asyncio
+
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"local")
+
+    started = asyncio.Event()
+
+    class SlowProcess:
+        returncode = None
+
+        async def communicate(self):
+            started.set()
+            if self.returncode is None:
+                await asyncio.Event().wait()
+            return b"", b""
+
+        def kill(self):
+            self.returncode = -9
+
+    child = SlowProcess()
+
+    async def spawn(*args, **kwargs):
+        assert str(source) in args
+        return child
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", spawn)
+    task = asyncio.create_task(detect_scenes_async(source))
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert child.returncode == -9
+    assert source.read_bytes() == b"local"

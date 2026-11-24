@@ -90,6 +90,7 @@ class Adapter(ABC):
     name: str
     category: str = "video"
     accepts_text_languages: tuple[str, ...] = ("es", "en", "zh", "ru")
+    discovery_priority: int = 0
     rate_limit: int | None = None
     auth: str = "none"
     support_status: SupportStatus = SupportStatus.SUPPORTED_SEARCH_ONLY

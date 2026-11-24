@@ -483,6 +483,27 @@ def test_real_playwright_detects_outsafe_and_overlap(tmp_path: Path):
     assert any(p.get("outSafe") for p in result["problems"])
     assert any(p.get("overlap") for p in result["problems"])
 
+    from clipoteca.studio.compose import CONFIG, _caption_chunks, _caption_html
+
+    words = ["ascensores", "y", "miradores", "desafortunadamente", "internacionalizaci\u00f3n"]
+    rows = [{"vo": 0, "words": [(word, i, i + 0.8) for i, word in enumerate(words)]}]
+    for aspect, layout in CONFIG.items():
+        chunks = _caption_chunks(rows, 6, layout["cap"][1], layout["cap"][3])
+        (root / "index.html").write_text(
+            "<html><head><style>*{margin:0;padding:0;box-sizing:border-box}</style></head>"
+            "<body>"
+            + _caption_html(chunks, layout)
+            + "<script>window.__timelines={main:{seek(){}}}</script></body></html>",
+            encoding="utf-8",
+        )
+        result = qa.layout_playwright(
+            root,
+            {"scenes": [{"start": 0, "len": 6}]},
+            [["caption", chunk["start"]] for chunk in chunks],
+            aspect,
+        )
+        assert result["pass"], (aspect, result["problems"])
+
 
 def test_clips_unique_fails_closed_without_results_or_phash():
     """Orchestrator review: an empty or hash-less result set was never deduplicated."""

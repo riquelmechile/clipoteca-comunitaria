@@ -119,21 +119,33 @@ def _wall_deadline(seconds):
     if (
         not hasattr(signal, "setitimer")
         or threading.current_thread() is not threading.main_thread()
-        or signal.getitimer(signal.ITIMER_REAL)[0]
+        or any(signal.getitimer(signal.ITIMER_REAL))
     ):
         yield
         return
 
+    active = True
+
     def expire(_signum, _frame):
-        raise _SceneDeadline()
+        if active:
+            raise _SceneDeadline()
 
     previous = signal.signal(signal.SIGALRM, expire)
     try:
-        signal.setitimer(signal.ITIMER_REAL, max(0.001, seconds))
-        yield
+        try:
+            signal.setitimer(signal.ITIMER_REAL, max(0.001, seconds))
+            yield
+        finally:
+            active = False
+            signal.setitimer(signal.ITIMER_REAL, 0)
     finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous)
+        # The outer guard also runs if the alarm interrupts entry into the
+        # inner finally. Ignore any already-dispatched alarm during cleanup.
+        active = False
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+        finally:
+            signal.signal(signal.SIGALRM, previous)
 
 
 @contextmanager
@@ -421,6 +433,9 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 "clip_id": item["imp_id"],
                 "score": score,
                 "matched": matched,
+                "name_match": library.name_match(
+                    item["record"], job["queries"]["es"] + job["queries"]["en"]
+                ),
                 "duration": item["duration"],
                 "width": item["width"],
                 "height": item["height"],
@@ -431,7 +446,9 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 "local_path": item["local_path"],
             }
         )
-    scored.sort(key=lambda x: (-x["score"], abs(x["duration"] - length), x["clip_id"]))
+    scored.sort(
+        key=lambda x: (not x["name_match"], -x["score"], abs(x["duration"] - length), x["clip_id"])
+    )
     return {
         "id": job["id"],
         "status": "imported" if scored else "needs_import",

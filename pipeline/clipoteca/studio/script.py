@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import unicodedata
 from dataclasses import dataclass, fields, is_dataclass
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
@@ -110,6 +111,7 @@ class VideoScript:
 class DurationEstimate(TypedDict):
     scenes: dict[str, float]
     total: float
+    render_total: NotRequired[float]
 
 
 def _path(parts: list[object]) -> str:
@@ -232,11 +234,21 @@ def parse_video_script(data: object) -> VideoScript:
     )
 
 
-def estimate_durations(script: VideoScript) -> DurationEstimate:
+def rendered_scene_length(duration: float, kind: str, beat: float) -> float:
+    """Use the exact padding/minimum and quantization of the real timeline."""
+    extra = 1.2 if kind == "outro" else 0.6
+    minimum = 3.5 if kind == "outro" else 4 * beat
+    pulses = max(math.ceil((duration + extra) / beat - 1e-9), math.ceil(minimum / beat - 1e-9))
+    return round(pulses * beat, 6)
+
+
+def estimate_durations(script: VideoScript, *, include_render: bool = False) -> DurationEstimate:
     """Seconds per scene and total, each rounded to 2 decimals.
 
-    SEC_PER_CHAR=0.065 is provisional, inherited from the original engine;
-    M26 recalibrates it against real generated speech measurements.
+    The existing speech-only estimate is preserved; use rendered_scene_length
+    for projected video duration, including inter-scene padding and outro tail.
+    The real run 45322952524 had a 7.5 s gap between the speech estimate and
+    rendered total; without per-line WAV measurements we cannot fit a new rate.
     """
     # Measure the text the engine will actually speak: digits and lexicon entries expand
     # ("4.300" is five characters but four spoken words), exactly as voice.py renders them.
@@ -245,7 +257,13 @@ def estimate_durations(script: VideoScript) -> DurationEstimate:
     for scene in script.scenes:
         spoken = spell_numbers(apply_lexicon(scene.say, lexicon), script.language)
         durations[scene.id] = round(max(1.5, len(spoken) * SEC_PER_CHAR / script.voice.speed), 2)
-    return {"scenes": durations, "total": round(sum(durations.values()), 2)}
+    estimate: DurationEstimate = {"scenes": durations, "total": round(sum(durations.values()), 2)}
+    if include_render:
+        beat = 60 / script.music.bpm
+        estimate["render_total"] = round(
+            sum(rendered_scene_length(durations[s.id], s.type, beat) for s in script.scenes), 2
+        )
+    return estimate
 
 
 def _plain(value: object) -> object:

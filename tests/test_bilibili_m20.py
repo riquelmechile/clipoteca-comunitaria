@@ -480,3 +480,58 @@ async def test_dash_ffmpeg_protocol_restricted_and_absent_is_download_error(tmp_
             tmp_path,
             **kwargs,
         )
+
+
+@pytest.mark.asyncio
+async def test_dash_cancel_reaps_child_and_removes_partial(tmp_path, monkeypatch):
+    import asyncio
+
+    from clipoteca.security import download as module
+
+    output = tmp_path / "dash-muxed.mp4"
+
+    started = asyncio.Event()
+
+    class SlowProcess:
+        returncode = None
+
+        async def communicate(self):
+            started.set()
+            if self.returncode is None:
+                await asyncio.Event().wait()
+            return b"", b""
+
+        def kill(self):
+            self.returncode = -9
+
+    child = SlowProcess()
+    paths = []
+
+    async def fake_download(url, target_dir, **kwargs):
+        path = target_dir / f"input-{len(paths)}.mp4"
+        path.write_bytes(b"input")
+        paths.append(path)
+        return path
+
+    async def spawn(*args, **kwargs):
+        output.write_bytes(b"partial")
+        return child
+
+    monkeypatch.setattr(module, "download_media", fake_download)
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", spawn)
+    task = asyncio.create_task(
+        module.download_dash(
+            "https://example.org/video",
+            "https://example.org/audio",
+            tmp_path,
+            allowed_hosts=("example.org",),
+            referer="https://example.org/",
+        )
+    )
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert child.returncode == -9
+    assert not output.exists()
+    assert not any(path.exists() for path in paths)

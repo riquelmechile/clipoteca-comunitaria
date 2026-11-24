@@ -516,7 +516,9 @@ def clip_scene(
     source += list(assignment.get("backups", []))
     skipped = set(exclude)
     evaluators_ready = False
-    ranked = "catalog_min_sim" in job
+    ranked = "catalog_min_sim" in job or any(
+        isinstance(candidate, dict) and candidate.get("name_match") for candidate in source
+    )
     best = None
     try:
         resolved_root = Path(local_root).resolve() if local_root is not None else None
@@ -591,12 +593,29 @@ def clip_scene(
                     imported = result.get("imported", False)
                     report["source"] = "imported" if imported else "catalog"
                     report["catalog_strong"] = not imported and (
-                        result["sim"] >= job["catalog_min_sim"]
+                        result["sim"] >= job.get("catalog_min_sim", 0.27)
                     )
-                    if best is None or (result["sim"], result["score"]) > (
-                        best["clip"]["sim"],
-                        best["clip"]["score"],
-                    ):
+                    if imported:
+                        result["name_match"] = bool(candidate.get("name_match"))
+                    prefer = best is None
+                    if best is not None:
+                        previous = best["clip"]
+                        if imported and previous.get("imported", False):
+                            prefer = (
+                                result["name_match"],
+                                result["sim"],
+                                result["score"],
+                            ) > (
+                                previous.get("name_match", False),
+                                previous["sim"],
+                                previous["score"],
+                            )
+                        else:
+                            prefer = (result["sim"], result["score"]) > (
+                                previous["sim"],
+                                previous["score"],
+                            )
+                    if prefer:
                         os.replace(rendered, final_clip)
                         best = report
                     if report["catalog_strong"]:

@@ -660,3 +660,41 @@ async def test_rutube_429_retries_retry_after_even_with_json_detail(monkeypatch)
         )
     assert result == {"results": []}
     assert len(calls) == 2 and pauses == [0.2]
+
+
+@pytest.mark.asyncio
+async def test_remux_cancel_reaps_child_and_removes_partial(tmp_path, monkeypatch):
+    import asyncio
+
+    from clipoteca.security.hls import _run_remux
+
+    output = tmp_path / "partial.mp4"
+
+    started = asyncio.Event()
+
+    class SlowProcess:
+        returncode = None
+
+        async def communicate(self):
+            started.set()
+            if self.returncode is None:
+                await asyncio.Event().wait()
+            return b"", b""
+
+        def kill(self):
+            self.returncode = -9
+
+    child = SlowProcess()
+
+    async def spawn(*args, **kwargs):
+        output.write_bytes(b"partial")
+        return child
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", spawn)
+    task = asyncio.create_task(_run_remux(["ffmpeg", str(output)]))
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert child.returncode == -9
+    assert not output.exists()

@@ -197,6 +197,7 @@ async def download_dash(
     )
     audio: Path | None = None
     output = target_dir / "dash-muxed.mp4"
+    completed = False
     try:
         audio = await download_media(
             audio_url,
@@ -264,8 +265,11 @@ async def download_dash(
             raise DownloadError("DASH mux failed")
         if output.stat().st_size <= 0 or output.stat().st_size > max_bytes:
             raise DownloadError("DASH mux size invalid")
+        completed = True
         return output
     finally:
+        if not completed:
+            output.unlink(missing_ok=True)
         video.unlink(missing_ok=True)
         if audio is not None:
             audio.unlink(missing_ok=True)

@@ -441,11 +441,18 @@ async def _run_remux(command):
     try:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=180)
     except BaseException:
-        if proc.returncode is None:
-            proc.kill()
-        await proc.communicate()
+        try:
+            if proc.returncode is None:
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
+            await proc.communicate()
+        finally:
+            Path(command[-1]).unlink(missing_ok=True)
         raise
     if proc.returncode:
+        Path(command[-1]).unlink(missing_ok=True)
         raise subprocess.CalledProcessError(
             proc.returncode, command, stderr=stderr.decode(errors="replace")
         )
