@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from clipoteca.studio.clipscene import ClipSceneError, clip_scene, main
-from clipoteca.studio import checks
+from clipoteca.studio import checks, clipscene, clipscore
 
 FFMPEG = bool(shutil.which("ffmpeg") and shutil.which("ffprobe"))
 
@@ -380,6 +380,8 @@ def test_local_path_traversal_is_explicitly_rejected(
         {"status": "imported", "primary": candidate, "backups": []},
         tmp_path / "out",
         local_root=root,
+        scorer=FakeScorer(),
+        ocr=lambda _: [],
     )
     assert report["status"] == "fail"
     assert report["tried"] == [{"clip_id": "imp-bad", "reason": "bad_local_path"}]
@@ -410,5 +412,184 @@ def test_local_symlink_and_duplicate_asset_selectors_rejected(tmp_path: Path):
             {"status": "imported", "primary": candidate, "backups": []},
             tmp_path / ("out-" + candidate["clip_id"]),
             local_root=root,
+            scorer=FakeScorer(),
+            ocr=lambda _: [],
         )
         assert report["tried"] == [{"clip_id": candidate["clip_id"], "reason": reason}]
+
+
+@pytest.mark.parametrize(
+    "floor, scores, expected",
+    [
+        (None, [-1.846, 2.0], "backup"),
+        (0.0, [-1.846, -0.1], "fail"),
+        (-2.0, [-1.846, 2.0], "primary"),
+    ],
+)
+def test_score_floor(source_clip, tmp_path, monkeypatch, floor, scores, expected):
+    job = _job("1:1", 3)
+    if floor is not None:
+        job["min_score"] = floor
+    values = iter(scores)
+
+    def choose(*args, **kwargs):
+        return {"score": next(values), "start": 0.0, "sim": 0.2756, "prob": 0.853}, "ok"
+
+    monkeypatch.setattr(clipscene, "choose_window", choose)
+    report = clip_scene(
+        job,
+        {
+            "status": "catalog",
+            "primary": _candidate(source_clip),
+            "backups": [_candidate(source_clip, "clip-b")],
+        },
+        tmp_path,
+        fetch=_fetch(source_clip),
+        scorer=FakeScorer(),
+        ocr=lambda _: [],
+    )
+    if expected == "fail":
+        assert report["reason"] == "no_candidate"
+        assert [item["reason"] for item in report["tried"]] == ["low_score", "low_score"]
+    else:
+        assert report["status"] == "ok"
+        assert report["used"] == expected
+        assert [item["reason"] for item in report["tried"]] == (
+            ["low_score"] if expected == "backup" else []
+        )
+
+
+@pytest.mark.parametrize("value", [True, "0", None, float("nan"), float("inf")])
+def test_invalid_min_score(value, tmp_path):
+    with pytest.raises(ClipSceneError, match="min_score"):
+        clip_scene({**_job(), "min_score": value}, {"status": "needs_import"}, tmp_path)
+
+
+def _cli_args(tmp_path, candidate, *, local_root=None):
+    job, assignment = tmp_path / "job.json", tmp_path / "assignment.json"
+    job.write_text(json.dumps(_job()), encoding="utf-8")
+    assignment.write_text(
+        json.dumps({"status": "imported" if local_root else "catalog", "primary": candidate}),
+        encoding="utf-8",
+    )
+    args = ["--job", str(job), "--assignment", str(assignment), "--out", str(tmp_path / "out")]
+    if local_root is not None:
+        args.extend(["--local-root", str(local_root)])
+    return args
+
+
+@pytest.mark.parametrize("failure", ["scorer", "import", "ocr"])
+def test_evaluator_error_is_not_no_candidate(tmp_path, monkeypatch, capsys, failure):
+    original_import = clipscene.importlib.import_module
+
+    def fake_import(name, *args, **kwargs):
+        if name == "cv2":
+            if failure == "import":
+                raise ImportError("private path /secret/model", name="cv2")
+            return object()
+        return original_import(name, *args, **kwargs)
+
+    class BrokenScorer:
+        def __init__(self, _path):
+            if failure == "scorer":
+                raise clipscore.ClipScoreError("missing local CLIP assets at /secret/model")
+
+        def _sess(self):
+            return {}
+
+    def broken_ocr():
+        raise RuntimeError("private path /secret/model")
+
+    monkeypatch.setattr(clipscene.importlib, "import_module", fake_import)
+    monkeypatch.setattr(clipscore, "ClipScorer", BrokenScorer)
+    monkeypatch.setattr(checks, "get_ocr", broken_ocr)
+    candidate = {"clip_id": "clip-a", "asset_url": "https://example.invalid/a.mp4"}
+    args = _cli_args(tmp_path, candidate)
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "result.json").write_text('{"status":"ok"}', encoding="utf-8")
+    with pytest.raises(ClipSceneError, match="CLIPOTECA_STUDIO_MODELS"):
+        clip_scene(_job(), {"status": "catalog", "primary": candidate}, out)
+    assert not (out / "result.json").exists()
+    (out / "result.json").write_text('{"status":"ok"}', encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        main(args)
+    assert exc.value.code == 2
+    error = capsys.readouterr().err
+    assert "CLIPOTECA_STUDIO_MODELS" in error and "--extra studio" in error
+    assert "/secret/model" not in error
+    assert not (out / "result.json").exists()
+    expected = {
+        "scorer": "vision_model_quantized.onnx",
+        "import": "cv2",
+        "ocr": "rapidocr_onnxruntime",
+    }
+    assert expected[failure] in error
+
+
+@pytest.mark.parametrize(
+    "exception, reason",
+    [
+        (checks.DecodeError("hidden path"), "decode_failed"),
+        (checks.InspectionTimeout("hidden path"), "timeout"),
+        (ValueError("hidden path"), "processing_failed"),
+    ],
+)
+def test_precise_candidate_failure(tmp_path, monkeypatch, exception, reason):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"verified bytes")
+
+    def fail(*args, **kwargs):
+        raise exception
+
+    monkeypatch.setattr(checks, "probe_video", fail)
+    report = clip_scene(
+        _job(),
+        {"status": "catalog", "primary": _candidate(source)},
+        tmp_path / "out",
+        fetch=_fetch(source),
+        scorer=FakeScorer(),
+        ocr=lambda _: [],
+    )
+    assert report["tried"] == [{"clip_id": "clip-a", "reason": reason}]
+    assert "hidden path" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("bad", [False, True])
+def test_cli_local_root(source_clip, tmp_path, monkeypatch, bad):
+    actual = tmp_path / "actual"
+    root = actual / "local"
+    root.mkdir(parents=True)
+    shutil.copyfile(source_clip, root / "clip.mp4")
+    alias = tmp_path / "alias"
+    alias.symlink_to(actual, target_is_directory=True)
+    candidate = _candidate(source_clip, "imp-0123456789ab")
+    candidate.pop("asset_url")
+    candidate["local_path"] = "../clip.mp4" if bad else "clip.mp4"
+    monkeypatch.setattr(
+        clipscene, "_initialize_evaluators", lambda *_: (FakeScorer(), lambda _: [])
+    )
+    args = _cli_args(tmp_path, candidate, local_root=alias / "local")
+    assert main(args) == (3 if bad else 0)
+    report = json.loads((tmp_path / "out" / "result.json").read_text())
+    if bad:
+        assert report["tried"] == [{"clip_id": candidate["clip_id"], "reason": "bad_local_path"}]
+    else:
+        assert report["clip"]["imported"] is True
+        assert report["clip"]["local_path"] == "clip.mp4"
+
+
+def test_preview_analysis_cap(source_clip, tmp_path, monkeypatch):
+    # The actual short source is enough to verify the reported truncation contract.
+    monkeypatch.setattr(clipscene, "MAX_ANALYZED_SECONDS", 5.0)
+    report = clip_scene(
+        _job("1:1", 3),
+        {"status": "catalog", "primary": _candidate(source_clip)},
+        tmp_path,
+        fetch=_fetch(source_clip),
+        scorer=FakeScorer(),
+        ocr=lambda _: [],
+    )
+    assert report["status"] == "ok"
+    assert report["analyzed_s"] == 5.0
+    assert report["clip"]["start"] + report["clip"]["len"] <= 5.0
