@@ -48,22 +48,33 @@ class SceneBudget:
         media = record["media"]
         return self.valid_media(media["duration_seconds"], media["width"], media["height"])
 
+    def _unique_valid(self):
+        seen = set()
+        for record in self.records:
+            if not self.valid(record):
+                continue
+            digest = str(record["media"].get("sha256") or id(record)).lower()
+            if digest not in seen:
+                seen.add(digest)
+                yield record
+
     def valid_count(self):
-        return sum(self.valid(record) for record in self.records)
+        return sum(1 for _ in self._unique_valid())
 
     def good(self, record):
         # Ingest's localized tags include the search query itself. Counting those
         # would make every hit look relevant. Use the actual source/title instead.
+        queries = self.job["queries"]
+        relevant = library.sufficient_query_match(record, queries["es"] + queries["en"])
         score, _ = library.text_score(
             {"title": record.get("title"), "source": record.get("source")},
-            self.job["queries"]["es"],
-            self.job["queries"]["en"],
-            self.job.get("avoid", []),
+            queries["es"], queries["en"], self.job.get("avoid", []),
         )
         return (
             self.valid(record)
             and record["media"]["duration_seconds"] >= self.job["len_fetch"]
-            and score > 0
+            and relevant
+            and (score > 0 or not self.job.get("avoid"))
         )
 
     def reason(self):
@@ -71,7 +82,7 @@ class SceneBudget:
             return "timeout"
         if self.valid_count() >= self.maximum:
             return "max_results"
-        if self.enough and sum(self.good(record) for record in self.records) >= self.enough:
+        if self.enough and sum(self.good(record) for record in self._unique_valid()) >= self.enough:
             return "enough"
         return None
 
@@ -81,7 +92,6 @@ def _ordered(adapters):
         adapters,
         key=lambda adapter: (
             adapter.support_status != _DOWNLOAD,
-            adapter.name != "pexels",
             -int(getattr(adapter, "discovery_priority", 0)),
             adapter.name == "youtube",
         ),

@@ -216,13 +216,17 @@ def _caption_chunks(
     width: int,
     cap_font: int,
 ) -> list[dict[str, Any]]:
-    max_chars = max(1, int(width / (cap_font * 0.62)))
+    # Budget for bold glyphs, individual margins, pill padding and rounding.
+    def units(words):
+        return sum(len(word) + 0.4 for word in words) + 0.8
+
+    max_chars = (width - 8) / cap_font
     groups: list[list[tuple[str, float, float]]] = []
     for row in rows:
         current: list[tuple[str, float, float]] = []
         for word, relative_start, relative_end in row["words"]:
             value = (word, float(row["vo"]) + relative_start, float(row["vo"]) + relative_end)
-            if current and sum(len(w[0]) + 1 for w in current) + len(word) > max_chars:
+            if current and units([w[0] for w in current] + [word]) > max_chars:
                 groups.append(current)
                 current = []
             current.append(value)
@@ -240,18 +244,28 @@ def _caption_chunks(
         if not math.isfinite(duration) or duration <= 0:
             raise ComposeError("caption timing is invalid")
         chunks.append(
-            {"words": group, "start": start, "end": start + duration, "duration": duration}
+            {
+                "words": group,
+                "start": start,
+                "end": start + duration,
+                "duration": duration,
+                "font_size": max(30, min(cap_font, int((width - 8) / units(
+                    [word for word, _, _ in group]
+                )))),
+            }
         )
     return chunks
 
 
 def _caption_html(chunks: list[dict[str, Any]], layout: dict[str, Any]) -> str:
-    left, width, top, size = layout["cap"]
+    left, width, top, default_size = layout["cap"]
     segments = []
     for index, chunk in enumerate(chunks):
+        size = chunk.get("font_size", default_size)
         words = "".join(
             f'<span id="w{index}_{i}" class="cw" '
-            f'style="display:inline-block;margin:0 {int(size * 0.2)}px">'
+            f'style="display:inline-block;margin:0 {int(size * 0.2)}px;'
+            f'max-width:{width - int(size * 1.2) - 8}px;overflow-wrap:anywhere">'
             f"{html.escape(text, quote=True)}</span>"
             for i, (text, _, _) in enumerate(chunk["words"])
         )

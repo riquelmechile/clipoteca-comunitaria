@@ -57,8 +57,13 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
                 candidate.get("status") == "ok"
                 and (
                     imported.get("status") != "ok"
-                    or (candidate["clip"]["sim"], candidate["clip"]["score"])
-                    > (imported["clip"]["sim"], imported["clip"]["score"])
+                    or (
+                        candidate["clip"].get("name_match", False),
+                        candidate["clip"]["sim"], candidate["clip"]["score"],
+                    ) > (
+                        imported["clip"].get("name_match", False),
+                        imported["clip"]["sim"], imported["clip"]["score"],
+                    )
                 )
             ):
                 imported = candidate

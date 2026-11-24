@@ -593,9 +593,19 @@ def clip_scene(
                     report["catalog_strong"] = not imported and (
                         result["sim"] >= job["catalog_min_sim"]
                     )
-                    if best is None or (result["sim"], result["score"]) > (
-                        best["clip"]["sim"],
-                        best["clip"]["score"],
+                    if imported:
+                        result["name_match"] = bool(candidate.get("name_match"))
+                    if best is None or (
+                        imported and best["clip"].get("imported", False)
+                        and result["name_match"] != best["clip"].get("name_match", False)
+                        and result["name_match"]
+                    ) or (
+                        not (
+                            imported and best["clip"].get("imported", False)
+                            and result["name_match"] != best["clip"].get("name_match", False)
+                        )
+                        and (result["sim"], result["score"]) >
+                        (best["clip"]["sim"], best["clip"]["score"])
                     ):
                         os.replace(rendered, final_clip)
                         best = report

@@ -166,7 +166,8 @@ def test_mix_real_loudness_true_peak_ducking_and_cli(tmp_path: Path) -> None:
     assert rate == 48000 and channels == 2
     assert len(audio) / rate == pytest.approx(timeline["total"], abs=0.02)
     assert abs(info["lufs"] + 14) <= 1.0
-    assert info["true_peak"] <= -0.9
+    assert info["true_peak"] <= -1.4
+    assert info["target_tp"] == -1.5
     assert info["voice_lines"] == 3
     assert info["target_lufs"] == -14.0
     assert measure_loudness(target)["lufs"] == pytest.approx(info["lufs"], abs=0.05)

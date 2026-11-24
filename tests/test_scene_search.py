@@ -48,6 +48,7 @@ class Provider(Adapter):
 
     def __init__(self, name, calls, cancelled, slow=False):
         self.name = name
+        self.discovery_priority = 100 if name == "pexels" else 0
         self.calls = calls
         self.cancelled = cancelled
         self.slow = slow
@@ -140,3 +141,22 @@ async def test_cutoff_cancels_inflight_and_avoids_new_batches(
     assert budget.searches_cancelled == 1
     assert budget.downloads_started == len(writer.imported)
     assert len(budget.discovered - budget.attempted) == 5 - len(writer.imported)
+
+def test_relevance_and_digest_dedupe():
+    settings = job()
+    settings["queries"] = {
+        "en": ["rainy night city street neon"], "es": ["calle ciudad noche lluvia neon"]
+    }
+    records = [record("Night sky time lapse"), record("Street food vendor"),
+               record("City traffic aerial")]
+    budget = scene_search.SceneBudget(settings, records, 8, 3, 100, clock=lambda: 0)
+    assert not any(budget.good(item) for item in records)
+    settings["queries"] = {"es": ["moais Rapa Nui"], "en": ["Rapa Nui moai"]}
+    wrong = record("Our Lady of Nui Cui statue")
+    right = record("Moai Rapa Nui")
+    assert not budget.good(wrong)
+    assert budget.good(right)
+    right["media"]["sha256"] = "a" * 64
+    records[:] = [right, right.copy()]
+    assert budget.valid_count() == 1
+    assert budget.reason() is None

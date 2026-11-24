@@ -23,6 +23,7 @@ SEARCH_ENDPOINT = "https://api.pexels.com/v1/videos/search"
 
 class Pexels(Adapter):
     name = "pexels"
+    discovery_priority = 100
     category = "stock_video"
     auth = "PEXELS_API_KEY"
     support_status = SupportStatus.SUPPORTED_SEARCH_DOWNLOAD

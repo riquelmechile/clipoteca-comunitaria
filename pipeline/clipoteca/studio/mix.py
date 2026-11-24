@@ -258,7 +258,7 @@ def mix(
     out_path: str | Path,
     music_volume: float = 0.55,
     lufs: float = -14.0,
-    true_peak: float = -1.0,
+    true_peak: float = -1.5,
 ) -> dict[str, float | int]:
     """Sidechain music beneath speech, measure twice and enforce loudness gate."""
     total, _ = _timeline(timeline)
@@ -324,7 +324,7 @@ def mix(
             f"measured_LRA={measured['input_lra']}:"
             f"measured_thresh={measured['input_thresh']}:"
             f"offset={measured['target_offset']}:linear=true,"
-            "alimiter=limit=0.89:level=false"
+            f"alimiter=limit={min(0.89, 10 ** (peak_limit / 20)):.6f}:level=false"
         )
         _run(
             [

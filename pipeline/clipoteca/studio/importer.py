@@ -132,8 +132,10 @@ def _wall_deadline(seconds):
         signal.setitimer(signal.ITIMER_REAL, max(0.001, seconds))
         yield
     finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous)
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+        finally:
+            signal.signal(signal.SIGALRM, previous)
 
 
 @contextmanager
@@ -421,6 +423,9 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 "clip_id": item["imp_id"],
                 "score": score,
                 "matched": matched,
+                "name_match": library.name_match(
+                    item["record"], job["queries"]["es"] + job["queries"]["en"]
+                ),
                 "duration": item["duration"],
                 "width": item["width"],
                 "height": item["height"],
@@ -431,7 +436,11 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 "local_path": item["local_path"],
             }
         )
-    scored.sort(key=lambda x: (-x["score"], abs(x["duration"] - length), x["clip_id"]))
+    scored.sort(
+        key=lambda x: (
+            not x["name_match"], -x["score"], abs(x["duration"] - length), x["clip_id"]
+        )
+    )
     return {
         "id": job["id"],
         "status": "imported" if scored else "needs_import",

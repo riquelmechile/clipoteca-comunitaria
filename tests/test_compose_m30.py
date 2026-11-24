@@ -570,3 +570,16 @@ def test_render_fake_hyperframes_and_exact_mux_args_and_stale_report(
         render_video(hf, output)
     assert not (root / "render.json").exists()
     assert not output.exists()
+
+@pytest.mark.parametrize("aspect", ["9:16", "16:9", "1:1"])
+def test_long_caption_groups_have_width_budget(aspect):
+    from clipoteca.studio.compose import CONFIG, _caption_chunks
+
+    _, width, _, font = CONFIG[aspect]["cap"]
+    words = ["ascensores", "y", "miradores", "desafortunadamente", "internacionalizaci\u00f3n"]
+    rows = [{"vo": 0, "words": [(word, i, i + 0.8) for i, word in enumerate(words)]}]
+    chunks = _caption_chunks(rows, 6, width, font)
+    assert [word for chunk in chunks for word, _, _ in chunk["words"]] == words
+    for chunk in chunks:
+        units = sum(len(word) + 0.4 for word, _, _ in chunk["words"]) + 0.8
+        assert units * chunk["font_size"] <= width - 8
