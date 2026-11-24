@@ -66,7 +66,7 @@ def test_real_ffmpeg_aspect_fixtures(tmp_path: Path, size: str, expected: str):
 
 @pytest.mark.parametrize(
     ("codec", "extension"),
-    [("mpeg4", "avi"), ("libvpx-vp9", "webm"), ("libx264", "mp4")],
+    [("mpeg4", "avi"), ("libvpx-vp9", "webm"), ("libtheora", "ogv"), ("libx264", "mp4")],
 )
 def test_probe_and_normalize_codecs(tmp_path: Path, codec: str, extension: str):
     source = tmp_path / f"source.{extension}"

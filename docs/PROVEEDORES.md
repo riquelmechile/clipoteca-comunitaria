@@ -309,7 +309,8 @@ Este PR no representa evidencia de smoke live ni cambia capacidades.
 Cuando se detecta un nombre propio, Commons intenta resolver categorías mediante
 MediaWiki (namespace 14), con coincidencia exacta normalizada y prioridad para
 `Videos of X`. Se aceptan los alias documentados Rapa Nui, Easter Island e Isla de
-Pascua; no se crean alias a partir de la consulta libre. Se recorren hasta seis
+Pascua, Torres del Paine / Torres del Paine National Park y Chiloé / Chiloé Island;
+no se crean alias a partir de la consulta libre. Se recorren hasta seis
 categorías, dos niveles de profundidad y 50 miembros por petición (sin paginación
 adicional), con un máximo de tres segundos o la mitad del presupuesto del adaptador.
 Las peticiones son seriales por adaptador, usan el User-Agent del proyecto y maxlag=5.
