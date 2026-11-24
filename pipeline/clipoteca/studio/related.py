@@ -801,6 +801,8 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
         for title in categories
         if _BUCKET_PREFIX.search(_key(title[9:]))
         and not _DATE.search(_key(title[9:]))
+        # "X by commune/type/year" only holds further containers, never terms.
+        and not _META_PHRASE.search(_key(title[9:]))
         and not _child_term(title[9:], root_variants)
     ]
     # Prefer specific containers to generic geography, and cap network fanout.
