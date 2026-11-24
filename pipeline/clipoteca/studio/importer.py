@@ -447,9 +447,7 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
             }
         )
     scored.sort(
-        key=lambda x: (
-            not x["name_match"], -x["score"], abs(x["duration"] - length), x["clip_id"]
-        )
+        key=lambda x: (not x["name_match"], -x["score"], abs(x["duration"] - length), x["clip_id"])
     )
     return {
         "id": job["id"],

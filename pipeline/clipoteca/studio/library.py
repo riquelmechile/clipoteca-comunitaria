@@ -70,7 +70,8 @@ def query_names(queries):
             for match in _NAME_SEQUENCE.finditer(query):
                 names.add(" ".join(_words(match.group())))
     return {
-        name for name in names
+        name
+        for name in names
         if not any(name != other and f" {name} " in f" {other} " for other in names)
     }
 
@@ -86,7 +87,8 @@ def name_match(clip, queries, *, source_only=False):
     fragments += _values(source.get("source_title"))
     return any(
         f" {name} " in f" {' '.join(_words(fragment))} "
-        for name in names for fragment in fragments
+        for name in names
+        for fragment in fragments
     )
 
 

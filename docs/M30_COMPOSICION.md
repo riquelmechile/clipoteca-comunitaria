@@ -70,8 +70,11 @@ del siguiente corte y cada corte destella suavemente por 0.22 s.
 La animación GSAP se registra pausada en window.__timelines["main"].
 
 Los subtítulos son bloques de máximo 4 palabras, acotados además por
-el ancho estimado de glifos anchos (1 em por carácter, más márgenes y
-padding del pill), con cierre ante puntuación. Si una palabra sola no
+una tabla de avances de DejaVu Sans Bold medidos a 1000 px, redondeados
+al alza con un margen del 10 %, incluyendo los márgenes de palabra, el
+padding del pill y la escala 1,08 de la palabra activa. Las tildes se
+normalizan para medir; los glifos desconocidos usan 1,2 em. Se conserva
+el cierre ante puntuación. Si una palabra sola no
 cabe, su grupo reduce la fuente hasta 30 px y permite partir un token
 extremo sin salir del ancho. Se prueba el layout real con Chromium para
 9:16, 16:9 y 1:1, incluyendo «ascensores y miradores» y palabras largas.

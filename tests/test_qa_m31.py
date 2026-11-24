@@ -491,7 +491,8 @@ def test_real_playwright_detects_outsafe_and_overlap(tmp_path: Path):
         chunks = _caption_chunks(rows, 6, layout["cap"][1], layout["cap"][3])
         (root / "index.html").write_text(
             '<html><head><style>*{margin:0;padding:0;box-sizing:border-box}</style></head>'
-            '<body>' + _caption_html(chunks, layout)
+            "<body>"
+            + _caption_html(chunks, layout)
             + "<script>window.__timelines={main:{seek(){}}}</script></body></html>",
             encoding="utf-8",
         )

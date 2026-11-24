@@ -574,7 +574,7 @@ def test_render_fake_hyperframes_and_exact_mux_args_and_stale_report(
 
 @pytest.mark.parametrize("aspect", ["9:16", "16:9", "1:1"])
 def test_long_caption_groups_have_width_budget(aspect):
-    from clipoteca.studio.compose import CONFIG, _caption_chunks
+    from clipoteca.studio.compose import CONFIG, _caption_chunks, _caption_units
 
     _, width, _, font = CONFIG[aspect]["cap"]
     words = ["ascensores", "y", "miradores", "desafortunadamente", "internacionalizaci\u00f3n"]
@@ -582,5 +582,7 @@ def test_long_caption_groups_have_width_budget(aspect):
     chunks = _caption_chunks(rows, 6, width, font)
     assert [word for chunk in chunks for word, _, _ in chunk["words"]] == words
     for chunk in chunks:
-        units = sum(len(word) + 0.4 for word, _, _ in chunk["words"]) + 0.8
-        assert units * chunk["font_size"] <= width - 8
+        units = _caption_units([word for word, _, _ in chunk["words"]])
+        assert units * chunk["font_size"] <= width - 6
+    if aspect == "9:16":
+        assert [word for word, _, _ in chunks[0]["words"]] != words[:3]

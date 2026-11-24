@@ -14,6 +14,7 @@ import subprocess
 import tarfile
 import tempfile
 import time
+import unicodedata
 import wave
 from pathlib import Path
 from typing import Any
@@ -210,23 +211,101 @@ def _title(scene: Any, row: dict[str, Any], layout: dict[str, Any]) -> str:
     )
 
 
+# DejaVu Sans Bold advance widths in em, measured at 1000 px, rounded up
+# after a 10% allowance for bold fallback fonts. Keep layout deterministic
+# without requiring a browser or optional studio dependencies at build time.
+_CAPTION_ADVANCES = {
+    "a": 0.75,
+    "b": 0.79,
+    "c": 0.66,
+    "d": 0.79,
+    "e": 0.75,
+    "f": 0.48,
+    "g": 0.79,
+    "h": 0.79,
+    "i": 0.38,
+    "j": 0.38,
+    "k": 0.74,
+    "l": 0.38,
+    "m": 1.15,
+    "n": 0.79,
+    "o": 0.76,
+    "p": 0.79,
+    "q": 0.79,
+    "r": 0.55,
+    "s": 0.66,
+    "t": 0.53,
+    "u": 0.79,
+    "v": 0.72,
+    "w": 1.02,
+    "x": 0.71,
+    "y": 0.72,
+    "z": 0.65,
+    "A": 0.86,
+    "B": 0.84,
+    "C": 0.81,
+    "D": 0.92,
+    "E": 0.76,
+    "F": 0.76,
+    "G": 0.91,
+    "H": 0.93,
+    "I": 0.41,
+    "J": 0.41,
+    "K": 0.86,
+    "L": 0.71,
+    "M": 1.10,
+    "N": 0.93,
+    "O": 0.94,
+    "P": 0.81,
+    "Q": 0.94,
+    "R": 0.85,
+    "S": 0.80,
+    "T": 0.76,
+    "U": 0.90,
+    "V": 0.86,
+    "W": 1.22,
+    "X": 0.85,
+    "Y": 0.80,
+    "Z": 0.80,
+    "0": 0.77,
+    "1": 0.77,
+    "2": 0.77,
+    "3": 0.77,
+    "4": 0.77,
+    "5": 0.77,
+    "6": 0.77,
+    "7": 0.77,
+    "8": 0.77,
+    "9": 0.77,
+}
+
+
+def _caption_units(words: list[str]) -> float:
+    advances = [
+        sum(
+            _CAPTION_ADVANCES.get(char, 1.2)
+            for char in unicodedata.normalize("NFD", word)
+            if not unicodedata.combining(char)
+        )
+        for word in words
+    ]
+    # Word margins, pill padding and the active word's 1.08 scale.
+    return sum(advances) + 0.4 * len(words) + 0.74 + 0.08 * max(advances, default=0.0)
+
+
 def _caption_chunks(
     rows: list[dict[str, Any]],
     total: float,
     width: int,
     cap_font: int,
 ) -> list[dict[str, Any]]:
-    # Budget for bold glyphs, individual margins, pill padding and rounding.
-    def units(words):
-        return sum(len(word) + 0.4 for word in words) + 0.8
-
-    max_chars = (width - 8) / cap_font
+    max_units = (width - 6) / cap_font
     groups: list[list[tuple[str, float, float]]] = []
     for row in rows:
         current: list[tuple[str, float, float]] = []
         for word, relative_start, relative_end in row["words"]:
             value = (word, float(row["vo"]) + relative_start, float(row["vo"]) + relative_end)
-            if current and units([w[0] for w in current] + [word]) > max_chars:
+            if current and _caption_units([w[0] for w in current] + [word]) > max_units:
                 groups.append(current)
                 current = []
             current.append(value)
@@ -243,7 +322,7 @@ def _caption_chunks(
         duration = round(max(min(0.3, next_start - start - 0.002), end - start), 3)
         if not math.isfinite(duration) or duration <= 0:
             raise ComposeError("caption timing is invalid")
-        estimated_size = int((width - 8) / units([word for word, _, _ in group]))
+        estimated_size = int((width - 6) / _caption_units([word for word, _, _ in group]))
         chunks.append(
             {
                 "words": group,

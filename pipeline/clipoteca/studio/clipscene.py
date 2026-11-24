@@ -612,7 +612,8 @@ def clip_scene(
                             )
                         else:
                             prefer = (result["sim"], result["score"]) > (
-                                previous["sim"], previous["score"]
+                                previous["sim"],
+                                previous["score"],
                             )
                     if prefer:
                         os.replace(rendered, final_clip)
