@@ -8270,5 +8270,1188 @@
     },
     "status": "published",
     "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000122",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 05.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 05.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 05.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 05.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595419",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 05.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_05.webm",
+      "source_start": 0.0,
+      "source_end": 4.374
+    },
+    "media": {
+      "duration_seconds": 4.371033,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 3879794,
+      "sha256": "1cbf98d04b4884b6a693e392d68d1f0272b65ae3697264f731dc470d1608575f",
+      "perceptual_hash": "838584d47d60de3f~3507.00:878584d05d60fe3f~3488.68:8585e2c135745e3f~3433.24:8785b0d11d68f23f~3948.43:838586d43568de3f~4057.03"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000122.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000122.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000122_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000122_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000122_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000122_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000122_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000122_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000123",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 01.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 01.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 01.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 01.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595417",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 01.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_01.webm",
+      "source_start": 0.0,
+      "source_end": 7.51
+    },
+    "media": {
+      "duration_seconds": 7.5075,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 6117211,
+      "sha256": "3ace30404f56d8d2b5db1e02d4571123bbb4e65a9f8f91bbfa870922e2ac3d49",
+      "perceptual_hash": "878584d47d605e3f~3511.50:8f8584d47d605e3d~3510.21:878594dd51605e3f~3512.13:8785c8d13578de2d~3734.78:878584d53d60d63f~3966.27"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000123.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000123.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000123_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000123_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000123_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000123_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000123_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000123_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000124",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 06.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 06.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 06.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 06.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595421",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 06.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_06.webm",
+      "source_start": 0.0,
+      "source_end": 8.778
+    },
+    "media": {
+      "duration_seconds": 8.775433,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 7540232,
+      "sha256": "4be5e70d4fc7b42cca9b8341a01491adf6c868487e5f1dba22c36a72f817df9b",
+      "perceptual_hash": "8b8584d47d605e3f~3492.60:838584d47d60de3f~3495.22:8385c4d13d64d63f~3465.44:838584d53d68d63f~4042.02:878584d43d60de3f~3757.43"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000124.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000124.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000124_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000124_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000124_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000124_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000124_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000124_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000125",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 02.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 02.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 02.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 02.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595415",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 02.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_02.webm",
+      "source_start": 0.0,
+      "source_end": 5.008
+    },
+    "media": {
+      "duration_seconds": 5.005,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4344780,
+      "sha256": "5444aeb5e8bd59723170517fbcf98c042d768b74eff7d83bbdf56a560215be08",
+      "perceptual_hash": "878584d47d605e3f~3523.91:878584d05d60fe3f~3519.63:8381a4d51b68de3f~3512.00:8185b6d11d68d63f~3968.30:838584d53d68d63f~4094.49"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000125.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000125.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000125_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000125_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000125_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000125_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000125_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000125_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000126",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 07.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 07.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 07.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 07.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595423",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 07.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_07.webm",
+      "source_start": 0.0,
+      "source_end": 5.708
+    },
+    "media": {
+      "duration_seconds": 5.7057,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4787649,
+      "sha256": "9011b650b001ee37bb3d86de7ac5fe7225baa9babbccbda2cdea87098e96998c",
+      "perceptual_hash": "838584d47d60de3f~3500.99:8b8584d43d60de3f~3512.44:8b8584d13d60de3f~3524.34:878583d13478da3f~3600.92:8785c4d43d68d23f~4040.36"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000126.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000126.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000126_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000126_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000126_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000126_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000126_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000126_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000127",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 08.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 08.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 08.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 08.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595426",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 08.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_08.webm",
+      "source_start": 0.0,
+      "source_end": 8.611
+    },
+    "media": {
+      "duration_seconds": 8.6086,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 7571136,
+      "sha256": "92d2c5649a3f8fcf6bdcbdd9425abd5dad6cad8e0b9f74017876ac254f34d19a",
+      "perceptual_hash": "8b8584d47d605e3f~3499.71:8b8584d47c60de3f~3498.90:878568d195715e3e~3698.52:838586d03d78d63f~4024.01:838584d47c70de3f~3716.82"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000127.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000127.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000127_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000127_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000127_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000127_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000127_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000127_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000128",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 03.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 03.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 03.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 03.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595416",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 03.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_03.webm",
+      "source_start": 0.0,
+      "source_end": 5.008
+    },
+    "media": {
+      "duration_seconds": 5.005,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4145980,
+      "sha256": "b2a8a2ebf8a1d5f6122eab4c929b8d75a9cbc179a0ab02555ffe380061d71c46",
+      "perceptual_hash": "838584d47d60de3f~3515.15:878584d45d60de3f~3517.80:878585d41668de3f~3524.76:8b81a6d41d68763f~3920.75:838584d17578da3f~3988.06"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000128.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000128.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000128_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000128_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000128_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000128_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000128_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000128_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000129",
+    "title": {
+      "es": "CHI Genève 20131215 Passage attelage 04.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 04.webm"
+    },
+    "description": {
+      "es": "CHI Genève 20131215 Passage attelage 04.webm",
+      "en": "CHI Genève 2013 20131215 Passage attelage 04.webm"
+    },
+    "tags": {
+      "es": [
+        "CHI",
+        "Genève",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ],
+      "en": [
+        "CHI",
+        "Genève",
+        "2013",
+        "20131215",
+        "Passage",
+        "attelage",
+        "webm"
+      ]
+    },
+    "source": {
+      "provider": "wikimedia_commons",
+      "provider_id": "34595418",
+      "source_language": "en",
+      "source_title": "CHI Genève 2013 - 20131215 - Passage attelage 04.webm",
+      "source_url": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_04.webm",
+      "source_start": 0.0,
+      "source_end": 7.01
+    },
+    "media": {
+      "duration_seconds": 7.007,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 5828719,
+      "sha256": "ef81d66011ab7034cb93368a7313ebf11d4af527a5f99a76716c3ac0f62cbb09",
+      "perceptual_hash": "838584d47d60de3f~3487.29:878584d43d60de3f~3510.61:8f8184d53d70d62f~3551.35:878584d43568de3f~3735.06:858582d43d60debf~3958.57"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000129.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000129.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000129_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000129_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000129_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000129_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000129_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000129_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000130",
+    "title": {
+      "es": "Paseo marítimo en la orilla del mar",
+      "en": "Promenade on sea shore"
+    },
+    "description": {
+      "es": "Paseo marítimo en la orilla del mar",
+      "en": "Promenade on sea shore"
+    },
+    "tags": {
+      "es": [
+        "Paseo",
+        "marítimo",
+        "orilla",
+        "mar"
+      ],
+      "en": [
+        "Promenade",
+        "sea",
+        "shore"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "12211289",
+      "source_language": "en",
+      "source_title": "promenade-on-sea-shore-12211289",
+      "source_url": "https://www.pexels.com/video/promenade-on-sea-shore-12211289/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 60.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 14383227,
+      "sha256": "4e12e47c82454c63fa594adbcb64ed3961933c7be5e61b9471aab7f6ba25c016",
+      "perceptual_hash": "93e48db9a62e684b~2213.16:9dd2acb4e32e2568~2035.89:d0eba79ea0e70e18~1982.12:d0a18f7a455ff086~2154.53:95eb9a644d53c68c~2021.90"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000130.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000130.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000130_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000130_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000130_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000130_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000130_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000130_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000131",
+    "title": {
+      "es": "Vista costera pintoresca de tranquilos acantilados junto al mar",
+      "en": "Scenic coastal view of tranquil seaside cliffs"
+    },
+    "description": {
+      "es": "Vista costera pintoresca de tranquilos acantilados junto al mar",
+      "en": "Scenic coastal view of tranquil seaside cliffs"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "costera",
+        "pintoresca",
+        "tranquilos",
+        "acantilados",
+        "junto",
+        "mar"
+      ],
+      "en": [
+        "Scenic",
+        "coastal",
+        "view",
+        "tranquil",
+        "seaside",
+        "cliffs"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "38363766",
+      "source_language": "en",
+      "source_title": "scenic-coastal-view-of-tranquil-seaside-cliffs-38363766",
+      "source_url": "https://www.pexels.com/video/scenic-coastal-view-of-tranquil-seaside-cliffs-38363766/",
+      "source_start": 0.0,
+      "source_end": 6.566667
+    },
+    "media": {
+      "duration_seconds": 6.566667,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 4467081,
+      "sha256": "edbdf2bbbcbc9d07c765166c6f14a44ca570501fd8ab8f05e97c80950ea30367",
+      "perceptual_hash": "b1ca4639b1c66f31~1528.42:b3c84639b1c66f31~1494.50:b0e94639b1d62f31~1496.52:b0eb4639b0d62f31~1483.80:b5ca4639b1c46f31~1511.00"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000131.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000131.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000131_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000131_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000131_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000131_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000131_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000131_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000132",
+    "title": {
+      "es": "Esculturas y cadenas metálicas en madera en campo",
+      "en": "Sculptures and metal chains on wood on field"
+    },
+    "description": {
+      "es": "Esculturas y cadenas metálicas en madera en campo",
+      "en": "Sculptures and metal chains on wood on field"
+    },
+    "tags": {
+      "es": [
+        "Esculturas",
+        "cadenas",
+        "metálicas",
+        "madera",
+        "campo"
+      ],
+      "en": [
+        "Sculptures",
+        "metal",
+        "chains",
+        "wood",
+        "field"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "13295651",
+      "source_language": "en",
+      "source_title": "sculptures-and-metal-chains-on-wood-on-field-13295651",
+      "source_url": "https://www.pexels.com/video/sculptures-and-metal-chains-on-wood-on-field-13295651/",
+      "source_start": 0.0,
+      "source_end": 10.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 720,
+      "height": 1280,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 5671138,
+      "sha256": "0b6998d36b6a76d2bf15e25d78c409d06a234d0ca4e148ed1d463d4642f5e57a",
+      "perceptual_hash": "a6e6cf4b19b0b419~5981.44:e6e6cf4919b0b01b~6008.00:e4e6cf4919b0b41b~6009.77:e4e6cf4b19b0b01b~6010.28:e4e6cf4b19b0b01b~6011.61"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000132.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000132.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000132_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000132_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000132_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000132_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000132_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000132_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000133",
+    "title": {
+      "es": "Vista panorámica del acantilado con paisaje urbano en el fondo",
+      "en": "Scenic cliffside view with townscape in background"
+    },
+    "description": {
+      "es": "Vista panorámica del acantilado con paisaje urbano en el fondo",
+      "en": "Scenic cliffside view with townscape in background"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "panorámica",
+        "acantilado",
+        "paisaje",
+        "urbano",
+        "fondo"
+      ],
+      "en": [
+        "Scenic",
+        "cliffside",
+        "view",
+        "townscape",
+        "background"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "28874211",
+      "source_language": "en",
+      "source_title": "scenic-cliffside-view-with-townscape-in-background-28874211",
+      "source_url": "https://www.pexels.com/video/scenic-cliffside-view-with-townscape-in-background-28874211/",
+      "source_start": 0.0,
+      "source_end": 10.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 12219153,
+      "sha256": "a14c5b4389460124c3bf076dc5ac640545348296590f56b384d15ced342cfa92",
+      "perceptual_hash": "fcfcc0c1c0c5c9c7~3936.63:fcf4c0c1c1c5c9c7~4009.52:f1e0c7c687de0a8c~4865.85:c9cc939393f2ca32~5100.48:d5d5ab2a2bcad02a~3693.86"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000133.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000133.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000133_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000133_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000133_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000133_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000133_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000133_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000134",
+    "title": {
+      "es": "Planta verde en la mesa",
+      "en": "Green plant on the table"
+    },
+    "description": {
+      "es": "Planta verde en la mesa",
+      "en": "Green plant on the table"
+    },
+    "tags": {
+      "es": [
+        "Planta",
+        "verde",
+        "mesa"
+      ],
+      "en": [
+        "Green",
+        "plant",
+        "table"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "7236452",
+      "source_language": "en",
+      "source_title": "green-plant-on-the-table-7236452",
+      "source_url": "https://www.pexels.com/video/green-plant-on-the-table-7236452/",
+      "source_start": 0.0,
+      "source_end": 6.52
+    },
+    "media": {
+      "duration_seconds": 6.52,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1167275,
+      "sha256": "a51cf7b88e299fa85863e81bc5b16572cff6c697c2585df8882c149666d5d52b",
+      "perceptual_hash": "e609b966cc7b8649~1306.24:f619f9668c798468~1255.83:f619f9268c798469~1235.39:f619f9268c798469~1237.29:f618f9668c798469~1238.22"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000134.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000134.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000134_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000134_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000134_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000134_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000134_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000134_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000135",
+    "title": {
+      "es": "Paisaje pintoresco de verano con colinas",
+      "en": "Scenic summer landscape with rolling hills"
+    },
+    "description": {
+      "es": "Paisaje pintoresco de verano con colinas",
+      "en": "Scenic summer landscape with rolling hills"
+    },
+    "tags": {
+      "es": [
+        "Paisaje",
+        "pintoresco",
+        "verano",
+        "colinas"
+      ],
+      "en": [
+        "Scenic",
+        "summer",
+        "landscape",
+        "rolling",
+        "hills"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "36148342",
+      "source_language": "en",
+      "source_title": "scenic-summer-landscape-with-rolling-hills-36148342",
+      "source_url": "https://www.pexels.com/video/scenic-summer-landscape-with-rolling-hills-36148342/",
+      "source_start": 0.0,
+      "source_end": 10.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 60.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 25234484,
+      "sha256": "ae0b94c2b0925033c8d6e1acf98ac1fd919a38b6e371dd502e3c3869a9f1247b",
+      "perceptual_hash": "f9e18c9c2269dfc0~1682.41:fac18c9d2271df81~1802.03:f8c39c0d2278df89~1752.07:fac19c863378c78c~1758.38:eed19d0c226ad98d~1764.74"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000135.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000135.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000135_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000135_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000135_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000135_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000135_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000135_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000136",
+    "title": {
+      "es": "Paisaje costero pacífico con colinas",
+      "en": "Peaceful coastal landscape with rolling hills"
+    },
+    "description": {
+      "es": "Paisaje costero pacífico con colinas",
+      "en": "Peaceful coastal landscape with rolling hills"
+    },
+    "tags": {
+      "es": [
+        "Paisaje",
+        "costero",
+        "pacífico",
+        "colinas"
+      ],
+      "en": [
+        "Peaceful",
+        "coastal",
+        "landscape",
+        "rolling",
+        "hills"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35136563",
+      "source_language": "en",
+      "source_title": "peaceful-coastal-landscape-with-rolling-hills-35136563",
+      "source_url": "https://www.pexels.com/video/peaceful-coastal-landscape-with-rolling-hills-35136563/",
+      "source_start": 0.0,
+      "source_end": 10.0
+    },
+    "media": {
+      "duration_seconds": 9.993317,
+      "width": 1080,
+      "height": 1920,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 4457926,
+      "sha256": "b100051fb5316f17c0eed03e554407fdb4f511426e79e7e4adc76e6fd79c718e",
+      "perceptual_hash": "9fc09c054778f2c7~3077.81:9fc194147778f087~3096.00:9fc196145770f293~3150.27:9fc1de145770fa80~3169.60:9dc1de1c5770f881~3144.88"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000136.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000136.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000136_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000136_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000136_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000136_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000136_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000136_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000137",
+    "title": {
+      "es": "Personas caminando en prado",
+      "en": "People walking on meadow"
+    },
+    "description": {
+      "es": "Personas caminando en prado",
+      "en": "People walking on meadow"
+    },
+    "tags": {
+      "es": [
+        "Personas",
+        "caminando",
+        "prado"
+      ],
+      "en": [
+        "People",
+        "walking",
+        "meadow"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "12237398",
+      "source_language": "en",
+      "source_title": "people-walking-on-meadow-12237398",
+      "source_url": "https://www.pexels.com/video/people-walking-on-meadow-12237398/",
+      "source_start": 0.0,
+      "source_end": 10.0
+    },
+    "media": {
+      "duration_seconds": 10.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 60.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 8076345,
+      "sha256": "c42e45aa28d8b8923d525956e8c2a857db4180ccc6636cfcb14519c15dcb4c4c",
+      "perceptual_hash": "c6c6672392f13939~2435.32:c3c66f0693f03939~2390.12:c6c3672193f13939~2402.21:c6c26f2790f13b38~2484.55:c6c26f2691fc3929~2515.42"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000137.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000137.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000137_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000137_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000137_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000137_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000137_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000137_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000138",
+    "title": {
+      "es": "Serene velero que pasa por la fortaleza costera",
+      "en": "Serene sailboat passing coastal fortress"
+    },
+    "description": {
+      "es": "Serene velero que pasa por la fortaleza costera",
+      "en": "Serene sailboat passing coastal fortress"
+    },
+    "tags": {
+      "es": [
+        "Serene",
+        "velero",
+        "pasa",
+        "fortaleza",
+        "costera"
+      ],
+      "en": [
+        "Serene",
+        "sailboat",
+        "passing",
+        "coastal",
+        "fortress"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35320369",
+      "source_language": "en",
+      "source_title": "serene-sailboat-passing-coastal-fortress-35320369",
+      "source_url": "https://www.pexels.com/video/serene-sailboat-passing-coastal-fortress-35320369/",
+      "source_start": 0.0,
+      "source_end": 8.933333
+    },
+    "media": {
+      "duration_seconds": 8.933333,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 10222632,
+      "sha256": "cd669fcc52e03edf041ce61034cab7ad25209e89c696ba4e903865e2b14a6426",
+      "perceptual_hash": "8af52b559ae6132c~2138.45:bad52259aef52219~2048.59:e0bf4037d1ef023c~2148.93:c2fd0439c2db643d~2274.49:fec07f00bf807f08~2246.73"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000138.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000138.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000138_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000138_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000138_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000138_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000138_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000138_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
+  },
+  {
+    "id": "clip-000139",
+    "title": {
+      "es": "Estaño de piedras balanceadas en la playa",
+      "en": "Stack of balancing stones on beach"
+    },
+    "description": {
+      "es": "Estaño de piedras balanceadas en la playa",
+      "en": "Stack of balancing stones on beach"
+    },
+    "tags": {
+      "es": [
+        "Estaño",
+        "piedras",
+        "balanceadas",
+        "playa"
+      ],
+      "en": [
+        "Stack",
+        "balancing",
+        "stones",
+        "beach"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "10388931",
+      "source_language": "en",
+      "source_title": "stack-of-balancing-stones-on-beach-10388931",
+      "source_url": "https://www.pexels.com/video/stack-of-balancing-stones-on-beach-10388931/",
+      "source_start": 0.0,
+      "source_end": 8.933333
+    },
+    "media": {
+      "duration_seconds": 8.933333,
+      "width": 720,
+      "height": 1280,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 1693084,
+      "sha256": "f75ef2f21c2eb18db926a924d1d3dc612a657f4e8cd4891b12e6b2c68979d756",
+      "perceptual_hash": "a6f2992bb44667c4~4093.70:a6f6992bb44663c4~4160.45:a6f6992b97427186~4081.72:a6fa992996427b86~4021.43:a6e6992bb64263c6~4156.29"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000139.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000139.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000139_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000139_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000139_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000139_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000139_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000139_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:56:33.970640Z"
   }
 ]
