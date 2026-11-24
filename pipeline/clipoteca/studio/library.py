@@ -86,9 +86,7 @@ def name_match(clip, queries, *, source_only=False):
     source = clip.get("source") or {}
     fragments += _values(source.get("source_title"))
     return any(
-        f" {name} " in f" {' '.join(_words(fragment))} "
-        for name in names
-        for fragment in fragments
+        f" {name} " in f" {' '.join(_words(fragment))} " for name in names for fragment in fragments
     )
 
 
