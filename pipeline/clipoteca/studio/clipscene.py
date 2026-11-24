@@ -632,7 +632,7 @@ def clip_scene(
                     if candidate.get("found_by_query"):
                         result["found_by_query"] = candidate["found_by_query"]
                 if (
-                    ("related_terms" in job or "related" in job.get("queries", {}))
+                    (job.get("related_terms") or job.get("queries", {}).get("related"))
                     and candidate.get("fallback")
                     and not candidate.get("matched_query")
                 ):
@@ -685,7 +685,9 @@ def clip_scene(
                             )
                         else:
                             prefer = (
-                                result["sim"], result["score"], not result.get("related_match", False)
+                                result["sim"],
+                                result["score"],
+                                not result.get("related_match", False),
                             ) > (
                                 previous["sim"],
                                 previous["score"],

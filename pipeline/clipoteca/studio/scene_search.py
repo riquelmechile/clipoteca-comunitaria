@@ -326,6 +326,8 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
     limit = kwargs.pop("max_results")
     concurrency = kwargs["concurrency"]
     ordered = _ordered(adapters, place=scene_budget.place)
+    if scene_budget.place:
+        ordered.sort(key=lambda adapter: adapter.name != "wikimedia_commons")
     expansions = []
     errors = []
     ids = []
@@ -412,7 +414,9 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
                     scene_budget.commons_consulted = True
                 if scene_budget.reason():
                     break
-                unique = [candidate for candidate in result.candidates if candidate.origin_id not in seen]
+                unique = [
+                    candidate for candidate in result.candidates if candidate.origin_id not in seen
+                ]
                 seen.update(candidate.origin_id for candidate in unique)
                 report = await _ingest(
                     query,
@@ -440,7 +444,11 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
         "published"
         if ids
         else next(
-            (status for status in statuses if status not in {"no_results", "duplicate", "unavailable"}),
+            (
+                status
+                for status in statuses
+                if status not in {"no_results", "duplicate", "unavailable"}
+            ),
             "no_results",
         )
     )

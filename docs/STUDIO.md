@@ -278,3 +278,25 @@ En la corrida real 45322952524 (Chile, de norte a sur, ocho escenas, voz
 diferencia. El nuevo cálculo separa explícitamente voz de duración
 del montaje. Es una corrección metodológica, no una medición de error
 típico ni una validación posterior en producción.
+
+
+### Busqueda relacionada (v3)
+
+- El motor considera hasta ocho terminos distintos por escena, primero los del guion,
+  despues Wikidata (entidad exacta, relaciones de ubicacion/partes/alias) y Commons
+  (subcategorias de una categoria raiz exacta). Las consultas fallidas se omiten.
+- El plan permanece offline por defecto. En el render real se debe agregar
+  `--resolve-related` al comando existente de `clipoteca.studio.plan` de
+  `.github/workflows/render.yml` (sin otros cambios). El plan comparte una cache
+  por render y una ventana total de 6 segundos para consultar las fuentes externas.
+- La primera ronda conserva el 60% del presupuesto de importacion cuando hay
+  relacionados; estos usan el resto con descubrimiento concurrente y escrituras
+  locales seriales. El retry usa relacionados, o consultas simplificadas no
+  repetidas si no existen. Los limites existentes de 600 y 180 s no cambian.
+- El gate usa metadata real, nunca los tags inyectados; CLIP sigue siendo obligatorio.
+  `source.found_by_query` y `source.related_to` guardan procedencia solamente.
+- `imported.json` registra terminos usados y disponibles con su origen. `entrega.json`
+  registra los relacionados de cada escena, `matched_query` y `found_by_query` si
+  corresponde. `timings.json` mantiene valores numericos: claves
+  `scene.ID.related_terms.ORIGEN.TERMINO` y `scene.ID.matched_query.TERMINO` valen 1.
+- El Worker requiere redeploy para anunciar el nuevo campo opcional en MCP.

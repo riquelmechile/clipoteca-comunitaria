@@ -710,8 +710,12 @@ def import_scene(
                 if related:
                     primary = []
                 else:
-                    place_queries = [query for query in queries if library.query_names([query])]
-                    primary = list(dict.fromkeys([*place_queries, *simple_queries(job, queries)]))
+                    original = {" ".join(library._words(query)) for query in queries}
+                    primary = [
+                        query
+                        for query in simple_queries(job, queries)
+                        if " ".join(library._words(query)) not in original
+                    ]
             budget.searches_planned = (len(primary) + len(related)) * searchable_slots
             # Reserve time within the existing deadline, never add another scene budget.
             primary_deadline = started + timeout * (0.6 if related else 1.0)
@@ -722,7 +726,11 @@ def import_scene(
                 note_query(query)
                 try:
                     report = await asyncio.wait_for(
-                        ingest(query, selected, **ingest_options(f"studio-v1-{index}")),
+                        ingest(
+                            query,
+                            selected,
+                            **ingest_options(f"studio-{'simple' if simple else 'v1'}-{index}"),
+                        ),
                         timeout=remaining,
                     )
                     absorb(report)
@@ -740,7 +748,9 @@ def import_scene(
                             related,
                             selected,
                             on_query=note_query,
-                            **ingest_options("studio-related-retry" if simple else "studio-related"),
+                            **ingest_options(
+                                "studio-related-retry" if simple else "studio-related"
+                            ),
                         ),
                         timeout=remaining,
                     )

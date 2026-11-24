@@ -79,3 +79,105 @@ def test_related_gate_matches_real_metadata_not_injected_tags():
     assert not sufficient_query_match(
         {"title": {"es": "Costa"}, "tags": {"es": ["Castro"]}}, ["Chilo\u00e9"], terms
     )
+
+
+
+def test_catalog_related_term_and_primary_tie():
+    from clipoteca.studio.library import candidates
+
+    def clip(identifier, title):
+        return {
+            "id": identifier,
+            "status": "published",
+            "title": {"es": title},
+            "source": {"source_url": "https://example.invalid/source", "source_title": title},
+            "media": {
+                "duration_seconds": 10,
+                "width": 1920,
+                "height": 1080,
+                "sha256": "a" * 64,
+                "size_bytes": 1000,
+            },
+            "storage": {"asset_url": "https://example.invalid/clip.mp4"},
+        }
+
+    job = {
+        "len_est": 5,
+        "queries": {"es": ["Chilo\u00e9"], "en": [], "related": {"es": ["Castro"]}},
+    }
+    related = clip("clip-000001", "Iglesia de Castro")
+    primary = clip("clip-000002", "Chilo\u00e9")
+    fallback = clip("clip-000003", "Costa")
+    ranked = candidates(job, [related, fallback])
+    assert [row["clip_id"] for row in ranked] == ["clip-000001"]
+    assert ranked[0]["matched_query"] == "Castro"
+    ranked = candidates(job, [related, fallback, primary])
+    assert [row["clip_id"] for row in ranked] == ["clip-000002", "clip-000001"]
+
+
+def test_related_discovery_parallel_but_ingest_serial(monkeypatch):
+    from types import SimpleNamespace
+
+    from clipoteca.engine import SearchResult
+    from clipoteca.ingest import IngestReport
+    from clipoteca.providers.base import SupportStatus
+    from clipoteca.studio import scene_search
+    from clipoteca.translate.expand import QueryExpansion
+
+    active = 0
+    peak = 0
+    writes = 0
+    tried = []
+
+    async def run():
+        both = asyncio.Event()
+
+        class Engine:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def search(self, query, *, expansion, **kwargs):
+                nonlocal active, peak
+                active += 1
+                peak = max(peak, active)
+                if active == 2:
+                    both.set()
+                await asyncio.wait_for(both.wait(), timeout=1)
+                active -= 1
+                return SearchResult(expansion, [], [], [], 0)
+
+        async def ingest(query, adapters, **kwargs):
+            nonlocal writes
+            assert writes == 0
+            writes += 1
+            await asyncio.sleep(0)
+            writes -= 1
+            return IngestReport(query, "no_results", (), ())
+
+        def expand(query, **kwargs):
+            return QueryExpansion(query, {lang: query for lang in ("en", "es", "zh", "ru")})
+
+        monkeypatch.setattr(scene_search, "SearchEngine", Engine)
+        monkeypatch.setattr(scene_search, "_ingest", ingest)
+        monkeypatch.setattr(scene_search, "expand_query", expand)
+        job = {"queries": {"en": ["water"], "es": []}}
+        budget = scene_search.SceneBudget(job, [], 8, 3, 100, clock=lambda: 0)
+        adapter = SimpleNamespace(
+            name="pexels",
+            support_status=SupportStatus.SUPPORTED_SEARCH_DOWNLOAD,
+            accepts_text_languages={"en"},
+        )
+        await scene_search.ingest_related(
+            ["river", "waterfall"],
+            [adapter],
+            scene_budget=budget,
+            on_query=tried.append,
+            writer=SimpleNamespace(read_catalog=lambda: (None, "")),
+            horizon="fixture",
+            max_results=8,
+            concurrency=2,
+        )
+        assert tried == ["river", "waterfall"]
+        assert peak == 2
+
+    asyncio.run(run())

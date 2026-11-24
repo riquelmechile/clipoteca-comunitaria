@@ -30,14 +30,26 @@ def merge_terms(queries, *groups):
     seen = {_key(term) for term in primary_queries(queries)}
     result = []
     explicit = queries.get("related", {})
+    if not isinstance(explicit, dict):
+        explicit = {}
     script = [
         {"term": term, "origin": "script"}
         for lang in ("es", "en")
-        for term in explicit.get(lang, [])
+        for term in (explicit[lang] if isinstance(explicit.get(lang), list) else [])
+        if isinstance(term, str)
     ]
-    for row in [*script, *(item for group in groups for item in group)]:
+    for row in [
+        *script,
+        *(item for group in groups if isinstance(group, list) for item in group),
+    ]:
         if len(result) >= MAX_RELATED:
             break
+        if (
+            not isinstance(row, dict)
+            or not isinstance(row.get("term"), str)
+            or row.get("origin") not in ("script", "wikidata", "commons")
+        ):
+            continue
         term = row["term"].strip()
         key = _key(term)
         if (
@@ -96,12 +108,14 @@ async def _wikidata(client, seed):
     qid, hit = next(iter(roots.items()))
     # Only verified entity IDs are interpolated into the query.
     query = f"""
-SELECT ?item ?itemLabel ?population ?links WHERE {{
+SELECT DISTINCT ?item ?itemLabel ?population ?links WHERE {{
   VALUES ?root {{ wd:{qid} }}
   {{
     ?item wdt:P131 ?root .
   }} UNION {{
     ?item wdt:P706 ?root .
+  }} UNION {{
+    ?item wdt:P276 ?root .
   }} UNION {{
     ?root wdt:P527 ?item .
   }} UNION {{

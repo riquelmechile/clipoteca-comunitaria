@@ -58,9 +58,7 @@ def related_match(clip, related):
     """Whole phrases from actual metadata, never inferred tags or search provenance."""
     source = clip.get("source") or {}
     fragments = (
-        _values(clip.get("title"))
-        + _values(clip.get("description"))
-        + _source_fragments(source)
+        _values(clip.get("title")) + _values(clip.get("description")) + _source_fragments(source)
     )
     for row in related:
         key = " ".join(_words(row["term"]))
@@ -226,9 +224,7 @@ def candidates(
         primary_ok = (not has_place or sufficient_query_match(clip, place_queries)) and score > 0
         match = related_match(clip, related) if not primary_ok else None
         if match:
-            score, matched = text_score(
-                clip, [match["term"]], [], job.get("avoid", [])
-            )
+            score, matched = text_score(clip, [match["term"]], [], job.get("avoid", []))
             # Whole phrases with short words can pass even when token scoring ignores them.
             if not job.get("avoid") and score == 0:
                 score = 0.5
@@ -248,9 +244,17 @@ def candidates(
             "fit": fit,
             **(
                 {
-                    "matched_query": match["term"] if match else next(
-                        (q for q in primary_queries(queries) if sufficient_query_match(clip, [q])),
-                        place_queries[0] if primary_ok and place_queries else None,
+                    "matched_query": (
+                        match["term"]
+                        if match
+                        else next(
+                            (
+                                q
+                                for q in primary_queries(queries)
+                                if sufficient_query_match(clip, [q])
+                            ),
+                            place_queries[0] if primary_ok and place_queries else None,
+                        )
                     ),
                     "related_match": bool(match),
                 }
