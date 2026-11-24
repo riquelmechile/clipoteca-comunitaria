@@ -10627,5 +10627,69 @@
     },
     "status": "published",
     "created_at": "2026-11-24T23:20:09.941399Z"
+  },
+  {
+    "id": "clip-000163",
+    "title": {
+      "es": "Hermosa mujer usando tel\u00e9fono celular",
+      "en": "Beautiful woman using cellphone"
+    },
+    "description": {
+      "es": "Hermosa mujer usando tel\u00e9fono celular",
+      "en": "Beautiful woman using cellphone"
+    },
+    "tags": {
+      "es": [
+        "Hermosa",
+        "mujer",
+        "usando",
+        "tel\u00e9fono",
+        "celular"
+      ],
+      "en": [
+        "Beautiful",
+        "woman",
+        "using",
+        "cellphone"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "8927739",
+      "source_language": "en",
+      "source_title": "beautiful-woman-using-cellphone-8927739",
+      "source_url": "https://www.pexels.com/video/beautiful-woman-using-cellphone-8927739/",
+      "source_start": 2.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 9.0,
+      "width": 2048,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2865690,
+      "sha256": "e9a4763b2eec88a68bbcb7e6a76913873b5ea617ce93545798b465855daf20e4",
+      "perceptual_hash": "f096a64959999acd~3805.01:ba93a66ccc8d88ce~3840.14:fa93a66d598c988c~3923.83:b9d9136774545159~4467.95:f292a66d59999299~3890.01"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/clip_clip-000163.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/thumb_clip-000163.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000163_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000163_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000163_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000163_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000163_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-002/story_clip-000163_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T23:20:09.941399Z"
   }
 ]
