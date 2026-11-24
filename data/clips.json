@@ -58,12 +58,10 @@
     },
     "tags": {
       "es": [
-        "Autopistas",
-        "lluvia"
+        "Autopistas"
       ],
       "en": [
-        "Motorways",
-        "rain"
+        "Motorways"
       ]
     },
     "source": {
@@ -165,16 +163,14 @@
         "caminando",
         "camino",
         "nevado",
-        "invierno",
-        "nieve"
+        "invierno"
       ],
       "en": [
         "Person",
         "walking",
         "snowy",
         "path",
-        "winter",
-        "snow"
+        "winter"
       ]
     },
     "source": {
@@ -444,8 +440,7 @@
         "Canción",
         "original",
         "Tay",
-        "Zonday",
-        "lluvia"
+        "Zonday"
       ],
       "en": [
         "Chocolate",
@@ -510,8 +505,7 @@
         "Canción",
         "original",
         "Tay",
-        "Zonday",
-        "lluvia"
+        "Zonday"
       ],
       "en": [
         "Chocolate",
@@ -577,16 +571,14 @@
         "aérea",
         "paisaje",
         "urbano",
-        "montaña",
-        "volcán"
+        "montaña"
       ],
       "en": [
         "Aerial",
         "view",
         "urban",
         "landscape",
-        "mountain",
-        "volcano"
+        "mountain"
       ]
     },
     "source": {
@@ -644,16 +636,14 @@
         "aérea",
         "paisaje",
         "urbano",
-        "montaña",
-        "volcán"
+        "montaña"
       ],
       "en": [
         "Aerial",
         "view",
         "urban",
         "landscape",
-        "mountain",
-        "volcano"
+        "mountain"
       ]
     },
     "source": {
@@ -712,8 +702,7 @@
         "escaladores",
         "cumbre",
         "chimborazo",
-        "nevado",
-        "volcán"
+        "nevado"
       ],
       "en": [
         "Aerial",
@@ -721,8 +710,7 @@
         "climbers",
         "snowy",
         "chimborazo",
-        "summit",
-        "volcano"
+        "summit"
       ]
     },
     "source": {
@@ -780,8 +768,7 @@
         "aérea",
         "intersección",
         "ocupada",
-        "carretera",
-        "autopista"
+        "carretera"
       ],
       "en": [
         "Aerial",
@@ -846,8 +833,7 @@
         "aérea",
         "intersección",
         "ocupada",
-        "carretera",
-        "autopista"
+        "carretera"
       ],
       "en": [
         "Aerial",
@@ -913,8 +899,7 @@
         "carreteras",
         "sao",
         "paulo",
-        "brazil",
-        "autopista"
+        "brazil"
       ],
       "en": [
         "Aerial",
@@ -922,8 +907,7 @@
         "highways",
         "sao",
         "paulo",
-        "brazil",
-        "highway"
+        "brazil"
       ]
     },
     "source": {
@@ -981,9 +965,7 @@
         "luces",
         "sur",
         "lago",
-        "Queenstown",
-        "aurora",
-        "boreal"
+        "Queenstown"
       ],
       "en": [
         "Stunning",
@@ -1048,9 +1030,7 @@
         "luces",
         "sur",
         "lago",
-        "Queenstown",
-        "aurora",
-        "boreal"
+        "Queenstown"
       ],
       "en": [
         "Stunning",
@@ -1177,8 +1157,7 @@
         "Caída",
         "montaña",
         "majestuosa",
-        "cayendo",
-        "cascada"
+        "cayendo"
       ],
       "en": [
         "Majestic",
@@ -1241,14 +1220,12 @@
       "es": [
         "Parque",
         "público",
-        "barcelona",
-        "cascada"
+        "barcelona"
       ],
       "en": [
         "Public",
         "park",
-        "barcelona",
-        "waterfall"
+        "barcelona"
       ]
     },
     "source": {
@@ -1370,8 +1347,7 @@
         "Barco",
         "tranquil",
         "lago",
-        "forestal",
-        "bosque"
+        "forestal"
       ],
       "en": [
         "Tranquil",
@@ -1433,8 +1409,7 @@
       "es": [
         "años",
         "dinámica",
-        "forestal",
-        "bosque"
+        "forestal"
       ],
       "en": [
         "Years",
@@ -1500,8 +1475,7 @@
         "Kalinzu",
         "distrito",
         "Mitooma",
-        "webm",
-        "bosque"
+        "webm"
       ],
       "en": [
         "drive",
@@ -1572,11 +1546,7 @@
         "desierto",
         "vista",
         "aérea",
-        "Atacama",
-        "desert",
-        "salt",
-        "flats",
-        "Chile"
+        "desert"
       ],
       "en": [
         "Majestic",
@@ -1642,11 +1612,7 @@
         "desierto",
         "Umar",
         "Mukhtar",
-        "Atacama",
-        "desert",
-        "salt",
-        "flats",
-        "Chile"
+        "desert"
       ],
       "en": [
         "Lion",
@@ -1708,11 +1674,7 @@
       "es": [
         "Sal",
         "suelo",
-        "Atacama",
-        "desert",
-        "salt",
-        "flats",
-        "Chile"
+        "salt"
       ],
       "en": [
         "Salt",
@@ -1782,8 +1744,6 @@
         "cima",
         "agua",
         "turismo",
-        "Torres",
-        "Paine",
         "Patagonia"
       ],
       "en": [
@@ -1863,11 +1823,7 @@
         "TACA",
         "XERECA",
         "PRA",
-        "MIM",
-        "Torres",
-        "Paine",
-        "Chile",
-        "mountains"
+        "MIM"
       ],
       "en": [
         "Brazil",
@@ -1941,9 +1897,7 @@
         "30L",
         "evaluación",
         "diaria",
-        "mochila",
-        "Torres",
-        "Paine"
+        "mochila"
       ],
       "en": [
         "Patagonia",
@@ -2010,11 +1964,7 @@
         "chilena",
         "paisaje",
         "pintoresco",
-        "video",
-        "Torres",
-        "Paine",
-        "Chile",
-        "mountains"
+        "video"
       ],
       "en": [
         "Chilean",
@@ -2082,8 +2032,7 @@
         "PARQUE",
         "NACIONAL",
         "TORRES",
-        "PAINE",
-        "mountains"
+        "PAINE"
       ],
       "en": [
         "RECORRIENDO",
@@ -2151,8 +2100,7 @@
         "dolor",
         "montañas",
         "chile",
-        "Paine",
-        "Patagonia"
+        "Paine"
       ],
       "en": [
         "Breathtaking",
@@ -2221,10 +2169,7 @@
         "moscú",
         "cielo",
         "urbano",
-        "panorama",
-        "Paine",
-        "Chile",
-        "mountains"
+        "panorama"
       ],
       "en": [
         "City",
@@ -2297,11 +2242,7 @@
         "Self",
         "Use",
         "auto",
-        "film",
-        "Valparaiso",
-        "Chile",
-        "hills",
-        "port"
+        "film"
       ],
       "en": [
         "COLORFUL",
@@ -2371,11 +2312,7 @@
         "colorful",
         "rojo",
         "arroyo",
-        "agua",
-        "Valparaiso",
-        "Chile",
-        "hills",
-        "port"
+        "agua"
       ],
       "en": [
         "Autumn",
@@ -2444,11 +2381,7 @@
         "vista",
         "mar",
         "verano",
-        "Valparaiso",
-        "Chile",
-        "colorful",
-        "hills",
-        "port"
+        "colorful"
       ],
       "en": [
         "Colorful",
@@ -2516,11 +2449,7 @@
         "Pancho",
         "Saso",
         "Congreso",
-        "Valparaiso",
-        "Chile",
-        "colorful",
-        "hills",
-        "port"
+        "Valparaiso"
       ],
       "en": [
         "Valparaiso",
@@ -2588,10 +2517,7 @@
         "vistas",
         "vibrante",
         "zona",
-        "urbana",
-        "Valparaíso",
-        "puerto",
-        "cerros"
+        "urbana"
       ],
       "en": [
         "Lush",
@@ -2659,9 +2585,7 @@
         "reciclar",
         "proceso",
         "carga",
-        "puerto",
-        "Valparaíso",
-        "cerros"
+        "puerto"
       ],
       "en": [
         "Reciclaje",
@@ -2734,7 +2658,6 @@
         "reel",
         "recursos",
         "vídeo",
-        "Terreno",
         "cráteres"
       ],
       "en": [
@@ -2811,8 +2734,7 @@
         "LANDING",
         "MOON",
         "WALK",
-        "ECLIPSE",
-        "surface"
+        "ECLIPSE"
       ],
       "en": [
         "NASA",
@@ -2953,11 +2875,7 @@
       "es": [
         "nave",
         "espacial",
-        "campo",
-        "Moon",
-        "lunar",
-        "surface",
-        "NASA"
+        "campo"
       ],
       "en": [
         "space",
@@ -3021,10 +2939,7 @@
         "ponerse",
         "contacto",
         "mes",
-        "Moon",
-        "lunar",
-        "surface",
-        "NASA"
+        "Moon"
       ],
       "en": [
         "Moon",
@@ -3170,10 +3085,7 @@
         "tapizado",
         "ANTE",
         "Introducción",
-        "química",
-        "Terreno",
-        "luna",
-        "cráteres"
+        "química"
       ],
       "en": [
         "Tapered",
@@ -3182,9 +3094,7 @@
         "joints",
         "Introduction",
         "chemistry",
-        "Glassware",
-        "moon",
-        "craters"
+        "Glassware"
       ]
     },
     "source": {
@@ -3244,9 +3154,7 @@
         "lunar",
         "bajo",
         "cielo",
-        "estrellado",
-        "Luna",
-        "cráteres"
+        "estrellado"
       ],
       "en": [
         "Cinematic",
@@ -3255,9 +3163,7 @@
         "surface",
         "under",
         "starry",
-        "sky",
-        "moon",
-        "craters"
+        "sky"
       ]
     },
     "source": {
@@ -3317,9 +3223,7 @@
         "Sol",
         "ogv",
         "Sun",
-        "solar",
-        "surface",
-        "NASA"
+        "surface"
       ],
       "en": [
         "video",
@@ -3390,9 +3294,7 @@
         "nave",
         "espacial",
         "segura",
-        "Sun",
-        "surface",
-        "NASA"
+        "Sun"
       ],
       "en": [
         "Solar",
@@ -3546,9 +3448,7 @@
         "brillante",
         "animación",
         "solar",
-        "vibrante",
-        "estrella",
-        "superficie"
+        "vibrante"
       ],
       "en": [
         "Glowing",
@@ -3556,9 +3456,7 @@
         "vibrant",
         "solar",
         "flares",
-        "animation",
-        "star",
-        "surface"
+        "animation"
       ]
     },
     "source": {
@@ -3615,8 +3513,7 @@
         "Cómo",
         "vamos",
         "Luna",
-        "Superficie",
-        "estrella"
+        "Superficie"
       ],
       "en": [
         "How",
@@ -3680,17 +3577,13 @@
         "Estrella",
         "Belén",
         "Pelicula",
-        "Infantil",
-        "Sol",
-        "superficie"
+        "Infantil"
       ],
       "en": [
         "Star",
         "Bethlehem",
         "Movie",
-        "Kids",
-        "sun",
-        "surface"
+        "Kids"
       ]
     },
     "source": {
@@ -3755,9 +3648,7 @@
         "soleado",
         "paneles",
         "fotovoltaicos",
-        "sistema",
-        "surface",
-        "NASA"
+        "sistema"
       ],
       "en": [
         "Solar",
@@ -3830,9 +3721,7 @@
         "superficie",
         "solar",
         "bengalas",
-        "Sun",
-        "surface",
-        "NASA"
+        "surface"
       ],
       "en": [
         "Vivid",
@@ -3899,9 +3788,7 @@
         "NASA",
         "Space",
         "Place",
-        "Earth",
-        "orbit",
-        "view"
+        "Earth"
       ],
       "en": [
         "What",
@@ -3969,10 +3856,7 @@
         "orbitando",
         "tierra",
         "amanecer",
-        "Earth",
-        "orbit",
-        "view",
-        "NASA"
+        "Earth"
       ],
       "en": [
         "Majestic",
@@ -4252,18 +4136,14 @@
         "vista",
         "aérea",
         "ciudad",
-        "río",
-        "Chiloé",
-        "isla"
+        "río"
       ],
       "en": [
         "Stunning",
         "aerial",
         "view",
         "city",
-        "river",
-        "Chile",
-        "island"
+        "river"
       ]
     },
     "source": {
@@ -4327,10 +4207,7 @@
         "estatal",
         "cafetería",
         "house",
-        "histórico",
-        "Chiloe",
-        "stilt",
-        "houses"
+        "histórico"
       ],
       "en": [
         "Vienna",
@@ -4405,8 +4282,7 @@
         "isla",
         "día",
         "festivo",
-        "naturaleza",
-        "Chiloé"
+        "naturaleza"
       ],
       "en": [
         "Women",
@@ -4416,8 +4292,7 @@
         "island",
         "public",
         "holidays",
-        "nature",
-        "Chile"
+        "nature"
       ]
     },
     "source": {
@@ -4474,18 +4349,14 @@
         "Vista",
         "panorámica",
         "ciudad",
-        "costera",
-        "Chiloé",
-        "palafitos"
+        "costera"
       ],
       "en": [
         "Scenic",
         "waterfront",
         "view",
         "coastal",
-        "town",
-        "Chile",
-        "pallet"
+        "town"
       ]
     },
     "source": {
@@ -4542,10 +4413,7 @@
         "casa",
         "agua",
         "muelle",
-        "fondo",
-        "Chiloe",
-        "stilt",
-        "houses"
+        "fondo"
       ],
       "en": [
         "house",
@@ -4610,7 +4478,6 @@
         "Silvestre",
         "webm",
         "Chiloe",
-        "island",
         "Chile"
       ],
       "en": [
@@ -4799,10 +4666,7 @@
       "es": [
         "Patagonista",
         "nieve",
-        "impresionante",
-        "Patagonia",
-        "glacier",
-        "Chile"
+        "impresionante"
       ],
       "en": [
         "Breathtaking",
@@ -4868,9 +4732,7 @@
         "impresionante",
         "perito",
         "moreno",
-        "glaciar",
-        "Patagonia",
-        "Chile"
+        "glaciar"
       ],
       "en": [
         "Breathtaking",
@@ -4917,7 +4779,11 @@
         "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000072_05.webp"
       ]
     },
-    "status": "published",
+    "status": "retired",
+    "retirement": {
+      "reason": "Perito Moreno glacier is in Argentina, not Chile.",
+      "date": "2026-11-24"
+    },
     "created_at": "2026-11-24T04:10:19.151774Z"
   },
   {
@@ -4940,10 +4806,7 @@
         "renderizado",
         "terreno",
         "PeakNav",
-        "webm",
-        "glacier",
-        "ice",
-        "Chile"
+        "webm"
       ],
       "en": [
         "Cerro",
@@ -5012,10 +4875,7 @@
         "Tracy",
         "Farquhar",
         "Norte",
-        "Groenlandia",
-        "glacier",
-        "ice",
-        "Chile"
+        "Groenlandia"
       ],
       "en": [
         "Tracy",
@@ -5086,10 +4946,7 @@
         "terreno",
         "PeakNav",
         "vertical",
-        "webm",
-        "Patagonia",
-        "glacier",
-        "Chile"
+        "webm"
       ],
       "en": [
         "Cerro",
@@ -5161,10 +5018,7 @@
         "lobos",
         "marinos",
         "costa",
-        "rocosa",
-        "Isla",
-        "Pascua",
-        "moái"
+        "rocosa"
       ],
       "en": [
         "Dramatic",
@@ -5235,9 +5089,7 @@
         "cui",
         "estatua",
         "nai",
-        "vietnam",
-        "Rapa",
-        "statues"
+        "vietnam"
       ],
       "en": [
         "Drone",
@@ -5307,9 +5159,7 @@
         "sentada",
         "algunas",
         "hojas",
-        "verdes",
-        "Rapa",
-        "Nui"
+        "verdes"
       ],
       "en": [
         "white",
@@ -5376,10 +5226,7 @@
         "pico",
         "montaña",
         "desde",
-        "camping",
-        "Easter",
-        "Island",
-        "moai"
+        "camping"
       ],
       "en": [
         "Enjoy",
@@ -5426,7 +5273,11 @@
         "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000079_05.webp"
       ]
     },
-    "status": "published",
+    "status": "retired",
+    "retirement": {
+      "reason": "Camping mountain view unrelated to Rapa Nui.",
+      "date": "2026-11-24"
+    },
     "created_at": "2026-11-24T04:10:19.151774Z"
   },
   {
@@ -5448,9 +5299,7 @@
         "iSLA",
         "550",
         "MidRisk",
-        "Suzhou",
-        "Pascua",
-        "moái"
+        "Suzhou"
       ],
       "en": [
         "Product",
@@ -5517,8 +5366,7 @@
         "BBC",
         "documental",
         "Rapa",
-        "Nui",
-        "statues"
+        "Nui"
       ],
       "en": [
         "BBC",
@@ -5581,10 +5429,7 @@
         "Ojos",
         "mirando",
         "cielo",
-        "webm",
-        "Easter",
-        "Island",
-        "moai"
+        "webm"
       ],
       "en": [
         "Eyes",
@@ -5629,7 +5474,11 @@
         "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000082_05.webp"
       ]
     },
-    "status": "published",
+    "status": "retired",
+    "retirement": {
+      "reason": "Eyes looking at the sky, unrelated to Rapa Nui.",
+      "date": "2026-11-24"
+    },
     "created_at": "2026-11-24T04:10:19.151774Z"
   },
   {
@@ -5647,8 +5496,7 @@
         "Chile",
         "coche",
         "cable",
-        "santiago",
-        "skyline"
+        "santiago"
       ],
       "en": [
         "Chile",
@@ -5715,8 +5563,7 @@
         "vivo",
         "Santiago",
         "Chile",
-        "2023",
-        "city"
+        "2023"
       ],
       "en": [
         "Power",
@@ -5783,8 +5630,6 @@
         "Ciudad",
         "atardecer",
         "naranja",
-        "Santiago",
-        "Chile",
         "city"
       ],
       "en": [
@@ -5849,8 +5694,6 @@
         "ZBAA",
         "CTR",
         "replays",
-        "Santiago",
-        "Chile",
         "skyline"
       ],
       "en": [
@@ -5987,10 +5830,7 @@
         "Naturaleza",
         "Tiempo",
         "Lapso",
-        "microescenas",
-        "flower",
-        "blooming",
-        "timelapse"
+        "microescenas"
       ],
       "en": [
         "Nature",
@@ -6196,10 +6036,7 @@
         "amanecer",
         "hojas",
         "verde",
-        "exuberante",
-        "planta",
-        "luz",
-        "solar"
+        "exuberante"
       ],
       "en": [
         "Serene",
@@ -6271,10 +6108,7 @@
         "detection",
         "Antibiotics",
         "drinking",
-        "Water",
-        "leaves",
-        "sunlight",
-        "plant"
+        "Water"
       ],
       "en": [
         "Green",
@@ -6342,11 +6176,7 @@
     "tags": {
       "es": [
         "Video",
-        "planta",
-        "green",
-        "leaves",
-        "sunlight",
-        "plant"
+        "planta"
       ],
       "en": [
         "Video",
@@ -6408,11 +6238,7 @@
         "Leaf",
         "Colores",
         "Europa",
-        "webm",
-        "green",
-        "leaves",
-        "sunlight",
-        "plant"
+        "webm"
       ],
       "en": [
         "Autumn",
@@ -6498,10 +6324,7 @@
         "Medal",
         "Biological",
         "Sciences",
-        "2025",
-        "Sunlight",
-        "plant",
-        "leaves"
+        "2025"
       ]
     },
     "source": {
@@ -6558,11 +6381,7 @@
         "Cómo",
         "regar",
         "fruta",
-        "cocina",
-        "green",
-        "leaves",
-        "sunlight",
-        "plant"
+        "cocina"
       ],
       "en": [
         "How",
@@ -6629,9 +6448,7 @@
         "Norwegian",
         "storm",
         "Timelapse",
-        "Franso",
-        "seed",
-        "germination"
+        "Franso"
       ],
       "en": [
         "Norway",
@@ -6696,10 +6513,7 @@
       "es": [
         "Video",
         "plantas",
-        "aguacate",
-        "seed",
-        "germination",
-        "timelapse"
+        "aguacate"
       ],
       "en": [
         "Video",
@@ -6770,8 +6584,6 @@
         "lapse",
         "sierra",
         "guadarrama",
-        "seed",
-        "germination",
         "timelapse"
       ],
       "en": [
@@ -7619,7 +7431,11 @@
         "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000111_05.webp"
       ]
     },
-    "status": "published",
+    "status": "retired",
+    "retirement": {
+      "reason": "Decorative moai plant pots, not the archaeological site.",
+      "date": "2026-11-24"
+    },
     "created_at": "2026-11-24T05:16:29.210017Z"
   },
   {
@@ -7875,7 +7691,11 @@
         "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000115_05.webp"
       ]
     },
-    "status": "published",
+    "status": "retired",
+    "retirement": {
+      "reason": "Moai figurines, not the archaeological site.",
+      "date": "2026-11-24"
+    },
     "created_at": "2026-11-24T05:16:29.210017Z"
   },
   {
@@ -9451,7 +9271,11 @@
         "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000139_05.webp"
       ]
     },
-    "status": "published",
+    "status": "retired",
+    "retirement": {
+      "reason": "Balancing stones on a beach, not Rapa Nui moai.",
+      "date": "2026-11-24"
+    },
     "created_at": "2026-11-24T05:56:33.970640Z"
   }
 ]
