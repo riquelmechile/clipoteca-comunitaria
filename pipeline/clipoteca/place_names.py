@@ -50,9 +50,7 @@ def query_names(queries):
     names = set()
     for query in queries:
         folded = " ".join(_words(query))
-        known = {
-            name for name in _PLACE_NAMES if f" {name} " in f" {folded} "
-        }
+        known = {name for name in _PLACE_NAMES if f" {name} " in f" {folded} "}
         names.update(known)
         # Known entities are kept separately: "Santiago Chile city" means
         # Santiago plus Chile, never the invented entity "Santiago Chile".
