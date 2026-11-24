@@ -286,7 +286,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
 
   server.registerTool("render_video", {
     title: "Render a video",
-    description: "Deliver a narrated video from your own script. Spanish, 3–12 scenes, maximum 60 seconds, 9:16/16:9/1:1. Requires write Bearer. Example script: {\"title\":\"Water\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Water\",\"say\":\"El agua fluye.\",\"query\":{\"es\":[\"rio\"],\"en\":[\"river\"]},\"prompt\":\"flowing river\"},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Nubes\",\"say\":\"El agua forma nubes.\",\"query\":{\"es\":[\"nubes\"],\"en\":[\"clouds\"]},\"prompt\":\"clouds moving\"},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
+    description: "Deliver a narrated video from your own script. Spanish, 3-12 scenes, maximum 60 seconds, 9:16/16:9/1:1. Requires write Bearer. Example script: {\"title\":\"Water\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Water\",\"say\":\"El agua fluye.\",\"query\":{\"es\":[\"rio\"],\"en\":[\"river\"]},\"prompt\":\"flowing river\"},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Nubes\",\"say\":\"El agua forma nubes.\",\"query\":{\"es\":[\"nubes\"],\"en\":[\"clouds\"]},\"prompt\":\"clouds moving\"},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
     inputSchema: z.strictObject({
       script: z.object({
         title: z.string(), aspect: z.enum(["9:16","16:9","1:1"]),
