@@ -828,19 +828,29 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
 async def _run_provider(function, client, seed, context, state, timeout, **kwargs):
     errors = state.setdefault("errors", [])
     token = _ERRORS.set(errors)
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    deadline_token = _DEADLINE.set(started + timeout)
+    state["attempts"] = state.get("attempts", 0) + 1
     try:
         async with asyncio.timeout(timeout):
-            state["terms"] = await function(client, seed, context, state, **kwargs)
+            result = await function(client, seed, context, state, **kwargs)
+            if result or not state.get("terms"):
+                state["terms"] = result
     except (TimeoutError, httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as exc:
-        errors.append({"error": type(exc).__name__, "detail": str(exc)[:160]})
+        _record_error({}, exc)
+    except asyncio.CancelledError:
+        _record_error({}, TimeoutError("batch deadline"))
+        raise
     finally:
+        state["elapsed_s"] = round(state.get("elapsed_s", 0) + loop.time() - started, 3)
         if function is _wikidata:
             kwargs["roots_ready"].set()
+        _DEADLINE.reset(deadline_token)
         _ERRORS.reset(token)
 
 
 def _provider_terms(wiki, commons):
-    # Reserve a majority for verified Wikidata, but supplement with Commons.
     wd = wiki.get("terms", [])
     cm = commons.get("terms", [])
     groups = []
@@ -850,51 +860,91 @@ def _provider_terms(wiki, commons):
     return groups
 
 
-async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
-    """Each seed gets its own budget after admission; results remain render-local."""
+async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS, batch_timeout=BATCH_SECONDS):
+    """Independent seed budgets, one bounded batch, a second chance for errored seeds."""
     timeout = min(LOOKUP_SECONDS, timeout)
+    batch_timeout = min(BATCH_SECONDS, batch_timeout)
     owned = client is None
     if owned:
         client = httpx.AsyncClient(
             headers={"User-Agent": USER_AGENT},
             timeout=timeout,
-            limits=httpx.Limits(max_connections=40, max_keepalive_connections=20),
+            limits=httpx.Limits(max_connections=2 * HOST_CONCURRENCY),
         )
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    deadline = started + batch_timeout
+    hosts = {
+        urlsplit(url).hostname: {"lock": asyncio.Semaphore(HOST_CONCURRENCY), "until": 0.0}
+        for url in (WIKIDATA, COMMONS)
+    }
+    host_token = _HOSTS.set(hosts)
+    response_token = _RESPONSE_CACHE.set({})
     cache = {}
     tasks = []
     semaphore = asyncio.Semaphore(SEED_CONCURRENCY)
 
-    async def run(seed, context, place, topic, wiki, commons):
+    async def run(key):
+        seed, context, place, topic = key
+        wiki, commons = cache[key]
         async with semaphore:
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                wiki.setdefault("errors", []).append(
+                    {"error": "TimeoutError", "detail": "batch deadline before admission",
+                     "http_status": None, "retry": False}
+                )
+                return
+            budget = min(timeout, remaining)
             roots_ready = asyncio.Event()
             calls = [
                 _run_provider(
-                    _wikidata,
-                    client,
-                    seed,
-                    context,
-                    wiki,
-                    timeout,
-                    place_hint=place,
-                    topic=topic,
-                    roots_ready=roots_ready,
+                    _wikidata, client, seed, context, wiki, budget,
+                    place_hint=place, topic=topic, roots_ready=roots_ready,
                 )
             ]
             if place:
                 calls.append(
                     _run_provider(
-                        _commons,
-                        client,
-                        seed,
-                        context,
-                        commons,
-                        timeout,
-                        topic=topic,
-                        wiki=wiki,
-                        roots_ready=roots_ready,
+                        _commons, client, seed, context, commons, budget,
+                        topic=topic, wiki=wiki, roots_ready=roots_ready,
                     )
                 )
             await asyncio.gather(*calls)
+
+    async def phase(keys):
+        if not keys:
+            return
+        batch = [asyncio.create_task(run(key)) for key in keys]
+        tasks.extend(batch)
+        _, pending = await asyncio.wait(batch, timeout=max(0.0, deadline - loop.time()))
+        for task in pending:
+            task.cancel()
+        await asyncio.gather(*batch, return_exceptions=True)
+        for key, task in zip(keys, batch, strict=True):
+            wiki, _ = cache[key]
+            if task.cancelled() and not wiki.get("attempts"):
+                wiki.setdefault("errors", []).append(
+                    {"error": "TimeoutError", "detail": "batch deadline before admission",
+                     "http_status": None, "retry": False}
+                )
+            elif not task.cancelled() and task.exception() is not None:
+                exc = task.exception()
+                wiki.setdefault("errors", []).append(
+                    {"error": type(exc).__name__, "detail": str(exc)[:160],
+                     "http_status": None, "retry": False}
+                )
+
+    def scene_states(keys):
+        states = [(key, *cache[key]) for key in keys]
+        if any(wiki.get("geographic") and not wiki.get("country_only") for _, wiki, _ in states):
+            return [row for row in states if not row[1].get("country_only")]
+        return states
+
+    def terms(job, keys):
+        return merge_terms(
+            job["queries"], *[_provider_terms(wiki, commons) for _, wiki, commons in scene_states(keys)]
+        )
 
     try:
         keys_by_job = []
@@ -903,53 +953,81 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
             keys = []
             if len(merge_terms(queries)) < MAX_RELATED:
                 for seed in seeds(queries):
-                    context = _context(queries, seed)
+                    context = tuple(sorted(_context(queries, seed)))
                     place = _place_hint(queries, seed)
                     topic = _topic(queries, seed)
                     key = (seed, context, place, topic)
                     keys.append(key)
-                    if key in cache:
-                        continue
-                    wiki, commons = {}, {}
-                    cache[key] = (wiki, commons)
-                    tasks.append(
-                        asyncio.create_task(run(seed, context, place, topic, wiki, commons))
-                    )
+                    cache.setdefault(key, ({}, {}))
             keys_by_job.append(keys)
-        if tasks:
-            await asyncio.gather(*tasks)
+        await phase(list(cache))
+        # Retry only a scene that has no terms and actual errors; an empty clean
+        # lookup is a valid result. Shared keys are retried at most once.
+        retries = []
+        for job, keys in zip(jobs, keys_by_job, strict=True):
+            if terms(job, keys):
+                continue
+            for key in keys:
+                wiki, commons = cache[key]
+                if (wiki.get("errors") or commons.get("errors")) and key not in retries:
+                    retries.append(key)
+        if loop.time() < deadline:
+            await phase(retries)
+
         diagnostics = []
         for job, keys in zip(jobs, keys_by_job, strict=True):
-            states = [(key, *cache[key]) for key in keys]
-            if any(
-                wiki.get("geographic") and not wiki.get("country_only") for _, wiki, _ in states
-            ):
-                states = [row for row in states if not row[1].get("country_only")]
-            groups = [_provider_terms(wiki, commons) for _, wiki, commons in states]
-            job["related_terms"] = merge_terms(job["queries"], *groups)
+            states = scene_states(keys)
+            job["related_terms"] = terms(job, keys)
             for (seed, _, _, _), wiki, commons in states:
                 if wiki.get("geographic") or commons.get("geographic"):
                     job["related_parent"] = _parent_label(
                         job["queries"], seed, _context(job["queries"], seed)
                     )
                     break
-            diagnostics.append(
+            # Include even suppressed country lookups in error diagnostics.
+            all_states = [(key, *cache[key]) for key in keys]
+            errors = [
+                {"seed": key[0], "provider": provider, **error}
+                for key, wiki, commons in all_states
+                for provider, state in (("wikidata", wiki), ("commons", commons))
+                for error in state.get("errors", [])
+            ]
+            providers = [
                 {
-                    "seeds": [key[0] for key in keys],
-                    "roots": [root for _, wiki, _ in states for root in wiki.get("roots", [])],
-                    "commons_roots": [
-                        root
-                        for _, _, commons in states
-                        for root in commons.get("commons_roots", [])
-                    ],
-                    "errors": [
-                        {"seed": key[0], "provider": provider, **error}
-                        for key, wiki, commons in states
-                        for provider, state in (("wikidata", wiki), ("commons", commons))
-                        for error in state.get("errors", [])
-                    ],
+                    "seed": key[0],
+                    "provider": provider,
+                    "attempts": state.get("attempts", 0),
+                    "elapsed_s": state.get("elapsed_s", 0.0),
+                    "terms_count": len(state.get("terms", [])),
                 }
-            )
+                for key, wiki, commons in all_states
+                for provider, state in (("wikidata", wiki), ("commons", commons))
+                if state
+            ]
+            diagnostic = {
+                "seeds": [key[0] for key in keys],
+                "roots": [root for _, wiki, _ in states for root in wiki.get("roots", [])],
+                "commons_roots": [
+                    root for _, _, commons in states for root in commons.get("commons_roots", [])
+                ],
+                "terms_by_origin": {
+                    origin: [row["term"] for row in job["related_terms"] if row["origin"] == origin]
+                    for origin in ("script", "wikidata", "commons")
+                },
+                "errors": errors,
+                "timeouts": sum(error["error"] == "TimeoutError" for error in errors),
+                "providers": providers,
+                "elapsed_s": round(sum(
+                    max(wiki.get("elapsed_s", 0), commons.get("elapsed_s", 0))
+                    for _, wiki, commons in all_states
+                ), 3),
+                "batch_elapsed_s": round(loop.time() - started, 3),
+                "status": (
+                    "ok" if job["related_terms"] else "error" if errors else "no_entity"
+                ),
+            }
+            job["related_diagnostic"] = diagnostic
+            diagnostics.append(diagnostic)
         return diagnostics
     finally:
         for task in tasks:
@@ -957,6 +1035,8 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
                 task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+        _RESPONSE_CACHE.reset(response_token)
+        _HOSTS.reset(host_token)
         if owned:
             await client.aclose()
 

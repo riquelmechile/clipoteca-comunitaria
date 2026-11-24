@@ -28,6 +28,12 @@ def _timings(work):
     path = work / "timings.json"
     timings = _read(path) if path.is_file() else {}
     for folder in sorted((work / "scenes").glob("*")):
+        job_path = folder / "job.json"
+        if job_path.is_file():
+            diagnostic = _read(job_path).get("related_diagnostic", {})
+            if "elapsed_s" in diagnostic:
+                timings[f"scene.{folder.name}.related.elapsed_s"] = diagnostic["elapsed_s"]
+                timings[f"scene.{folder.name}.related.timeouts"] = diagnostic["timeouts"]
         for row in _related_evidence(folder):
             timings[f"scene.{folder.name}.related_terms.{row['origin']}.{row['term']}"] = 1
         selected = folder / "result.json"
@@ -100,6 +106,11 @@ def build_delivery(work, catalog_path):
         result = _read(path) if path.is_file() else {}
         related = _related_evidence(folder)
         evidence = {"related_terms": related} if related else {}
+        job_path = folder / "job.json"
+        if job_path.is_file():
+            diagnostic = _read(job_path).get("related_diagnostic")
+            if diagnostic is not None:
+                evidence["related_diagnostic"] = diagnostic
         if result.get("status") != "ok":
             rows.append(
                 {
