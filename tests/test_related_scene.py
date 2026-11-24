@@ -97,6 +97,23 @@ def test_related_wikidata_fixtures_and_render_cache():
         "chile": [_hit("Q298", "Chile", "Chile")],
     }
 
+    # CirrusSearch returns ranked item IDs; wbgetentities resolves their labels.
+    child_sets = {
+        "Q504449": ["Castro", "Ancud", "Chonchi", "Dalcahue"],
+        "Q900001": ["Hanga Roa", "Ahu Tongariki", "Rano Raraku", "Anakena"],
+        "Q34600": ["Fushimi Inari", "Kinkaku-ji", "Kiyomizu-dera"],
+        "Q2887": ["Providencia", "Cerro San Cristobal", "Plaza de Armas"],
+    }
+    child_ids = {}
+    for root, terms in child_sets.items():
+        child_ids[root] = []
+        for term in terms:
+            qid = f"Q{910000 + sum(len(ids) for ids in child_ids.values())}"
+            child_ids[root].append(qid)
+            entities[qid] = _entity(term, "Q839954")
+            if root == "Q34600":
+                entities[qid]["descriptions"] = {"en": {"value": "Buddhist temple"}}
+
     def response(request):
         params = request.url.params
         host = request.url.host
@@ -104,27 +121,19 @@ def test_related_wikidata_fixtures_and_render_cache():
         if host == "www.wikidata.org":
             if params.get("action") == "wbsearchentities":
                 return httpx.Response(200, json={"search": search.get(params["search"], [])})
+            if params.get("action") == "query":
+                statement = params["srsearch"].split()[0]
+                prop, root = statement.removeprefix("haswbstatement:").split("=")
+                assert root not in {"Q14625303", "Q54832215", "Q900002", "Q900003", "Q900004"}
+                assert params["srsort"] == "incoming_links_desc"
+                if root in {"Q34600", "Q120730"}:
+                    assert params["srsearch"].endswith((" temple", " shrine"))
+                ids = child_ids.get(root, []) if prop == "P131" else []
+                return httpx.Response(
+                    200, json={"query": {"search": [{"title": qid} for qid in ids]}}
+                )
             ids = params["ids"].split("|")
             return httpx.Response(200, json={"entities": {qid: entities[qid] for qid in ids}})
-        if host == "query.wikidata.org":
-            query = params["query"]
-            if "wd:Q504449" in query:
-                assert all(f"wd:{qid}" in query for qid in ("Q201267", "Q177608"))
-                assert "wd:Q14625303" not in query and "wd:Q54832215" not in query
-                terms = ["Castro", "Ancud", "Chonchi", "Dalcahue"]
-            elif "wd:Q900001" in query:
-                assert "wd:Q900002" not in query
-                terms = ["Hanga Roa", "Ahu Tongariki", "Rano Raraku", "Anakena"]
-            elif "wd:Q34600" in query:
-                assert "wd:Q120730" in query and "wd:Q900003" not in query
-                terms = ["Fushimi Inari", "Kinkaku-ji", "Kiyomizu-dera"]
-            else:
-                assert "wd:Q2887" in query and "wd:Q900004" not in query
-                terms = ["Providencia", "Cerro San Cristobal", "Plaza de Armas"]
-            return httpx.Response(
-                200,
-                json={"results": {"bindings": [{"itemLabel": {"value": t}} for t in terms]}},
-            )
         return httpx.Response(503)
 
     async def run():
@@ -159,6 +168,7 @@ def test_related_wikidata_fixtures_and_render_cache():
         assert related_terms(jobs[4])[0]["term"] == "Providencia"
         assert related_terms(jobs[5]) == []
         assert diagnostics[4]["roots"] == [{"qid": "Q2887", "label": "Santiago"}]
+        assert not any(call[0] == "query.wikidata.org" for call in calls)
         assert calls.count(("www.wikidata.org", "wbsearchentities", "chiloe")) == 2
         assert related_search_query(jobs[0], "Castro") == "Castro Chilo\u00e9"
         assert related_search_query(jobs[1], "Hanga Roa") == "Hanga Roa Easter Island"
@@ -181,6 +191,12 @@ def test_commons_filters_meta_and_descends_into_landmark_categories():
         "2016 Easter Island earthquake",
         "Easter Island in art",
         "Easter Island by media type",
+        "Buildings in Santiago de Chile by commune",
+        "Things named after Easter Island",
+        "Ships named after Easter Island",
+        "Islets adjacent to Easter Island",
+        "Cultural Properties designated by government",
+        "Churches in Ancud",
         "Hare Moas",
         "Hanga Roa",
     ]
@@ -230,6 +246,62 @@ def test_lookup_deadline_keeps_explicit_terms():
             await resolve_jobs([job], client=client, timeout=0.02)
         assert loop.time() - start < 1
         assert related_terms(job) == [{"term": "Castro", "origin": "script"}]
+
+    asyncio.run(run())
+
+
+def test_each_seed_receives_its_own_budget(monkeypatch):
+    from clipoteca.studio import related
+
+    async def wiki(_client, seed, _context, state, **kwargs):
+        await asyncio.sleep(0.03)
+        state["roots"] = [{"qid": "Q1", "label": seed}]
+        return [{"term": f"{seed} landmark", "origin": "wikidata"}]
+
+    async def commons(*args, **kwargs):
+        return []
+
+    async def run():
+        monkeypatch.setattr(related, "_wikidata", wiki)
+        monkeypatch.setattr(related, "_commons", commons)
+        monkeypatch.setattr(related, "SEED_CONCURRENCY", 1)
+        jobs = [{"queries": {"en": [f"Place {i}"], "es": []}} for i in range(4)]
+        async with httpx.AsyncClient() as client:
+            diagnostics = await resolve_jobs(jobs, client=client, timeout=0.08)
+        assert all(job["related_terms"] for job in jobs)
+        assert all(not entry["errors"] for entry in diagnostics)
+
+    asyncio.run(run())
+
+
+def test_desert_query_does_not_accept_region_homonym():
+    roots = {
+        "Q2120": _entity("Atacama Region", "Q56061", country="Q298"),
+        "Q298": _entity("Chile", "Q6256"),
+    }
+
+    def response(request):
+        if request.url.host != "www.wikidata.org":
+            return httpx.Response(503)
+        params = request.url.params
+        if params["action"] == "wbsearchentities":
+            hits = (
+                [_hit("Q298", "Chile", "Chile")]
+                if params["search"] == "chile"
+                else [_hit("Q2120", "Atacama Region", "Atacama", "region of Chile")]
+            )
+            return httpx.Response(200, json={"search": hits})
+        assert params["action"] == "wbgetentities"
+        return httpx.Response(
+            200, json={"entities": {qid: roots[qid] for qid in params["ids"].split("|")}}
+        )
+
+    async def run():
+        job = {"queries": {"en": ["Atacama desert Chile"], "es": []}}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(response)) as client:
+            diagnostics = await resolve_jobs([job], client=client)
+        assert diagnostics[0]["roots"] == []
+        assert job["related_terms"] == []
 
     asyncio.run(run())
 

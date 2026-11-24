@@ -283,7 +283,7 @@ típico ni una validación posterior en producción.
 ### Busqueda relacionada (v3)
 
 - El motor considera hasta ocho terminos distintos por escena, primero los del guion,
-  despues Wikidata (desambiguacion por coordenadas/clase geografica, pais y
+  despues Wikidata (busqueda indexada de declaraciones, sin SPARQL; desambiguacion por coordenadas/clase geografica, pais y
   notoriedad; hasta tres raices relacionadas; hijos por ubicacion/partes) y Commons
   (subcategorias de lugares, filtrando categorias meta y eventos fechados).
   Las consultas fallidas se omiten. Para nombres ambiguos se consulta el termino
@@ -292,7 +292,7 @@ típico ni una validación posterior en producción.
 - El plan permanece offline por defecto. En el render real se debe agregar
   `--resolve-related` al comando existente de `clipoteca.studio.plan` de
   `.github/workflows/render.yml` (sin otros cambios). El plan comparte una cache
-  por render y una ventana total de 6 segundos para consultar las fuentes externas.
+  por render y un presupuesto de 6 segundos por semilla, con hasta cuatro semillas concurrentes; los plazos de busqueda de clips no cambian.
 - La primera ronda conserva el 60% del presupuesto de importacion cuando hay
   relacionados; estos usan el resto con descubrimiento concurrente y escrituras
   locales seriales. El retry usa relacionados, o consultas simplificadas no
@@ -308,9 +308,9 @@ típico ni una validación posterior en producción.
 Prueba de red manual (fuera del CI):
 
 ```sh
-uv run --no-sync python scripts/smoke_related.py "Chiloé" "Easter Island" "Kyoto temples" "Santiago Chile city"
+uv run --no-sync python scripts/smoke_related.py --batch "Chiloé" "Easter Island" "Kyoto temples" "Santiago Chile city"
 ```
 
 Imprime por consulta las semillas, raices Wikidata (QID y etiqueta), categorias
-raiz de Commons, terminos con origen y latencia. Los tests usan transportes HTTP
+raiz de Commons, terminos con origen, errores/timeouts por proveedor y latencia del lote. Los tests usan transportes HTTP
 simulados y no demuestran los resultados actuales de los servicios externos.

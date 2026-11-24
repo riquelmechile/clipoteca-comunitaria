@@ -442,6 +442,7 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
         )
     elif (
         not place_hint
+        and not topic
         and not countries
         and len(eligible) == 1
         and _key(_label(eligible[0][1])) in variants
