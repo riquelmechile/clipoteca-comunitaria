@@ -316,3 +316,132 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
         )
     )
     return IngestReport(last, status, tuple(ids), tuple(errors))
+
+
+
+async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs):
+    """Parallel discovery across distinct terms; serialize every ingest/catalog write."""
+    writer = kwargs["writer"]
+    horizon = kwargs.pop("horizon")
+    limit = kwargs.pop("max_results")
+    concurrency = kwargs["concurrency"]
+    ordered = _ordered(adapters, place=scene_budget.place)
+    expansions = []
+    errors = []
+    ids = []
+    statuses = []
+    seen = set()
+    last = "scene-related"
+    index = 0
+
+    for query in queries:
+        if scene_budget.reason():
+            break
+        expansion = expand_query(query, translator=kwargs.get("translator"))
+        invalid = any(
+            (not expansion.terms.get(lang) or lang in expansion.errors)
+            and (
+                expansion.terms.get(lang)
+                or (public_translation_error(expansion.errors.get(lang, "")) or "").rsplit(
+                    ":", 1
+                )[-1]
+                not in QUALITY_TRANSLATION_REASONS
+            )
+            for lang in _LANGUAGES
+        )
+        if invalid:
+            on_query(query)
+            report = await _ingest(
+                query,
+                adapters,
+                max_results=limit,
+                horizon=f"{horizon}-translation-{index}",
+                discovery=SearchResult(expansion, [], [], [], 0),
+                scene_budget=scene_budget,
+                **kwargs,
+            )
+            index += 1
+            errors.extend(report.errors)
+            statuses.append(report.status)
+        else:
+            expansions.append((query, expansion))
+
+    plan = [
+        (query, expansion, adapter, lang)
+        for lang in _LANGUAGES
+        for adapter in ordered
+        for query, expansion in expansions
+        if expansion.terms.get(lang) and lang in adapter.accepts_text_languages
+    ]
+    if scene_budget.place and not any(
+        adapter.name == "wikimedia_commons" and adapter.support_status in _SEARCHABLE
+        for _, _, adapter, _ in plan
+    ):
+        scene_budget.commons_exhausted = True
+
+    async def discover(query, expansion, adapter, lang):
+        on_query(query)
+        if adapter.support_status in _SEARCHABLE:
+            scene_budget.searches_started += 1
+        try:
+            partial = replace(expansion, terms={lang: expansion.terms[lang]})
+            result = await SearchEngine([adapter], concurrency=1).search(
+                query,
+                catalog=writer.read_catalog()[0],
+                expansion=partial,
+                allow_partial_expansion=True,
+            )
+            if adapter.support_status == _DOWNLOAD:
+                scene_budget.discovered.update(c.origin_id for c in result.candidates)
+            return replace(result, expansion=expansion)
+        except asyncio.CancelledError:
+            scene_budget.searches_cancelled += 1
+            raise
+
+    for offset in range(0, len(plan), concurrency):
+        if scene_budget.reason():
+            break
+        batch = plan[offset : offset + concurrency]
+        tasks = [asyncio.create_task(discover(*entry)) for entry in batch]
+        try:
+            for (query, _, adapter, _), task in zip(batch, tasks, strict=True):
+                if scene_budget.reason():
+                    break
+                result = await task
+                if adapter.name == "wikimedia_commons" and adapter.support_status in _SEARCHABLE:
+                    scene_budget.commons_consulted = True
+                if scene_budget.reason():
+                    break
+                unique = [candidate for candidate in result.candidates if candidate.origin_id not in seen]
+                seen.update(candidate.origin_id for candidate in unique)
+                report = await _ingest(
+                    query,
+                    adapters,
+                    max_results=max(1, limit - scene_budget.relevant_count()),
+                    horizon=f"{horizon}-batch-{index}",
+                    discovery=replace(result, candidates=unique),
+                    scene_budget=scene_budget,
+                    **kwargs,
+                )
+                scene_budget.relevant_count()
+                index += 1
+                last = report.request_id
+                errors.extend(report.errors)
+                statuses.append(report.status)
+                if report.status == "published":
+                    ids.extend(report.published_ids)
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    status = (
+        "published"
+        if ids
+        else next(
+            (status for status in statuses if status not in {"no_results", "duplicate", "unavailable"}),
+            "no_results",
+        )
+    )
+    return IngestReport(last, status, tuple(ids), tuple(errors))
