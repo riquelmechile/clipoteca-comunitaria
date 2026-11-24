@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## Sin publicar
+
+- Cuota de video: el tope diario por IP sube de 12 a 50 solicitudes; se mantiene una cada cinco minutos.
+
 ## 3.0.0 (2026-11-24)
 
 Motor de video: un guion se convierte en un MP4 con voz, música, clips y subtítulos,

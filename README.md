@@ -98,7 +98,7 @@ corridas reales en 9:16, 16:9 y 1:1. Los límites conocidos están en
 
 ### Cómo pedir un video
 
-Después de promover el workflow y desplegar el Worker 3.0.0:
+Con el token de escritura:
 
 ```bash
 jq -n --slurpfile script docs/ejemplos/chile-vertical.json \
@@ -114,7 +114,7 @@ hasta que el estado sea `done`,
 En MCP, llama a `render_video` con el mismo objeto script e index_clips,
 y a `get_video_status` con el id retornado. El id es una credencial de
 descarga: mantenlo privado. Los artefactos se conservan siete días.
-La cuota de video es de una solicitud cada cinco minutos y doce por día UTC
+La cuota de video es de una solicitud cada cinco minutos y cincuenta por día UTC
 por IP (best-effort). El token de escritura se exige para solicitar, no para consultar o descargar
 con el identificador. El identificador de Actions es su SHA-256, no el secreto.
 
@@ -151,7 +151,6 @@ Que una fuente funcione hoy no garantiza que funcione mañana: los proveedores c
 
 ## Qué no es
 
-- La API de entrega de videos requiere promover el workflow y desplegar el Worker 3.0.0.
 - La búsqueda de biblioteca entrega clips de hasta 20 segundos; el motor compone videos de hasta 60 segundos.
 - No define todavía reglas de licencias ni de uso de los clips: conserva la procedencia factual de cada uno (fuente, URL y autor cuando existe) y deja esa decisión a quien lo usa. La licencia MIT cubre el código, no los clips de terceros.
 - No promete disponibilidad de las fuentes externas.

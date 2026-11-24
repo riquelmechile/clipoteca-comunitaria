@@ -42,7 +42,7 @@ M22 r2: el campo opcional `semantic_reason` indica la causa del fallback (semant
 ## M33: entrega de video
 
 El guion completo sigue schemas/video.schema.json. Llama render_video con el
-Bearer de escritura; cuota propia de video: 1 cada 5 minutos y 12 por día UTC por IP
+Bearer de escritura; cuota propia de video: 1 cada 5 minutos y 50 por día UTC por IP
 (best-effort por Cache API). Consulta get_video_status
 con el id aleatorio de 128 bits hasta done, failed o expired. file_url sirve
 el MP4 aprobado durante siete días, con Range. Si aún no aparece la corrida,

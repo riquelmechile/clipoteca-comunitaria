@@ -5,6 +5,9 @@ so concurrent requests sharing the same IP + scope cannot all pass the Cache
 API read-before-write check.
 */
 
+/** Accepted video requests per IP and UTC day. */
+export const VIDEO_DAILY_LIMIT = 50;
+
 const inFlight = new Set<string>();
 export function resetQuotaReservations(): void { inFlight.clear(); }
 
@@ -28,7 +31,7 @@ export async function quota(request: Request, scope: string): Promise<boolean> {
       const daily = new Request(key.url + "/" + day);
       const prior = await cache.match(daily);
       const count = prior ? Number(await prior.clone().text()) : 0;
-      if (!Number.isInteger(count) || count < 0 || count >= 12) return false;
+      if (!Number.isInteger(count) || count < 0 || count >= VIDEO_DAILY_LIMIT) return false;
       const midnight = Date.parse(day + "T00:00:00Z") + 86400000;
       const ttl = Math.max(1, Math.ceil((midnight - now.getTime()) / 1000));
       await cache.put(daily, new Response(String(count + 1), {
