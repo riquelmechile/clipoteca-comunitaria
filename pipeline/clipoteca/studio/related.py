@@ -271,7 +271,9 @@ async def _optional_json(client, url, **params):
             errors.append(
                 {
                     "action": params.get("list") or params.get("action"),
-                    "query": params.get("srsearch") or params.get("search") or params.get("cmtitle"),
+                    "query": params.get("srsearch")
+                    or params.get("search")
+                    or params.get("cmtitle"),
                     "error": type(exc).__name__,
                     "detail": str(exc)[:160],
                 }
@@ -453,9 +455,7 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
         return []
     state["roots"] = [{"qid": qid, "label": _label(entity)} for qid, entity in roots]
     state["commons_titles"] = list(
-        dict.fromkeys(
-            title for _, entity in roots for title in _entity_categories(entity)
-        )
+        dict.fromkeys(title for _, entity in roots for title in _entity_categories(entity))
     )
     roots_ready.set()
     if not geographic:
@@ -479,13 +479,7 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
         *(_search_children(client, qid, prop, keyword) for qid, prop, keyword in specifications)
     )
     # Stable round robin across root/relationship rankings, not completion order.
-    ids = list(
-        dict.fromkeys(
-            qid
-            for qid in _interleave(groups, limit=20)
-            if qid not in root_ids
-        )
-    )
+    ids = list(dict.fromkeys(qid for qid in _interleave(groups, limit=20) if qid not in root_ids))
     parts = [
         qid
         for _, entity in roots
@@ -508,7 +502,11 @@ async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_re
                 continue
             if child_topic and not _topic_matches(child_topic, _entity_text(entity, [])):
                 continue
-            if countries and _claim_ids(entity, "P17") and not _claim_ids(entity, "P17") & countries:
+            if (
+                countries
+                and _claim_ids(entity, "P17")
+                and not _claim_ids(entity, "P17") & countries
+            ):
                 continue
             term = _child_term(_label(entity), variants)
             if term:
@@ -559,12 +557,7 @@ def _entity_categories(entity):
 
 
 def _interleave(groups, *, limit=MAX_RELATED):
-    return [
-        group[index]
-        for index in range(limit)
-        for group in groups
-        if index < len(group)
-    ]
+    return [group[index] for index in range(limit) for group in groups if index < len(group)]
 
 
 async def _search_children(client, root, prop, keyword):
@@ -583,9 +576,7 @@ async def _search_children(client, root, prop, keyword):
         format="json",
     )
     return [
-        hit["title"]
-        for hit in payload.get("query", {}).get("search", [])
-        if _qid(hit.get("title"))
+        hit["title"] for hit in payload.get("query", {}).get("search", []) if _qid(hit.get("title"))
     ]
 
 
@@ -663,9 +654,11 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
         await roots_ready.wait()
         verified = wiki.get("commons_titles", [])
         if topic in _ROOT_TOPICS:
-            roots = verified if wiki.get("geographic") else [
-                root for root in roots if _topic_matches(topic, root)
-            ]
+            roots = (
+                verified
+                if wiki.get("geographic")
+                else [root for root in roots if _topic_matches(topic, root)]
+            )
         else:
             roots = list(dict.fromkeys([*verified, *roots]))[:3]
     if not roots:
@@ -691,8 +684,7 @@ async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     direct = [
         {"term": term, "origin": "commons"}
         for title in categories
-        if (term := _child_term(title[9:], root_variants))
-        and _topic_matches(child_topic, term)
+        if (term := _child_term(title[9:], root_variants)) and _topic_matches(child_topic, term)
     ]
     state["terms"] = direct
     # Retain completed buckets at the deadline, in fixed bucket order.
@@ -756,15 +748,29 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
             roots_ready = asyncio.Event()
             calls = [
                 _run_provider(
-                    _wikidata, client, seed, context, wiki, timeout,
-                    place_hint=place, topic=topic, roots_ready=roots_ready,
+                    _wikidata,
+                    client,
+                    seed,
+                    context,
+                    wiki,
+                    timeout,
+                    place_hint=place,
+                    topic=topic,
+                    roots_ready=roots_ready,
                 )
             ]
             if place:
                 calls.append(
                     _run_provider(
-                        _commons, client, seed, context, commons, timeout,
-                        topic=topic, wiki=wiki, roots_ready=roots_ready,
+                        _commons,
+                        client,
+                        seed,
+                        context,
+                        commons,
+                        timeout,
+                        topic=topic,
+                        wiki=wiki,
+                        roots_ready=roots_ready,
                     )
                 )
             await asyncio.gather(*calls)

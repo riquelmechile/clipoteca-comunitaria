@@ -216,8 +216,7 @@ def test_commons_filters_meta_and_descends_into_landmark_categories():
                 json={"query": {"search": [{"ns": 14, "title": "Category:Easter Island"}]}},
             )
         children = [
-            {"ns": 14, "title": f"Category:{title}"}
-            for title in members.get(params["cmtitle"], [])
+            {"ns": 14, "title": f"Category:{title}"} for title in members.get(params["cmtitle"], [])
         ]
         return httpx.Response(200, json={"query": {"categorymembers": children}})
 
