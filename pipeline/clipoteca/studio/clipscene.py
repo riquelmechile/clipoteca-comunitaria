@@ -330,7 +330,9 @@ def _make_focus(
     )
 
 
-def analyze_window(job: dict[str, Any], downloaded: Path, scorer: Any, deadline: float):
+def analyze_window(
+    job: dict[str, Any], downloaded: Path, scorer: Any, deadline: float, *, allow_fallback=False
+):
     """Use the same visual selection gate for discovery and final rendering."""
     length = float(job["len_fetch"])
     sw, sh, duration = checks.probe_video(downloaded, deadline=deadline)
@@ -366,10 +368,14 @@ def analyze_window(job: dict[str, Any], downloaded: Path, scorer: Any, deadline:
     }
     proposals = windows(analyzed, prompt, length, nemb=negatives)
     chosen, reason = choose_window(proposals, job.get("min_sim", 0.22), job.get("min_prob", 0.5))
+    if chosen is not None and chosen["score"] < job.get("min_score", 0.0):
+        chosen, reason = None, "low_score"
+    degraded_reason = None
     if chosen is None:
-        return None, reason
-    if chosen["score"] < job.get("min_score", 0.0):
-        return None, "low_score"
+        if not allow_fallback or not proposals:
+            return None, reason
+        degraded_reason = reason
+        chosen = max(proposals, key=lambda win: (win["sim"], win["score"], -win["start"]))
     return {
         "sw": sw,
         "sh": sh,
@@ -382,6 +388,7 @@ def analyze_window(job: dict[str, Any], downloaded: Path, scorer: Any, deadline:
         "stamps": stamps,
         "prompt": prompt,
         "chosen": chosen,
+        "degraded_reason": degraded_reason,
     }, "ok"
 
 
@@ -396,7 +403,12 @@ def _attempt(
 ) -> tuple[dict[str, Any] | None, str]:
     length = float(job["len_fetch"])
     try:
-        analysis, reason = analyze_window(job, downloaded, scorer, deadline)
+        if job.get("_allow_fallback"):
+            analysis, reason = analyze_window(
+                job, downloaded, scorer, deadline, allow_fallback=True
+            )
+        else:
+            analysis, reason = analyze_window(job, downloaded, scorer, deadline)
         if analysis is None:
             return None, reason
         sw, sh = analysis["sw"], analysis["sh"]
@@ -490,6 +502,11 @@ def _attempt(
             "out_w": rw,
             "out_h": rh,
             "phash": phash,
+            **(
+                {"degraded_reason": analysis["degraded_reason"]}
+                if analysis.get("degraded_reason")
+                else {}
+            ),
             **({"_analyzed_s": analyzed_duration} if analyzed_duration < duration else {}),
         }, "ok"
     except (TimeoutError, subprocess.TimeoutExpired):
@@ -604,6 +621,7 @@ def clip_scene(
                 result, reason = None, "timeout"
             if result is not None:
                 analyzed_s = result.pop("_analyzed_s", None)
+                degraded = result.pop("degraded_reason", None)
                 report = {
                     "version": 1,
                     "id": scene_id,
@@ -613,19 +631,30 @@ def clip_scene(
                     "tried": attempts,
                     "time_s": round(time.monotonic() - started, 3),
                     **({"analyzed_s": analyzed_s} if analyzed_s is not None else {}),
+                    **({"fallback": True, "degraded_reason": degraded} if degraded else {}),
                 }
-                if ranked:
+                if ranked or job.get("_allow_fallback"):
                     imported = result.get("imported", False)
                     report["source"] = "imported" if imported else "catalog"
-                    report["catalog_strong"] = not imported and (
-                        result["sim"] >= job.get("catalog_min_sim", 0.27)
+                    report["catalog_strong"] = (
+                        not degraded
+                        and not imported
+                        and (result["sim"] >= job.get("catalog_min_sim", 0.27))
                     )
                     if imported:
                         result["name_match"] = bool(candidate.get("name_match"))
                     prefer = best is None
                     if best is not None:
                         previous = best["clip"]
-                        if imported and previous.get("imported", False):
+                        prior_degraded = bool(best.get("degraded_reason"))
+                        if bool(degraded) != prior_degraded:
+                            prefer = not degraded
+                        elif degraded:
+                            prefer = (result["sim"], result["score"]) > (
+                                previous["sim"],
+                                previous["score"],
+                            )
+                        elif imported and previous.get("imported", False):
                             prefer = (
                                 result["name_match"],
                                 result["sim"],

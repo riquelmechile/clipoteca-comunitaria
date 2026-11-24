@@ -15,6 +15,16 @@ def choose_result(catalog, imported=None):
     if catalog.get("status") == "ok" and catalog.get("catalog_strong"):
         return "catalog", catalog
     if imported is not None and imported.get("status") == "ok":
+        if catalog.get("status") == "ok":
+            cat_degraded = bool(catalog.get("degraded_reason"))
+            imp_degraded = bool(imported.get("degraded_reason"))
+            if cat_degraded != imp_degraded:
+                return ("imported", imported) if cat_degraded else ("catalog", catalog)
+            if cat_degraded and (catalog["clip"]["sim"], catalog["clip"]["score"]) > (
+                imported["clip"]["sim"],
+                imported["clip"]["score"],
+            ):
+                return "catalog", catalog
         return "imported", imported
     if catalog.get("status") == "ok":
         return "catalog", catalog
@@ -29,6 +39,8 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
     root = Path(root)
     job = _read(root / "job.json")
     job.setdefault("catalog_min_sim", 0.27)
+    # Keep the best rendered degraded candidate while normal import/retry still runs.
+    job["_allow_fallback"] = True
     folders = {"catalog": root / "selection-catalog", "imported": root / "selection-imported"}
     (root / "result.json").unlink(missing_ok=True)
     (root / "clip.mp4").unlink(missing_ok=True)
@@ -59,12 +71,16 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
                     imported.get("status") != "ok"
                     or (
                         (
-                            candidate["clip"].get("name_match", False),
+                            not candidate.get("degraded_reason"),
+                            not candidate.get("degraded_reason")
+                            and candidate["clip"].get("name_match", False),
                             candidate["clip"]["sim"],
                             candidate["clip"]["score"],
                         )
                         > (
-                            imported["clip"].get("name_match", False),
+                            not imported.get("degraded_reason"),
+                            not imported.get("degraded_reason")
+                            and imported["clip"].get("name_match", False),
                             imported["clip"]["sim"],
                             imported["clip"]["score"],
                         )
@@ -78,12 +94,20 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
     result["tried"] = tried
     result["needs_retry"] = (
         not catalog.get("catalog_strong")
-        and (imported is None or imported.get("status") != "ok")
+        and (
+            imported is None
+            or imported.get("status") != "ok"
+            or bool(imported.get("degraded_reason"))
+        )
         and not (root / "import-retry" / "imported.json").exists()
     )
     if result.get("status") == "ok":
         result["source"] = origin
-        result["fallback"] = origin == "catalog" and not catalog.get("catalog_strong", False)
+        result["fallback"] = bool(result.get("degraded_reason")) or (
+            origin == "catalog" and not catalog.get("catalog_strong", False)
+        )
+        if result["fallback"]:
+            result.setdefault("degraded_reason", "weak_catalog_match")
         if origin == "imported":
             result["import_round"] = imported_folder.name
             source = imported_folder / "clip.mp4"

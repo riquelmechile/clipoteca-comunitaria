@@ -445,6 +445,7 @@ def _assignment(job: dict[str, Any], clips: list[dict[str, Any]]):
                 "source_url": item["source_url"],
                 "fit": fit,
                 "local_path": item["local_path"],
+                **({"fallback": True} if item.get("fallback") else {}),
             }
         )
     scored.sort(
@@ -692,14 +693,21 @@ def import_scene(
     reason = "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
     imported: list[dict[str, Any]] = []
     seen_digests: set[str] = set()
-    for record in writer.imported:
-        if not budget.good(record) or len(imported) >= max_results:
+    # Keep quality-eligible local material even if CLIP rejected its relevance.
+    # Relevant records take priority over fallback records in the bounded manifest.
+    eligible = [record for record in writer.imported if budget.valid(record)]
+    eligible.sort(key=lambda record: not budget.good(record))
+    for record in eligible:
+        if len(imported) >= max_results:
             continue
         digest = str(record["media"]["sha256"]).lower()
         if digest in seen_digests:
             continue
         seen_digests.add(digest)
-        imported.append(_manifest_clip(record, storage, out))
+        item = _manifest_clip(record, storage, out)
+        if not budget.good(record):
+            item["fallback"] = True
+        imported.append(item)
     imported.sort(key=lambda x: x["imp_id"])
     assignment = _assignment(job, imported)
     relevant_count = budget.relevant_count()
@@ -723,6 +731,9 @@ def import_scene(
         "searches_avoided": max(0, budget.searches_planned - budget.searches_started),
         "searches_cancelled": budget.searches_cancelled,
         "downloads_started": budget.downloads_started,
+        "downloads_completed": budget.downloads_completed,
+        "text_evaluated": len(budget.text_checked),
+        "evaluated_count": len(budget.visual_cache),
         "downloads_avoided": len(budget.discovered - budget.attempted),
     }
     _atomic_json(out / "imported.json", report)
@@ -774,6 +785,9 @@ def main(argv: list[str] | None = None) -> int:
                 "searches_started": result["searches_started"],
                 "searches_avoided": result["searches_avoided"],
                 "downloads_started": result["downloads_started"],
+                "downloads_completed": result["downloads_completed"],
+                "text_evaluated": result["text_evaluated"],
+                "evaluated_count": result["evaluated_count"],
                 "downloads_avoided": result["downloads_avoided"],
             },
             ensure_ascii=False,

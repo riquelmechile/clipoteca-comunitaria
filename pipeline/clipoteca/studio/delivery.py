@@ -29,6 +29,9 @@ def _timings(work):
                 "searches_cancelled",
                 "downloads_started",
                 "downloads_avoided",
+                "downloads_completed",
+                "text_evaluated",
+                "evaluated_count",
                 "raw_count",
                 "relevant_count",
                 "commons_consulted",
@@ -100,6 +103,11 @@ def build_delivery(work, catalog_path):
                 "id": scene.id,
                 "status": "ok",
                 "fallback": result.get("fallback", False),
+                **(
+                    {"degraded_reason": result.get("degraded_reason", "weak_catalog_match")}
+                    if result.get("fallback")
+                    else {}
+                ),
                 "clip_id": indexed["clips"].get(identifier, identifier),
                 "origin": "imported" if imported else "catalog",
                 "source": record["source"]["provider"],

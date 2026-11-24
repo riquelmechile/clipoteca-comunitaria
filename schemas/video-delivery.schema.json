@@ -135,6 +135,10 @@
               },
               "fallback": {
                 "type": "boolean"
+              },
+              "degraded_reason": {
+                "type": "string",
+                "minLength": 1
               }
             }
           },

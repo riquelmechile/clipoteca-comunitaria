@@ -807,6 +807,14 @@ def run_qa(
         "video": {"sha256": _sha256(video), "size_bytes": video.stat().st_size},
         "pass": not failed,
         "failed": failed,
+        "warnings": [
+            {
+                "scene_id": scene_id,
+                "reason": result.get("degraded_reason", "weak_catalog_match"),
+            }
+            for scene_id, result in sorted(results.items())
+            if result.get("status") == "ok" and result.get("fallback")
+        ],
         "checks": report_checks,
         "time_s": round(time.monotonic() - started, 3),
     }

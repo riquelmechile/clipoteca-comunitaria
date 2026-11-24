@@ -455,3 +455,17 @@ def test_catalogue_conflict_reloads_and_reassigns_without_deleting_assets(setup,
     published = json.loads(github.catalog)
     assert len(published) == 5
     assert len({row["id"] for row in published}) == 5
+
+
+def test_fallback_imports_fill_scenes_but_are_not_indexed(tmp_path):
+    work = tmp_path / "work"
+    directory = work / "scenes" / "a" / "import"
+    good, weak = imported(directory, 3), imported(directory, 4)
+    weak["fallback"] = True
+    put(directory / "imported.json", {"clips": [good, weak]})
+    put(work / "qa_report.json", {"pass": True})
+    root = tmp_path / "output"
+    writer = Writer(root)
+    result = run((work, root, [good], index.DryStorage(root), writer))
+    assert set(result["clips"]) == {good["imp_id"]}
+    assert len(result["indexed"]) == 1

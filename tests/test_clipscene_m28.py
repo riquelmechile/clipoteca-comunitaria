@@ -730,3 +730,22 @@ def test_imported_proper_name_wins_after_visual_validity(tmp_path, monkeypatch):
     )
     assert report["clip"]["clip_id"] == "right"
     assert (tmp_path / "out" / "clip.mp4").read_bytes() == b"right"
+
+
+def test_threshold_fallback_keeps_rendered_clip(source_clip, tmp_path, monkeypatch):
+    job = _job("1:1", 3)
+    job["_allow_fallback"] = True
+    monkeypatch.setattr(clipscene, "choose_window", lambda *_args: (None, "low_sim"))
+    report = clip_scene(
+        job,
+        {"status": "catalog", "primary": _candidate(source_clip), "backups": []},
+        tmp_path,
+        fetch=_fetch(source_clip),
+        scorer=FakeScorer(),
+        ocr=lambda _: [],
+    )
+    assert report["status"] == "ok"
+    assert report["fallback"] is True
+    assert report["degraded_reason"] == "low_sim"
+    assert not report["catalog_strong"]
+    assert (tmp_path / "clip.mp4").is_file()

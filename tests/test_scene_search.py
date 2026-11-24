@@ -254,3 +254,41 @@ def test_raw_results_do_not_count_and_visual_gate_is_cached():
     assert budget.reason() is None
     assert budget.relevant_count() == 0
     assert len(checked) == 8
+
+
+@pytest.mark.asyncio
+async def test_chiloe_commons_discovery_recorded_before_media_timeout(monkeypatch):
+    writer = Writer()
+    settings = job()
+    settings["queries"] = {"en": ["Chiloe Island"], "es": ["Chilo\u00e9"]}
+    budget = scene_search.SceneBudget(settings, writer.imported, 2, 2, 100, clock=lambda: 0)
+    calls, cancelled = [], []
+    adapters = [
+        Provider("pexels", calls, cancelled),
+        Provider("wikimedia_commons", calls, cancelled),
+    ]
+    monkeypatch.setattr(
+        scene_search,
+        "expand_query",
+        lambda *args, **kwargs: QueryExpansion(
+            "Chiloe Island", {lang: "Chiloe Island" for lang in ("en", "es", "zh", "ru")}
+        ),
+    )
+
+    async def timeout_ingest(*args, **kwargs):
+        assert budget.commons_consulted
+        raise TimeoutError("media stage")
+
+    monkeypatch.setattr(scene_search, "_ingest", timeout_ingest)
+    with pytest.raises(TimeoutError):
+        await scene_search.ingest(
+            "Chiloe Island",
+            adapters,
+            scene_budget=budget,
+            writer=writer,
+            max_results=2,
+            horizon="fixture",
+            concurrency=2,
+        )
+    assert calls == [("wikimedia_commons", "en")]
+    assert budget.commons_consulted

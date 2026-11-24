@@ -614,3 +614,13 @@ def test_one_minute_is_the_single_limit_for_plan_timeline_and_qa():
         scene["say"] = scene["caption"] = "Los glaciares retroceden cada verano un poco más. " * 3
     with pytest.raises(script.ScriptError, match="máximo es 60 s"):
         plan.build_plan(parse_video_script(long))
+
+
+def test_degraded_scene_is_warning_not_gate_failure(job):
+    path = next((job / "scenes").glob("*/result.json"))
+    result = json.loads(path.read_text())
+    result.update(fallback=True, degraded_reason="low_sim")
+    path.write_text(json.dumps(result), encoding="utf-8")
+    report = run_good(job)
+    assert report["pass"]
+    assert report["warnings"] == [{"scene_id": path.parent.name, "reason": "low_sim"}]
