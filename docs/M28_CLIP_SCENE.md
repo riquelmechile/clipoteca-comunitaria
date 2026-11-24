@@ -225,12 +225,16 @@ negativo; los umbrales deben ser números finitos, no cadenas ni booleanos.
 El cálculo de windows.py no cambia.
 
 CLIP (incluidas las sesiones ONNX y tokenizer) y OCR se inicializan
-una vez antes de evaluar candidatos. Si no están disponibles, se lanza
+una sola vez, después de obtener y verificar el primer archivo candidato
+y antes de evaluarlo. Si todos se rechazan al obtenerlos, no se cargan
+modelos y se conservan sus motivos reales. Si los evaluadores no están
+disponibles para un archivo verificado, se lanza
 ClipSceneError y la CLI sale 2, con un mensaje que indica el componente,
 los archivos CLIP cuando corresponda, CLIPOTECA_STUDIO_MODELS (directorio
 de caché con subcarpeta clip-vit-b32) y el extra studio. No queda un
 result.json viejo ni un falso no_candidate. Los dobles inyectados
-no cargan modelos reales.
+no cargan modelos reales. El campo opcional detail se omite deliberadamente:
+los motivos categóricos bastan y no se exponen excepciones internas.
 
 | tried.reason | Significado / acción |
 |---|---|

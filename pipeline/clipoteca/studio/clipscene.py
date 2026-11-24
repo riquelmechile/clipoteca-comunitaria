@@ -37,7 +37,7 @@ def _threshold(job: dict[str, Any], key: str, default: float) -> float:
 
 
 def _initialize_evaluators(scorer: Any, ocr: Any) -> tuple[Any, Any]:
-    """Fail before candidate processing if a required evaluator cannot initialize."""
+    """Fail before scoring verified media if a required evaluator cannot initialize."""
     hint = "set CLIPOTECA_STUDIO_MODELS; install with uv sync --extra studio"
     if scorer is None or ocr is None:
         try:
@@ -435,9 +435,7 @@ def _attempt(
             return None, "black"
         if frozen:
             return None, "frozen"
-        if _ocr_positions(
-            rendered, 0.0, output_dur, output_dur, (0.2, 0.5, 0.8), ocr, deadline
-        ):
+        if _ocr_positions(rendered, 0.0, output_dur, output_dur, (0.2, 0.5, 0.8), ocr, deadline):
             return None, "on_screen_text"
         phash = checks.mid_phash(rendered, deadline=deadline)
         if time.monotonic() >= deadline:
@@ -513,8 +511,7 @@ def clip_scene(
     source = [assignment.get("primary")] if assignment.get("primary") else []
     source += list(assignment.get("backups", []))
     skipped = set(exclude)
-    if any(isinstance(item, dict) and item.get("clip_id") not in skipped for item in source):
-        scorer, ocr = _initialize_evaluators(scorer, ocr)
+    evaluators_ready = False
     try:
         resolved_root = Path(local_root).resolve() if local_root is not None else None
     except (OSError, RuntimeError):
@@ -563,6 +560,9 @@ def clip_scene(
             except Exception:
                 attempts.append({"clip_id": cid, "reason": "download_failed"})
                 continue
+            if not evaluators_ready:
+                scorer, ocr = _initialize_evaluators(scorer, ocr)
+                evaluators_ready = True
             try:
                 result, reason = _attempt(
                     job, candidate, downloaded, rendered, scorer, ocr, deadline

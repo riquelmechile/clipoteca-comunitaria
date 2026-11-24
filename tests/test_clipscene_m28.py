@@ -503,13 +503,19 @@ def test_evaluator_error_is_not_no_candidate(tmp_path, monkeypatch, capsys, fail
     monkeypatch.setattr(clipscene.importlib, "import_module", fake_import)
     monkeypatch.setattr(clipscore, "ClipScorer", BrokenScorer)
     monkeypatch.setattr(checks, "get_ocr", broken_ocr)
-    candidate = {"clip_id": "clip-a", "asset_url": "https://example.invalid/a.mp4"}
-    args = _cli_args(tmp_path, candidate)
+    root = tmp_path / "local"
+    root.mkdir()
+    source = root / "clip.mp4"
+    source.write_bytes(b"verified local bytes")
+    candidate = _candidate(source)
+    candidate.pop("asset_url")
+    candidate["local_path"] = "clip.mp4"
+    args = _cli_args(tmp_path, candidate, local_root=root)
     out = tmp_path / "out"
     out.mkdir()
     (out / "result.json").write_text('{"status":"ok"}', encoding="utf-8")
     with pytest.raises(ClipSceneError, match="CLIPOTECA_STUDIO_MODELS"):
-        clip_scene(_job(), {"status": "catalog", "primary": candidate}, out)
+        clip_scene(_job(), {"status": "imported", "primary": candidate}, out, local_root=root)
     assert not (out / "result.json").exists()
     (out / "result.json").write_text('{"status":"ok"}', encoding="utf-8")
     with pytest.raises(SystemExit) as exc:
@@ -608,3 +614,91 @@ def test_global_timeout_stops_before_fetch(tmp_path, monkeypatch):
         ocr=lambda _: [],
     )
     assert report["tried"] == [{"clip_id": "clip-a", "reason": "timeout"}]
+
+
+def test_rejected_local_paths_do_not_initialize_evaluators(tmp_path, monkeypatch):
+    root = tmp_path / "local"
+    root.mkdir()
+    source = root / "clip.mp4"
+    source.write_bytes(b"verified local bytes")
+    (root / "link.mp4").symlink_to(source)
+    monkeypatch.setenv("CLIPOTECA_STUDIO_MODELS", str(tmp_path / "missing"))
+
+    def forbidden(*args):
+        pytest.fail("no evaluator needed for rejected local paths")
+
+    monkeypatch.setattr(clipscene, "_initialize_evaluators", forbidden)
+    primary = _candidate(source)
+    primary.pop("asset_url")
+    primary["local_path"] = "link.mp4"
+    backup = {**primary, "clip_id": "clip-b", "local_path": "../clip.mp4"}
+    report = clip_scene(
+        _job(),
+        {"status": "imported", "primary": primary, "backups": [backup]},
+        tmp_path / "out",
+        local_root=root,
+    )
+    assert report["status"] == "fail"
+    assert report["reason"] == "no_candidate"
+    assert report["tried"] == [
+        {"clip_id": "clip-a", "reason": "bad_local_path"},
+        {"clip_id": "clip-b", "reason": "bad_local_path"},
+    ]
+
+
+def test_verified_media_requires_real_clip_model_files(tmp_path, monkeypatch):
+    root = tmp_path / "local"
+    root.mkdir()
+    source = root / "clip.mp4"
+    source.write_bytes(b"verified local bytes")
+    candidate = _candidate(source)
+    candidate.pop("asset_url")
+    candidate["local_path"] = "clip.mp4"
+    monkeypatch.setenv("CLIPOTECA_STUDIO_MODELS", str(tmp_path / "missing"))
+    monkeypatch.setattr(clipscene.importlib, "import_module", lambda name: object())
+    with pytest.raises(ClipSceneError, match="vision_model_quantized.onnx"):
+        clip_scene(
+            _job(),
+            {"status": "imported", "primary": candidate},
+            tmp_path / "out",
+            local_root=root,
+        )
+    assert not (tmp_path / "out" / "result.json").exists()
+
+
+def test_clip_session_initialization_contract():
+    # clipscore is intentionally outside this PR; guard its private lazy-session hook.
+    assert callable(clipscore.ClipScorer._sess)
+
+
+def test_evaluators_initialized_only_once_after_verification(tmp_path, monkeypatch):
+    source = tmp_path / "clip.mp4"
+    source.write_bytes(b"verified bytes")
+    calls = []
+
+    def initialize(scorer, ocr):
+        calls.append("initialize")
+        return FakeScorer(), lambda _: []
+
+    def reject(*args):
+        calls.append("attempt")
+        return None, "low_score"
+
+    monkeypatch.setattr(clipscene, "_initialize_evaluators", initialize)
+    monkeypatch.setattr(clipscene, "_attempt", reject)
+    report = clip_scene(
+        _job(),
+        {
+            "status": "catalog",
+            "primary": _candidate(source, sha256="0" * 64),
+            "backups": [_candidate(source, "clip-b"), _candidate(source, "clip-c")],
+        },
+        tmp_path / "out",
+        fetch=_fetch(source),
+    )
+    assert calls == ["initialize", "attempt", "attempt"]
+    assert [entry["reason"] for entry in report["tried"]] == [
+        "download_failed",
+        "low_score",
+        "low_score",
+    ]
