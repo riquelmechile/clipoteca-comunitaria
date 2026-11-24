@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from contextvars import ContextVar
 
 import httpx
 
@@ -11,8 +12,10 @@ from ..place_names import _words, aliases, query_names
 
 MAX_RELATED = 8
 LOOKUP_SECONDS = 6
+SEED_CONCURRENCY = 4
+_REQUEST_SECONDS = 1.8
+_ERRORS = ContextVar("related_errors", default=None)
 WIKIDATA = "https://www.wikidata.org/w/api.php"
-WDQS = "https://query.wikidata.org/sparql"
 COMMONS = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "Clipoteca/3.0 (https://github.com/riquelmechile/clipoteca-comunitaria)"
 
@@ -128,6 +131,8 @@ _GEO_QUALIFIERS = (
     "parque nacional",
     "metropolitan area",
     "urban area",
+    "desert",
+    "desierto",
 )
 _SCENE_QUALIFIERS = re.compile(
     r"\b(?:city|ciudad|temples?|templos?|shrines?|santuarios?|"
@@ -141,7 +146,8 @@ _META_PREFIX = re.compile(
     r"images?|imagenes|pictures?|featured|quality|categories|categorias|"
     r"maps?|mapas|people|personas|events?|eventos|flags?|banderas|"
     r"transport|transportation|politics|religion|demographics|"
-    r"media|files|videos?|paintings?|art|heraldry|views?)\b"
+    r"media|files|videos?|paintings?|art|heraldry|views?|things|ships|"
+    r"cultural properties|islets adjacent|buildings|churches|temples)\b"
 )
 _BUCKET_PREFIX = re.compile(
     r"^(?:populated places|settlements|cities|towns|villages|municipalities|"
@@ -151,6 +157,33 @@ _BUCKET_PREFIX = re.compile(
     r"geography|localidades|comunas|iglesias|templos|playas|parques)\b"
 )
 _DATE = re.compile(r"\b(?:1[0-9]{3}|20[0-9]{2})\b")
+_META_PHRASE = re.compile(
+    r"\b(?:named after|adjacent to|designated by|metropolitan area|urban area|"
+    r"by (?:commune|media|type|year|country|location|district)|in art)\b"
+)
+_PLURAL_CATEGORY = re.compile(
+    r"^\w+(?: \w+){0,4}s (?:in|of|on|by|about|from|named after|adjacent to|designated by)\b"
+)
+_TOPIC_PATTERNS = {
+    "temple": re.compile(r"\b(?:temples?|templos?|shrines?|santuarios?)\b"),
+    "desert": re.compile(r"\b(?:deserts?|desiertos?)\b"),
+}
+_ROOT_TOPICS = {"desert"}
+
+
+def _topic(queries, seed):
+    for term in primary_queries(queries):
+        key = _key(term)
+        for variant in _variants(seed):
+            key = re.sub(rf"\b{re.escape(variant)}\b", "", key)
+        for topic, pattern in _TOPIC_PATTERNS.items():
+            if pattern.search(key):
+                return topic
+    return None
+
+
+def _topic_matches(topic, label):
+    return not topic or bool(_TOPIC_PATTERNS[topic].search(_key(label)))
 
 
 def _variants(seed):
@@ -219,15 +252,29 @@ def _place_hint(queries, seed):
 
 
 async def _json(client, url, **params):
-    response = await client.get(url, params=params)
-    response.raise_for_status()
-    return response.json()
+    async with asyncio.timeout(_REQUEST_SECONDS):
+        response = await client.get(url, params=params)
+        response.raise_for_status()
+        payload = response.json()
+        if "error" in payload:
+            raise ValueError(str(payload["error"].get("code", "api_error")))
+        return payload
 
 
 async def _optional_json(client, url, **params):
     try:
         return await _json(client, url, **params)
-    except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
+    except (TimeoutError, httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as exc:
+        errors = _ERRORS.get()
+        if errors is not None:
+            errors.append(
+                {
+                    "action": params.get("list") or params.get("action"),
+                    "query": params.get("srsearch") or params.get("search") or params.get("cmtitle"),
+                    "error": type(exc).__name__,
+                    "detail": str(exc)[:160],
+                }
+            )
         return {}
 
 
@@ -296,7 +343,8 @@ def _child_term(term, variants):
         or len(term) > 80
         or _DATE.search(key)
         or _META_PREFIX.search(key)
-        or re.search(r"\bby (?:media|type|year|country|location)\b|\bin art\b", key)
+        or _META_PHRASE.search(key)
+        or _PLURAL_CATEGORY.search(key)
         or re.fullmatch(r"Q\d+", term)
     ):
         return None
@@ -307,10 +355,12 @@ def _child_term(term, variants):
     return term
 
 
-async def _wikidata(client, seed, context, state, *, place_hint):
+async def _wikidata(client, seed, context, state, *, place_hint, topic, roots_ready):
     variants = _variants(seed)
     searches = [(seed, "en"), (seed, "es")]
     searches.extend((name, "en") for name in sorted(variants - {seed})[:2])
+    if topic in _ROOT_TOPICS:
+        searches.insert(0, (f"{seed} {topic}", "en"))
     search_terms = [*searches, *((name, "en") for name in context)]
     groups = await asyncio.gather(
         *(_search_entities(client, name, lang) for name, lang in search_terms)
@@ -337,7 +387,7 @@ async def _wikidata(client, seed, context, state, *, place_hint):
         WIKIDATA,
         action="wbgetentities",
         ids="|".join(ids),
-        props="claims|labels|aliases|sitelinks",
+        props="claims|labels|aliases|sitelinks|descriptions",
         languages="es|en",
         format="json",
     )
@@ -370,6 +420,12 @@ async def _wikidata(client, seed, context, state, *, place_hint):
                 for hit in matches[qid]
             )
         ]
+    if topic in _ROOT_TOPICS:
+        geographic = [
+            (qid, entity)
+            for qid, entity in geographic
+            if _topic_matches(topic, _entity_text(entity, matches[qid]))
+        ]
     geographic.sort(
         key=lambda row: (
             bool(_claim_ids(row[1], "P31") & _COUNTRY_CLASSES),
@@ -394,6 +450,12 @@ async def _wikidata(client, seed, context, state, *, place_hint):
     else:
         return []
     state["roots"] = [{"qid": qid, "label": _label(entity)} for qid, entity in roots]
+    state["commons_titles"] = list(
+        dict.fromkeys(
+            title for _, entity in roots for title in _entity_categories(entity)
+        )
+    )
+    roots_ready.set()
     if not geographic:
         entity = roots[0][1]
         return [
@@ -402,41 +464,115 @@ async def _wikidata(client, seed, context, state, *, place_hint):
             for alias in entity.get("aliases", {}).get(lang, [])
             if (term := _child_term(alias.get("value", ""), variants))
         ]
-    values = " ".join(f"wd:{qid}" for qid, _ in roots)
-    # Direct and two-level administrative relationships plus physical location.
-    # Coordinates (or a known geographic class) exclude most unrelated entities.
-    classes = " ".join(f"wd:{qid}" for qid in sorted(_GEO_CLASSES - _COUNTRY_CLASSES))
-    query = f"""
-SELECT ?item ?itemLabel ?links ?population WHERE {{
-  {{
-    SELECT DISTINCT ?item ?links ?population WHERE {{
-      VALUES ?root {{ {values} }}
-      {{ ?item wdt:P131 ?root . }}
-      UNION {{ ?item wdt:P131/wdt:P131 ?root . }}
-      UNION {{ ?item wdt:P276 ?root . }}
-      UNION {{ ?item wdt:P706 ?root . }}
-      UNION {{ ?root wdt:P527 ?item . }}
-      UNION {{ ?item wdt:P361 ?root . }}
-      FILTER(?item NOT IN ({", ".join(f"wd:{qid}" for qid, _ in roots)}))
-      {{ ?item wdt:P625 ?coord . }}
-      UNION {{ VALUES ?class {{ {classes} }} ?item wdt:P31 ?class . }}
-      ?item wikibase:sitelinks ?links .
-      FILTER(?links > 1)
-      OPTIONAL {{ ?item wdt:P1082 ?population }}
-    }}
-    ORDER BY DESC(?links) DESC(COALESCE(?population, 0)) ?item
-    LIMIT 40
-  }}
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "es,en". }}
-}}
-ORDER BY DESC(?links) DESC(COALESCE(?population, 0)) ?item
-"""
-    payload = await _optional_json(client, WDQS, query=query, format="json")
-    return [
-        {"term": term, "origin": "wikidata"}
-        for binding in payload.get("results", {}).get("bindings", [])
-        if (term := _child_term(binding.get("itemLabel", {}).get("value", ""), variants))
+    # CirrusSearch uses the indexed statements and incoming links; avoid WDQS.
+    child_topic = topic if topic not in _ROOT_TOPICS else None
+    root_ids = {qid for qid, _ in roots}
+    specifications = [
+        (qid, prop, keyword)
+        for prop in ("P131", "P276", "P706", "P361")
+        for qid, _ in roots
+        for keyword in (("temple", "shrine") if child_topic == "temple" else ("",))
     ]
+    groups = await asyncio.gather(
+        *(_search_children(client, qid, prop, keyword) for qid, prop, keyword in specifications)
+    )
+    # Stable round robin across root/relationship rankings, not completion order.
+    ids = list(
+        dict.fromkeys(
+            qid
+            for qid in _interleave(groups, limit=20)
+            if qid not in root_ids
+        )
+    )
+    parts = [
+        qid for _, entity in roots for qid in sorted(_claim_ids(entity, "P527"))
+        if qid not in root_ids
+    ]
+    ids = list(dict.fromkeys([*parts, *ids]))[:80]
+    if not ids:
+        return []
+    details = await asyncio.gather(
+        *(_child_entities(client, ids[i : i + 40]) for i in range(0, len(ids), 40))
+    )
+    children = {qid: entity for group in details for qid, entity in group.items()}
+    rows = []
+    for qid in ids:
+        entity = children.get(qid, {})
+        if not _geo(entity) or _bad(entity, []):
+            continue
+        if child_topic and not _topic_matches(child_topic, _entity_text(entity, [])):
+            continue
+        if countries and _claim_ids(entity, "P17") and not _claim_ids(entity, "P17") & countries:
+            continue
+        term = _child_term(_label(entity), variants)
+        if term:
+            rows.append({"term": term, "origin": "wikidata"})
+    return rows
+
+
+def _entity_text(entity, hits):
+    values = [
+        data.get("value", "")
+        for field in ("labels", "descriptions")
+        for data in entity.get(field, {}).values()
+    ]
+    return " ".join([*values, *(hit.get("description", "") for hit in hits)])
+
+
+def _entity_categories(entity):
+    titles = []
+    link = entity.get("sitelinks", {}).get("commonswiki", {}).get("title", "")
+    if link.startswith("Category:"):
+        titles.append(link)
+    for claim in entity.get("claims", {}).get("P373", []):
+        value = claim.get("mainsnak", {}).get("datavalue", {}).get("value")
+        if isinstance(value, str) and value.strip():
+            titles.append(f"Category:{value}")
+    return titles
+
+
+def _interleave(groups, *, limit=MAX_RELATED):
+    return [
+        group[index]
+        for index in range(limit)
+        for group in groups
+        if index < len(group)
+    ]
+
+
+async def _search_children(client, root, prop, keyword):
+    query = f"haswbstatement:{prop}={root}"
+    if keyword:
+        query += f" {keyword}"
+    payload = await _optional_json(
+        client,
+        WIKIDATA,
+        action="query",
+        list="search",
+        srnamespace=0,
+        srsearch=query,
+        srsort="incoming_links_desc",
+        srlimit=20,
+        format="json",
+    )
+    return [
+        hit["title"]
+        for hit in payload.get("query", {}).get("search", [])
+        if _qid(hit.get("title"))
+    ]
+
+
+async def _child_entities(client, ids):
+    payload = await _optional_json(
+        client,
+        WIKIDATA,
+        action="wbgetentities",
+        ids="|".join(ids),
+        props="labels|descriptions|claims",
+        languages="es|en",
+        format="json",
+    )
+    return payload.get("entities", {})
 
 
 async def _category_members(client, title):
@@ -469,7 +605,7 @@ def _commons_root(title, variants, context):
     return _root_match(title, variants)
 
 
-async def _commons(client, seed, context, state):
+async def _commons(client, seed, context, state, *, topic, wiki, roots_ready):
     variants = _variants(seed)
     phrases = sorted(variants)
     if context:
@@ -495,6 +631,16 @@ async def _commons(client, seed, context, state):
         if hit.get("title", "").startswith("Category:")
         and _commons_root(hit["title"][9:], variants, context)
     ][:3]
+    if context or topic in _ROOT_TOPICS:
+        # The verified root carries its own Commons category even if text search misses it.
+        await roots_ready.wait()
+        verified = wiki.get("commons_titles", [])
+        if topic in _ROOT_TOPICS:
+            roots = verified if wiki.get("geographic") else [
+                root for root in roots if _topic_matches(topic, root)
+            ]
+        else:
+            roots = list(dict.fromkeys([*verified, *roots]))[:3]
     if not roots:
         return []
     state["commons_roots"] = roots
@@ -511,11 +657,15 @@ async def _commons(client, seed, context, state):
         and not _child_term(title[9:], root_variants)
     ]
     # Prefer specific containers to generic geography, and cap network fanout.
+    child_topic = topic if topic not in _ROOT_TOPICS else None
+    if child_topic:
+        buckets = [title for title in buckets if _topic_matches(child_topic, title)]
     buckets.sort(key=lambda title: (_key(title[9:]).startswith("geography"), title))
     direct = [
         {"term": term, "origin": "commons"}
         for title in categories
         if (term := _child_term(title[9:], root_variants))
+        and _topic_matches(child_topic, term)
     ]
     state["terms"] = direct
     nested = await asyncio.gather(*(_category_members(client, title) for title in buckets[:8]))
@@ -529,35 +679,65 @@ async def _commons(client, seed, context, state):
     ]
     # Interleave buckets to avoid filling all slots with one kind of landmark.
     groups.append(direct)
-    return [
-        group[index]
-        for index in range(MAX_RELATED)
-        for group in groups
-        if index < len(group)
-    ]
+    return _interleave(groups)
 
 
-async def _run_provider(function, client, seed, context, state, **kwargs):
+async def _run_provider(function, client, seed, context, state, timeout, **kwargs):
+    errors = state.setdefault("errors", [])
+    token = _ERRORS.set(errors)
     try:
-        async with asyncio.timeout(LOOKUP_SECONDS - 0.25):
+        async with asyncio.timeout(timeout):
             state["terms"] = await function(client, seed, context, state, **kwargs)
-    except (TimeoutError, httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
-        pass
+    except (TimeoutError, httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError) as exc:
+        errors.append({"error": type(exc).__name__, "detail": str(exc)[:160]})
+    finally:
+        if function is _wikidata:
+            kwargs["roots_ready"].set()
+        _ERRORS.reset(token)
+
+
+def _provider_terms(wiki, commons):
+    # Reserve a majority for verified Wikidata, but supplement with Commons.
+    wd = wiki.get("terms", [])
+    cm = commons.get("terms", [])
+    groups = []
+    for i in range(MAX_RELATED):
+        groups.extend(wd[2 * i : 2 * i + 2])
+        groups.extend(cm[i : i + 1])
+    return groups
 
 
 async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
-    """One six-second, render-local lookup budget; preserve completed provider results."""
+    """Each seed gets its own budget after admission; results remain render-local."""
     timeout = min(LOOKUP_SECONDS, timeout)
     owned = client is None
     if owned:
-        client = httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, timeout=timeout)
+        client = httpx.AsyncClient(
+            headers={"User-Agent": USER_AGENT},
+            timeout=timeout,
+            limits=httpx.Limits(max_connections=40, max_keepalive_connections=20),
+        )
     cache = {}
     tasks = []
-    semaphore = asyncio.Semaphore(8)
+    semaphore = asyncio.Semaphore(SEED_CONCURRENCY)
 
-    async def run(function, seed, context, state, **kwargs):
+    async def run(seed, context, place, topic, wiki, commons):
         async with semaphore:
-            await _run_provider(function, client, seed, context, state, **kwargs)
+            roots_ready = asyncio.Event()
+            calls = [
+                _run_provider(
+                    _wikidata, client, seed, context, wiki, timeout,
+                    place_hint=place, topic=topic, roots_ready=roots_ready,
+                )
+            ]
+            if place:
+                calls.append(
+                    _run_provider(
+                        _commons, client, seed, context, commons, timeout,
+                        topic=topic, wiki=wiki, roots_ready=roots_ready,
+                    )
+                )
+            await asyncio.gather(*calls)
 
     try:
         keys_by_job = []
@@ -568,25 +748,19 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
                 for seed in seeds(queries):
                     context = _context(queries, seed)
                     place = _place_hint(queries, seed)
-                    key = (seed, context, place)
+                    topic = _topic(queries, seed)
+                    key = (seed, context, place, topic)
                     keys.append(key)
                     if key in cache:
                         continue
                     wiki, commons = {}, {}
                     cache[key] = (wiki, commons)
                     tasks.append(
-                        asyncio.create_task(
-                            run(_wikidata, seed, context, wiki, place_hint=place)
-                        )
+                        asyncio.create_task(run(seed, context, place, topic, wiki, commons))
                     )
-                    if place:
-                        tasks.append(asyncio.create_task(run(_commons, seed, context, commons)))
             keys_by_job.append(keys)
         if tasks:
-            _, pending = await asyncio.wait(tasks, timeout=timeout)
-            for task in pending:
-                task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+            await asyncio.gather(*tasks)
         diagnostics = []
         for job, keys in zip(jobs, keys_by_job, strict=True):
             states = [(key, *cache[key]) for key in keys]
@@ -594,11 +768,9 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
                 wiki.get("geographic") and not wiki.get("country_only") for _, wiki, _ in states
             ):
                 states = [row for row in states if not row[1].get("country_only")]
-            groups = []
-            for _, wiki, commons in states:
-                groups.extend((wiki.get("terms", []), commons.get("terms", [])))
+            groups = [_provider_terms(wiki, commons) for _, wiki, commons in states]
             job["related_terms"] = merge_terms(job["queries"], *groups)
-            for (seed, _, _), wiki, commons in states:
+            for (seed, _, _, _), wiki, commons in states:
                 if wiki.get("geographic") or commons.get("geographic"):
                     job["related_parent"] = _parent_label(
                         job["queries"], seed, _context(job["queries"], seed)
@@ -612,6 +784,12 @@ async def resolve_jobs(jobs, *, client=None, timeout=LOOKUP_SECONDS):
                         root
                         for _, _, commons in states
                         for root in commons.get("commons_roots", [])
+                    ],
+                    "errors": [
+                        {"seed": key[0], "provider": provider, **error}
+                        for key, wiki, commons in states
+                        for provider, state in (("wikidata", wiki), ("commons", commons))
+                        for error in state.get("errors", [])
                     ],
                 }
             )
