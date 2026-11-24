@@ -553,12 +553,27 @@ def import_scene(
     scorer = None
     scorer_unavailable = False
 
+    def reject(reason):
+        rejections[reason] = rejections.get(reason, 0) + 1
+
     def visual_match(record):
         nonlocal scorer, scorer_unavailable
-        path = storage.assets[f"clip_{record['id']}.mp4"].path
+        try:
+            path = storage.assets[f"clip_{record['id']}.mp4"].path
+        except (KeyError, AttributeError):
+            reject("asset_missing")
+            return False
         if relevance_check is not None:
-            return relevance_check(record, path)
+            try:
+                matched = bool(relevance_check(record, path))
+            except Exception:
+                reject("visual_error")
+                return False
+            if not matched:
+                reject("visual_low_sim")
+            return matched
         if scorer_unavailable:
+            reject("scorer_unavailable")
             return False
         try:
             from .clipscene import analyze_window
@@ -570,22 +585,37 @@ def import_scene(
                 scorer._sess()
         except (ImportError, OSError, RuntimeError, ValueError):
             scorer_unavailable = True
-            failures.append("clip_relevance_unavailable")
+            reject("scorer_unavailable")
             return False
         try:
             analysis, reason = analyze_window(job, path, scorer, started + timeout)
-            if reason == "timeout":
-                failures.append("timeout")
-            return analysis is not None
-        except TimeoutError:
-            failures.append("timeout")
+            if analysis is not None:
+                return True
+            mapped = {
+                "low_sim": "visual_low_sim",
+                "low_score": "visual_low_sim",
+                "low_prob": "visual_low_prob",
+                "too_short": "too_short",
+                "low_resolution": "low_resolution",
+                "timeout": "timeout_before_check",
+            }.get(reason, "visual_error")
+            reject(mapped)
             return False
-        except (OSError, RuntimeError, ValueError):
-            rejections["visual_analysis_error"] = rejections.get("visual_analysis_error", 0) + 1
+        except TimeoutError:
+            reject("timeout_before_check")
+            return False
+        except (KeyError, OSError, RuntimeError, ValueError):
+            reject("visual_error")
             return False
 
     budget = SceneBudget(
-        job, writer.imported, max_results, enough, started + timeout, visual_match=visual_match
+        job,
+        writer.imported,
+        max_results,
+        enough,
+        started + timeout,
+        visual_match=visual_match,
+        rejections=rejections,
     )
     budget.searches_planned = len(queries) * sum(
         len(set(adapter.accepts_text_languages) & {"en", "es", "zh", "ru"})
@@ -672,6 +702,10 @@ def import_scene(
         imported.append(_manifest_clip(record, storage, out))
     imported.sort(key=lambda x: x["imp_id"])
     assignment = _assignment(job, imported)
+    relevant_count = budget.relevant_count()
+    if relevant_count == 0 and not rejections:
+        # Even a pre-download timeout is an observable rejection, never an empty mystery.
+        rejections["timeout_before_check"] = max(1, len(budget.discovered))
     report = {
         "version": 1,
         "id": job["id"],
@@ -683,7 +717,7 @@ def import_scene(
         "time_s": round(time.monotonic() - started, 3),
         "termination_reason": reason,
         "raw_count": len(budget.discovered),
-        "relevant_count": budget.relevant_count(),
+        "relevant_count": relevant_count,
         "commons_consulted": budget.commons_consulted,
         "searches_started": budget.searches_started,
         "searches_avoided": max(0, budget.searches_planned - budget.searches_started),

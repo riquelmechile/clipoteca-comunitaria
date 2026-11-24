@@ -164,16 +164,16 @@ def candidates(
     job: dict[str, Any],
     catalog: dict[str, Any] | list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Filter by media quality, estimated fit and whole-word bilingual relevance."""
+    """Rank relevant clips, or quality-eligible fallbacks when none are relevant."""
     length = float(job["len_est"])
     minimum_side = int(job.get("min_short_side", 720))
     queries = job.get("queries", {})
+    place_queries = queries.get("es", []) + queries.get("en", [])
+    has_place = bool(query_names(place_queries))
     scored = []
+    fallbacks = []
     for clip in _clips(catalog):
         if not _valid_clip(clip) or clip.get("status") != "published":
-            continue
-        place_queries = queries.get("es", []) + queries.get("en", [])
-        if query_names(place_queries) and not sufficient_query_match(clip, place_queries):
             continue
         media = clip["media"]
         duration = float(media["duration_seconds"])
@@ -195,35 +195,34 @@ def candidates(
                 continue
         elif min(width, height) < minimum_side:
             continue
+        fit = fit_mode(duration, length)
+        if fit is None:
+            continue
         score, matched = text_score(
             clip,
             queries.get("es", []),
             queries.get("en", []),
             job.get("avoid", []),
         )
-        if score <= 0:
-            continue
-        fit = fit_mode(duration, length)
-        if fit is None:
-            continue
+        place_ok = not has_place or sufficient_query_match(clip, place_queries)
         source = clip.get("source", {})
-        scored.append(
-            {
-                "clip_id": clip["id"],
-                "score": score,
-                "matched": matched,
-                "duration": duration,
-                "width": width,
-                "height": height,
-                "asset_url": clip["storage"]["asset_url"],
-                "sha256": media["sha256"],
-                "size_bytes": media["size_bytes"],
-                "source_url": source.get("source_url") if isinstance(source, dict) else None,
-                "fit": fit,
-            }
-        )
-    return sorted(scored, key=lambda item: (-item["score"], item["clip_id"]))
-
+        candidate = {
+            "clip_id": clip["id"],
+            "score": score,
+            "matched": matched,
+            "duration": duration,
+            "width": width,
+            "height": height,
+            "asset_url": clip["storage"]["asset_url"],
+            "sha256": media["sha256"],
+            "size_bytes": media["size_bytes"],
+            "source_url": source.get("source_url") if isinstance(source, dict) else None,
+            "fit": fit,
+            "fallback": not (place_ok and score > 0),
+        }
+        (scored if place_ok and score > 0 else fallbacks).append(candidate)
+    pool = scored or fallbacks
+    return sorted(pool, key=lambda item: (-item["score"], item["clip_id"]))
 
 def assign_scenes(
     jobs: list[dict[str, Any]],
