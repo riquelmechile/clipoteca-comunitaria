@@ -316,6 +316,16 @@ def test_render_head_rejects_external_request_even_with_audio(
 )
 def test_network_rejects_external_or_nonlocal_urls(url, approved, tmp_path):
     assert music._allowed_asset(url, tmp_path) is approved
+    # Sonnet review: none of the cases above failed when the host check was removed, because
+    # their paths were outside the allowed folders anyway. These point INSIDE them.
+    inside = music.HTML_FILE.resolve().as_uri()
+    assert music._allowed_asset(inside, tmp_path)
+    for host in ("otrohost", "localhost", "127.0.0.1"):
+        assert not music._allowed_asset(inside.replace("file://", f"file://{host}", 1), tmp_path)
+    assert not music._allowed_asset(inside + "?x=1", tmp_path)
+    assert not music._allowed_asset(inside + "#frag", tmp_path)
+    escape = (tmp_path / "sub" / ".." / ".." / "fuera.wav").as_posix()
+    assert not music._allowed_asset("file://" + escape, tmp_path)
     assert music._allowed_asset(music.HTML_FILE.resolve().as_uri(), tmp_path)
     candidate = tmp_path / "bed.wav"
     assert music._allowed_asset(candidate.resolve().as_uri(), tmp_path)

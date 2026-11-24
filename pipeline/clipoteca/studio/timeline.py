@@ -266,6 +266,9 @@ def main(argv: list[str] | None = None) -> int:
         build_timeline(script, args.voice, transcriber, output_path=args.out)
     except (FileNotFoundError, ValueError, KeyError) as exc:
         parser.error(str(exc))
+    except OSError as exc:
+        # e.g. --out pointing at a directory: a usage error, not a traceback.
+        parser.error(f"cannot write the timeline: {type(exc).__name__}")
     return 0
 
 

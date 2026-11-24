@@ -410,7 +410,9 @@ def main(argv: list[str] | None = None) -> int:
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "error", "error": type(exc).__name__}))
-        parser.exit(2, f"mix: {type(exc).__name__}: invalid input\n")
+        # The module's own messages are already path-free and say what to fix.
+        reason = str(exc) if isinstance(exc, MixError) else "invalid input"
+        parser.exit(2, f"mix: {type(exc).__name__}: {reason}\n")
     print(json.dumps(report, ensure_ascii=False))
     return 0
 

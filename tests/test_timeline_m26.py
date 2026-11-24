@@ -240,3 +240,38 @@ def test_cli_writes_once_and_downloads_exact_whisper_revision(
     assert whisper_calls == [
         ("/tmp/verified-whisper-revision", {"compute_type": spec["compute_type"]})
     ]
+
+
+def test_cli_reports_an_unwritable_out_instead_of_a_traceback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    """Orchestrator review: `--out` is a file; passing a directory used to crash."""
+    import sys
+    from types import SimpleNamespace
+
+    from clipoteca.studio import timeline as module
+
+    script = _script()
+    (tmp_path / "script.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "voice.json").write_text(
+        json.dumps({"lines": {scene.id: {"status": "ok"} for scene in script.scenes}})
+    )
+    for scene in script.scenes:
+        _wav(tmp_path / "audio" / f"{scene.id}.wav", 1.0)
+    fake_hub = SimpleNamespace(snapshot_download=lambda **_kwargs: "/tmp/pinned")
+    fake_whisper = SimpleNamespace(
+        WhisperModel=lambda *_a, **_k: FakeTranscriber([["Hola", 0.0, 0.8]])
+    )
+    monkeypatch.setitem(sys.modules, "huggingface_hub", fake_hub)
+    monkeypatch.setitem(sys.modules, "faster_whisper", fake_whisper)
+    monkeypatch.setattr(module, "parse_video_script", lambda _raw: script)
+    folder = tmp_path / "a-directory"
+    folder.mkdir()
+    argv = ["--script", str(tmp_path / "script.json"), "--voice", str(tmp_path)]
+    with pytest.raises(SystemExit) as stop:
+        module.main([*argv, "--out", str(folder)])
+    assert stop.value.code == 2
+    assert "cannot write the timeline" in capsys.readouterr().err
+    assert folder.is_dir() and not list(folder.iterdir())

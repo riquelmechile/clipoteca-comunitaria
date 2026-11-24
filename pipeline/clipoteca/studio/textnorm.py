@@ -136,6 +136,25 @@ _NON_NOUNS = {
     "está",
     "están",
     "hay",
+    # Adverbs and connectors: "queda 1 más" is "uno más", never "un más".
+    "más",
+    "menos",
+    "también",
+    "tampoco",
+    "ya",
+    "no",
+    "solo",
+    "pero",
+    "ni",
+    "aquí",
+    "ahí",
+    "allí",
+    "hoy",
+    "ayer",
+    "mañana",
+    "antes",
+    "después",
+    "cada",
 }
 _ORDINAL_M = (
     "",
@@ -190,7 +209,8 @@ _TOKEN = re.compile(
     r"|(?P<ordinal>(?:10|[1-9])(?:er|º|ª))"
     r"|(?P<fraction>\d+/\d+)"
     r"|(?P<eur_post>\d+(?:[.,]\d+)*\s+€)"
-    r"|(?P<negative>-\d+(?:[.,]\d+)*)"
+    r"|(?P<range>(?<!-)\d+(?:[.,]\d+)*-\d+(?:[.,]\d+)*(?!-)(?:\s?%)?)"
+    r"|(?P<negative>-\d+(?:[.,]\d+)*(?:\s?%)?)"
     r"|(?P<number>\d+(?:[.,]\d+)*(?:\s?%)?)"
     r")(?!\w)"
 )
@@ -308,9 +328,12 @@ def _spell_number(value: str, next_word: str | None = None) -> str:
 
 
 def _protected_identifier(text: str, start: int, end: int) -> bool:
-    # The numeric fragment of clip-000023, H264 and v2.0.6 is not prose.
+    # The numeric fragment of clip-000023, 2026-11-23, H264 and v2.0.6 is not prose; a plain
+    # number after a word ("COVID-19", "F-16") is, and the voice garbles digits left as digits.
     if start >= 2 and text[start - 1] == "-" and text[start - 2].isalnum():
-        return True
+        digits = text[start:end]
+        if text[start - 2].isdigit() or (len(digits) > 1 and digits.startswith("0")):
+            return True
     if end < len(text) and re.match(r"-[0-9]", text[end:]):
         return True
     if (
@@ -350,7 +373,10 @@ def _token_words(match: re.Match[str], text: str) -> str:
         if below == 0:
             return raw
         if (above, below) == (1, 2):
-            return "un medio"
+            noun = _following_word(text, match.end())
+            if noun is None:
+                return "un medio"
+            return "media" if noun in _FEMININE else "medio"
         if (above, below) == (1, 3):
             return "un tercio"
         if below == 4:
@@ -366,7 +392,30 @@ def _token_words(match: re.Match[str], text: str) -> str:
     if kind in {"usd", "clp", "eur_pre", "eur_post"}:
         numeral = re.search(r"\d+(?:[.,]\d+)*", raw).group()
         unit = {"usd": "dólares", "clp": "pesos", "eur_pre": "euros", "eur_post": "euros"}[kind]
-        return f"{_spell_number(numeral, unit)} {unit}"
+        words = _spell_number(numeral, unit)
+        # "$1.500 pesos" already names its unit: do not say it twice.
+        said = re.match(r"\s+([^\W\d_]+)", text[match.end() :])
+        if said and said.group(1).casefold() in {
+            "peso",
+            "pesos",
+            "dólar",
+            "dólares",
+            "euro",
+            "euros",
+        }:
+            return words
+        if words == "un":
+            unit = {"dólares": "dólar", "pesos": "peso", "euros": "euro"}[unit]
+        return f"{words} {unit}"
+    if kind == "range":
+        percent = raw.endswith("%")
+        low, high = raw.rstrip("%").rstrip().split("-")
+        if any(len(part) > 1 and part.startswith("0") for part in (low, high)):
+            return raw
+        if percent:
+            return f"{_spell_number(low)} a {_spell_number(high)} por ciento"
+        # "10-20 metros", "1990-2000", "5-0": Spanish reads all of them as "diez a veinte".
+        return f"{_spell_number(low)} a {_spell_number(high, _following_word(text, match.end()))}"
     if kind == "negative" and (match.start() == 0 or text[match.start() - 1].isspace()):
         return "menos " + _spell_number(raw[1:], _following_word(text, match.end()))
     if kind == "negative":

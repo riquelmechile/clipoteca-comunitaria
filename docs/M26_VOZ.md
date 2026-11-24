@@ -129,3 +129,18 @@ usan primer (1er), primero (1º), primera (1ª), segundo,
 tercero y hasta décimo. La normalización se aplica de forma
 idempotente y evita alterar identificadores como clip-000023,
 H264 y v2.0.6. Otros idiomas conservan el texto original.
+
+## Ajustes de la revisión del orquestador (segunda vuelta A)
+
+- Rangos: dos números unidos por guion se leen «diez a veinte» (`10-20
+  metros`, `1990-2000`, `5-0`, `10-20%`). Una sigla seguida de número se
+  lee (`COVID-19` → «COVID-diecinueve»). Siguen sin tocarse los
+  identificadores con ceros a la izquierda (`clip-000023`) y las fechas
+  ISO (`2026-11-23`).
+- Un porcentaje negativo conserva «por ciento» (`-5%` → «menos cinco por
+  ciento»).
+- `1/2 hora` → «media hora»; `1/2 kilo` → «medio kilo».
+- `$1` → «un peso» (singular) y `$1.500 pesos` no repite la unidad.
+- Ante adverbios el número no se apocopa: «uno más», «veintiuno menos».
+- `voice.json` incluye `script_id`; la línea de tiempo rechaza una voz
+  generada para otro guion.
