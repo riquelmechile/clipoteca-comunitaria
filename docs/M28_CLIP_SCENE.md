@@ -280,3 +280,11 @@ local_root se resuelve una vez; puede estar debajo de un enlace.
 Desde el root resuelto hacia abajo se rechazan enlaces simbólicos,
 rutas absolutas, segmentos .., separadores de Windows y escapes.
 Se mantiene la verificación de tamaño y hash antes y después de copiar.
+
+## Política de cierre v3
+
+El job agrega catalog_min_sim=0.27 (provisional hasta calibrar con corridas reales).
+Una coincidencia válida con sim al menos ese umbral evita importar. En ausencia
+de coincidencia fuerte, selection conserva el mejor respaldo de catálogo y
+compara con los importados válidos por similitud, luego puntaje visual.
+El indexado de todos los clips que pasaron ingesta es independiente de esta elección.

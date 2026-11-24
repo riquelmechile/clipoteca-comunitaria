@@ -1,6 +1,14 @@
 # Historial de cambios
 
-## No publicado
+## 3.0.0 (pendiente de promoción y corrida real)
+
+- Entrega de MP4 por artefacto temporal de siete días, sin publicación del video ni ficha persistente.
+- Selección fuerte del catálogo (sim ≥ 0,27 provisional), búsqueda de respaldo en fuentes y selección por pertinencia.
+- Indexado de todos los clips importados válidos, independiente de selección final y QA; un commit de catálogo.
+- REST y MCP de video, estado por etapa y descarga de artefacto; versión sincronizada y tres guiones de ejemplo.
+- Pendiente: promover workflow y acción FFmpeg, desplegar Worker y medir tres corridas reales.
+
+## Historial de desarrollo v3
 
 - M25: roadmap v3 y contrato del guion para producción futura de videos; esquema JSON estricto, validación offline, defaults, estimación de duración e ID determinista. Sin render ni cambio de versión.
 - M26 (PR1): voz con Supertonic 3 en `studio/voice.py`: motor sherpa-onnx, control PER con reintentos y respaldo WER, léxico, caché por línea y manifiesto de modelos con descarga verificada. Extra `studio` en `pyproject.toml`. Workflows manuales `studio-models` y `voice-sample`, y job `studio` en CI. Sin cambio de versión.

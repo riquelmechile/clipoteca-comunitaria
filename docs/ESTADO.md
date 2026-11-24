@@ -1,11 +1,11 @@
 # Estado de Clipoteca
 
-**Versión del repositorio 2.0.6 · medido el 22 de noviembre de 2026.**
+**Versión del repositorio 3.0.0 · catálogo medido el 22 de noviembre de 2026.**
 El Worker desplegado permanece en **2.0.5** hasta un despliegue autorizado; no se
 redespliega en este cambio.
 Esta página es la referencia de estado del proyecto. Todo lo que afirma tiene una ejecución enlazada; lo que no se midió, se dice.
 
-La v3 está en construcción; ver [estado del motor](#motor-de-video-v3-en-main-sin-publicar-versión).
+Ver [estado del motor](#motor-de-video-v3-en-main-sin-publicar-versión).
 
 ## Resumen
 
@@ -31,7 +31,7 @@ Ninguna máquina personal ni servidor propio forma parte del servicio.
 
 ## Motor de video (v3), en main sin publicar versión
 
-El paquete sigue en **2.0.6**. El código de v3 está en el repositorio, no en el contrato público REST/MCP. La ejecución actual es etapa por etapa mediante CLI; consulta [STUDIO.md](STUDIO.md).
+El paquete es **3.0.0**. El código REST/MCP y el workflow propuesto de entrega aún requieren promoción y despliegue. Consulta [STUDIO.md](STUDIO.md). El catálogo crece con todos los clips válidos importados; el MP4 final solo se entrega por artefacto temporal.
 
 | Hito | Qué entrega | Documento | Verificación en el árbol |
 |---|---|---|---|
@@ -42,7 +42,9 @@ El paquete sigue en **2.0.6**. El código de v3 está en el repositorio, no en e
 | M29 | Ajuste al tiempo real, mezcla medida | [Ajuste y mezcla](M29_AJUSTE_MEZCLA.md) | [test_fit_m29.py](../tests/test_fit_m29.py), [test_mix_m29.py](../tests/test_mix_m29.py) |
 | M30 | HTML con títulos y subtítulos, render MP4 | [Composición](M30_COMPOSICION.md) | [test_compose_m30.py](../tests/test_compose_m30.py), render real de tres escenas |
 | M31 | 14 compuertas QA, reporte ligado al SHA del MP4 | [QA](M31_QA.md) | [test_qa_m31.py](../tests/test_qa_m31.py), layout real en Chromium |
-| M32 (parcial) | Publicación verificada de clips usados, MP4 y ficha; simulación local. Workflow manual que encadena las etapas, sin validar con corridas reales | [Publicación](M32_PUBLICACION.md), [Workflow](M32_RENDER.md) | [test_publish_m32.py](../tests/test_publish_m32.py), API simulada sin red |
+| M32 | Indexado independiente de QA, entrega temporal; workflow propuesto | [Indexado](M32_PUBLICACION.md), [Workflow](M32_RENDER.md) | [test_publish_m32.py](../tests/test_publish_m32.py), [test_render_v3_workflow.py](../tests/test_render_v3_workflow.py) |
+| M33 | API de video, estado y descarga; MCP | [OpenAPI](openapi.yaml), [MCP](mcp-tools.md) | [videos.test.ts](../worker/test/videos.test.ts) |
+| M34 | Versiones sincronizadas y tres guiones de ejemplo | [Studio](STUDIO.md) | [test_docs_v3.py](../tests/test_docs_v3.py) |
 
 El [job studio](../.github/workflows/ci.yml) instala el extra y ejecuta estos tests; sus pruebas reales son de componentes, no una prueba integral de producción.
 
@@ -58,13 +60,20 @@ El [job studio](../.github/workflows/ci.yml) instala el extra y ejecuta estos te
 
 Los dos casos locales de M30 usaron HyperFrames 0.9.36 y GSAP 3.15.1. No son una medida de latencia del futuro servicio. No hay tiempos/RMS publicados por mood en [M27](M27_MUSICA.md), ni mediciones completas de ajuste y mezcla en [M29](M29_AJUSTE_MEZCLA.md), ni tabla completa de las diez voces.
 
+### M34: mediciones del nuevo flujo
+
+| Guion | Formato | Tiempos de etapas / minutos de Actions |
+|---|---|---|
+| Chile | 9:16 | Pendiente de corrida real |
+| Sistema solar | 16:9 | Pendiente de corrida real |
+| Ciclo de una planta | 1:1 | Pendiente de corrida real |
+
 ### Qué falta
 
-- Validar con corridas reales el workflow [render.yml](M32_RENDER.md), que ya encadena las etapas, repite escenas con clip repetido y serializa la publicación. Fuera de Actions solo se comprobó el tramo que arma, renderiza y revisa el video.
-- Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
+- Promover el workflow de entrega desde propuestas, instalar FFmpeg fijado y desplegar la API REST/MCP de video.
 - Importar material nuevo dentro del flujo de video y validarlo de punta a punta en Actions.
 - Tipografía propia incrustada y franja de título adaptada al sujeto.
-- Validación integral de los tres formatos, tiempos y costos por etapa, y versión 3.0.0.
+- Validación integral de los tres formatos, tiempos y costos por etapa; pendiente de corrida real.
 - Hashes de miniaturas/storyboards desde M28 y reserva de ID para storyboards huérfanos tras rollback (ver [M32](M32_PUBLICACION.md)).
 
 ## Verificación de la versión 2.0.6

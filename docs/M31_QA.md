@@ -129,3 +129,9 @@ minuto ocupa como máximo unos 77 MB con el audio.
   el texto con el léxico aplicado ("km/h" suena "kilometros por hora").
 - silencedetect ignoraba un silence_start negativo.
 - Un qa_report.json viejo sobrevivía a una corrida que fallaba al empezar.
+
+## Contrato de entrega v3
+
+QA habilita exclusivamente la entrega temporal del MP4. El indexado de clips
+importados que pasaron los filtros normales de ingesta no depende de QA del video.
+El resultado del control se incluye en entrega.json; no se crea Release de video.

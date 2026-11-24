@@ -1,12 +1,11 @@
 # Studio: motor de video v3
 
-Studio transforma un guion en español en un MP4, con voz local, música y
-un clip real por escena. Está en main como etapas ejecutables; la versión
-del repositorio sigue siendo 2.0.6. No es el servicio público de clips v2.
-Todavía no existen los endpoints `/v1/videos` ni las tools MCP `render_video` y `get_video_status`.
-El workflow manual [render.yml](M32_RENDER.md) conecta todas las etapas en GitHub Actions; falta validarlo con corridas reales.
+Studio transforma un guion español en MP4 con voz, música y clips reales.
+No contiene un LLM. La versión del repositorio es 3.0.0; la API y el
+workflow de entrega requieren promoción y despliegue antes de uso público.
+Ver [M32_RENDER.md](M32_RENDER.md).
 
-![Flujo por etapas; la API de video falta y el workflow de Actions está sin validar](../assets/clipoteca-studio.svg)
+![Flujo de entrega temporal y crecimiento de biblioteca](../assets/clipoteca-studio.svg)
 
 ## Requisitos
 
@@ -113,7 +112,9 @@ salvo donde dice archivo.
 | compose | guion, timeline, clips ajustados, mezcla → hf/, chunks.json | `python -m clipoteca.studio.compose build --script build/video/guion.json --timeline build/video/timeline.json --clips build/video/fit --mix build/video/mix.wav --out build/video` |
 | compose | hf/ → video.mp4 (archivo), render.json | `python -m clipoteca.studio.compose render --hf build/video/hf --out build/video/video.mp4` |
 | qa | árbol del video → qa_report.json | `python -m clipoteca.studio.qa --work build/video` |
-| publish | QA y video verificados → publish.json, assets y ficha | `python -m clipoteca.studio.publish --work build/video --dry-run build/publicacion` |
+| index | Todos los clips importados → index.json y catálogo (simulación sin red opcional) | `python -m clipoteca.studio.index --work build/video --dry-run build/indexado` |
+| delivery | MP4, QA, escenas e índice → entrega.json | `python -m clipoteca.studio.delivery --work build/video --catalog data/clips.json` |
+| selection | Selección fuerte o comparación de catálogo/importados | `python -m clipoteca.studio.selection --scene build/video/scenes/intro --phase catalog` |
 
 ## Recorrido manual
 
@@ -137,22 +138,28 @@ uv run --no-sync python -m clipoteca.studio.music track --music build/video/musi
 uv run --no-sync python -c "from clipoteca.studio import models; models.ensure_model('clip-vit-b32')"
 for id in intro nubes lluvia; do
   scene="build/video/scenes/$id"
-  if uv run --no-sync python -m clipoteca.studio.clipscene --job "$scene/job.json" --assignment "$scene/assignment.json" --out "$scene"; then
-    :
-  else
-    rc=$?
-    [ "$rc" -eq 3 ] || exit "$rc"
-    uv run --no-sync python -m clipoteca.studio.importer scene --job "$scene/job.json" --catalog data/clips.json --out "$scene/import"
-    uv run --no-sync python -m clipoteca.studio.clipscene --job "$scene/job.json" --assignment "$scene/import/assignment.json" --local-root "$scene/import" --out "$scene"
+  code=0
+  uv run --no-sync python -m clipoteca.studio.selection --scene "$scene" --phase catalog || code=$?
+  [ "$code" -eq 0 ] || [ "$code" -eq 3 ] || exit "$code"
+  strong=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("catalog_strong",False))' "$scene/result.json")
+  if [ "$strong" != True ]; then
+    code=0
+    uv run --no-sync python -m clipoteca.studio.importer scene --job "$scene/job.json" --catalog data/clips.json --out "$scene/import" || code=$?
+    [ "$code" -eq 0 ] || [ "$code" -eq 3 ] || exit "$code"
+    uv run --no-sync python -m clipoteca.studio.selection --scene "$scene" --phase finish
   fi
   cp "$scene/clip.mp4" "build/video/clips/$id.mp4"
 done
+uv run --no-sync python -m clipoteca.studio.index --work build/video --dry-run build/indexado
 uv run --no-sync python -m clipoteca.studio.fit --timeline build/video/timeline.json --clips build/video/clips --out build/video/fit
 uv run --no-sync python -m clipoteca.studio.mix --timeline build/video/timeline.json --voice build/video/voice --music build/video/music.wav --out build/video/mix.wav
 uv run --no-sync python -m clipoteca.studio.compose build --script build/video/guion.json --timeline build/video/timeline.json --clips build/video/fit --mix build/video/mix.wav --out build/video
 uv run --no-sync python -m clipoteca.studio.compose render --hf build/video/hf --out build/video/video.mp4
-uv run --no-sync python -m clipoteca.studio.qa --work build/video
-uv run --no-sync python -m clipoteca.studio.publish --work build/video --dry-run build/publicacion
+qa_code=0
+uv run --no-sync python -m clipoteca.studio.qa --work build/video || qa_code=$?
+printf '{}' > build/video/timings.json
+uv run --no-sync python -m clipoteca.studio.delivery --work build/video --catalog data/clips.json
+[ "$qa_code" -eq 0 ]
 ```
 
 La voz, la música y el material de escenas pueden prepararse por separado;
@@ -163,12 +170,14 @@ re-despacho automático; el workflow sí repite la escena de menor puntaje
 cuando dos eligen el mismo clip.
 El código 3 de clip-scene indica escena sin resultado válido, no éxito.
 
-La última línea simula la publicación: deja el catálogo resultante,
-assets y ficha bajo build/publicacion. La publicación real (sin dry-run)
-necesita un token con contents: write y un escritor único. Primero valida
-los bytes contra QA, publica solo clips importados usados en una actualización
-del catálogo, verifica el MP4 en su Release y escribe la ficha al final.
-No forma parte de este recorrido de ejemplo. Ver [M32](M32_PUBLICACION.md).
+El indexado local se ejecuta antes de montaje/QA: deja el catálogo y
+assets bajo build/indexado; no escribe en GitHub. En una corrida real
+el job index serializado incorpora todos los clips válidos importados.
+El reporte entrega.json liga el MP4 a QA e identifica los clips usados
+y los indexados. Solo se entrega el MP4 si QA aprueba; nunca se publica
+el video en Releases. El ejemplo manual no mide tiempos por etapa
+(el JSON vacío solo indica que no se midieron).
+Consulta [M32](M32_RENDER.md).
 
 ## QA: las 14 compuertas
 
@@ -202,7 +211,7 @@ El [job studio](../.github/workflows/ci.yml) instala Python 3.13, Node 22,
 FFmpeg, los extras dev y studio y Chromium. Ejecuta las suites de guion,
 modelos, voz, timeline, música, plan, ventanas, biblioteca, clip-scene,
 encuadre, checks, importación, ajuste, mezcla, composición, QA,
-normalización de texto y publicación; el conjunto no descarga modelos.
+normalización de texto e indexado; el conjunto no descarga modelos.
 Además, exige tres pasos reales que no se pueden omitir:
 
 - Render musical en Chromium headless, con head.wav, bed.wav, hit.wav no vacíos.
@@ -216,7 +225,7 @@ y su contexto están en [ESTADO.md](ESTADO.md).
 
 ## Límites conocidos y pendiente
 
-- El workflow [render.yml](M32_RENDER.md) existe pero no está validado con corridas reales; fuera de Actions solo se comprobó el tramo que arma, renderiza y revisa el video.
+- Pendiente de promover el workflow de entrega y validar tres corridas reales en Actions.
 - Sin API de video ni tools MCP de video, sin versión 3.0.0.
 - Falta verificar importación de material nuevo dentro de un video completo en Actions.
 - QA no mide si el clip corresponde al tema de la escena: un video puede aprobar las 14 compuertas con una toma poco pertinente.
@@ -235,4 +244,4 @@ y su contexto están en [ESTADO.md](ESTADO.md).
 - M29: [ajuste y mezcla](M29_AJUSTE_MEZCLA.md).
 - M30: [composición y render](M30_COMPOSICION.md).
 - M31: [QA](M31_QA.md).
-- M32: [publicación](M32_PUBLICACION.md).
+- M32: [indexado y entrega](M32_PUBLICACION.md), [workflow](M32_RENDER.md).

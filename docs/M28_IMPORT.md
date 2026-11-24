@@ -121,11 +121,10 @@ congelacion, pHash y timeout. result.json agrega imported=true
 y local_path para un clip local seleccionado; omite asset_url
 y conserva source_url.
 
-Flujo de M32: plan -> clip_scene del catalogo -> si needs_import
-o no_candidate -> importer -> clip_scene con assignment importado
--> fit / mix / render / QA -> publicar SOLO clips efectivamente
-usados, con IDs finales y un unico commit al catalogo.
-Si falla QA no se publica material nuevo.
+Flujo de v3: plan → selección de catálogo fuerte; si no hay coincidencia
+fuerte, importer → comparar importados con catálogo → fit / mix / render / QA.
+El job index verifica e incorpora TODOS los clips importados válidos, no
+solo los usados, incluso si falla QA. El MP4 final nunca se publica.
 
 Las pruebas en test_import_m28.py prueban ingesta con FFmpeg
 sintetico, fuente falsificada, no persistencia, duplicados,
