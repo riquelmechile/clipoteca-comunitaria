@@ -87,6 +87,7 @@ describe("M10 MCP Streamable HTTP", () => {
 
   it("returns unwrapped structuredContent for search and clip", async () => {
     const video = {
+      status: "published",
       id:"clip-000003", title:{es:"Lluvia",en:"Rain"},
       description:{es:"Lluvia",en:"Rain"}, tags:{es:["lluvia"],en:["rain"]},
       source:{provider:"pexels",source_language:"en"},

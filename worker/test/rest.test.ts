@@ -4,6 +4,7 @@ import { requestId } from "../src/jobs";
 import fixtures from "../../tests/fixtures/request_id_vectors.json";
 
 const video = {
+  status: "published",
   id: "clip-000003", title: { es: "Lluvia en la calle", en: "Rain in the street" },
   description: { es: "Lluvia", en: "Rain" }, tags: { es: ["lluvia"], en: ["rain"] },
   source: { provider: "pexels", source_language: "en" },

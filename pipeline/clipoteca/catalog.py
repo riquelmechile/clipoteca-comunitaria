@@ -197,6 +197,17 @@ class Catalog:
         finally:
             Path(tmp_name).unlink(missing_ok=True)
 
+    def is_retired_source(self, url: str) -> bool:
+        canonical = canonical_source_url(url)
+        return bool(
+            canonical
+            and any(
+                clip.get("status") == "retired"
+                and canonical_source_url(clip["source"].get("source_url", "")) == canonical
+                for clip in self.clips
+            )
+        )
+
     def next_id(self, *, reserved_ids: set[str] | None = None) -> str:
         largest = max((int(item["id"].removeprefix("clip-")) for item in self.clips), default=0)
         excluded = reserved_ids or set()
@@ -233,6 +244,8 @@ class Catalog:
         candidate_url = canonical_source_url(str(source.get("source_url", "")))
         candidate_title = normalized_source_title(str(source.get("source_title", "")))
         for clip in self.clips:
+            if clip.get("status") == "retired":
+                continue
             published_source = clip["source"]
             published_media = clip["media"]
             if (
@@ -313,6 +326,8 @@ class Catalog:
         if not asset_verified:
             raise ValueError("catalogue update requires verified release assets")
         Draft202012Validator(schema, format_checker=FormatChecker()).validate(clip)
+        if self.is_retired_source(clip["source"]["source_url"]):
+            raise ValueError("retired source")
         if self.find_duplicate(clip):
             return
         self.merge([clip])
@@ -320,6 +335,8 @@ class Catalog:
     def indexes(self) -> dict[str, dict[str, list[str]]]:
         indexes: dict[str, dict[str, list[str]]] = {"es": {}, "en": {}}
         for clip in self.clips:
+            if clip.get("status") != "published":
+                continue
             original = clip["source"].get("source_title", "")
             original_tags = clip["source"].get("keywords", [])
             if not isinstance(original_tags, list):
@@ -460,6 +477,8 @@ class GitHubCatalogWriter:
         for attempt in range(retries + 1):
             catalog, sha = self.read_catalog()
             for clip in clips:
+                if catalog.is_retired_source(clip["source"]["source_url"]):
+                    raise ValueError("retired source")
                 duplicate = catalog.find_duplicate(clip, phash_similar=phash_similar)
                 if duplicate is not None:
                     raise DuplicateClip(duplicate["id"])

@@ -35,6 +35,15 @@ class SceneBudget:
     downloads_started: int = 0
     discovered: set[str] = field(default_factory=set)
     attempted: set[str] = field(default_factory=set)
+    visual_match: Callable[[dict], bool] | None = None
+    visual_cache: dict[str, bool] = field(default_factory=dict)
+    commons_consulted: bool = False
+    commons_exhausted: bool = False
+
+    @property
+    def place(self):
+        queries = self.job["queries"]
+        return bool(library.query_names(queries["es"] + queries["en"]))
 
     def valid_media(self, duration, width, height):
         length = float(self.job["len_est"])
@@ -62,8 +71,7 @@ class SceneBudget:
         return sum(1 for _ in self._unique_valid())
 
     def good(self, record):
-        # Ingest's localized tags include the search query itself. Counting those
-        # would make every hit look relevant. Use the actual source/title instead.
+        # Searchable query terms are never evidence; check actual source/title.
         queries = self.job["queries"]
         relevant = library.sufficient_query_match(record, queries["es"] + queries["en"])
         score, _ = library.text_score(
@@ -78,19 +86,27 @@ class SceneBudget:
             queries["en"],
             [],
         )
-        return (
-            self.valid(record)
-            and record["media"]["duration_seconds"] >= self.job["len_fetch"]
-            and relevant
-            and (score > 0 or score == unpenalized)
-        )
+        if not (self.valid(record) and relevant and (score > 0 or score == unpenalized)):
+            return False
+        digest = str(record["media"].get("sha256") or id(record)).lower()
+        if digest not in self.visual_cache:
+            if self.clock() >= self.deadline or self.visual_match is None:
+                return False
+            self.visual_cache[digest] = bool(self.visual_match(record))
+        return self.visual_cache[digest]
+
+    def relevant_count(self):
+        return sum(self.good(record) for record in self._unique_valid())
 
     def reason(self):
         if self.clock() >= self.deadline:
             return "timeout"
-        if self.valid_count() >= self.maximum:
+        if self.place and not (self.commons_consulted or self.commons_exhausted):
+            return None
+        count = self.relevant_count()
+        if count >= self.maximum:
             return "max_results"
-        if self.enough and sum(self.good(record) for record in self._unique_valid()) >= self.enough:
+        if self.enough and count >= self.enough:
             return "enough"
         return None
 
@@ -138,7 +154,7 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
     last = "scene"
     seen = set()
     index = 0
-    ordered = _ordered(adapters, place=bool(library.query_names([query])))
+    ordered = _ordered(adapters, place=scene_budget.place)
 
     async def discover(adapter, lang):
         if adapter.support_status in _SEARCHABLE:
@@ -158,48 +174,75 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
             scene_budget.searches_cancelled += 1
             raise
 
+    # For a place, await Commons category discovery before any stock-provider wave.
+    plan = []
+    first = None
+    if scene_budget.place and not scene_budget.commons_consulted:
+        first = next(
+            (
+                (lang, adapter)
+                for lang in _LANGUAGES
+                for adapter in ordered
+                if adapter.name == "wikimedia_commons"
+                and adapter.support_status in _SEARCHABLE
+                and lang in adapter.accepts_text_languages
+                and expansion.terms.get(lang)
+            ),
+            None,
+        )
+        if first is None:
+            scene_budget.commons_exhausted = True
+        else:
+            plan.append((first[0], [first[1]]))
     for lang in _LANGUAGES:
-        if not expansion.terms.get(lang) or scene_budget.reason():
+        if not expansion.terms.get(lang):
             continue
-        available = [a for a in ordered if lang in a.accepts_text_languages]
+        available = [a for a in ordered if lang in a.accepts_text_languages and (lang, a) != first]
         for offset in range(0, len(available), concurrency):
-            if scene_budget.reason():
-                break
-            batch = available[offset : offset + concurrency]
-            tasks = [asyncio.create_task(discover(adapter, lang)) for adapter in batch]
-            try:
-                for task in tasks:
-                    if scene_budget.reason():
-                        break
-                    result = await task
-                    if scene_budget.reason():
-                        break
-                    unique = [c for c in result.candidates if c.origin_id not in seen]
-                    seen.update(c.origin_id for c in unique)
-                    result = replace(result, candidates=unique)
-                    slots = min(limit - len(ids), scene_budget.maximum - scene_budget.valid_count())
-                    if slots <= 0 or scene_budget.reason():
-                        break
-                    report = await _ingest(
-                        query,
-                        adapters,
-                        max_results=slots,
-                        horizon=f"{horizon}-batch-{index}",
-                        discovery=result,
-                        scene_budget=scene_budget,
-                        **kwargs,
-                    )
-                    index += 1
-                    last = report.request_id
-                    errors.extend(report.errors)
-                    statuses.append(report.status)
-                    if report.status == "published":
-                        ids.extend(report.published_ids)
-            finally:
-                for task in tasks:
-                    if not task.done():
-                        task.cancel()
-                await asyncio.gather(*tasks, return_exceptions=True)
+            plan.append((lang, available[offset : offset + concurrency]))
+
+    for lang, batch in plan:
+        if scene_budget.reason():
+            break
+        tasks = [asyncio.create_task(discover(adapter, lang)) for adapter in batch]
+        try:
+            for adapter, task in zip(batch, tasks, strict=True):
+                if scene_budget.reason():
+                    break
+                result = await task
+                if scene_budget.reason():
+                    break
+                unique = [c for c in result.candidates if c.origin_id not in seen]
+                seen.update(c.origin_id for c in unique)
+                result = replace(result, candidates=unique)
+                report = await _ingest(
+                    query,
+                    adapters,
+                    max_results=limit,
+                    horizon=f"{horizon}-batch-{index}",
+                    discovery=result,
+                    scene_budget=scene_budget,
+                    **kwargs,
+                )
+                # Evaluate the final candidate too, even if no other wave follows.
+                scene_budget.relevant_count()
+                if (
+                    scene_budget.place
+                    and adapter.name == "wikimedia_commons"
+                    and adapter.support_status in _SEARCHABLE
+                ):
+                    scene_budget.commons_consulted = True
+                index += 1
+                last = report.request_id
+                errors.extend(report.errors)
+                statuses.append(report.status)
+                if report.status == "published":
+                    ids.extend(report.published_ids)
+        finally:
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     status = (
         "published"

@@ -5,7 +5,7 @@ from typing import Literal
 
 AspectRatio = Literal["9:16", "16:9", "1:1", "other"]
 Orientation = Literal["vertical", "horizontal", "square", "other"]
-ClipStatus = Literal["published"]
+ClipStatus = Literal["published", "retired"]
 JobStatus = Literal[
     "queued",
     "searching",
@@ -66,6 +66,12 @@ class Storage:
 
 
 @dataclass(frozen=True, slots=True)
+class Retirement:
+    reason: str
+    date: str
+
+
+@dataclass(frozen=True, slots=True)
 class Clip:
     id: str
     title: LocalizedText
@@ -76,6 +82,7 @@ class Clip:
     storage: Storage
     status: ClipStatus
     created_at: str
+    retirement: Retirement | None = None
 
 
 @dataclass(frozen=True, slots=True)

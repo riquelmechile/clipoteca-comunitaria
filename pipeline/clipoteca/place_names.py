@@ -33,6 +33,13 @@ _PLACE_NAMES = (
     "santiago",
     "antofagasta",
     "punta arenas",
+    "grey glacier",
+    "glaciar grey",
+    "glacier grey",
+    "san rafael",
+    "san rafael glacier",
+    "glaciar san rafael",
+    "laguna san rafael",
 )
 _NAME_SEQUENCE = re.compile(r"\b[A-Z\u00c0-\u00de][\w]+(?:\s+[A-Z\u00c0-\u00de][\w]+)+")
 
@@ -41,6 +48,8 @@ def query_names(queries):
     names = set()
     for query in queries:
         folded = " ".join(_words(query))
+        if query.strip() == "Grey":
+            names.add("grey glacier")
         for name in _PLACE_NAMES:
             if f" {name} " in f" {folded} ":
                 names.add(name)
@@ -61,6 +70,8 @@ _ALIAS_GROUPS = (
     ("rapa nui", "easter island", "isla de pascua"),
     ("torres del paine", "torres del paine national park"),
     ("chiloe", "chiloe island"),
+    ("grey glacier", "glaciar grey", "glacier grey"),
+    ("san rafael", "san rafael glacier", "glaciar san rafael", "laguna san rafael"),
 )
 
 

@@ -124,6 +124,7 @@ async def test_catalogued_candidate_never_resolved_or_returned():
         [
             {
                 "id": "clip-000001",
+                "status": "published",
                 "source": {"provider": "fake", "provider_id": "rain"},
                 "title": {"es": "Lluvia", "en": "Rain"},
                 "description": {"es": "Calle", "en": "Street"},

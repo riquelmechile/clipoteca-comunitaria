@@ -143,3 +143,20 @@ def test_priority_preserves_other_sources():
     commons = WikimediaCommons()
     assert scene_search._ordered([stock, commons]) == [stock, commons]
     assert scene_search._ordered([stock, commons], place=True) == [commons, stock]
+
+
+def test_chilean_place_aliases():
+    for query in (
+        "Easter Island",
+        "Rapa Nui",
+        "Isla de Pascua",
+        "Chilo\u00e9",
+        "Torres del Paine",
+        "Atacama",
+        "Valpara\u00edso",
+        "Santiago",
+        "Grey glacier",
+        "glaciar Grey",
+        "glaciar San Rafael",
+    ):
+        assert library.query_names([query]), query

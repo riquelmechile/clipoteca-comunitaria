@@ -139,7 +139,7 @@ async def test_mixed_quality_and_config_error_still_fails(tmp_path, monkeypatch)
     assert job["source_errors"]["translation"] == report.errors[0]
 
 
-def test_optional_query_tags_degrade_but_bilingual_metadata_remains_strict():
+def test_query_terms_are_not_translated_as_tags_and_bilingual_metadata_remains_strict():
     candidate = Candidate(
         "recording",
         "1",
@@ -149,28 +149,23 @@ def test_optional_query_tags_degrade_but_bilingual_metadata_remains_strict():
         "Night sky above mountains",
         "en",
     )
-    warnings = []
 
     def translator(_term, src, dst):
         if (src, dst) == ("en", "es"):
             return "Cielo nocturno sobre montañas"
         return "untrusted " * 150
 
-    localized = localize_candidate(
-        candidate,
-        translator=translator,
-        on_query_tag_warning=lambda lang, code: warnings.append((lang, code)),
-    )
+    localized = localize_candidate(candidate, translator=translator)
     assert localized.title["en"] == "Night sky above mountains"
     assert localized.title["es"] == "Cielo nocturno sobre montañas"
-    assert warnings == [("en", "translation_failed:es->en:disproportionate_translation")]
     assert localized.tags["en"]
+    assert "aurora" not in localized.tags["es"]
+    assert "boreal" not in localized.tags["es"]
 
     with pytest.raises(MetadataTranslationError, match="disproportionate_translation"):
         localize_candidate(
             candidate,
             translator=lambda *_: "untrusted " * 150,
-            on_query_tag_warning=lambda *_: pytest.fail("title must remain strict"),
         )
 
 

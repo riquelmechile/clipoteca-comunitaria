@@ -143,6 +143,7 @@ def _import(job, out, catalog, videos, *, entries=None, **kwargs):
         downloader=downloader,
         translator=translate,
         embedding_encoder=NoEncoder(),
+        relevance_check=lambda record, path: True,
         **kwargs,
     )
 
@@ -363,6 +364,7 @@ def test_timeout_keeps_already_imported(tmp_path, monkeypatch):
         adapters=[FakeAdapter("pexels")],
         timeout_s=0.3,
         max_results=2,
+        relevance_check=lambda record, path: True,
     )
     assert result["status"] == "ok"
     assert "timeout" in result["errors"]

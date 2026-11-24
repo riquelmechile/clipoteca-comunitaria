@@ -331,6 +331,7 @@ _SOFT_REJECTIONS = (
     "language_filter",
     "scene_quality_rejected",
     "identity_collision",
+    "retired_source",
 )
 _QUIET_STATUSES = frozenset({"published", "duplicate", "no_results"})
 
@@ -499,15 +500,22 @@ def import_scene(
     spread_queries: bool = False,
     simple: bool = False,
     enough: int = 3,
+    relevance_check: Callable[[dict, Path], bool] | None = None,
 ) -> dict[str, Any]:
     """Search using existing ingest but keep ALL results, jobs and assets local."""
     length, fetch, queries = _validate(job, max_results, max_clips_per_source, concurrency)
     if isinstance(enough, bool) or not isinstance(enough, int) or not 0 <= enough <= 50:
         raise ImportSceneError("enough must be 0..50")
     if simple:
-        queries = simple_queries(job, queries)
-    # Stable ties retain the original English-first order.
-    queries.sort(key=lambda term: -len(set(library._words(term)) - _QUERY_STOP))
+        place_queries = [query for query in queries if library.query_names([query])]
+        queries = list(dict.fromkeys([*place_queries, *simple_queries(job, queries)]))
+    # Place-bearing queries must reach Commons with their original entity intact.
+    queries.sort(
+        key=lambda term: (
+            not bool(library.query_names([term])),
+            -len(set(library._words(term)) - _QUERY_STOP),
+        )
+    )
     if timeout_s is None:
         try:
             timeout_s = float(os.environ.get("CLIPOTECA_IMPORT_TIMEOUT", "900"))
@@ -542,7 +550,43 @@ def import_scene(
     own_adapters = adapters is None
     selected = _adapters(providers) if own_adapters else adapters
     duration_cap = min(20, max(8, math.ceil(fetch) + 4))
-    budget = SceneBudget(job, writer.imported, max_results, enough, started + timeout)
+    scorer = None
+    scorer_unavailable = False
+
+    def visual_match(record):
+        nonlocal scorer, scorer_unavailable
+        path = storage.assets[f"clip_{record['id']}.mp4"].path
+        if relevance_check is not None:
+            return relevance_check(record, path)
+        if scorer_unavailable:
+            return False
+        try:
+            from .clipscene import analyze_window
+            from .clipscore import ClipScorer
+            from .models import cache_dir
+
+            if scorer is None:
+                scorer = ClipScorer(cache_dir() / "clip-vit-b32")
+                scorer._sess()
+        except (ImportError, OSError, RuntimeError, ValueError):
+            scorer_unavailable = True
+            failures.append("clip_relevance_unavailable")
+            return False
+        try:
+            analysis, reason = analyze_window(job, path, scorer, started + timeout)
+            if reason == "timeout":
+                failures.append("timeout")
+            return analysis is not None
+        except TimeoutError:
+            failures.append("timeout")
+            return False
+        except (OSError, RuntimeError, ValueError):
+            rejections["visual_analysis_error"] = rejections.get("visual_analysis_error", 0) + 1
+            return False
+
+    budget = SceneBudget(
+        job, writer.imported, max_results, enough, started + timeout, visual_match=visual_match
+    )
     budget.searches_planned = len(queries) * sum(
         len(set(adapter.accepts_text_languages) & {"en", "es", "zh", "ru"})
         for adapter in selected
@@ -564,7 +608,7 @@ def import_scene(
                 tried.append(query)
                 # The legacy spread flag remains accepted, but never reserves slots
                 # for later queries once adequate material is available.
-                slots = max_results - budget.valid_count()
+                slots = max(1, max_results - budget.relevant_count())
                 try:
                     report = await asyncio.wait_for(
                         ingest(
@@ -591,6 +635,7 @@ def import_scene(
                         ),
                         timeout=remaining,
                     )
+                    budget.relevant_count()
                     hard = _classify(report.errors, rejections)
                     failures.extend(hard)
                     soft_only = bool(report.errors) and not hard
@@ -612,10 +657,14 @@ def import_scene(
         except _SceneDeadline:
             failures.append("timeout")
 
+    # Finalization must not start new visual analysis outside the wall deadline.
+    budget.visual_match = None
     reason = "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
     imported: list[dict[str, Any]] = []
     seen_digests: set[str] = set()
     for record in writer.imported:
+        if not budget.good(record) or len(imported) >= max_results:
+            continue
         digest = str(record["media"]["sha256"]).lower()
         if digest in seen_digests:
             continue
@@ -633,6 +682,9 @@ def import_scene(
         "rejections": dict(sorted(rejections.items())),
         "time_s": round(time.monotonic() - started, 3),
         "termination_reason": reason,
+        "raw_count": len(budget.discovered),
+        "relevant_count": budget.relevant_count(),
+        "commons_consulted": budget.commons_consulted,
         "searches_started": budget.searches_started,
         "searches_avoided": max(0, budget.searches_planned - budget.searches_started),
         "searches_cancelled": budget.searches_cancelled,
@@ -681,6 +733,9 @@ def main(argv: list[str] | None = None) -> int:
                 "status": result["status"],
                 "imported": len(result["clips"]),
                 "termination_reason": result["termination_reason"],
+                "raw_count": result["raw_count"],
+                "relevant_count": result["relevant_count"],
+                "commons_consulted": result["commons_consulted"],
                 "time_s": result["time_s"],
                 "searches_started": result["searches_started"],
                 "searches_avoided": result["searches_avoided"],

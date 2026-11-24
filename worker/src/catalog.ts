@@ -1,5 +1,6 @@
 export type Clip = {
   id: string;
+  status?: string;
   title: Record<"es" | "en", string>;
   description: Record<"es" | "en", string>;
   tags: Record<"es" | "en", string[]>;
@@ -69,7 +70,7 @@ export async function loadCatalog(env: CatalogEnv): Promise<Clip[]> {
     data = decodeCatalog(encoded);
   }
   if (!Array.isArray(data)) throw new Error("catalogue must be an array");
-  return data as Clip[];
+  return (data as Clip[]).filter(clip => clip.status === "published");
 }
 
 function json(value: unknown, status = 200): Response {
