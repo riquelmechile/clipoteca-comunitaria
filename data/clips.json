@@ -6827,5 +6827,1448 @@
     },
     "status": "published",
     "created_at": "2026-11-24T04:21:04.381894Z"
+  },
+  {
+    "id": "clip-000100",
+    "title": {
+      "es": "Vista aérea del paisaje urbano a lo largo de un río",
+      "en": "Aerial view of cityscape along a river"
+    },
+    "description": {
+      "es": "Vista aérea del paisaje urbano a lo largo de un río",
+      "en": "Aerial view of cityscape along a river"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "paisaje",
+        "urbano",
+        "largo",
+        "río"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "cityscape",
+        "along",
+        "river"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "31844248",
+      "source_language": "en",
+      "source_title": "aerial-view-of-cityscape-along-a-river-31844248",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-cityscape-along-a-river-31844248/",
+      "source_start": 4.0,
+      "source_end": 13.146467
+    },
+    "media": {
+      "duration_seconds": 9.142467,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 7688549,
+      "sha256": "00bbc2520ba5f6bd229c132de3908a7fcb4673cbe2694e7b48f64cad583d721d",
+      "perceptual_hash": "9de0dfb4a05c3d0a~4211.03:99e1dfb6a04c390e~4210.88:88e1dfb4a04d3f46~4189.11:80e1dfba842d3f46~4118.64:84e3dfbac4281f46~4045.81"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000100.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000100.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000100_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000100_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000100_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000100_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000100_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000100_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000101",
+    "title": {
+      "es": "Vista aérea del pintoresco panorama del río y la ciudad",
+      "en": "Aerial view of scenic river and town panorama"
+    },
+    "description": {
+      "es": "Vista aérea del pintoresco panorama del río y la ciudad",
+      "en": "Aerial view of scenic river and town panorama"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "pintoresco",
+        "panorama",
+        "río",
+        "ciudad"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "scenic",
+        "river",
+        "town",
+        "panorama"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "29906804",
+      "source_language": "en",
+      "source_title": "aerial-view-of-scenic-river-and-town-panorama-29906804",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-scenic-river-and-town-panorama-29906804/",
+      "source_start": 16.0,
+      "source_end": 24.67465
+    },
+    "media": {
+      "duration_seconds": 8.65865,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 12073263,
+      "sha256": "1326fe1cc5f83bd8b667d802e1f25d1c6ec894cd4e7a23d98dec8f0ce5c38121",
+      "perceptual_hash": "ddcc90246bf68d1a~2735.19:ddc99020fbf78914~2854.36:cdc9942a72f78a15~2944.08:cdc8942a77e78a15~3083.97:c9c9952a77e38a15~3150.27"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000101.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000101.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000101_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000101_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000101_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000101_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000101_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000101_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000102",
+    "title": {
+      "es": "Vista aérea de la histórica iglesia de ladrillo rojo por lago",
+      "en": "Aerial view of historic red brick church by lake"
+    },
+    "description": {
+      "es": "Vista aérea de la histórica iglesia de ladrillo rojo por lago",
+      "en": "Aerial view of historic red brick church by lake"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "histórica",
+        "iglesia",
+        "ladrillo",
+        "rojo",
+        "lago"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "historic",
+        "red",
+        "brick",
+        "church",
+        "lake"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "39280481",
+      "source_language": "en",
+      "source_title": "aerial-view-of-historic-red-brick-church-by-lake-39280481",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-historic-red-brick-church-by-lake-39280481/",
+      "source_start": 4.0,
+      "source_end": 13.8138
+    },
+    "media": {
+      "duration_seconds": 9.8098,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 9621431,
+      "sha256": "14069fa776b29ec076e38ca198cd8c8bf680a6a5d64e922781f09ccad021b4ee",
+      "perceptual_hash": "c7d1eeb8154960c7~7086.87:c6c1ecaab79fb080~5443.13:c6c1fdecc20a6f60~3487.11:a691f5fcf6801e14~2865.40:ae95412dfdc1e207~2519.65"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000102.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000102.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000102_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000102_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000102_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000102_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000102_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000102_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000103",
+    "title": {
+      "es": "Vista aérea del pintoresco panorama del río y la ciudad",
+      "en": "Aerial view of scenic river and town panorama"
+    },
+    "description": {
+      "es": "Vista aérea del pintoresco panorama del río y la ciudad",
+      "en": "Aerial view of scenic river and town panorama"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "pintoresco",
+        "panorama",
+        "río",
+        "ciudad"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "scenic",
+        "river",
+        "town",
+        "panorama"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "29906804",
+      "source_language": "en",
+      "source_title": "aerial-view-of-scenic-river-and-town-panorama-29906804",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-scenic-river-and-town-panorama-29906804/",
+      "source_start": 4.0,
+      "source_end": 15.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 14129712,
+      "sha256": "3ffbec3311b90039d91698289bb7de8962e69d41ad80da6c1965e9e48ef5f135",
+      "perceptual_hash": "8ae58e1be4c69d86~2460.47:82ed8619e69dce86~2495.30:9dec823be49b848e~2521.29:9bec823665db068d~2356.32:9bed922077d9160d~2489.06"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000103.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000103.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000103_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000103_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000103_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000103_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000103_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000103_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000104",
+    "title": {
+      "es": "Vista portuaria pintoresca con barcos rojos desde arriba",
+      "en": "Scenic harbor view with red boats from above"
+    },
+    "description": {
+      "es": "Vista portuaria pintoresca con barcos rojos desde arriba",
+      "en": "Scenic harbor view with red boats from above"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "portuaria",
+        "pintoresca",
+        "barcos",
+        "rojos",
+        "desde",
+        "arriba"
+      ],
+      "en": [
+        "Scenic",
+        "harbor",
+        "view",
+        "red",
+        "boats",
+        "above"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "41207802",
+      "source_language": "en",
+      "source_title": "scenic-harbor-view-with-red-boats-from-above-41207802",
+      "source_url": "https://www.pexels.com/video/scenic-harbor-view-with-red-boats-from-above-41207802/",
+      "source_start": 4.0,
+      "source_end": 13.947267
+    },
+    "media": {
+      "duration_seconds": 9.943267,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 13615030,
+      "sha256": "4fb574a3313607277d5953ea7cb24a188c4571e1b38779fa4c38d471ef90e541",
+      "perceptual_hash": "c7c3b3be7e450302~4156.37:c3c3b3bf7e41003a~4161.76:c3c3bbbf6f410068~4171.45:c3c1bbbf6f411068~4178.89:c3c0bbbf6f40106e~4199.34"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000104.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000104.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000104_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000104_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000104_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000104_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000104_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000104_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000105",
+    "title": {
+      "es": "Vista aérea de vibrante paisaje urbano por río",
+      "en": "Aerial view of vibrant cityscape by river"
+    },
+    "description": {
+      "es": "Vista aérea de vibrante paisaje urbano por río",
+      "en": "Aerial view of vibrant cityscape by river"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "vibrante",
+        "paisaje",
+        "urbano",
+        "río"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "vibrant",
+        "cityscape",
+        "river"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "31659849",
+      "source_language": "en",
+      "source_title": "aerial-view-of-vibrant-cityscape-by-river-31659849",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-vibrant-cityscape-by-river-31659849/",
+      "source_start": 0.0,
+      "source_end": 7.04
+    },
+    "media": {
+      "duration_seconds": 7.04,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 7745613,
+      "sha256": "96773bbf959a7b9838ee60a2630b8c4ebdaa7f0bdfdfabc0e3066f010dc08e91",
+      "perceptual_hash": "a09cd34b58a3736d~2984.71:a19cf3435aa16b6c~2959.53:a184fb405ea46b7e~2970.51:a08bdf5046b6497e~2980.87:a0c99e7507b56857~2996.96"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000105.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000105.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000105_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000105_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000105_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000105_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000105_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000105_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000106",
+    "title": {
+      "es": "Lago y paisaje cerca",
+      "en": "Lake and landscape near"
+    },
+    "description": {
+      "es": "Lago y paisaje cerca",
+      "en": "Lake and landscape near"
+    },
+    "tags": {
+      "es": [
+        "Lago",
+        "paisaje",
+        "cerca"
+      ],
+      "en": [
+        "Lake",
+        "landscape",
+        "near"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "13135048",
+      "source_language": "en",
+      "source_title": "lake-and-landscape-near-13135048",
+      "source_url": "https://www.pexels.com/video/lake-and-landscape-near-13135048/",
+      "source_start": 36.0,
+      "source_end": 44.043333
+    },
+    "media": {
+      "duration_seconds": 8.041367,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 6169621,
+      "sha256": "a69cb8c8b9b1a53a84a24ff28efed6d7c16bc1200c9bf01e6c144147016264a0",
+      "perceptual_hash": "88efac1a5cca993c~2927.96:96e0a20d56e1cde7~2840.16:95eaa146536a8cf3~2882.29:d0e5ba034865d7f8~2826.05:dde2b5602f60d0ea~2930.52"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000106.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000106.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000106_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000106_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000106_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000106_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000106_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000106_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000107",
+    "title": {
+      "es": "Vista aérea panorámica del paisaje urbano de la isla",
+      "en": "Scenic aerial view of urban island cityscape"
+    },
+    "description": {
+      "es": "Vista aérea panorámica del paisaje urbano de la isla",
+      "en": "Scenic aerial view of urban island cityscape"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "panorámica",
+        "paisaje",
+        "urbano",
+        "isla"
+      ],
+      "en": [
+        "Scenic",
+        "aerial",
+        "view",
+        "urban",
+        "island",
+        "cityscape"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "37075267",
+      "source_language": "en",
+      "source_title": "scenic-aerial-view-of-urban-island-cityscape-37075267",
+      "source_url": "https://www.pexels.com/video/scenic-aerial-view-of-urban-island-cityscape-37075267/",
+      "source_start": 14.0,
+      "source_end": 22.088733
+    },
+    "media": {
+      "duration_seconds": 8.074733,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2561628,
+      "sha256": "abf4f4479b0935777b4fefc3e2fd0ddc933eb2a65018ab742f486d2ab4ee976d",
+      "perceptual_hash": "aad587c2bd6a5928~4545.80:aad585d2a9725d2a~4567.02:aad585d2aa73592a~4591.02:aa9f859eaa734928~4606.05:ba8f848baa73493a~4611.06"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000107.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000107.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000107_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000107_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000107_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000107_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000107_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000107_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000108",
+    "title": {
+      "es": "La vista desde la cima de un acantilado con vistas al océano",
+      "en": "The view from the top of a cliff overlooking the ocean"
+    },
+    "description": {
+      "es": "La vista desde la cima de un acantilado con vistas al océano",
+      "en": "The view from the top of a cliff overlooking the ocean"
+    },
+    "tags": {
+      "es": [
+        "vista",
+        "desde",
+        "cima",
+        "acantilado",
+        "vistas",
+        "océano"
+      ],
+      "en": [
+        "view",
+        "top",
+        "cliff",
+        "overlooking",
+        "ocean"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "27574733",
+      "source_language": "en",
+      "source_title": "the-view-from-the-top-of-a-cliff-overlooking-the-ocean-27574733",
+      "source_url": "https://www.pexels.com/video/the-view-from-the-top-of-a-cliff-overlooking-the-ocean-27574733/",
+      "source_start": 6.0,
+      "source_end": 14.06405
+    },
+    "media": {
+      "duration_seconds": 8.05805,
+      "width": 1080,
+      "height": 1920,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3539780,
+      "sha256": "229468ff7fcb3e51ecde0b5a5c3d40afca330b7df1320f6f53c425538625897c",
+      "perceptual_hash": "b5ae2e51ca1e11ab~2096.03:94a32b5ce58b58b5~2478.65:9ea0235ee4a95f94~2869.89:89be304bf6ac4b52~3433.61:c4b53f40d3b76059~3660.07"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000108.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000108.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000108_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000108_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000108_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000108_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000108_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000108_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000109",
+    "title": {
+      "es": "Impresionante vista aérea de la belleza costera de Kauai",
+      "en": "Stunning aerial view of kauai s coastal beauty"
+    },
+    "description": {
+      "es": "Impresionante vista aérea de la belleza costera de Kauai",
+      "en": "Stunning aerial view of kauai s coastal beauty"
+    },
+    "tags": {
+      "es": [
+        "Impresionante",
+        "vista",
+        "aérea",
+        "belleza",
+        "costera",
+        "Kauai"
+      ],
+      "en": [
+        "Stunning",
+        "aerial",
+        "view",
+        "kauai",
+        "coastal",
+        "beauty"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "28615724",
+      "source_language": "en",
+      "source_title": "stunning-aerial-view-of-kauai-s-coastal-beauty-28615724",
+      "source_url": "https://www.pexels.com/video/stunning-aerial-view-of-kauai-s-coastal-beauty-28615724/",
+      "source_start": 94.0,
+      "source_end": 103.386617
+    },
+    "media": {
+      "duration_seconds": 9.376033,
+      "width": 1080,
+      "height": 1920,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 8667437,
+      "sha256": "40bd4e519dfaaa2255fc319b138193873a3ca1dea46e245037aaf9da6b0e5aac",
+      "perceptual_hash": "d2ed322c49d6ad52~3193.81:d2ed1b245b82be43~3238.95:d3e41b2659a61d6c~3150.39:d3e419364cb34d3a~3135.21:dbe40b314eb1c639~3120.88"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000109.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000109.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000109_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000109_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000109_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000109_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000109_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000109_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000110",
+    "title": {
+      "es": "Una persona poniendo pequeñas plantas en macetas esculpidas",
+      "en": "A person putting tiny plants on sculpted pots"
+    },
+    "description": {
+      "es": "Una persona poniendo pequeñas plantas en macetas esculpidas",
+      "en": "A person putting tiny plants on sculpted pots"
+    },
+    "tags": {
+      "es": [
+        "persona",
+        "poniendo",
+        "pequeñas",
+        "plantas",
+        "macetas",
+        "esculpidas"
+      ],
+      "en": [
+        "person",
+        "putting",
+        "tiny",
+        "plants",
+        "sculpted",
+        "pots"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "7237091",
+      "source_language": "en",
+      "source_title": "a-person-putting-tiny-plants-on-sculpted-pots-7237091",
+      "source_url": "https://www.pexels.com/video/a-person-putting-tiny-plants-on-sculpted-pots-7237091/",
+      "source_start": 0.0,
+      "source_end": 8.64
+    },
+    "media": {
+      "duration_seconds": 8.64,
+      "width": 1280,
+      "height": 720,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 519025,
+      "sha256": "7589be458e1de3c8384e5d7e6a7d86409dd0d76acaaf3bcfca586aa6ad46f580",
+      "perceptual_hash": "c815bf6a01eec935~1674.99:c015bf7a05ee8935~1655.72:c815bf7a01ee8935~1596.84:c815bf6a01ee8b35~1636.02:c815bf7a01ee8935~1630.47"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000110.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000110.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000110_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000110_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000110_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000110_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000110_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000110_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000111",
+    "title": {
+      "es": "Planta de colocación en vasijas moai",
+      "en": "Putting plant on moai vases"
+    },
+    "description": {
+      "es": "Planta de colocación en vasijas moai",
+      "en": "Putting plant on moai vases"
+    },
+    "tags": {
+      "es": [
+        "Planta",
+        "colocación",
+        "vasijas",
+        "moai"
+      ],
+      "en": [
+        "Putting",
+        "plant",
+        "moai",
+        "vases"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "7236447",
+      "source_language": "en",
+      "source_title": "putting-plant-on-moai-vases-7236447",
+      "source_url": "https://www.pexels.com/video/putting-plant-on-moai-vases-7236447/",
+      "source_start": 0.0,
+      "source_end": 8.84
+    },
+    "media": {
+      "duration_seconds": 8.84,
+      "width": 1080,
+      "height": 1920,
+      "fps": 25.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1454999,
+      "sha256": "7b5405684e0482b23063437b0c22b30d56a4061b7498ffbda4eedd8241eaf46d",
+      "perceptual_hash": "e41ba354d82f5a65~1441.86:e41ba354d82f5a65~1426.53:e41bab54d8271a6d~1429.33:ec19a354d8635b65~1381.28:c41bab54c8279aed~1327.60"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000111.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000111.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000111_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000111_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000111_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000111_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000111_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000111_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000112",
+    "title": {
+      "es": "Vista panorámica desde el fuerte histórico",
+      "en": "Scenic ocean view from historic fort"
+    },
+    "description": {
+      "es": "Vista panorámica desde el fuerte histórico",
+      "en": "Scenic ocean view from historic fort"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "panorámica",
+        "desde",
+        "fuerte",
+        "histórico"
+      ],
+      "en": [
+        "Scenic",
+        "ocean",
+        "view",
+        "historic",
+        "fort"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "36087290",
+      "source_language": "en",
+      "source_title": "scenic-ocean-view-from-historic-fort-36087290",
+      "source_url": "https://www.pexels.com/video/scenic-ocean-view-from-historic-fort-36087290/",
+      "source_start": 4.0,
+      "source_end": 12.833333
+    },
+    "media": {
+      "duration_seconds": 8.833333,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 9004948,
+      "sha256": "9a34af589ab80996e507c36893f5d04eb765c17b891a5c22adfa4558f1d1166a",
+      "perceptual_hash": "a8ff0250578cb979~1987.22:93f42c0bf4873867~2787.76:acf3306fd03f5620~3906.05:aaf91d23dc2e4b14~3287.58:b8fd4250d59c396a~1551.61"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000112.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000112.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000112_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000112_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000112_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000112_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000112_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000112_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000113",
+    "title": {
+      "es": "Impresionante vista aérea de la belleza costera de Kauai",
+      "en": "Stunning aerial view of kauai s coastal beauty"
+    },
+    "description": {
+      "es": "Impresionante vista aérea de la belleza costera de Kauai",
+      "en": "Stunning aerial view of kauai s coastal beauty"
+    },
+    "tags": {
+      "es": [
+        "Impresionante",
+        "vista",
+        "aérea",
+        "belleza",
+        "costera",
+        "Kauai"
+      ],
+      "en": [
+        "Stunning",
+        "aerial",
+        "view",
+        "kauai",
+        "coastal",
+        "beauty"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "28615724",
+      "source_language": "en",
+      "source_title": "stunning-aerial-view-of-kauai-s-coastal-beauty-28615724",
+      "source_url": "https://www.pexels.com/video/stunning-aerial-view-of-kauai-s-coastal-beauty-28615724/",
+      "source_start": 48.0,
+      "source_end": 58.0
+    },
+    "media": {
+      "duration_seconds": 9.993317,
+      "width": 1080,
+      "height": 1920,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 11930800,
+      "sha256": "a71d522632a8795a79c0708964c9988ca141747f3a152da0ee3ae76e4eaa53e6",
+      "perceptual_hash": "96e91669e69d640b~2799.94:8ce3166ca2dcf32c~2854.41:c5ba0d716e95621d~2892.70:87fb146b07d17a05~2632.00:e3944c738df02f43~2747.93"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000113.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000113.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000113_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000113_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000113_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000113_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000113_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000113_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000114",
+    "title": {
+      "es": "rocas al lado del mar con vista al mar y aves",
+      "en": "Seaside rocks with ocean view and bird"
+    },
+    "description": {
+      "es": "rocas al lado del mar con vista al mar y aves",
+      "en": "Seaside rocks with ocean view and bird"
+    },
+    "tags": {
+      "es": [
+        "rocas",
+        "lado",
+        "mar",
+        "vista",
+        "aves"
+      ],
+      "en": [
+        "Seaside",
+        "rocks",
+        "ocean",
+        "view",
+        "bird"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "36434835",
+      "source_language": "en",
+      "source_title": "seaside-rocks-with-ocean-view-and-bird-36434835",
+      "source_url": "https://www.pexels.com/video/seaside-rocks-with-ocean-view-and-bird-36434835/",
+      "source_start": 0.0,
+      "source_end": 7.140467
+    },
+    "media": {
+      "duration_seconds": 7.140467,
+      "width": 1080,
+      "height": 1920,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2058055,
+      "sha256": "e6222a821e4c02f991a84a11cff2ce38863210cfa6180221fb7c718f20c413a1",
+      "perceptual_hash": "a4db1a6de61c9aa1~4754.53:b4cb0a75e21ed9a4~4636.82:b6c80b74f38ac9b4~4608.29:b6c80b74f18acdb4~4574.78:b4cb0a75e30ed9a4~4653.68"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000114.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000114.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000114_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000114_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000114_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000114_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000114_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000114_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000115",
+    "title": {
+      "es": "Figuras moai",
+      "en": "Moai figurines"
+    },
+    "description": {
+      "es": "Figuras moai",
+      "en": "Moai figurines"
+    },
+    "tags": {
+      "es": [
+        "Figuras",
+        "moai"
+      ],
+      "en": [
+        "Moai",
+        "figurines"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "7237110",
+      "source_language": "en",
+      "source_title": "moai-figurines-7237110",
+      "source_url": "https://www.pexels.com/video/moai-figurines-7237110/",
+      "source_start": 0.0,
+      "source_end": 5.6
+    },
+    "media": {
+      "duration_seconds": 5.6,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 660085,
+      "sha256": "fbf75c814a4ed075b55ea8cd5eb9b4f57897702b128134ed43026be90fe9e04f",
+      "perceptual_hash": "b8ce43f1c7e141a3~251.00:bccea3aae3c14155~269.71:d8aea2a5a5e34969~484.15:fac685b697e14425~511.03:f8c695b696e144a6~521.28"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000115.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000115.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000115_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000115_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000115_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000115_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000115_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000115_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000116",
+    "title": {
+      "es": "Vista aérea de la catedral neo romanesca en santiago",
+      "en": "Aerial view of neo romanesque cathedral in santiago"
+    },
+    "description": {
+      "es": "Vista aérea de la catedral neo romanesca en santiago",
+      "en": "Aerial view of neo romanesque cathedral in santiago"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "catedral",
+        "neo",
+        "romanesca",
+        "santiago"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "neo",
+        "romanesque",
+        "cathedral",
+        "santiago"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "40934415",
+      "source_language": "en",
+      "source_title": "aerial-view-of-neo-romanesque-cathedral-in-santiago-40934415",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-neo-romanesque-cathedral-in-santiago-40934415/",
+      "source_start": 24.0,
+      "source_end": 35.0
+    },
+    "media": {
+      "duration_seconds": 10.977633,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 11025824,
+      "sha256": "56d34b52ec2286bf917988ffb2bca240d078499e18210ee392b5f941864fdca5",
+      "perceptual_hash": "f9a249d58eaa6994~2722.43:f2a64d948cbaed90~2614.65:eaa55da689bac096~2326.31:e942e9b28efacc90~2029.55:d56adab694b8aa41~2000.84"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000116.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000116.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000116_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000116_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000116_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000116_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000116_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000116_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000117",
+    "title": {
+      "es": "Una filmación aérea de una ciudad",
+      "en": "An aerial footage of a city"
+    },
+    "description": {
+      "es": "Una filmación aérea de una ciudad",
+      "en": "An aerial footage of a city"
+    },
+    "tags": {
+      "es": [
+        "filmación",
+        "aérea",
+        "ciudad"
+      ],
+      "en": [
+        "aerial",
+        "footage",
+        "city"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "6442018",
+      "source_language": "en",
+      "source_title": "an-aerial-footage-of-a-city-6442018",
+      "source_url": "https://www.pexels.com/video/an-aerial-footage-of-a-city-6442018/",
+      "source_start": 0.0,
+      "source_end": 10.01
+    },
+    "media": {
+      "duration_seconds": 10.01,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 12918407,
+      "sha256": "5ceb9bd4e83ddabfe278f153bb6a241afe8648d2b4709a4e26f195ab5a0666ce",
+      "perceptual_hash": "dee0e890f188f59a~2981.15:dee0e890f588f49a~2942.82:dee1e898f188f48a~2789.35:ed72624387966e0d~2713.83:d031c7739e66989a~2874.44"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000117.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000117.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000117_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000117_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000117_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000117_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000117_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000117_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000118",
+    "title": {
+      "es": "Vista aérea de santiago de chile ciudad",
+      "en": "Aerial view of santiago de chile city"
+    },
+    "description": {
+      "es": "Vista aérea de santiago de chile ciudad",
+      "en": "Aerial view of santiago de chile city"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "santiago",
+        "chile",
+        "ciudad"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "santiago",
+        "chile",
+        "city"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "14060349",
+      "source_language": "en",
+      "source_title": "aerial-view-of-santiago-de-chile-city-14060349",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-santiago-de-chile-city-14060349/",
+      "source_start": 6.0,
+      "source_end": 17.0
+    },
+    "media": {
+      "duration_seconds": 10.994317,
+      "width": 1920,
+      "height": 1080,
+      "fps": 59.94005994005994,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 8437906,
+      "sha256": "985922b1706f25bfda5edd839c26d09023900d9cb174b4f5a1ff4009e9367188",
+      "perceptual_hash": "93c7cca6adbce048~1327.56:93c7cca6bd98c8c8~1396.74:93c78ca6bdc0ca9a~1445.69:d3cda4b4d9c24a96~1463.77:d3cda4b4c9ca9cb0~1476.34"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000118.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000118.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000118_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000118_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000118_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000118_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000118_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000118_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000119",
+    "title": {
+      "es": "Vista aérea de la catedral histórica en el paisaje urbano",
+      "en": "Aerial view of historic cathedral in urban landscape"
+    },
+    "description": {
+      "es": "Vista aérea de la catedral histórica en el paisaje urbano",
+      "en": "Aerial view of historic cathedral in urban landscape"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "catedral",
+        "histórica",
+        "paisaje",
+        "urbano"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "historic",
+        "cathedral",
+        "urban",
+        "landscape"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "40934419",
+      "source_language": "en",
+      "source_title": "aerial-view-of-historic-cathedral-in-urban-landscape-40934419",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-historic-cathedral-in-urban-landscape-40934419/",
+      "source_start": 12.0,
+      "source_end": 20.787433
+    },
+    "media": {
+      "duration_seconds": 8.775433,
+      "width": 1920,
+      "height": 1080,
+      "fps": 29.97002997002997,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 7608647,
+      "sha256": "c409ff635d909741509a97f7da1347d62ddda3d5e17d1bb22a6aed607a8e694f",
+      "perceptual_hash": "d5ab3c5209e6bf20~1749.90:f58f20520fdda631~1909.09:f58fa0a0522e555f~2453.54:f28dd9ac8db443a8~2683.36:f3acd3c9248d2497~3166.22"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000119.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000119.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000119_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000119_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000119_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000119_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000119_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000119_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000120",
+    "title": {
+      "es": "Salida del sol urbano impresionante sobre el horizonte de la ciudad",
+      "en": "Breathtaking urban sunrise over city skyline"
+    },
+    "description": {
+      "es": "Salida del sol urbano impresionante sobre el horizonte de la ciudad",
+      "en": "Breathtaking urban sunrise over city skyline"
+    },
+    "tags": {
+      "es": [
+        "Salida",
+        "sol",
+        "urbano",
+        "impresionante",
+        "horizonte",
+        "ciudad"
+      ],
+      "en": [
+        "Breathtaking",
+        "urban",
+        "sunrise",
+        "city",
+        "skyline"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "40934310",
+      "source_language": "en",
+      "source_title": "breathtaking-urban-sunrise-over-city-skyline-40934310",
+      "source_url": "https://www.pexels.com/video/breathtaking-urban-sunrise-over-city-skyline-40934310/",
+      "source_start": 14.0,
+      "source_end": 23.606917
+    },
+    "media": {
+      "duration_seconds": 9.592917,
+      "width": 1920,
+      "height": 1080,
+      "fps": 23.976023976023978,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3832900,
+      "sha256": "c95874a553969159e77c4689d8f8efdfa97e09b0eeca0a4c87d8808ede2ebc80",
+      "perceptual_hash": "96932964d693396d~5906.81:c693396966869979~6201.93:c694197966e6b919~6468.07:d694392b66c6b139~6834.75:d4d4a92b6ee68139~7082.57"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000120.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000120.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000120_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000120_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000120_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000120_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000120_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000120_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
+  },
+  {
+    "id": "clip-000121",
+    "title": {
+      "es": "Vista aérea de santiago paisaje urbano desde arriba",
+      "en": "Aerial view of santiago cityscape from above"
+    },
+    "description": {
+      "es": "Vista aérea de santiago paisaje urbano desde arriba",
+      "en": "Aerial view of santiago cityscape from above"
+    },
+    "tags": {
+      "es": [
+        "Vista",
+        "aérea",
+        "santiago",
+        "paisaje",
+        "urbano",
+        "desde",
+        "arriba"
+      ],
+      "en": [
+        "Aerial",
+        "view",
+        "santiago",
+        "cityscape",
+        "above"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "37008574",
+      "source_language": "en",
+      "source_title": "aerial-view-of-santiago-cityscape-from-above-37008574",
+      "source_url": "https://www.pexels.com/video/aerial-view-of-santiago-cityscape-from-above-37008574/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 8615471,
+      "sha256": "d9a52f41d155a88451b1ca36efd1a1cb8568824d185152fd8178f6220919a066",
+      "perceptual_hash": "c0aaffa040c738fe~2175.46:d0af91b66b413cb2~2299.56:cdb2cdda255a0578~2749.59:e6a9d24d326c522f~3038.43:f98e794619664917~3352.12"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/clip_clip-000121.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/thumb_clip-000121.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000121_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000121_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000121_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000121_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000121_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-24-001/story_clip-000121_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-24T05:16:29.210017Z"
   }
 ]
