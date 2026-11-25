@@ -31,10 +31,16 @@ def test_render_workflow_delivery_contract():
     assert "publish" not in jobs
     assert spec["permissions"] == {"contents": "read"}
     assert jobs["index"]["permissions"] == {"contents": "write"}
-    assert all("permissions" not in job for key, job in jobs.items() if key != "index")
+    # Scenes read the public contribution registry (Issues); nothing else gets more.
+    assert jobs["scene"]["permissions"] == {"contents": "read", "issues": "read"}
+    assert all(
+        "permissions" not in job for key, job in jobs.items() if key not in ("index", "scene")
+    )
     assert "concurrency" not in jobs["index"]
     assert "index" not in jobs["assemble"]["needs"]
-    assert jobs["index"]["needs"] == "scene"
+    # Contributions are indexed only after the delivery QA result is known.
+    assert jobs["index"]["needs"] == ["scene", "assemble"]
+    assert "!cancelled()" in jobs["index"]["if"]
     steps = jobs["assemble"]["steps"]
     uploads = {
         step["with"]["name"]: step["with"]
