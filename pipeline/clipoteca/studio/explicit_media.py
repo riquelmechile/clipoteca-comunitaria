@@ -14,7 +14,8 @@ from pathlib import Path
 import httpx
 import numpy as np
 
-from ..security.download import download_media
+from ..media.probe import probe_media
+from ..security.download import DownloadError, download_media
 from . import checks, framing
 from .clipscene import _atomic_json, _download, _preview_frames, _run
 
@@ -256,16 +257,20 @@ def select_explicit(root, job, assignment):
     record = None
     rendered = root / "clip.mp4"
     rendered.unlink(missing_ok=True)
+    reason = "No se pudo preparar el archivo del aporte."
     try:
         with tempfile.TemporaryDirectory(dir=root) as temporary:
             folder = Path(temporary)
             if origin == "catalog_pinned":
                 source = folder / "asset.mp4"
+                reason = "No se pudo descargar o verificar el clip del catalogo."
                 _download(assignment["primary"], source, None)
                 source_url = assignment["primary"]["source_url"]
             else:
+                reason = "Registro de aporte no accesible o invalido."
                 record = registry_record(ref)
                 source_url = record["url"]
+                reason = "No se pudo descargar el video del aporte."
                 source = asyncio.run(
                     download_media(
                         source_url,
@@ -274,7 +279,16 @@ def select_explicit(root, job, assignment):
                         user_agent=_USER_AGENT,
                     )
                 )
-            sw, sh, duration = checks.probe_video(source, deadline=deadline)
+            reason = "No se pudo leer el video del aporte."
+            if record is None:
+                sw, sh, duration = checks.probe_video(source, deadline=deadline)
+            else:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("scene timeout")
+                probe = probe_media(source, timeout=min(30, remaining))
+                sw, sh = probe.display_width, probe.display_height
+                duration = probe.duration_seconds
             if not 0 < duration <= 120.04:
                 raise ExplicitMediaError("Duracion de aporte no valida.")
             width, height = framing.target_size(job["aspect"])
@@ -283,10 +297,13 @@ def select_explicit(root, job, assignment):
             start, end = window_bounds(media, duration, job["len_est"])
             span = min(end - start, job["len_fetch"])
             vf, crop = framing.crop_filter(sw, sh, job["aspect"])
+            reason = "No se pudieron decodificar o normalizar los fotogramas del aporte."
             for at in _starts(
                 source, sw, sh, duration, start, end, span, "start" in media, deadline
             ):
+                reason = "No se pudo normalizar el video del aporte."
                 _transcode(source, rendered, at, span, vf, deadline)
+                reason = "No se pudo validar el MP4 generado para el aporte."
                 rw, rh, out_duration = checks.probe_video(rendered, deadline=deadline)
                 black, frozen = checks.black_frozen(rendered, deadline=deadline)
                 if not black and not frozen and out_duration >= job["len_est"] / 1.25:
@@ -295,9 +312,11 @@ def select_explicit(root, job, assignment):
                 raise ExplicitMediaError("Aporte negro, congelado o demasiado corto.")
             identifier = ref
             if record is not None:
+                reason = "No se pudo preparar el indice del aporte."
                 identifier = _index_manifest(
                     root, rendered, record, ref, at, out_duration, job["aspect"], deadline
                 )
+            reason = "No se pudo verificar el resultado del aporte."
             clip = {
                 "clip_id": identifier,
                 "media_ref": ref,
@@ -331,8 +350,18 @@ def select_explicit(root, job, assignment):
             }
     except ExplicitMediaError as exc:
         result = {"status": "fail", "reason": str(exc)}
-    except (OSError, ValueError, KeyError, RuntimeError, httpx.HTTPError, TimeoutError):
-        result = {"status": "fail", "reason": "No se pudo descargar o validar el aporte."}
+    except httpx.HTTPStatusError as exc:
+        # Never include exception text: it can contain a signed URL or token.
+        result = {"status": "fail", "reason": f"{reason} HTTP {exc.response.status_code}."}
+    except DownloadError as exc:
+        # DownloadError also wraps external errors; expose only a whitelisted status.
+        status = re.fullmatch(r"HTTP ([1-5][0-9]{2})", str(exc))
+        detail = f" HTTP {status[1]}." if status else ""
+        result = {"status": "fail", "reason": reason + detail}
+    except (TimeoutError, httpx.TimeoutException):
+        result = {"status": "fail", "reason": f"{reason} Tiempo de espera agotado."}
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError, httpx.HTTPError):
+        result = {"status": "fail", "reason": reason}
     if result["status"] != "ok":
         rendered.unlink(missing_ok=True)
         (root / "contribution" / "imported.json").unlink(missing_ok=True)
