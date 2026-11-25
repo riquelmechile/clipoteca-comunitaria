@@ -26,15 +26,29 @@ Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion
    El operador puede ajustar CLIPOTECA_FILE_HOSTS (lista de sufijos de hosts confiables)
    segun el host observado. La documentacion no garantiza un dominio concreto.
    El origen debe entregar Content-Length y bytes sin compresion de transporte.
-3. Si tienes shell o red, usa `ticket_subida(session_id, kind)` y ejecuta:
+3. Si tienes shell o red, usa `ticket_subida(session_id, kind, size)` con el tamano exacto en bytes (`wc -c < "$FILE"`). El ticket devuelve `part_size` (24 MiB) y `parts`. Para archivos de hasta 95 MiB puedes ejecutar:
    ```sh
    curl --fail-with-body -H "Authorization: Bearer $UPLOAD_TOKEN" \
      --upload-file "$FILE" "$PUT_URL"
    ```
    Usa el archivo binario, no JSON ni multipart. El servidor divide el flujo en chunks
    de hasta 24 MiB (100 MiB = cinco chunks), con SHA-256 por chunk.
-   No hay protocolo multipart del cliente: no dividas el PUT en varias llamadas,
-   porque el ticket se consume una vez. Respeta el limite HTTP de tu host y proxy.
+   Para archivos mayores de 95 MiB **siempre** usa partes; tambien se recomienda para
+   redes moviles. En un directorio temporal vacio, con GNU split:
+   ```sh
+   split -b 24M -d -a 1 "$FILE" parte-
+   for p in parte-*; do
+     curl --fail-with-body --retry 3 --retry-delay 2 \
+       -H "Authorization: Bearer $UPLOAD_TOKEN" \
+       --upload-file "$p" "$PUT_URL/parts/${p##*-}" || exit 1
+   done
+   curl --fail-with-body -X POST \
+     -H "Authorization: Bearer $UPLOAD_TOKEN" "$PUT_URL/complete"
+   ```
+   Puedes repetir una parte o enviarlas fuera de orden. No uses JSON ni multipart/form-data
+   para los bytes. El ticket dura 2 horas y el PUT unico tiene un limite de 95 MiB.
+   Completa antes de vencer para dar tiempo a la ingesta. Si se pierde la respuesta de
+   complete, consulta el estado antes de volver a intentar.
 4. Para una imagen realmente disponible en bytes, `subir_imagen_base64` acepta
    base64 puro de hasta 40 KiB decodificados; no uses data URI. Este limite permite
    respetar los 64 KiB del cuerpo MCP. Es preferible el archivo o PUT binario.
@@ -50,10 +64,11 @@ Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion
   expires_at y upload_url.
 - GET /v1/uploads/{session_id}: estado del lote.
 - POST /v1/uploads/{session_id}/files: JSON con kind image/video, titulo y autor
-  opcionales (campos title y author), source y license_note opcionales.
+  opcionales (campos title y author), source y license_note opcionales; size obligatorio en bytes para un ticket.
   Tambien admite file o image_base64 como en MCP; devuelve 202 si recibe los bytes,
   o 201 con ticket si no se suministran bytes.
-- POST /v1/media/upload: API anterior por archivo; publica cuando KV, Durable Object,
+- PUT /v1/media/upload/{id}/parts/{n}: parte binaria con Content-Length exacto y Bearer del ticket (n desde 0). POST /v1/media/upload/{id}/complete: verifica las partes y dispara ingesta.
+- POST /v1/media/upload: API anterior por archivo; declara size en bytes; publica cuando KV, Durable Object,
   token interno de firma y dispatch estan configurados. El modo legacy sin QA
   por Actions sigue requiriendo Bearer de escritura; no se abre al publico.
 - GET /v1/media/{media_id}: consulta individual; POST /v1/media (URL publica)
@@ -66,10 +81,10 @@ Video MP4/MOV/WebM: 100 MiB, 120 segundos. Imagen JPEG/PNG/WebP: 10 MiB y 24 MP.
 El tipo declarado o inferido del MIME/nombre se contrasta con cabeceras y con
 decodificacion en Actions. No se aceptan otros formatos ni se publican bytes sin QA.
 El DO aplica cuotas atomicas (UTC): 4 sesiones/hora por IP, 24 tickets/hora por IP,
-100 sesiones y 200 tickets/dia globales; 20 archivos y 200 MiB/dia por IP,
+100 sesiones y 200 tickets/dia globales; 40 archivos y 1 GiB/dia por IP,
 200 archivos y 2 GiB/dia globales. Los intentos admitidos consumen cuota aunque
 fallen; no hay devolucion para evitar abuso. Si recibes 429, espera la ventana.
-Los tickets duran 15 minutos y son de un solo uso. El enlace de sesion es una
+La cuota de bytes se reserva al emitir el ticket; no se cobra otra vez por parte. Los tickets KV duran 2 horas y se consumen al completar o por PUT unico compatible. El enlace de sesion es una
 capacidad aleatoria; no es un secreto del servidor. Los tokens internos nunca
 se entregan al cliente. Los registros temporales del lote se retienen hasta
 48 horas desde su ultima escritura; las referencias registradas permanecen.

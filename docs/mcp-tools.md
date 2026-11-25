@@ -14,10 +14,10 @@ Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente diez tools** con 
 | render_video | {script, index_clips?} (3–12 escenas, ≤60 s, 9:16/16:9/1:1) | {id,status,status_url}; Bearer de escritura |
 | get_video_status | {id} | {id,status,stages?,qa?,clips_indexed?,file_url?} |
 | register_media_url | {url,kind,title,author,source,license_note?} | Registro público, Bearer de escritura |
-| create_media_upload | {kind,title,author,source,license_note?} | Ticket de 15 minutos; público con KV + Actions; sin PAT personal |
+| create_media_upload | {kind,title,author,source,license_note?,size} | Ticket KV de 2 horas; público con KV + Actions; sin PAT personal |
 | get_media_status | {media_id} | Estado público: uploading, processing, registered, rejected (reason) |
 | crear_subida | {} | Sesión de 24 h hasta 12 archivos |
-| ticket_subida | {session_id,kind,title?,author?,source?} | PUT binario para agentes |
+| ticket_subida | {session_id,kind,size,title?,author?,source?} | PUT binario por partes o unico hasta 95 MiB |
 | subir_archivo | {session_id,file,kind?} | Archivo temporal del host MCP |
 | subir_imagen_base64 | {session_id,image_base64} | Imagen hasta 40 KiB |
 | estado_subida | {session_id} | Estado del lote |

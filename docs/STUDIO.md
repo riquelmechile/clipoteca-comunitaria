@@ -329,7 +329,7 @@ si queda presupuesto; los vacios sin errores no se repiten.
 El MP4 final no forma parte del catálogo de clips. No existe modo privado.
 
 - `register_media_url` / POST `/v1/media`: URL HTTPS directa (sin query, credenciales, IP literal ni redirecciones), kind (video o image), title, author, source y license_note opcional.
-- `create_media_upload` / POST `/v1/media/upload`: mismos metadatos sin URL. Devuelve media_id, upload_url, put_url, upload_token y expires_at. Abre upload_url en el navegador o envía PUT a put_url con el archivo binario, Content-Length y Authorization: Bearer seguido de upload_token (no el token de escritura). El enlace vence a los 15 minutos y no permite publicar un segundo archivo.
+- `create_media_upload` / POST `/v1/media/upload`: mismos metadatos sin URL y size en bytes. Devuelve media_id, upload_url, put_url, upload_token, expires_at, part_size y parts (modo KV). Ticket KV de 2 horas; usa PUT unico hasta 95 MiB o partes de 24 MiB y POST complete. Ver SUBIDAS.md.
 - `get_media_status` / GET `/v1/media/{id}`: estado público `uploading` (subiendo), `processing` (procesando), `registered` (registrado) o `rejected` (rechazado, con motivo en castellano). Un ID desconocido devuelve 404. El registro por URL conserva Bearer de escritura; los tickets se abren sin Bearer cuando está configurado el flujo KV + Actions.
 
 **Desde el celular:** pide el enlace de subida, abre el enlace en el navegador,
