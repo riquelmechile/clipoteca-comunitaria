@@ -4,9 +4,47 @@ import {safePublicSourceUrl} from "./contributions";
 export type MediaKind = "video" | "image";
 export const maxBytes = (kind: MediaKind) => (kind === "video" ? 50 : 10) * 1024 * 1024;
 export const PREFIX = 128 * 1024;
+export const JPEG_HEADER_LIMIT = 2 * 1024 * 1024;
+export const probeLimit = (kind: MediaKind) => kind === "image" ? JPEG_HEADER_LIMIT : PREFIX;
 
 export function mediaUrl(raw: string, kind: MediaKind): string {
   return safePublicSourceUrl(raw, kind === "image" ? /\.(jpeg|jpg|png|webp)$/i : /\.(mp4|webm|mov)$/i);
+}
+
+/** SOI has already been consumed. Read only marker/length/SOF fields;
+ * skip segment payloads rather than copying metadata into a parsing buffer.
+ * The caller enforces a byte budget and distinguishes EOF from the budget.
+ */
+export async function scanJpeg(
+  read: (count: number) => Promise<Uint8Array>,
+  skip: (count: number) => Promise<void>,
+): Promise<string> {
+  for (let segments = 0; segments < 1024; segments++) {
+    if ((await read(1))[0] !== 0xff) throw new TypeError("invalid_media_header");
+    let marker = (await read(1))[0]!;
+    let fill = 0;
+    while (marker === 0xff) {
+      if (++fill > 1024) throw new TypeError("jpeg_header_too_long");
+      marker = (await read(1))[0]!;
+    }
+    if (marker === 0x01) continue; // TEM has no length.
+    if (marker === 0x00 || marker === 0xd8 || marker === 0xd9 || marker === 0xda ||
+        (marker >= 0xd0 && marker <= 0xd7)) throw new TypeError("invalid_media_header");
+    const size = await read(2);
+    const len = size[0]! * 256 + size[1]!;
+    if (len < 2) throw new TypeError("invalid_media_header");
+    if ([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf].includes(marker)) {
+      if (len < 8) throw new TypeError("invalid_media_header");
+      const fields = await read(5);
+      const height = fields[1]! * 256 + fields[2]!;
+      const width = fields[3]! * 256 + fields[4]!;
+      await skip(len - 7);
+      if (!width || !height || width * height > 24_000_000) throw new TypeError("image_dimensions");
+      return "image/jpeg";
+    }
+    await skip(len - 2);
+  }
+  throw new TypeError("jpeg_header_too_long");
 }
 
 export function inspectHeader(b: Uint8Array, kind: MediaKind): string {
