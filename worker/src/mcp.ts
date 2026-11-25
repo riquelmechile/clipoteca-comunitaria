@@ -121,7 +121,7 @@ async function restResult(request: Request, env: McpEnv): Promise<ActionResult> 
   if (!response) return fail("Unknown route");
   if (!response.ok) {
     // Only this local media handler produces these safe, fixed diagnostics.
-    if (new URL(request.url).pathname === "/v1/media") {
+    if (/^\/v1\/(media|uploads)(\/|$)/.test(new URL(request.url).pathname)) {
       try {
         const {error} = await response.json() as {error?: {code?: string; message?: string}};
         if (typeof error?.code === "string" && /^[a-z0-9_]+$/.test(error.code) &&
@@ -319,7 +319,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   }, async input => restResult(toolRequest("/v1/media", "POST", input), env));
   server.registerTool("create_media_upload", {
     title: "Crear enlace de subida",
-    description: "Enlace de un solo uso, 15 minutos. " + PUBLIC_NOTICE,
+    description: "Ticket de un archivo, 15 minutos. Si tienes shell o red, usa PUT put_url con Authorization: Bearer upload_token y el archivo binario (curl --upload-file). El Worker divide en chunks de 24 MiB. No pidas al usuario abrir el enlace si puedes subirlo. " + PUBLIC_NOTICE,
     inputSchema: z.strictObject(mediaMetadata),
     outputSchema: z.object({
       media_id:mediaId,status:z.enum(["pending_upload","uploading"]),expires_at:z.string(),
@@ -334,6 +334,45 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     outputSchema: mediaRecord.partial().extend({media_id:mediaId,status:z.enum(["uploading","processing","registered","rejected"]),reason:z.string().optional()}),
     annotations: {readOnlyHint:true,openWorldHint:true},
   }, async ({media_id}) => restResult(toolRequest("/v1/media/"+media_id, "GET"), env));
+
+
+  const sessionId=z.string().regex(/^[a-f0-9]{64}$/);
+  const sessionFile=z.object({media_id:mediaId,kind:z.enum(["image","video"]),status:z.enum(["uploading","processing","registered","rejected"]),reason:z.string().optional()});
+  const sessionMeta={session_id:sessionId,title:z.string().min(1).max(120).optional(),author:z.string().min(1).max(120).optional(),
+    source:z.string().min(1).max(500).optional(),license_note:z.string().min(1).max(500).optional()};
+  const staged=z.object({media_id:mediaId,status:z.literal("processing")});
+  server.registerTool("crear_subida",{
+    title:"Crear sesion de aportes",
+    description:"Una sesion de 24 horas, hasta 12 fotos o videos. Si el host entrega archivos, usa subir_archivo; si tienes shell, usa ticket_subida y PUT; para imagenes de hasta 40 KiB usa subir_imagen_base64. Solo comparte upload_url cuando el host no pueda subir. "+PUBLIC_NOTICE,
+    inputSchema:z.strictObject({}),outputSchema:z.object({session_id:sessionId,expires_at:z.string(),max_files:z.number(),upload_url:z.string().url()}),
+    annotations:{readOnlyHint:false,openWorldHint:true},
+  },async()=>restResult(toolRequest("/v1/uploads","POST",{}),env));
+  server.registerTool("ticket_subida",{
+    title:"Obtener ticket para subir directamente",
+    description:"Para agentes con shell o red: curl --fail-with-body -H 'Authorization: Bearer <upload_token>' --upload-file ARCHIVO '<put_url>'. No abras enlace de usuario. Envia un PUT binario con Content-Length; Worker divide en chunks de hasta 24 MiB. Video 100 MiB y 120 s; imagen 10 MiB. "+PUBLIC_NOTICE,
+    inputSchema:z.strictObject({...sessionMeta,kind:z.enum(["image","video"])}),
+    outputSchema:z.object({media_id:mediaId,status:z.literal("uploading"),expires_at:z.string(),upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string()}),
+    annotations:{readOnlyHint:false,openWorldHint:true},
+  },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
+  server.registerTool("subir_archivo",{
+    title:"Aportar archivo del usuario",
+    description:"Primera opcion cuando el host MCP entrega un archivo temporal (ChatGPT fileParams). El servidor descarga la URL temporal HTTPS autorizada, valida el contenido y devuelve media_id. No pidas al usuario abrir enlaces. Si el host no entrega archivos o el origen no esta admitido, usa ticket_subida si tienes red; ultimo recurso: upload_url de crear_subida. "+PUBLIC_NOTICE,
+    inputSchema:z.strictObject({...sessionMeta,kind:z.enum(["image","video"]).optional(),file:z.strictObject({download_url:z.string().url().max(4096),file_id:z.string().min(1).max(256),mime_type:z.string().optional(),file_name:z.string().optional()})}),
+    outputSchema:staged,_meta:{"openai/fileParams":["file"]},
+    annotations:{readOnlyHint:false,openWorldHint:true},
+  },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
+  server.registerTool("subir_imagen_base64",{
+    title:"Aportar imagen pequena",
+    description:"Solo si el host puede leer los bytes: base64 puro de hasta 40 KiB decodificados, sin prefijo data:. No inventes bytes. "+PUBLIC_NOTICE,
+    inputSchema:z.strictObject({...sessionMeta,image_base64:z.string().max(54616)}),outputSchema:staged,
+    annotations:{readOnlyHint:false,openWorldHint:true},
+  },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
+  server.registerTool("estado_subida",{
+    title:"Consultar sesion de aportes",
+    description:"Devuelve cada media_id, kind, estado y motivo de rechazo. Usa media_id en media.ref solo cuando status sea registered. Consulta otra vez tras un plazo acotado si sigue procesando.",
+    inputSchema:z.strictObject({session_id:sessionId}),outputSchema:z.object({session_id:sessionId,expires_at:z.string(),files:z.array(sessionFile)}),
+    annotations:{readOnlyHint:true,openWorldHint:true},
+  },async({session_id})=>restResult(toolRequest("/v1/uploads/"+session_id,"GET"),env));
 
   server.registerTool("render_video", {
     title: "Render a video",

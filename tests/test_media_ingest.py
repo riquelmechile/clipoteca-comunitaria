@@ -112,5 +112,5 @@ def test_video_manifest_100_mib_in_five_chunks():
         ],
     }
     assert len(validate_manifest(spec, UPLOAD_ID)["chunks"]) == 5
-    with pytest.raises(ValueError):
+    with pytest.raises(IngestError):
         validate_manifest(dict(spec, bytes=size + 1), UPLOAD_ID)
