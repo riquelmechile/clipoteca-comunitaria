@@ -11120,5 +11120,72 @@
     },
     "status": "published",
     "created_at": "2026-11-25T03:17:32.470976Z"
+  },
+  {
+    "id": "clip-000171",
+    "title": {
+      "es": "bulldog francés adorable recibe tratamiento interior",
+      "en": "Adorable french bulldog receives treat indoors"
+    },
+    "description": {
+      "es": "bulldog francés adorable recibe tratamiento interior",
+      "en": "Adorable french bulldog receives treat indoors"
+    },
+    "tags": {
+      "es": [
+        "bulldog",
+        "francés",
+        "adorable",
+        "recibe",
+        "tratamiento",
+        "interior"
+      ],
+      "en": [
+        "Adorable",
+        "french",
+        "bulldog",
+        "receives",
+        "treat",
+        "indoors"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "30031822",
+      "source_language": "en",
+      "source_title": "adorable-french-bulldog-receives-treat-indoors-30031822",
+      "source_url": "https://www.pexels.com/video/adorable-french-bulldog-receives-treat-indoors-30031822/",
+      "source_start": 0.0,
+      "source_end": 11.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 1920,
+      "height": 1080,
+      "fps": 25.0,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 4090315,
+      "sha256": "57293a942f91305c62070f8c00ec85309c3d415f6a9765f4fc42a95947c69adc",
+      "perceptual_hash": "ab6558e5c12a7dc2~2022.30:aa6753e991787885~1806.22:e6e7d3e11478780c~1686.33:e2e7d3e010787d86~1812.32:be6f58a4166805cf~1290.19"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000171.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000171.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000171_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000171_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000171_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000171_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000171_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000171_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-25T17:29:32.054996Z"
   }
 ]
