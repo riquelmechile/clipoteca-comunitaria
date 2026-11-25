@@ -115,6 +115,97 @@ describe("media intake",()=>{
       expect(r.status).toBe(400);
     }
   });
+  it("registers Wikimedia WebM and JPEG using the real URL paths and partial response headers",async()=>{
+    const videoUrl="https://upload.wikimedia.org/wikipedia/commons/1/16/Waves_at_Hikkaduwa_beach%2C_Sri_Lanka.webm";
+    const imageUrl="https://upload.wikimedia.org/wikipedia/commons/a/a9/Example.jpg";
+    const webm=new Uint8Array(PREFIX);
+    // Minimal EBML header and Segment Info containing a 15-second duration.
+    const header=new Uint8Array([0x1a,0x45,0xdf,0xa3,0x87,0x42,0x82,0x84,0x77,0x65,0x62,0x6d,
+      0x18,0x53,0x80,0x67,0xff,0x15,0x49,0xa9,0x66,0x87,0x44,0x89,0x84,0,0,0,0]);
+    new DataView(header.buffer).setFloat32(24,15000);
+    webm.set(header);
+    const jpeg=new Uint8Array(4096);
+    jpeg.set([0xff,0xd8,0xff,0xc0,0,11,8,0,100,0,100,1,1,0x11,0]);
+    const userAgent="ClipotecaComunitaria/3.0 (+https://github.com/riquelmechile/clipoteca-comunitaria)";
+    let issueNumber=50;
+    const fetcher=vi.fn(async (url:string|URL|Request,init?:RequestInit)=>{
+      const u=new URL(String(url));
+      if(u.hostname==="upload.wikimedia.org"){
+        const headers=new Headers(init?.headers);
+        if(headers.get("user-agent")!==userAgent)return new Response("UA required",{status:403});
+        expect(headers.get("range")).toBe("bytes=0-"+(PREFIX-1));
+        expect(headers.get("accept-encoding")).toBe("identity");
+        expect(headers.get("authorization")).toBeNull();
+        expect(init?.redirect).toBe("manual");
+        const isVideo=u.href===videoUrl;
+        expect(u.href).toBe(isVideo?videoUrl:imageUrl);
+        const body=isVideo?webm:jpeg;
+        const total=isVideo?1572864:jpeg.length;
+        return new Response(body,{status:206,headers:{
+          "content-range":"bytes 0-"+(body.length-1)+"/"+total,
+          "content-length":String(body.length),
+          "content-type":isVideo?"video/webm":"image/jpeg",
+        }});
+      }
+      if(u.pathname==="/search/issues")return Response.json({items:[]});
+      return Response.json({...JSON.parse(String(init?.body)),number:issueNumber++,author_association:"OWNER"},{status:201});
+    });
+    vi.stubGlobal("fetch",fetcher);
+    for(const [url,kind,mime,bytes] of [[videoUrl,"video","video/webm",1572864],[imageUrl,"image","image/jpeg",4096]] as const){
+      const response=await worker.fetch(post("/v1/media",{...metadata,kind,url,
+        source:"https://commons.wikimedia.org/wiki/File:Example"}),env);
+      expect(response.status).toBe(201);
+      expect(await response.json()).toMatchObject({url,kind,mime,bytes,status:"registered",
+        ...(kind==="video"?{duration_seconds:15}:{})});
+    }
+  });
+  it("returns specific safe errors for upstream failures and invalid media",async()=>{
+    const url="https://upload.wikimedia.org/wikipedia/commons/a/a9/Example.jpg";
+    const remote=(make:()=>Response)=>{
+      vi.stubGlobal("fetch",vi.fn(async (target:string)=>{
+        if(target.includes("/search/issues"))return Response.json({items:[]});
+        return make();
+      }));
+    };
+    const cases:[string,()=>Response][]=[
+      ["source_status_403",()=>new Response("private URL?token=secret",{status:403})],
+      ["source_status_302",()=>new Response(null,{status:302,headers:{location:"https://127.0.0.1"}})],
+      ["invalid_range",()=>new Response(png(),{status:206,headers:{"content-range":"bytes 1-24/25","content-length":"24"}})],
+      ["invalid_range",()=>new Response(png(),{status:206,headers:{"content-range":"bytes 0-23/24","content-length":"23"}})],
+      ["media_too_large",()=>new Response(png(),{headers:{"content-length":String(maxBytes("image")+1)}})],
+      ["image_dimensions",()=>new Response(png(6000,5000),{headers:{"content-length":"24"}})],
+      ["invalid_media_header",()=>new Response(new Uint8Array(24),{headers:{"content-length":"24"}})],
+      ["truncated_source",()=>new Response(png(),{headers:{"content-length":"25"}})],
+    ];
+    for(const [code,make] of cases){
+      remote(make);
+      const r=await worker.fetch(post("/v1/media",{...metadata,url}),env);
+      expect(r.status).toBe(400);
+      const body=await r.json() as {error:{code:string;message:string}};
+      expect(body.error.code).toBe(code);
+      expect(body.error.message).not.toBe(code);
+      expect(JSON.stringify(body)).not.toMatch(/token=secret|127\.0\.0\.1|wikimedia\.org/);
+    }
+    remote(()=>new Response(mp4(121),{headers:{"content-length":"56"}}));
+    const duration=await worker.fetch(post("/v1/media",{...metadata,kind:"video",url:"https://cdn.example.com/a.mp4"}),env);
+    expect(await duration.json()).toMatchObject({error:{code:"video_duration_unknown_or_exceeds_120s"}});
+    const badUrl=await worker.fetch(post("/v1/media",{...metadata,url:url+"?token=secret"}),env);
+    expect(await badUrl.json()).toMatchObject({error:{code:"invalid_url"}});
+    remote(()=>{throw new TypeError("fetch failed: https://example.com/?token=secret");});
+    const network=await worker.fetch(post("/v1/media",{...metadata,url}),env);
+    expect(network.status).toBe(502);
+    expect(await network.json()).toEqual({error:{code:"source_unreachable",message:"No se pudo conectar con el origen."}});
+  });
+  it("accepts a complete 206 range when the upstream omits Content-Length",async()=>{
+    vi.stubGlobal("fetch",vi.fn(async (url:string,init?:RequestInit)=>{
+      if(url.includes("/search/issues"))return Response.json({items:[]});
+      if(init?.method==="POST")return Response.json({...JSON.parse(String(init.body)),number:60,author_association:"OWNER"},{status:201});
+      return new Response(png(),{status:206,headers:{"content-range":"bytes 0-23/24"}});
+    }));
+    const r=await worker.fetch(post("/v1/media",{...metadata,url:"https://cdn.example.com/short.png"}),env);
+    expect(r.status).toBe(201);
+    expect(await r.json()).toMatchObject({bytes:24,mime:"image/png"});
+  });
   it("streams a bounded prefix and the rest to GitHub, saves a manifest, and refuses a second write",async()=>{
     class TestFixedLengthStream extends TransformStream<Uint8Array,Uint8Array>{
       constructor(_size:number){super();}
