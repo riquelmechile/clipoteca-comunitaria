@@ -15,8 +15,8 @@ import httpx
 import numpy as np
 
 from ..media.probe import probe_media
-from ..security.download import DownloadError, download_media
-from . import checks, framing
+from ..security.download import DownloadError, download_image, download_media
+from . import checks, framing, image_motion
 from .clipscene import _atomic_json, _download, _preview_frames, _run
 
 _USER_AGENT = "ClipotecaComunitaria/3.0 (+https://github.com/riquelmechile/clipoteca-comunitaria)"
@@ -63,8 +63,8 @@ def registry_record(ref: str) -> dict:
             row = response.json()
         if row.get("media_id") != ref or row.get("origin") != "upload":
             raise ExplicitMediaError("Aporte inexistente.")
-    if row.get("kind") != "video":
-        raise ExplicitMediaError("Las imagenes llegan en la etapa 3.")
+    if row.get("kind") not in ("video", "image"):
+        raise ExplicitMediaError("Tipo de aporte no valido.")
     if row.get("status") != "registered":
         raise ExplicitMediaError("Aporte no registrado.")
     for key in ("url", "title", "author", "source"):
@@ -247,6 +247,50 @@ def _index_manifest(root, rendered, record, ref, start, duration, aspect, deadli
     return identifier
 
 
+def _select_image(root, job, ref, record, folder, deadline):
+    media = job["media"]
+    if "start" in media or "end" in media:
+        raise ExplicitMediaError("start/end no aplican a imagenes.")
+    repo_asset = ref.startswith("asset:")
+    if repo_asset:
+        image = image_motion.rasterize_asset(ref)
+        source_url = (
+            "https://github.com/riquelmechile/clipoteca-comunitaria/blob/main/assets/"
+            + ref[6:] + ".svg"
+        )
+        origin = "repo_asset"
+    else:
+        source_url = record["url"]
+        source = asyncio.run(download_image(source_url, folder, user_agent=_USER_AGENT))
+        image = image_motion.load_photo(source)
+        origin = "contribution_image"
+    motion = media.get("motion", "auto")
+    mode = media.get("framing", "contain" if repo_asset else "cover")
+    canvas = root / "image-canvas.png"
+    sw, sh = image_motion.prepare_canvas(
+        image, canvas, job["aspect"], mode, repo_asset=repo_asset
+    )
+    rendered = root / "clip.mp4"
+    image_motion.render_motion(
+        canvas, rendered, job["aspect"], motion, job["len_fetch"], repo_asset=repo_asset
+    )
+    rw, rh, duration = checks.probe_video(rendered, deadline=deadline)
+    return {
+        "version": 1, "id": job["id"], "status": "ok",
+        "source": origin, "origin": origin, "catalog_strong": True,
+        "image_motion": {"aspect": job["aspect"], "motion": motion},
+        "clip": {
+            "clip_id": ref, "media_ref": ref, "source_url": source_url,
+            "start": 0, "len": duration, "out_dur": duration, "fit": "image_motion",
+            "score": 0.0, "sim": 0.0, "prob": 0.0,
+            "crop": [0, 0, 1, 1], "src_w": sw, "src_h": sh,
+            "out_w": rw, "out_h": rh,
+            "phash": checks.mid_phash(rendered, deadline=deadline),
+        },
+        "used": "primary", "tried": [], "fallback": False, "needs_retry": False,
+    }
+
+
 def select_explicit(root, job, assignment):
     """Download, validate and normalize one explicitly chosen video."""
     root = Path(root)
@@ -257,11 +301,20 @@ def select_explicit(root, job, assignment):
     record = None
     rendered = root / "clip.mp4"
     rendered.unlink(missing_ok=True)
+    (root / "image-canvas.png").unlink(missing_ok=True)
+    (root / "contribution" / "imported.json").unlink(missing_ok=True)
     reason = "No se pudo preparar el archivo del aporte."
     try:
         with tempfile.TemporaryDirectory(dir=root) as temporary:
             folder = Path(temporary)
+            if ref.startswith("asset:"):
+                reason = "No se pudo preparar el SVG del repositorio."
+                result = _select_image(root, job, ref, None, folder, deadline)
+                _atomic_json(root / "result.json", result)
+                return result
             if origin == "catalog_pinned":
+                if "motion" in media or "framing" in media:
+                    raise ExplicitMediaError("motion/framing solo para imagenes.")
                 source = folder / "asset.mp4"
                 reason = "No se pudo descargar o verificar el clip del catalogo."
                 _download(assignment["primary"], source, None)
@@ -269,6 +322,13 @@ def select_explicit(root, job, assignment):
             else:
                 reason = "Registro de aporte no accesible o invalido."
                 record = registry_record(ref)
+                if record.get("kind") == "image":
+                    reason = "No se pudo descargar o preparar la imagen del aporte."
+                    result = _select_image(root, job, ref, record, folder, deadline)
+                    _atomic_json(root / "result.json", result)
+                    return result
+                if "motion" in media or "framing" in media:
+                    raise ExplicitMediaError("motion/framing solo para imagenes.")
                 source_url = record["url"]
                 reason = "No se pudo descargar el video del aporte."
                 source = asyncio.run(
@@ -348,7 +408,7 @@ def select_explicit(root, job, assignment):
                 "fallback": False,
                 "needs_retry": False,
             }
-    except ExplicitMediaError as exc:
+    except (ExplicitMediaError, image_motion.ImageMotionError) as exc:
         result = {"status": "fail", "reason": str(exc)}
     except httpx.HTTPStatusError as exc:
         # Never include exception text: it can contain a signed URL or token.
@@ -364,6 +424,7 @@ def select_explicit(root, job, assignment):
         result = {"status": "fail", "reason": reason}
     if result["status"] != "ok":
         rendered.unlink(missing_ok=True)
+        (root / "image-canvas.png").unlink(missing_ok=True)
         (root / "contribution" / "imported.json").unlink(missing_ok=True)
         result.update(
             {

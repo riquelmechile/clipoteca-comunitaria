@@ -235,7 +235,9 @@ def check_global(
     rows = [row for row in rows if isinstance(row, dict) and _clip_info(row)]
     rows.sort(
         key=lambda row: (
-            row.get("origin") not in ("contribution", "catalog_pinned"),
+            row.get("origin") not in (
+                "contribution", "catalog_pinned", "contribution_image", "repo_asset"
+            ),
             -float(row["clip"].get("score", 0)),
             str(row["id"]),
         )

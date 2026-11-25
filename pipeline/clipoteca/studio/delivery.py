@@ -126,7 +126,14 @@ def build_delivery(work, catalog_path):
         identifier = clip["clip_id"]
         imported = clip.get("imported", False)
         origin = result.get("origin", "imported" if imported else "catalog")
-        if origin == "contribution":
+        if origin in ("contribution_image", "repo_asset"):
+            record = {
+                "source": {
+                    "provider": "user_contribution" if origin == "contribution_image" else "repo_asset",
+                    "source_url": clip["source_url"],
+                }
+            }
+        elif origin == "contribution":
             manifest = _read(folder / "contribution" / "imported.json")
             record = next(row["record"] for row in manifest["clips"] if row["imp_id"] == identifier)
         elif imported:
