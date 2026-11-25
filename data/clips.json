@@ -10949,5 +10949,66 @@
     },
     "status": "published",
     "created_at": "2026-11-25T02:17:01.731762Z"
+  },
+  {
+    "id": "clip-000168",
+    "title": {
+      "es": "Caballos galopando en un astillero",
+      "en": "Horses galloping in a farmyard"
+    },
+    "description": {
+      "es": "Caballos galopando en un astillero",
+      "en": "Horses galloping in a farmyard"
+    },
+    "tags": {
+      "es": [
+        "Caballos",
+        "galopando",
+        "astillero"
+      ],
+      "en": [
+        "Horses",
+        "galloping",
+        "farmyard"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "11011835",
+      "source_language": "en",
+      "source_title": "horses-galloping-in-a-farmyard-11011835",
+      "source_url": "https://www.pexels.com/video/horses-galloping-in-a-farmyard-11011835/",
+      "source_start": 0.0,
+      "source_end": 8.833333
+    },
+    "media": {
+      "duration_seconds": 8.833333,
+      "width": 2048,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 4210030,
+      "sha256": "6593a8c378b36429541a401c79422d8460b50186ff5a997bb4b29f9bc50fc439",
+      "perceptual_hash": "d5d53c3ca2a06d69~4794.07:d5d53f3e80806d69~4847.02:d5d5343692cc6d61~4797.85:d5d53436a3ad6c60~4873.84:d1d53434a3ea7c25~5034.57"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000168.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000168.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000168_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000168_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000168_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000168_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000168_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000168_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-25T02:17:01.731762Z"
   }
 ]
