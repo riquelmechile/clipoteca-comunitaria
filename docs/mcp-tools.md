@@ -14,15 +14,20 @@ Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente diez tools** con 
 | render_video | {script, index_clips?} (3–12 escenas, ≤60 s, 9:16/16:9/1:1) | {id,status,status_url}; Bearer de escritura |
 | get_video_status | {id} | {id,status,stages?,qa?,clips_indexed?,file_url?} |
 | register_media_url | {url,kind,title,author,source,license_note?} | Registro público, Bearer de escritura |
-| create_media_upload | {kind,title,author,source,license_note?} | Enlace de subida de 15 minutos, Bearer de escritura; no requiere PAT personal |
+| create_media_upload | {kind,title,author,source,license_note?,size} | Ticket KV de 2 horas; público con KV + Actions; sin PAT personal |
 | get_media_status | {media_id} | Estado público: uploading, processing, registered, rejected (reason) |
+| crear_subida | {} | Sesión de 24 h hasta 12 archivos |
+| ticket_subida | {session_id,kind,size,title?,author?,source?} | PUT binario por partes o unico hasta 95 MiB |
+| subir_archivo | {session_id,file,kind?} | Archivo temporal del host MCP |
+| subir_imagen_base64 | {session_id,image_base64} | Imagen hasta 40 KiB |
+| estado_subida | {session_id} | Estado del lote |
 | list_sources | {} | {sources:[{provider,status}], kind?}, snapshot de GitHub Actions |
 
 Las solicitudes de importacion reales exigen el token configurado; las busquedas de catalogo son publicas, con cuota acotada para import_if_missing. Los valores de credenciales nunca se devuelven.
 
 ## Subir desde el celular
 
-Pide `create_media_upload`, abre el enlace, elige el archivo y pulsa Subir aporte. Guarda `media_id`. Consulta `get_media_status` hasta `registered` antes de usar `media.ref`. Todo lo que subas queda público. No necesitas una llave personal de GitHub. La activación y límites están en STUDIO.md.
+Primero intenta `subir_archivo` con el archivo del host; después `ticket_subida` con shell/red o `subir_imagen_base64` para imágenes pequeñas. Solo pide abrir un enlace si el host no puede subir directamente. Ver [SUBIDAS.md](SUBIDAS.md).
 
 ## Seguridad y host de despliegue
 

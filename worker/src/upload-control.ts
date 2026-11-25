@@ -1,4 +1,5 @@
 /** Atomic control plane. Media bytes remain in eventually consistent KV. */
+import {batchTransition,type BatchCommand,type BatchState,SESSION_ID} from "./upload-batch-control";
 export const CHUNK_BYTES=24*1024*1024;
 export const UPLOAD_TTL=7200;
 export const ID=/^a\d{4}-\d{2}-[a-f0-9]{32}$/;
@@ -9,7 +10,8 @@ export type Chunk={bytes:number;sha256:string};
 export type Manifest={kind:"image"|"video";title:string;author:string;source:string;license_note?:string;
   media_id:string;bytes:number;mime:string;created_at:string;chunks:Chunk[]};
 export type State={status:"uploading"|"processing"|"registered"|"rejected";expires:number;started?:boolean;
-  manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string};
+  manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string;
+  size?:number;parts?:Record<number,Chunk>;pending?:Record<number,string>;mime?:string};
 export interface QueueEnv {
   UPLOADS?:KVNamespace; UPLOAD_CONTROL?:DurableObjectNamespace;
   CLIPOTECA_DISPATCH_TOKEN?:string;CLIPOTECA_GITHUB_REPO?:string;
@@ -36,12 +38,12 @@ export const reasons:Readonly<Record<string,string>>=Object.freeze({
   publish_failed:"No se pudo publicar el aporte.",
 });
 const reason=(r:unknown)=>typeof r==="string"&&Object.prototype.hasOwnProperty.call(reasons,r)?r:"staging_failed";
-type Command={action:string;expires?:number;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
+type Command={action:string;expires?:number;size?:number;index?:number;chunk?:Chunk;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
 type Result={code:number;state?:State;write?:boolean};
 export function transition(old:State|undefined,c:Command,now:number):Result {
   if(c.action==="create"){
     if(old||!c.expires||c.expires<=now)return {code:409};
-    return {code:200,state:{status:"uploading",expires:c.expires},write:true};
+    return {code:200,state:{status:"uploading",expires:c.expires,...(c.size===undefined?{}:{size:c.size})},write:true};
   }
   if(!old)return {code:404};
   if(c.action==="status"){
@@ -51,8 +53,37 @@ export function transition(old:State|undefined,c:Command,now:number):Result {
     return {code:200,state:old};
   }
   if(old.expires<=now)return {code:410};
+  if(c.action==="part_begin"||c.action==="part_done"||c.action==="part_abort"){
+    const i=c.index, part=c.chunk;
+    if(old.status!=="uploading"||old.started||!old.size||i===undefined||!Number.isInteger(i)||i<0||i>=Math.ceil(old.size/CHUNK_BYTES)||
+      !part||part.bytes!==Math.min(CHUNK_BYTES,old.size-i*CHUNK_BYTES)||!HEX.test(part.sha256))return {code:409};
+    const parts={...old.parts},pending={...old.pending};
+    if(c.action==="part_begin"){
+      if(pending[i])return {code:409};
+      if(parts[i]?.sha256===part.sha256)return {code:200,state:old};
+      // Fence complete against an in-flight overwrite of the KV key.
+      delete parts[i];pending[i]=part.sha256;
+      return {code:200,state:{...old,parts,pending},write:true};
+    }
+    if(pending[i]!==part.sha256)return {code:409};
+    delete pending[i];
+    if(c.action==="part_done"){
+      if(i===0&&!c.mime)return {code:400};
+      parts[i]=part;
+    }
+    return {code:200,state:{...old,parts,pending,...(c.action==="part_done"&&i===0?{mime:c.mime!}:{})},write:true};
+  }
+  if(c.action==="ready_parts"){
+    if(old.status!=="uploading"||old.started||!old.size||!old.mime||Object.keys(old.pending??{}).length||
+      !c.manifest||c.manifest.bytes!==old.size||c.manifest.mime!==old.mime||!c.capabilityHash||!HEX.test(c.capabilityHash))return {code:409};
+    const count=Math.ceil(old.size/CHUNK_BYTES);
+    if(c.manifest.chunks.length!==count||!c.manifest.chunks.every((part,i)=>
+      part.bytes===Math.min(CHUNK_BYTES,old.size!-i*CHUNK_BYTES)&&part.sha256===old.parts?.[i]?.sha256))return {code:409};
+    return {code:200,state:{...old,status:"processing",started:true,manifest:c.manifest,capabilityHash:c.capabilityHash,
+      capExpires:Math.min(old.expires,now+30*60*1000)},write:true};
+  }
   if(c.action==="begin"){
-    if(old.status!=="uploading"||old.started)return {code:409};
+    if(old.status!=="uploading"||old.started||Object.keys(old.parts??{}).length||Object.keys(old.pending??{}).length)return {code:409};
     return {code:200,state:{...old,started:true,expires:now+UPLOAD_TTL*1000},write:true};
   }
   if(c.action==="ready"){
@@ -85,6 +116,15 @@ export class UploadControl {
   async fetch(request:Request):Promise<Response>{
     if(request.method!=="POST")return json({},405);
     const c=await request.json<Command>();
+    if(c.action.startsWith("session_")||c.action.startsWith("limit_")){
+      const result=await this.state.storage.transaction(async tx=>{
+        const next=batchTransition(await tx.get<BatchState>("batch"),c as BatchCommand,Date.now());
+        if(next.write&&next.state)await tx.put("batch",next.state);
+        return next;
+      });
+      if(result.write)await this.state.storage.setAlarm(Date.now()+48*3600*1000);
+      return json(result.state??{},result.code);
+    }
     const result=await this.state.storage.transaction(async tx=>{
       const next=transition(await tx.get<State>("state"),c,Date.now());
       if(next.write&&next.state)await tx.put("state",next.state);
@@ -176,7 +216,7 @@ export async function actionsRun(request:Request,env:QueueEnv):Promise<string|nu
   }catch{return null;}
 }
 export async function ingestRoute(request:Request,env:QueueEnv):Promise<Response>{
-  const m=/^\/v1\/media\/ingest\/(a\d{4}-\d{2}-[a-f0-9]{32})\/(claim|finish|chunk\/[0-2])$/.exec(new URL(request.url).pathname);
+  const m=/^\/v1\/media\/ingest\/(a\d{4}-\d{2}-[a-f0-9]{32})\/(claim|finish|chunk\/[0-4])$/.exec(new URL(request.url).pathname);
   if(!m||!configured(env))return json({},404);
   const id=m[1]!,op=m[2]!;
   if(request.method!==(op.startsWith("chunk/")?"GET":"POST"))return json({},405);
@@ -199,4 +239,16 @@ export async function ingestRoute(request:Request,env:QueueEnv):Promise<Response
   if(!r.state?.manifest?.chunks[index])return json({},r.state?404:r.code);
   const value=await env.UPLOADS!.get(chunkKey(id,index),"stream");
   return value?new Response(value,{headers:{"content-type":"application/octet-stream","cache-control":"no-store"}}):json({},503);
+}
+
+export async function batchCommand(env:QueueEnv,id:string,c:BatchCommand):Promise<{code:number;state?:BatchState}>{
+  if(!env.UPLOAD_CONTROL||!(SESSION_ID.test(id)||/^limits:\d{4}-\d{2}-\d{2}$/.test(id)))return {code:404};
+  const stub=env.UPLOAD_CONTROL.get(env.UPLOAD_CONTROL.idFromName(id));
+  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c)});
+  return r.ok?{code:r.status,state:await r.json<BatchState>()}:{code:r.status};
+}
+export async function admit(request:Request,env:QueueEnv,action:"limit_session"|"limit_ticket"|"limit_bytes",bytes?:number){
+  const ip=await hash(enc.encode(request.headers.get("cf-connecting-ip")??"unknown"));
+  const day=new Date().toISOString().slice(0,10);
+  return (await batchCommand(env,"limits:"+day,{action,ip,...(bytes===undefined?{}:{bytes})})).code===200;
 }

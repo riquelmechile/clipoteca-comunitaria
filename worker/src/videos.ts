@@ -128,6 +128,9 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
       if (!response?.ok) return problem(response?.status===404?"media_not_found":"media_registry_unavailable",
         response?.status===404?"Aporte inexistente.":"Registro de aportes no disponible.",response?.status===404?404:503);
       const record:unknown=await response.json();
+      if (object(record) && record.status!=="registered") {
+        return problem("media_not_registered","El aporte "+ref+" aun no esta registrado. Consulta estado_subida o get_media_status.",409);
+      }
       if (!object(record) || (record.kind!=="video" && record.kind!=="image")) {
         return problem("invalid_media_ref","Tipo de aporte no valido.");
       }

@@ -93,3 +93,23 @@ def test_video_real_decode(tmp_path):
     )
     spec = validate_manifest(manifest(path.read_bytes(), "video", "video/mp4"), UPLOAD_ID)
     assert 0.9 <= validate_file(spec, path) <= 1.1
+
+
+def test_video_manifest_100_mib_in_five_chunks():
+    size = 100 * 1024 * 1024
+    spec = {
+        "media_id": UPLOAD_ID,
+        "kind": "video",
+        "title": "Video",
+        "author": "Autor",
+        "source": "Aporte",
+        "mime": "video/mp4",
+        "bytes": size,
+        "created_at": "2026-11-25T00:00:00Z",
+        "chunks": [
+            {"bytes": min(CHUNK, size - i), "sha256": "a" * 64} for i in range(0, size, CHUNK)
+        ],
+    }
+    assert len(validate_manifest(spec, UPLOAD_ID)["chunks"]) == 5
+    with pytest.raises(IngestError):
+        validate_manifest(dict(spec, bytes=size + 1), UPLOAD_ID)

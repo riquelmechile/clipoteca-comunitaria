@@ -1,6 +1,7 @@
 import {beforeEach, afterEach, describe, expect, it, vi} from "vitest";
 import worker from "../src/index";
 import {inspectHeader, mediaUrl, videoDuration, PREFIX, JPEG_HEADER_LIMIT, maxBytes} from "../src/media-header";
+import {batchTransition,type BatchState} from "../src/upload-batch-control";
 import {quota, resetQuotaReservations} from "../src/quota";
 import {CHUNK_BYTES, UPLOAD_TTL, transition, stage, actionsRun, type State, type Manifest} from "../src/upload-control";
 
@@ -65,7 +66,7 @@ describe("media intake",()=>{
     expect(videoDuration(mp4(121),"video/mp4")).toBe(121);
     expect(videoDuration(mp4(20).subarray(0,16),"video/mp4")).toBeNull();
     expect(maxBytes("image")).toBe(10*1024*1024);
-    expect(maxBytes("video")).toBe(50*1024*1024);
+    expect(maxBytes("video")).toBe(100*1024*1024);
   });
   it("requires write auth and explains disabled uploads without touching upstream",async()=>{
     const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);
@@ -331,13 +332,20 @@ describe("queued mobile upload without a personal token",()=>{
 
   function fakeBindings(){
     const states=new Map<string,State>();
+    const batches=new Map<string,BatchState>();
     const puts=vi.fn(async (_key:string,_value:Uint8Array,_options:unknown)=>{});
     const deletes=vi.fn(async (_key:string)=>{});
     const kv={put:puts,delete:deletes} as unknown as KVNamespace;
     const control={
       idFromName:(name:string)=>name,
       get:(id:string)=>({fetch:async (_url:string,init:RequestInit)=>{
-        const next=transition(states.get(id),JSON.parse(String(init.body)),Date.now());
+        const command=JSON.parse(String(init.body));
+        if(command.action.startsWith("session_")||command.action.startsWith("limit_")){
+          const next=batchTransition(batches.get(id),command,Date.now());
+          if(next.write&&next.state)batches.set(id,next.state);
+          return Response.json(next.state??{},{status:next.code});
+        }
+        const next=transition(states.get(id),command,Date.now());
         if(next.write&&next.state)states.set(id,next.state);
         return Response.json(next.state??{},{status:next.code});
       }}),
@@ -354,7 +362,7 @@ describe("queued mobile upload without a personal token",()=>{
       return new Response(null,{status:204});
     });
     vi.stubGlobal("fetch",dispatch);
-    const created=await worker.fetch(post("/v1/media/upload",metadata),queued);
+    const created=await worker.fetch(post("/v1/media/upload",{...metadata,size:jpegWithApps(phoneApps).length}),queued);
     expect(created.status).toBe(201);
     const t=await created.json() as {media_id:string;put_url:string;upload_token:string;status:string};
     expect(t.status).toBe("uploading");
@@ -382,25 +390,130 @@ describe("queued mobile upload without a personal token",()=>{
     const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",
       UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const dispatch=vi.fn();vi.stubGlobal("fetch",dispatch);
-    const t=await (await worker.fetch(post("/v1/media/upload",metadata),queued)).json() as {
-      media_id:string;put_url:string;upload_token:string};
-    const r=await worker.fetch(new Request(t.put_url,{method:"PUT",headers:{
-      authorization:"Bearer "+t.upload_token,"content-length":String(11*1024*1024)},body:png()}),queued);
+    const r=await worker.fetch(post("/v1/media/upload",{...metadata,size:11*1024*1024}),queued);
     expect(r.status).toBe(413);
-    expect(b.states.get(t.media_id)?.status).toBe("rejected");
+    expect(b.states.size).toBe(0);
     expect(b.puts).not.toHaveBeenCalled();expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it("chunks 50 MiB into bounded KV values, each with a two hour TTL",async()=>{
+  it("allows a public batch and public tickets without a write bearer",async()=>{
+    const b=fakeBindings();
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const sessionResponse=await worker.fetch(post("/v1/uploads",{},false),queued);
+    expect(sessionResponse.status).toBe(201);
+    const session=await sessionResponse.json() as {session_id:string;upload_url:string;max_files:number};
+    expect(session.max_files).toBe(12);
+    expect(session.upload_url).toContain("#"+session.session_id);
+    const path="/v1/uploads/"+session.session_id;
+    const ticket=await worker.fetch(post(path+"/files",{kind:"image",size:24},false),queued);
+    expect(ticket.status).toBe(201);
+    const first=await ticket.json() as {media_id:string};
+    const status=await worker.fetch(new Request(base+path),queued);
+    expect(await status.json()).toMatchObject({files:[{media_id:first.media_id,kind:"image",status:"uploading"}]});
+    expect((await worker.fetch(post("/v1/media/upload",{...metadata,size:24},false),queued)).status).toBe(201);
+    const page=await worker.fetch(new Request(base+"/v1/uploads"),queued);
+    expect(await page.text()).toContain("multiple");
+    for(let i=1;i<12;i++)expect((await worker.fetch(post(path+"/files",{kind:"image",size:24},false),queued)).status).toBe(201);
+    expect((await worker.fetch(post(path+"/files",{kind:"image",size:24},false),queued)).status).toBe(409);
+  });
+
+  it("uploads parts out of order, replaces parts, validates sizes and completes once",async()=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const dispatch=vi.fn(async()=>new Response(null,{status:204}));vi.stubGlobal("fetch",dispatch);
+    const response=await worker.fetch(post("/v1/media/upload",{...metadata,kind:"video",size:CHUNK_BYTES+4},false),queued);
+    expect(response.status).toBe(201);
+    const t=await response.json() as {media_id:string;put_url:string;upload_token:string;part_size:number;parts:number;expires_at:string};
+    expect(t.part_size).toBe(CHUNK_BYTES);expect(t.parts).toBe(2);
+    expect(Date.parse(t.expires_at)-Date.now()).toBeGreaterThan(7190000);
+    const part=(n:number,bytes:Uint8Array<ArrayBuffer>,declared=bytes.length)=>worker.fetch(new Request(t.put_url+"/parts/"+n,{
+      method:"PUT",headers:{authorization:"Bearer "+t.upload_token,"content-length":String(declared)},body:bytes}),queued);
+    const complete=()=>worker.fetch(new Request(t.put_url+"/complete",{method:"POST",headers:{authorization:"Bearer "+t.upload_token}}),queued);
+    expect((await complete()).status).toBe(409);
+    expect((await part(1,new Uint8Array(3))).status).toBe(400);
+    expect((await part(1,new Uint8Array(3),4)).status).toBe(400);
+    expect((await part(2,new Uint8Array(4))).status).toBe(400);
+    expect((await part(1,new Uint8Array([1,2,3,4]))).status).toBe(200);
+    expect((await complete()).status).toBe(409);
+    const retry=await part(1,new Uint8Array([1,2,3,4]));expect(retry.status).toBe(200);
+    expect(b.puts).toHaveBeenCalledTimes(1);
+    const replaced=await part(1,new Uint8Array([4,3,2,1]));expect(replaced.status).toBe(200);
+    const receipt=await replaced.json() as {sha256:string};
+    const head=new Uint8Array(CHUNK_BYTES);head.set(mp4(10));
+    expect((await part(0,head)).status).toBe(200);
+    expect((await complete()).status).toBe(202);
+    expect(b.states.get(t.media_id)?.manifest?.chunks[1]?.sha256).toBe(receipt.sha256);
+    expect(b.states.get(t.media_id)?.manifest?.chunks.map(c=>c.bytes)).toEqual([CHUNK_BYTES,4]);
+    expect((await complete()).status).toBe(409);
+    expect((await part(1,new Uint8Array(4))).status).toBe(409);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects expired tickets and directs large single PUTs to parts",async()=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const dispatch=vi.fn();vi.stubGlobal("fetch",dispatch);
+    const size=100*1024*1024;
+    expect((await worker.fetch(post("/v1/media/upload",{...metadata,kind:"video"},false),queued)).status).toBe(400);
+    const t=await (await worker.fetch(post("/v1/media/upload",{...metadata,kind:"video",size},false),queued)).json() as {media_id:string;put_url:string;upload_token:string;parts:number};
+    expect(t.parts).toBe(5);
+    const put=await worker.fetch(new Request(t.put_url,{method:"PUT",headers:{authorization:"Bearer "+t.upload_token,"content-length":String(size)},body:mp4(1)}),queued);
+    expect(put.status).toBe(413);expect(await put.json()).toMatchObject({error:{code:"use_parts"}});
+    expect(b.states.get(t.media_id)?.status).toBe("uploading");
+    const clock=vi.spyOn(Date,"now").mockReturnValue(Date.now()+7200001);
+    try{
+      expect((await worker.fetch(new Request(t.put_url+"/parts/4",{method:"PUT",headers:{authorization:"Bearer "+t.upload_token,"content-length":String(4*1024*1024)},body:mp4(1)}),queued)).status).toBe(401);
+      expect((await worker.fetch(new Request(t.put_url+"/complete",{method:"POST",headers:{authorization:"Bearer "+t.upload_token}}),queued)).status).toBe(401);
+    }finally{clock.mockRestore();}
+    expect(b.puts).not.toHaveBeenCalled();expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("stages small base64 images and rejects untrusted file URLs without fetching",async()=>{
+    const b=fakeBindings();
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const path="/v1/uploads/"+session.session_id+"/files";
+    const upstream=vi.fn(async ()=>new Response(null,{status:204}));
+    vi.stubGlobal("fetch",upstream);
+    const rejected=await worker.fetch(post(path,{file:{file_id:"file_1",download_url:"https://oaiusercontent.com.evil.example/x"}},false),queued);
+    expect(rejected.status).toBe(400);
+    expect(upstream).not.toHaveBeenCalled();
+    const image_base64=btoa(String.fromCharCode(...png()));
+    const accepted=await worker.fetch(post(path,{image_base64},false),queued);
+    expect(accepted.status).toBe(202);
+    expect(await accepted.json()).toMatchObject({status:"processing"});
+    expect(b.puts).toHaveBeenCalledTimes(1);
+  });
+
+  it("downloads a permitted temporary file without forwarding authorization or signed URL",async()=>{
+    const b=fakeBindings();
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const remote="https://files.oaiusercontent.com/x?signature=temporary";
+    const fetcher=vi.fn(async (url:string,init?:RequestInit)=>{
+      if(url===remote){
+        expect(init?.redirect).toBe("manual");
+        expect(new Headers(init?.headers).get("authorization")).toBeNull();
+        return new Response(png(),{headers:{"content-length":"24","content-type":"image/png"}});
+      }
+      expect(url).toContain("/dispatches");
+      expect(String(init?.body)).not.toContain("signature");
+      return new Response(null,{status:204});
+    });
+    vi.stubGlobal("fetch",fetcher);
+    const response=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{file:{file_id:"file_1",download_url:remote}},false),queued);
+    expect(response.status).toBe(202);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("chunks 100 MiB into bounded KV values, each with a two hour TTL",async()=>{
     const b=fakeBindings(),block=new Uint8Array(1024*1024);
-    let remaining=50;
+    let remaining=100;
     const stream=new ReadableStream<Uint8Array>({pull(c){
       if(remaining--<=0)c.close();else c.enqueue(block);
     }});
-    const result=await stage(b.kv,"a2026-11-"+"a".repeat(32),50*block.length,stream.getReader(),[]);
-    expect(result.map(c=>c.bytes)).toEqual([CHUNK_BYTES,CHUNK_BYTES,2*block.length]);
+    const result=await stage(b.kv,"a2026-11-"+"a".repeat(32),100*block.length,stream.getReader(),[]);
+    expect(result.map(c=>c.bytes)).toEqual([CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,4*block.length]);
     expect(result.every(c=>/^[a-f0-9]{64}$/.test(c.sha256))).toBe(true);
-    expect(b.puts.mock.calls.map(c=>c[1].length)).toEqual([CHUNK_BYTES,CHUNK_BYTES,2*block.length]);
+    expect(b.puts.mock.calls.map(c=>c[1].length)).toEqual([CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,4*block.length]);
     expect(b.puts.mock.calls.every(c=>JSON.stringify(c[2])===JSON.stringify({expirationTtl:7200}))).toBe(true);
   });
 
@@ -429,5 +542,44 @@ describe("queued mobile upload without a personal token",()=>{
     expect(await actionsRun(new Request(base,{headers:{"x-clipoteca-capability":"a".repeat(64)}}),{})).toBeNull();
     expect(await actionsRun(new Request(base,{headers:{authorization:"Bearer "+"a".repeat(64)}}),{})).toBeNull();
     expect(fetcher).not.toHaveBeenCalled();
+  });
+});
+
+describe("durable batch admission",()=>{
+  it("limits sessions per hour, files per session, and bytes across IPs",()=>{
+    const now=Date.parse("2026-11-25T12:00:00Z"),ip="a".repeat(64);
+    let state:BatchState|undefined;
+    for(let i=0;i<4;i++){
+      const result=batchTransition(state,{action:"limit_session",ip},now);
+      expect(result.code).toBe(200);state=result.state;
+    }
+    expect(batchTransition(state,{action:"limit_session",ip},now).code).toBe(429);
+    expect(batchTransition(state,{action:"limit_session",ip},now+3600000).code).toBe(200);
+    let session=batchTransition(undefined,{action:"session_create"},now).state;
+    for(let i=0;i<12;i++){
+      const result=batchTransition(session,{action:"session_add",file:{media_id:"a2026-11-"+i.toString(16).padStart(32,"0"),kind:"image"}},now);
+      expect(result.code).toBe(200);session=result.state;
+    }
+    expect(batchTransition(session,{action:"session_add",file:{media_id:"a2026-11-"+"f".repeat(32),kind:"image"}},now).code).toBe(409);
+    expect(batchTransition(session,{action:"session_add"},now+86400000).code).toBe(410);
+    state=undefined;
+    for(let i=0;i<40;i++){
+      const result=batchTransition(state,{action:"limit_bytes",ip,bytes:1},now);
+      expect(result.code).toBe(200);state=result.state;
+    }
+    expect(batchTransition(state,{action:"limit_bytes",ip,bytes:1},now).code).toBe(429);
+    state=undefined;
+    for(let i=0;i<10;i++){
+      const result=batchTransition(state,{action:"limit_bytes",ip,bytes:100*1024*1024},now);
+      expect(result.code).toBe(200);state=result.state;
+    }
+    expect(batchTransition(state,{action:"limit_bytes",ip,bytes:25*1024*1024},now).code).toBe(429);
+    expect(batchTransition(state,{action:"limit_bytes",ip,bytes:24*1024*1024},now).code).toBe(200);
+    state=undefined;
+    for(let i=0;i<20;i++){
+      const result=batchTransition(state,{action:"limit_bytes",ip:i.toString(16).padStart(64,"0"),bytes:100*1024*1024},now);
+      expect(result.code).toBe(200);state=result.state;
+    }
+    expect(batchTransition(state,{action:"limit_bytes",ip:"f".repeat(64),bytes:100*1024*1024},now).code).toBe(429);
   });
 });
