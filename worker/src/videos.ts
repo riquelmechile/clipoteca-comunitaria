@@ -1,5 +1,7 @@
 /** Asynchronous video delivery through GitHub Actions, separate from public clip storage. */
 import type { RestEnv } from "./rest";
+import { handleMedia } from "./media";
+import { loadCatalog, type Clip } from "./catalog";
 import { quota } from "./quota";
 import { zipEntry } from "./video-zip";
 import { ArtifactExpired, artifactResponse, serveVideo } from "./video-stream";
@@ -90,6 +92,40 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
       !["9:16","16:9","1:1"].includes(String(raw.script.aspect)) ||
       (raw.index_clips !== undefined && typeof raw.index_clips !== "boolean")) {
     return error("invalid_video", 400);
+  }
+  let catalog: Clip[] | undefined;
+  const seen = new Set<string>();
+  const problem = (code:string, message:string, status=400) => json({error:{code,message}},status);
+  for (const scene of raw.script.scenes) {
+    if (!object(scene) || scene.media === undefined) continue;
+    const media = scene.media;
+    if (!object(media) || Object.keys(media).some(k=>!["ref","start","end"].includes(k)) ||
+        typeof media.ref !== "string" ||
+        !/^(?:u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32}|clip-[0-9]{6})$/.test(media.ref) ||
+        [media.start,media.end].some(n=>n!==undefined && (typeof n!=="number" || !Number.isFinite(n) || n<0 || n>120)) ||
+        (typeof media.end==="number" && media.end<=Number(media.start??0)) ||
+        (scene.on_error!==undefined && !["fail","search"].includes(String(scene.on_error))) ||
+        (scene.on_error==="search" && (!object(scene.query) || typeof scene.prompt!=="string"))) {
+      return problem("invalid_media_ref","Referencia o ventana multimedia no valida.");
+    }
+    const ref=media.ref;
+    if (seen.has(ref)) continue;
+    seen.add(ref);
+    if (ref.startsWith("clip-")) {
+      try { catalog ??= await loadCatalog(env); }
+      catch { return problem("catalog_unavailable","Catalogo no disponible.",503); }
+      if (!catalog.some(c=>c.id===ref && c.status==="published")) {
+        return problem("clip_not_found","Clip inexistente o retirado.",404);
+      }
+    } else {
+      const response=await handleMedia(new Request(new URL("/v1/media/"+ref,request.url)),env);
+      if (!response?.ok) return problem(response?.status===404?"media_not_found":"media_registry_unavailable",
+        response?.status===404?"Aporte inexistente.":"Registro de aportes no disponible.",response?.status===404?404:503);
+      const record:unknown=await response.json();
+      if (!object(record) || record.kind!=="video") {
+        return problem("media_not_video","Las imagenes llegan en la etapa 3.");
+      }
+    }
   }
   const script = JSON.stringify(raw.script);
   if (script.length > 60_000) return error("body_too_large", 413);
