@@ -595,6 +595,8 @@ def clips_resolution(
             sw, sh, ow, oh = (int(clip[key]) for key in ("src_w", "src_h", "out_w", "out_h"))
             orient = (sw > sh) == (width > height) if width != height else sw == sh
             accepted = min(sw, sh) >= MIN_SHORT_SIDE or (orient and max(sw, sh) >= 0.53 * max(size))
+            if results.get(ident, {}).get("origin") in ("contribution_image", "repo_asset"):
+                accepted = max(sw, sh) >= 0.5 * max(size)
             if min(sw, sh, ow, oh) <= 0 or not accepted or (ow, oh) != size:
                 failures.append(ident)
         except (ValueError, TypeError, KeyError):

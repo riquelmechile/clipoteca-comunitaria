@@ -230,6 +230,29 @@ def fit_all(
                 result = json.loads(
                     (Path(scenes_dir) / key / "result.json").read_text(encoding="utf-8")
                 )
+                if result.get("origin") in ("contribution_image", "repo_asset"):
+                    from .image_motion import ImageMotionError, render_motion
+
+                    config = result["image_motion"]
+                    destination = output / f"{key}.mp4"
+                    try:
+                        render_motion(
+                            Path(scenes_dir) / key / "image-canvas.png",
+                            destination,
+                            config["aspect"],
+                            config["motion"],
+                            length,
+                            repo_asset=result["origin"] == "repo_asset",
+                        )
+                    except ImageMotionError as exc:
+                        raise FitError(str(exc)) from exc
+                    rows[key] = {
+                        "mode": "image_motion",
+                        "factor": 1.0,
+                        "source_s": round(probe_duration(source), 3),
+                        "out_s": round(probe_duration(destination), 3),
+                    }
+                    continue
                 if (
                     result.get("origin") in ("contribution", "catalog_pinned")
                     and length > 1.25 * probe_duration(source) + 1e-6

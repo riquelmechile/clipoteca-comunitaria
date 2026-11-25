@@ -2,6 +2,8 @@
 
 ## Sin publicar
 
+- Escenas con fotos aportadas JPEG/PNG/WebP y SVG propios animados, encuadre cover/contain y ajuste a la voz real sin pingpong; no se indexan en el catálogo.
+
 - Aportes de video y clips fijados por escena; registro con lecturas autenticadas, seleccion explicita, origen en entrega e indexado de aportes tras QA.
 
 - Cuota de video: el tope diario por IP sube de 12 a 50 solicitudes; se mantiene una cada cinco minutos.

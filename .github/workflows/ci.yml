@@ -91,6 +91,13 @@ jobs:
           uv run --no-sync python -m clipoteca.studio.music render --plan tests/fixtures/m27/plan.json --out build/music-smoke
           test -s build/music-smoke/head.wav && test -s build/music-smoke/bed.wav && test -s build/music-smoke/hit.wav
           cat build/music-smoke/music.json
+      - name: Image and repository SVG scenes (must not be skipped)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends librsvg2-bin
+          mkdir -p build
+          uv run --no-sync pytest -rs tests/test_image_motion.py | tee build/image-smoke.log
+          ! grep -q SKIPPED build/image-smoke.log
       - name: Real HyperFrames render of a three-scene video (must not be skipped)
         env:
           CLIPOTECA_M30_REAL_RENDER: "1"

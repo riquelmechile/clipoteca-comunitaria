@@ -413,3 +413,53 @@ Ejemplo mixto (sustituye los identificadores por los registrados en tu catálogo
   ]
 }
 ```
+
+
+### Escenas con imágenes y SVG propios
+
+`media.ref` admite fotos registradas JPEG, PNG o WebP (hasta 10 MiB y 24 MP, lado largo mínimo del 50 % del formato final) y SVG del directorio `assets/` mediante `asset:<nombre>`. No admite SVG de usuarios ni rutas libres. Las opciones `motion` (auto, zoom_in, zoom_out, pan_left, pan_right) y `framing` (cover, contain) son exclusivas de imágenes; start/end solo sirven para video. Por defecto las fotos usan cover y los SVG contain. El movimiento se genera otra vez a la duración de la voz real. Los orígenes contribution_image y repo_asset no se indexan. Todo aporte es público. Para el ejemplo, sustituir u78 por el ID de una foto registrada de resolución suficiente.
+
+```json
+{
+  "title": "Clipoteca",
+  "aspect": "16:9",
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Foto",
+      "say": "Una foto aportada.",
+      "media": {
+        "ref": "u78",
+        "motion": "zoom_in",
+        "framing": "cover"
+      }
+    },
+    {
+      "id": "fact",
+      "type": "fact",
+      "title": "Flujo",
+      "say": "Así funciona Clipoteca.",
+      "media": {
+        "ref": "asset:clipoteca-pipeline",
+        "motion": "auto"
+      }
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "title": "Mar",
+      "say": "El mar.",
+      "query": {
+        "es": [
+          "mar"
+        ],
+        "en": [
+          "sea"
+        ]
+      },
+      "prompt": "ocean waves"
+    }
+  ]
+}
+```

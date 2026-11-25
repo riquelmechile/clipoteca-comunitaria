@@ -114,14 +114,16 @@
               },
               "clip_id": {
                 "type": "string",
-                "pattern": "^(?:clip-[0-9]{6}|imp-[a-f0-9]{12})$"
+                "pattern": "^(?:clip-[0-9]{6}|imp-[a-f0-9]{12}|u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32}|asset:[a-z0-9][a-z0-9-]{0,63})$"
               },
               "origin": {
                 "enum": [
                   "catalog",
                   "imported",
                   "contribution",
-                  "catalog_pinned"
+                  "catalog_pinned",
+                  "contribution_image",
+                  "repo_asset"
                 ]
               },
               "source": {

@@ -1,6 +1,7 @@
 /** Asynchronous video delivery through GitHub Actions, separate from public clip storage. */
 import type { RestEnv } from "./rest";
 import { handleMedia } from "./media";
+import repoAssets from "./repo-assets.json";
 import { loadCatalog, type Clip } from "./catalog";
 import { quota } from "./quota";
 import { zipEntry } from "./video-zip";
@@ -94,14 +95,16 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
     return error("invalid_video", 400);
   }
   let catalog: Clip[] | undefined;
-  const seen = new Set<string>();
+  const kinds = new Map<string, "video" | "image">();
   const problem = (code:string, message:string, status=400) => json({error:{code,message}},status);
   for (const scene of raw.script.scenes) {
     if (!object(scene) || scene.media === undefined) continue;
     const media = scene.media;
-    if (!object(media) || Object.keys(media).some(k=>!["ref","start","end"].includes(k)) ||
+    if (!object(media) || Object.keys(media).some(k=>!["ref","start","end","motion","framing"].includes(k)) ||
         typeof media.ref !== "string" ||
-        !/^(?:u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32}|clip-[0-9]{6})$/.test(media.ref) ||
+        !/^(?:u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32}|clip-[0-9]{6}|asset:[a-z0-9][a-z0-9-]{0,63})$/.test(media.ref) ||
+        (media.motion!==undefined && (typeof media.motion!=="string" || !["auto","zoom_in","zoom_out","pan_left","pan_right"].includes(media.motion))) ||
+        (media.framing!==undefined && (typeof media.framing!=="string" || !["cover","contain"].includes(media.framing))) ||
         [media.start,media.end].some(n=>n!==undefined && (typeof n!=="number" || !Number.isFinite(n) || n<0 || n>120)) ||
         (typeof media.end==="number" && media.end<=Number(media.start??0)) ||
         (scene.on_error!==undefined && !["fail","search"].includes(String(scene.on_error))) ||
@@ -109,23 +112,34 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
       return problem("invalid_media_ref","Referencia o ventana multimedia no valida.");
     }
     const ref=media.ref;
-    if (seen.has(ref)) continue;
-    seen.add(ref);
-    if (ref.startsWith("clip-")) {
+    let kind = kinds.get(ref);
+    if (ref.startsWith("asset:")) {
+      if (!repoAssets.includes(ref)) return problem("asset_not_found","Asset fuera de lista.",404);
+      kind = "image";
+    } else if (!kind && ref.startsWith("clip-")) {
       try { catalog ??= await loadCatalog(env); }
       catch { return problem("catalog_unavailable","Catalogo no disponible.",503); }
       if (!catalog.some(c=>c.id===ref && c.status==="published")) {
         return problem("clip_not_found","Clip inexistente o retirado.",404);
       }
-    } else {
+      kind = "video";
+    } else if (!kind) {
       const response=await handleMedia(new Request(new URL("/v1/media/"+ref,request.url)),env);
       if (!response?.ok) return problem(response?.status===404?"media_not_found":"media_registry_unavailable",
         response?.status===404?"Aporte inexistente.":"Registro de aportes no disponible.",response?.status===404?404:503);
       const record:unknown=await response.json();
-      if (!object(record) || record.kind!=="video") {
-        return problem("media_not_video","Las imagenes llegan en la etapa 3.");
+      if (!object(record) || (record.kind!=="video" && record.kind!=="image")) {
+        return problem("invalid_media_ref","Tipo de aporte no valido.");
       }
+      kind = record.kind;
     }
+    if (kind === "image" && (media.start!==undefined || media.end!==undefined)) {
+      return problem("invalid_image_window","start/end no aplican a imagenes.");
+    }
+    if (kind === "video" && (media.motion!==undefined || media.framing!==undefined)) {
+      return problem("invalid_video_motion","motion/framing solo para imagenes.");
+    }
+    kinds.set(ref,kind);
   }
   const script = JSON.stringify(raw.script);
   if (script.length > 60_000) return error("body_too_large", 413);

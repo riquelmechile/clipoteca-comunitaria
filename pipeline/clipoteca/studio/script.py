@@ -202,6 +202,21 @@ def parse_video_script(data: object) -> VideoScript:
         raise ScriptError("scenes.type: se requiere al menos una fact")
     for index, scene in enumerate(input_scenes):
         media = scene.get("media")
+        if media is not None:
+            ref = media["ref"]
+            if ref.startswith("asset:"):
+                from .repo_assets import asset_path
+
+                try:
+                    asset_path(ref)
+                except ValueError as exc:
+                    raise ScriptError(f"scenes[{index}].media: asset fuera de lista") from exc
+            if (ref.startswith("asset:") or "motion" in media or "framing" in media) and (
+                "start" in media or "end" in media
+            ):
+                raise ScriptError(f"scenes[{index}].media: start/end no aplican a imagenes")
+            if ref.startswith("clip-") and ("motion" in media or "framing" in media):
+                raise ScriptError(f"scenes[{index}].media: motion/framing solo para imagenes")
         if media is not None and "end" in media and media["end"] <= media.get("start", 0):
             raise ScriptError(f"scenes[{index}].media: end debe superar start")
         scene_id = scene["id"]

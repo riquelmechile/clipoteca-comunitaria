@@ -62,6 +62,8 @@ def estimate_scenes(script: VideoScript) -> list[dict[str, Any]]:
                     {
                         "source_kind": "catalog_pinned"
                         if str(scene.media["ref"]).startswith("clip-")
+                        else "repo_asset"
+                        if str(scene.media["ref"]).startswith("asset:")
                         else "contribution"
                     }
                     if scene.media

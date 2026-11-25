@@ -185,6 +185,11 @@ jobs:
         with:
           path: .cache/studio-models
           key: studio-scene-${{ hashFiles('pipeline/clipoteca/studio/models.json') }}
+      - name: Install offline SVG rasterizer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends librsvg2-bin
+          rsvg-convert --version
       - run: uv sync --frozen --extra studio
       - name: Fetch the scene model (checksum verified, cached)
         run: |

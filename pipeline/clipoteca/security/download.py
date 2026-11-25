@@ -67,6 +67,7 @@ async def download_media(
     referer: str | None = None,
     allowed_mime_types: frozenset[str] | None = None,
     user_agent: str | None = None,
+    _image: bool = False,
 ) -> Path:
     if max_bytes < 1:
         raise ValueError("max_bytes must be positive")
@@ -154,7 +155,7 @@ async def download_media(
                             file.write(chunk)
                             if probe_prefix_bytes is not None and total >= probe_prefix_bytes:
                                 break
-                    if total == 0 or not _magic_ok(header):
+                    if total == 0 or not (_image_magic(header) if _image else _magic_ok(header)):
                         raise DownloadError("response is not a recognized media container")
                     successful = True
                     return target
@@ -170,6 +171,28 @@ async def download_media(
             target.unlink(missing_ok=True)
         if own_client:
             await client.aclose()
+
+
+def _image_magic(data: bytes) -> bool:
+    return (
+        data.startswith(b"\xff\xd8\xff")
+        or data.startswith(b"\x89PNG\r\n\x1a\n")
+        or (data.startswith(b"RIFF") and data[8:12] == b"WEBP")
+    )
+
+
+async def download_image(url: str, target_dir: Path, **kwargs) -> Path:
+    """Use the same pinned, capped, redirect-checked transport for raster images."""
+    return await download_media(
+        url,
+        target_dir,
+        max_bytes=10 * 1024 * 1024,
+        allowed_mime_types=frozenset(
+            {"image/jpeg", "image/png", "image/webp", "application/octet-stream"}
+        ),
+        _image=True,
+        **kwargs,
+    )
 
 
 async def download_dash(
