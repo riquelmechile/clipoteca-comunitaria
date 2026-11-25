@@ -117,10 +117,15 @@ def validate_file(manifest: dict, path: Path) -> float | None:
         input_args = ["-protocol_whitelist", "file,pipe", "-f", VIDEOS[mime]]
         probe = subprocess.run(
             [
-                "ffprobe", "-v", "error", *input_args,
+                "ffprobe",
+                "-v",
+                "error",
+                *input_args,
                 "-show_entries",
                 "format=duration:stream=codec_type,width,height,duration:stream_disposition=attached_pic",
-                "-of", "json", str(path),
+                "-of",
+                "json",
+                str(path),
             ],
             check=True,
             capture_output=True,
@@ -147,9 +152,23 @@ def validate_file(manifest: dict, path: Path) -> float | None:
                     raise ValueError
         subprocess.run(
             [
-                "ffmpeg", "-nostdin", "-v", "error", "-xerror", "-threads", "2",
-                *input_args, "-i", str(path), "-map", "0:v:0", "-map", "0:a?",
-                "-f", "null", "-",
+                "ffmpeg",
+                "-nostdin",
+                "-v",
+                "error",
+                "-xerror",
+                "-threads",
+                "2",
+                *input_args,
+                "-i",
+                str(path),
+                "-map",
+                "0:v:0",
+                "-map",
+                "0:a?",
+                "-f",
+                "null",
+                "-",
             ],
             check=True,
             stdout=subprocess.DEVNULL,
@@ -159,7 +178,12 @@ def validate_file(manifest: dict, path: Path) -> float | None:
         )
         return duration
     except (
-        OSError, ValueError, KeyError, TypeError, StopIteration, subprocess.SubprocessError,
+        OSError,
+        ValueError,
+        KeyError,
+        TypeError,
+        StopIteration,
+        subprocess.SubprocessError,
         Image.DecompressionBombError,
     ) as exc:
         raise IngestError("invalid_file") from exc
@@ -171,8 +195,15 @@ def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
     record = {
         key: manifest[key]
         for key in (
-            "kind", "title", "author", "source", "license_note", "media_id",
-            "bytes", "mime", "created_at",
+            "kind",
+            "title",
+            "author",
+            "source",
+            "license_note",
+            "media_id",
+            "bytes",
+            "mime",
+            "created_at",
         )
         if key in manifest
     }

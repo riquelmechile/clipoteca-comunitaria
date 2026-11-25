@@ -70,13 +70,23 @@ def test_image_real_decode_and_limits(tmp_path):
         validate_file(manifest(path.read_bytes(), "image", "image/jpeg"), path)
 
 
-@pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="ffmpeg missing")
+@pytest.mark.skipif(
+    not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="ffmpeg missing"
+)
 def test_video_real_decode(tmp_path):
     path = tmp_path / "video.mp4"
     subprocess.run(
         [
-            "ffmpeg", "-v", "error", "-f", "lavfi", "-i",
-            "color=c=black:s=32x32:d=1", "-c:v", "mpeg4", str(path),
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=32x32:d=1",
+            "-c:v",
+            "mpeg4",
+            str(path),
         ],
         check=True,
         timeout=30,
