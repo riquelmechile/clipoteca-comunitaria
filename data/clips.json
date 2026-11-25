@@ -10888,5 +10888,66 @@
     },
     "status": "published",
     "created_at": "2026-11-24T23:42:36.834295Z"
+  },
+  {
+    "id": "clip-000167",
+    "title": {
+      "es": "Una manada de caballos en un agricultor",
+      "en": "A herd of horses in a farmyard"
+    },
+    "description": {
+      "es": "Una manada de caballos en un agricultor",
+      "en": "A herd of horses in a farmyard"
+    },
+    "tags": {
+      "es": [
+        "manada",
+        "caballos",
+        "agricultor"
+      ],
+      "en": [
+        "herd",
+        "horses",
+        "farmyard"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "11011918",
+      "source_language": "en",
+      "source_title": "a-herd-of-horses-in-a-farmyard-11011918",
+      "source_url": "https://www.pexels.com/video/a-herd-of-horses-in-a-farmyard-11011918/",
+      "source_start": 0.0,
+      "source_end": 7.916667
+    },
+    "media": {
+      "duration_seconds": 7.916667,
+      "width": 2048,
+      "height": 1080,
+      "fps": 24.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": true,
+      "size_bytes": 5081478,
+      "sha256": "4465a6dde1fe53dffc2e0c4d3a4034412943c8d698e2104450d6655c3caecb2b",
+      "perceptual_hash": "8e070d9b30f207bf~2912.55:8f07159f30e007bf~2915.03:8e070db330ea4f3d~2958.87:8f071db3207e05b7~3000.87:8f071bba207443bf~3011.84"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000167.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000167.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000167_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000167_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000167_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000167_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000167_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000167_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-25T02:17:01.731762Z"
   }
 ]
