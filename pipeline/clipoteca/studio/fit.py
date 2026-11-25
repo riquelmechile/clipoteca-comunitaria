@@ -238,13 +238,17 @@ def fit_all(
                     try:
                         render_motion(
                             Path(scenes_dir) / key / "image-canvas.png",
-                            destination, config["aspect"], config["motion"], length,
+                            destination,
+                            config["aspect"],
+                            config["motion"],
+                            length,
                             repo_asset=result["origin"] == "repo_asset",
                         )
                     except ImageMotionError as exc:
                         raise FitError(str(exc)) from exc
                     rows[key] = {
-                        "mode": "image_motion", "factor": 1.0,
+                        "mode": "image_motion",
+                        "factor": 1.0,
                         "source_s": round(probe_duration(source), 3),
                         "out_s": round(probe_duration(destination), 3),
                     }

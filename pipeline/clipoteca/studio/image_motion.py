@@ -56,8 +56,11 @@ def rasterize_asset(ref: str) -> Image.Image:
         with tempfile.TemporaryDirectory() as folder:
             process = subprocess.run(
                 [
-                    "rsvg-convert", "--format=png", "--keep-aspect-ratio",
-                    "--width=3840", "--height=3840",
+                    "rsvg-convert",
+                    "--format=png",
+                    "--keep-aspect-ratio",
+                    "--width=3840",
+                    "--height=3840",
                 ],
                 input=path.read_bytes(),
                 capture_output=True,
@@ -109,7 +112,12 @@ def prepare_canvas(
 
 
 def render_motion(
-    canvas: Path, destination: Path, aspect: str, motion: str, seconds: float, *,
+    canvas: Path,
+    destination: Path,
+    aspect: str,
+    motion: str,
+    seconds: float,
+    *,
     repo_asset: bool = False,
 ) -> None:
     if motion not in MOTIONS:
@@ -140,13 +148,37 @@ def render_motion(
     try:
         subprocess.run(
             [
-                "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
-                "-filter_threads", "2", "-i", str(canvas),
-                "-vf", vf, "-frames:v", str(frames), "-an", "-c:v", "libx264",
-                "-preset", "veryfast", "-crf", "19", "-threads", "2",
-                "-movflags", "+faststart", str(destination),
+                "ffmpeg",
+                "-hide_banner",
+                "-nostdin",
+                "-loglevel",
+                "error",
+                "-y",
+                "-filter_threads",
+                "2",
+                "-i",
+                str(canvas),
+                "-vf",
+                vf,
+                "-frames:v",
+                str(frames),
+                "-an",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "19",
+                "-threads",
+                "2",
+                "-movflags",
+                "+faststart",
+                str(destination),
             ],
-            capture_output=True, check=True, timeout=240, env=safe_media_env(),
+            capture_output=True,
+            check=True,
+            timeout=240,
+            env=safe_media_env(),
         )
         w, h, duration = checks.probe_video(destination)
         black, frozen = checks.black_frozen(destination)

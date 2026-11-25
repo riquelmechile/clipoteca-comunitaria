@@ -256,7 +256,8 @@ def _select_image(root, job, ref, record, folder, deadline):
         image = image_motion.rasterize_asset(ref)
         source_url = (
             "https://github.com/riquelmechile/clipoteca-comunitaria/blob/main/assets/"
-            + ref[6:] + ".svg"
+            + ref[6:]
+            + ".svg"
         )
         origin = "repo_asset"
     else:
@@ -267,27 +268,42 @@ def _select_image(root, job, ref, record, folder, deadline):
     motion = media.get("motion", "auto")
     mode = media.get("framing", "contain" if repo_asset else "cover")
     canvas = root / "image-canvas.png"
-    sw, sh = image_motion.prepare_canvas(
-        image, canvas, job["aspect"], mode, repo_asset=repo_asset
-    )
+    sw, sh = image_motion.prepare_canvas(image, canvas, job["aspect"], mode, repo_asset=repo_asset)
     rendered = root / "clip.mp4"
     image_motion.render_motion(
         canvas, rendered, job["aspect"], motion, job["len_fetch"], repo_asset=repo_asset
     )
     rw, rh, duration = checks.probe_video(rendered, deadline=deadline)
     return {
-        "version": 1, "id": job["id"], "status": "ok",
-        "source": origin, "origin": origin, "catalog_strong": True,
+        "version": 1,
+        "id": job["id"],
+        "status": "ok",
+        "source": origin,
+        "origin": origin,
+        "catalog_strong": True,
         "image_motion": {"aspect": job["aspect"], "motion": motion},
         "clip": {
-            "clip_id": ref, "media_ref": ref, "source_url": source_url,
-            "start": 0, "len": duration, "out_dur": duration, "fit": "image_motion",
-            "score": 0.0, "sim": 0.0, "prob": 0.0,
-            "crop": [0, 0, 1, 1], "src_w": sw, "src_h": sh,
-            "out_w": rw, "out_h": rh,
+            "clip_id": ref,
+            "media_ref": ref,
+            "source_url": source_url,
+            "start": 0,
+            "len": duration,
+            "out_dur": duration,
+            "fit": "image_motion",
+            "score": 0.0,
+            "sim": 0.0,
+            "prob": 0.0,
+            "crop": [0, 0, 1, 1],
+            "src_w": sw,
+            "src_h": sh,
+            "out_w": rw,
+            "out_h": rh,
             "phash": checks.mid_phash(rendered, deadline=deadline),
         },
-        "used": "primary", "tried": [], "fallback": False, "needs_retry": False,
+        "used": "primary",
+        "tried": [],
+        "fallback": False,
+        "needs_retry": False,
     }
 
 

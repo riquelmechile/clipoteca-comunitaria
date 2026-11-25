@@ -129,7 +129,9 @@ def build_delivery(work, catalog_path):
         if origin in ("contribution_image", "repo_asset"):
             record = {
                 "source": {
-                    "provider": "user_contribution" if origin == "contribution_image" else "repo_asset",
+                    "provider": "user_contribution"
+                    if origin == "contribution_image"
+                    else "repo_asset",
                     "source_url": clip["source_url"],
                 }
             }
