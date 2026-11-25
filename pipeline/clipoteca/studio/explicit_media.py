@@ -100,10 +100,14 @@ def _starts(path, sw, sh, duration, start, end, span, explicit_start, deadline):
         if len(local) < 2:
             continue
         brightness = float(np.mean([f.mean() for f in local]))
-        motion = float(np.mean([
-            np.abs(b.astype(float) - a.astype(float)).mean()
-            for a, b in zip(local[:-1], local[1:], strict=True)
-        ]))
+        motion = float(
+            np.mean(
+                [
+                    np.abs(b.astype(float) - a.astype(float)).mean()
+                    for a, b in zip(local[:-1], local[1:], strict=True)
+                ]
+            )
+        )
         scores.append((motion - abs(brightness - 128) / 16, float(at)))
     return [at for _, at in sorted(scores, reverse=True)] or [start]
 
@@ -111,10 +115,30 @@ def _starts(path, sw, sh, duration, start, end, span, explicit_start, deadline):
 def _transcode(source, target, start, span, vf, deadline):
     _run(
         [
-            "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
-            "-ss", str(start), "-i", str(source), "-t", str(span), "-an",
-            "-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "19",
-            "-movflags", "+faststart", str(target),
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-y",
+            "-ss",
+            str(start),
+            "-i",
+            str(source),
+            "-t",
+            str(span),
+            "-an",
+            "-vf",
+            vf,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "19",
+            "-movflags",
+            "+faststart",
+            str(target),
         ],
         deadline,
     )
@@ -128,17 +152,40 @@ def _index_manifest(root, rendered, record, ref, start, duration, aspect, deadli
     thumb = folder / "thumbnail.webp"
     _run(
         [
-            "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
-            "-i", str(rendered), "-t", str(min(duration, 19.95)), "-c", "copy", str(video),
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(rendered),
+            "-t",
+            str(min(duration, 19.95)),
+            "-c",
+            "copy",
+            str(video),
         ],
         deadline,
     )
     width, height, seconds = checks.probe_video(video, deadline=deadline)
     _run(
         [
-            "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
-            "-ss", str(seconds / 2), "-i", str(video), "-frames:v", "1",
-            "-vf", "scale=320:-2", str(thumb),
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-y",
+            "-ss",
+            str(seconds / 2),
+            "-i",
+            str(video),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale=320:-2",
+            str(thumb),
         ],
         deadline,
     )
@@ -219,9 +266,14 @@ def select_explicit(root, job, assignment):
             else:
                 record = registry_record(ref)
                 source_url = record["url"]
-                source = asyncio.run(download_media(
-                    source_url, folder, max_bytes=50 * 1024 * 1024, user_agent=_USER_AGENT,
-                ))
+                source = asyncio.run(
+                    download_media(
+                        source_url,
+                        folder,
+                        max_bytes=50 * 1024 * 1024,
+                        user_agent=_USER_AGENT,
+                    )
+                )
             sw, sh, duration = checks.probe_video(source, deadline=deadline)
             if not 0 < duration <= 120.04:
                 raise ExplicitMediaError("Duracion de aporte no valida.")
@@ -231,7 +283,9 @@ def select_explicit(root, job, assignment):
             start, end = window_bounds(media, duration, job["len_est"])
             span = min(end - start, job["len_fetch"])
             vf, crop = framing.crop_filter(sw, sh, job["aspect"])
-            for at in _starts(source, sw, sh, duration, start, end, span, "start" in media, deadline):
+            for at in _starts(
+                source, sw, sh, duration, start, end, span, "start" in media, deadline
+            ):
                 _transcode(source, rendered, at, span, vf, deadline)
                 rw, rh, out_duration = checks.probe_video(rendered, deadline=deadline)
                 black, frozen = checks.black_frozen(rendered, deadline=deadline)
@@ -245,16 +299,35 @@ def select_explicit(root, job, assignment):
                     root, rendered, record, ref, at, out_duration, job["aspect"], deadline
                 )
             clip = {
-                "clip_id": identifier, "media_ref": ref, "source_url": source_url,
-                "start": at, "len": span, "out_dur": out_duration,
-                "fit": "window", "score": 0.0, "sim": 0.0, "prob": 0.0,
-                "crop": list(crop), "src_w": sw, "src_h": sh, "out_w": rw, "out_h": rh,
+                "clip_id": identifier,
+                "media_ref": ref,
+                "source_url": source_url,
+                "start": at,
+                "len": span,
+                "out_dur": out_duration,
+                "fit": "window",
+                "score": 0.0,
+                "sim": 0.0,
+                "prob": 0.0,
+                "crop": list(crop),
+                "src_w": sw,
+                "src_h": sh,
+                "out_w": rw,
+                "out_h": rh,
                 "phash": checks.mid_phash(rendered, deadline=deadline),
             }
             result = {
-                "version": 1, "id": job["id"], "status": "ok", "source": origin,
-                "origin": origin, "catalog_strong": True, "clip": clip,
-                "used": "primary", "tried": [], "fallback": False, "needs_retry": False,
+                "version": 1,
+                "id": job["id"],
+                "status": "ok",
+                "source": origin,
+                "origin": origin,
+                "catalog_strong": True,
+                "clip": clip,
+                "used": "primary",
+                "tried": [],
+                "fallback": False,
+                "needs_retry": False,
             }
     except ExplicitMediaError as exc:
         result = {"status": "fail", "reason": str(exc)}
@@ -263,9 +336,13 @@ def select_explicit(root, job, assignment):
     if result["status"] != "ok":
         rendered.unlink(missing_ok=True)
         (root / "contribution" / "imported.json").unlink(missing_ok=True)
-        result.update({
-            "version": 1, "id": job["id"], "tried": [],
-            "skip_import": job.get("on_error", "fail") != "search",
-        })
+        result.update(
+            {
+                "version": 1,
+                "id": job["id"],
+                "tried": [],
+                "skip_import": job.get("on_error", "fail") != "search",
+            }
+        )
     _atomic_json(root / "result.json", result)
     return result

@@ -227,9 +227,16 @@ def fit_all(
             length = _positive(scene.get("len"), "scene.len")
             source = root / f"{key}.mp4"
             if scenes_dir is not None:
-                result = json.loads((Path(scenes_dir) / key / "result.json").read_text(encoding="utf-8"))
-                if result.get("origin") in ("contribution", "catalog_pinned") and length > 1.25 * probe_duration(source) + 1e-6:
-                    raise FitError("Aporte demasiado corto para la voz real: no se admite pingpong.")
+                result = json.loads(
+                    (Path(scenes_dir) / key / "result.json").read_text(encoding="utf-8")
+                )
+                if (
+                    result.get("origin") in ("contribution", "catalog_pinned")
+                    and length > 1.25 * probe_duration(source) + 1e-6
+                ):
+                    raise FitError(
+                        "Aporte demasiado corto para la voz real: no se admite pingpong."
+                    )
             rows[key] = fit_clip(source, output / f"{key}.mp4", length)
         except (FitError, OSError) as exc:
             failures[str(scene.get("id", index)) if isinstance(scene, dict) else str(index)] = str(
@@ -249,8 +256,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         report = fit_all(
-            json.loads(args.timeline.read_text(encoding="utf-8")), args.clips, args.out,
-            scenes_dir=args.scenes
+            json.loads(args.timeline.read_text(encoding="utf-8")),
+            args.clips,
+            args.out,
+            scenes_dir=args.scenes,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "error", "error": type(exc).__name__}))

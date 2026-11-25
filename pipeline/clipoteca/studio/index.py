@@ -417,8 +417,11 @@ def _collect(work, created, token):
                 is_contribution = root.name == "contribution"
                 if is_contribution:
                     selected = _read(_local(root.parent, "result.json"))
-                    if (selected.get("status") != "ok" or selected.get("origin") != "contribution"
-                            or selected.get("clip", {}).get("clip_id") != entry.get("imp_id")):
+                    if (
+                        selected.get("status") != "ok"
+                        or selected.get("origin") != "contribution"
+                        or selected.get("clip", {}).get("clip_id") != entry.get("imp_id")
+                    ):
                         continue
                 raw = entry["imp_id"]
                 if not isinstance(raw, str) or not _IMP_ID.fullmatch(raw):

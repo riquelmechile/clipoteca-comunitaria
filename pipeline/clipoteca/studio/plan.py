@@ -58,7 +58,15 @@ def estimate_scenes(script: VideoScript) -> list[dict[str, Any]]:
         result.append(
             {
                 "id": scene.id,
-                **({"source_kind": "catalog_pinned" if str(scene.media["ref"]).startswith("clip-") else "contribution"} if scene.media else {}),
+                **(
+                    {
+                        "source_kind": "catalog_pinned"
+                        if str(scene.media["ref"]).startswith("clip-")
+                        else "contribution"
+                    }
+                    if scene.media
+                    else {}
+                ),
                 "type": scene.type,
                 "voice_est": duration,
                 "len_est": rounded,
@@ -110,7 +118,15 @@ def scene_job(script: VideoScript, scene: SceneSpec, est: dict[str, Any]) -> dic
         "len_est": est["len_est"],
         "len_fetch": est["len_fetch"],
         "start_est": est["start_est"],
-        **({"media": dict(scene.media), "source_kind": est["source_kind"], "on_error": scene.on_error} if scene.media else {}),
+        **(
+            {
+                "media": dict(scene.media),
+                "source_kind": est["source_kind"],
+                "on_error": scene.on_error,
+            }
+            if scene.media
+            else {}
+        ),
         "queries": {
             **{lang: list(scene.query.get(lang, ())) for lang in ("es", "en")},
             **(
@@ -181,7 +197,9 @@ def write_plan(
         from .library import assign_scenes, load_catalog
 
         catalog = load_catalog(catalog_path)
-        reserved = {job["media"]["ref"] for job in jobs if job.get("source_kind") == "catalog_pinned"}
+        reserved = {
+            job["media"]["ref"] for job in jobs if job.get("source_kind") == "catalog_pinned"
+        }
         free_catalog = {"clips": [clip for clip in catalog["clips"] if clip["id"] not in reserved]}
         listed = assign_scenes(free_jobs, free_catalog)
         for job in jobs:
@@ -189,10 +207,18 @@ def write_plan(
                 continue
             row = {"id": job["id"], "status": job["source_kind"]}
             if job["source_kind"] == "catalog_pinned":
-                clip = next((clip for clip in catalog["clips"] if clip["id"] == job["media"]["ref"]), None)
+                clip = next(
+                    (clip for clip in catalog["clips"] if clip["id"] == job["media"]["ref"]), None
+                )
                 if clip is None:
                     raise ScriptError("clip fijado inexistente o retirado")
-                row["primary"] = {"clip_id": clip["id"], "asset_url": clip["storage"]["asset_url"], "sha256": clip["media"]["sha256"], "size_bytes": clip["media"]["size_bytes"], "source_url": clip["source"].get("source_url")}
+                row["primary"] = {
+                    "clip_id": clip["id"],
+                    "asset_url": clip["storage"]["asset_url"],
+                    "sha256": clip["media"]["sha256"],
+                    "size_bytes": clip["media"]["size_bytes"],
+                    "source_url": clip["source"].get("source_url"),
+                }
             listed.append(row)
         assignments = {
             "version": 1,

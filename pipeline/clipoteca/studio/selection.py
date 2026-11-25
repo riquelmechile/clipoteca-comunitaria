@@ -49,7 +49,9 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
             assignment = {"status": "needs_import"}
         elif (root / "result.json").is_file():
             prior = _read(root / "result.json")
-            if prior.get("origin") in ("contribution", "catalog_pinned") or prior.get("skip_import"):
+            if prior.get("origin") in ("contribution", "catalog_pinned") or prior.get(
+                "skip_import"
+            ):
                 return prior
             assignment = {"status": "needs_import"}
         else:
