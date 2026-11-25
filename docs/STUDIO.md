@@ -188,8 +188,8 @@ el job index independiente incorpora todos los clips válidos importados,
 con reintentos por conflicto y sin bloquear assemble.
 El reporte entrega.json liga el MP4 a QA e identifica los clips usados
 y los indexados conocidos; indexed-clips complementa el estado cuando acaba
-el índice remoto. Solo se entrega el MP4 si QA aprueba; nunca se publica
-el video en Releases. El ejemplo manual no mide tiempos por etapa
+el índice remoto. El MP4 se entrega si QA aprueba; no se publica
+el video en Releases ni en el catálogo de clips. La corrida de Actions es pública. El ejemplo manual no mide tiempos por etapa
 (el JSON vacío solo indica que no se midieron).
 Consulta [M32](M32_RENDER.md).
 
@@ -322,3 +322,43 @@ La expansion limita Wikimedia a tres peticiones simultaneas por host, respeta
 Retry-After (incluyendo maxlag), reintenta una vez y comparte respuestas exitosas
 dentro del render. Los seeds vacios por errores tienen una segunda oportunidad
 si queda presupuesto; los vacios sin errores no se repiten.
+
+## Aportes de medios (etapa 1)
+
+**Todo lo que subas (archivos, guion y video final) queda público.** La corrida de GitHub Actions es pública.
+El MP4 final no forma parte del catálogo de clips. No existe modo privado.
+
+- `register_media_url` / POST `/v1/media`: URL HTTPS directa (sin query, credenciales, IP literal ni redirecciones), kind (video o image), title, author, source y license_note opcional.
+- `create_media_upload` / POST `/v1/media/upload`: mismos metadatos sin URL. Devuelve media_id, upload_url, put_url, upload_token y expires_at. Abre upload_url en el navegador o envía PUT a put_url con el archivo binario, Content-Length y Authorization: Bearer seguido de upload_token (no el token de escritura). El enlace vence a los 15 minutos y no permite publicar un segundo archivo.
+- `get_media_status` / GET `/v1/media/{id}`: registro público del aporte ya registrado; 404 si aún no existe. Las dos solicitudes POST requieren Bearer de escritura.
+
+Videos MP4, MOV o WebM: máximo 50 MiB y 120 s. Imágenes JPEG, PNG o WebP:
+máximo 10 MiB y 24 MP. La validación de cabeceras lee hasta 128 KiB; si
+la duración o las dimensiones no se pueden comprobar allí, rechaza el
+archivo (por ejemplo, MP4 con moov al final; reexportar con faststart).
+No es una decodificación integral. La procedencia es declarada por el
+usuario, sin compuerta de copyright. El límite de 12 aportes por video y
+la incorporación de medios al guion/render pertenecen a la etapa 2;
+solo los videos se indexarán. No se ha modificado el contrato de guion.
+
+El registro de URL usa un Issue público con manifiesto JSON y el token
+existente CLIPOTECA_ISSUE_TOKEN (permiso Issues: write de un colaborador
+del repositorio). Esto evita depender del nuevo token de Releases.
+La subida usa un asset de nombre aleatorio y su manifiesto JSON en la
+Release pública mensual uploads-YYYY-MM. No se usa R2, KV ni D1.
+El SHA-256 de contenido queda opcional: en esta etapa no se calcula
+para no almacenar el archivo completo ni descargar una URL completa.
+Si falla el registro después de subir el binario, el asset queda público
+sin manifiesto; requiere conciliación manual. No se repite la subida.
+La cuota media por IP es 20 aportes y 200 MiB por día UTC (Cache API,
+best-effort, sin garantía global entre centros de datos). Las URL se
+deduplican por metadatos normalizados y URL; la búsqueda de Issues
+tiene consistencia eventual, así que no es una garantía transaccional global.
+
+Para habilitar la subida, crea un token fine-grained de GitHub limitado
+al repositorio Clipoteca, con Contents: Read and write. Configura el
+secreto del Worker CLIPOTECA_UPLOAD_TOKEN mediante
+`wrangler secret put CLIPOTECA_UPLOAD_TOKEN` desde worker/.
+No publiques el valor, ni lo pongas en wrangler.toml.
+Sin ese secreto la página y las rutas de subida devuelven 503
+(uploads_not_configured); el registro por URL sigue funcionando.

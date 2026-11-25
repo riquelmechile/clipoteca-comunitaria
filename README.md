@@ -86,7 +86,8 @@ clips importados que pasan los filtros normales de ingesta, incluso si no se usa
 en el montaje o el video falla QA. La selección ocurre en paralelo por escena.
 La voz, música, títulos y subtítulos se componen y renderizan localmente en Actions;
 las 14 compuertas deben aprobar antes de entregar el MP4.
-El video final nunca se publica en Releases ni en el catálogo.
+El video final nunca se publica en Releases ni en el catálogo de clips; la corrida de Actions es pública.
+**Todo lo que subas (archivos, guion y video final) queda público.**
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-studio.svg" width="100%" alt="Guion a MP4: plan, voz, música y escenas en paralelo, indexado separado de clips, ensamblaje y QA, entrega temporal al solicitante." />
@@ -171,3 +172,7 @@ Código bajo [licencia MIT](LICENSE). Las ideas y mejoras son bienvenidas en [CO
   <strong>Una escena encontrada. Una biblioteca que crece.</strong><br/><br/>
   <img src="https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/assets/clipoteca-logo.svg" width="240" alt="Logotipo de Clipoteca" />
 </p>
+
+### Aportes de medios (etapa 1)
+
+Todo lo que subas (archivos, guion y video final) queda público. Consulta [STUDIO.md](docs/STUDIO.md) para las herramientas, límites y configuración. Los aportes aún no se usan en el render.

@@ -56,6 +56,7 @@ function metadata(x:unknown,extra:string[]=[]):Metadata {
 async function bodyJson(request:Request):Promise<unknown> {
   if(!request.headers.get("content-type")?.includes("application/json") || !request.body)throw new TypeError("invalid_json");
   const reader=request.body.getReader();
+  const localDecoder = new TextDecoder("utf-8",{fatal:true});
   let size=0,raw="";
   try {
     while(true){
@@ -63,9 +64,9 @@ async function bodyJson(request:Request):Promise<unknown> {
       if(part.done)break;
       size+=part.value.length;
       if(size>8192)throw new TypeError("invalid_json");
-      raw+=decoder.decode(part.value,{stream:true});
+      raw+=localDecoder.decode(part.value,{stream:true});
     }
-    raw+=decoder.decode();
+    raw+=localDecoder.decode();
     return JSON.parse(raw);
   }finally{await reader.cancel().catch(()=>{});}
 }
@@ -121,11 +122,13 @@ async function probe(url:string,kind:MediaKind) {
 const marker="clipoteca-media-v1";
 function parseIssue(row:unknown):RecordMedia|null {
   if(!object(row) || typeof row.body!=="string" || typeof row.title!=="string" ||
-    !row.title.startsWith("[media-v1] ") || row.pull_request || !Number.isSafeInteger(row.number))return null;
+    !/^\[media-v1\] [a-f0-9]{64}$/.test(row.title) || row.pull_request || !Number.isSafeInteger(row.number) ||
+    !["OWNER","MEMBER","COLLABORATOR"].includes(String(row.author_association)))return null;
   try{
     const r=JSON.parse(row.body) as RecordMedia;
     if(!object(r) || (r as unknown as {registry:string}).registry!==marker || r.origin!=="url")return null;
-    return {...r,media_id:"u"+Number(row.number).toString(16)};
+    const {registry:_registry,...record}=r as RecordMedia & {registry:string};
+    return {...record,media_id:"u"+Number(row.number).toString(16)};
   }catch{return null;}
 }
 const reservations=new Set<string>();
@@ -219,7 +222,7 @@ async function release(env:MediaEnv,id:string,create=false):Promise<Release|null
 async function asset(env:MediaEnv,r:Release,name:string):Promise<Asset|undefined>{
   // The release payload can truncate assets. Page explicitly.
   for(let page=1;page<=20;page++){
-    const response=await api(env,"/releases/"+r.id+"/assets?per_page=100&page="+page);
+    const response=await api(env,"/releases/"+r.id+"/assets?per_page=100&page="+page,env.CLIPOTECA_UPLOAD_TOKEN);
     if(!response.ok)throw new Error("release_unavailable");
     const rows=await response.json() as Asset[];
     if(!Array.isArray(rows))throw new Error("release_unavailable");

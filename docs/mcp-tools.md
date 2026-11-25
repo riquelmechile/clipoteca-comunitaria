@@ -13,6 +13,9 @@ Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente diez tools** con 
 | get_job_status | {request_id} | Registro Job conforme a job.schema.json, o error MCP si 404 |
 | render_video | {script, index_clips?} (3–12 escenas, ≤60 s, 9:16/16:9/1:1) | {id,status,status_url}; Bearer de escritura |
 | get_video_status | {id} | {id,status,stages?,qa?,clips_indexed?,file_url?} |
+| register_media_url | {url,kind,title,author,source,license_note?} | Registro público, Bearer de escritura |
+| create_media_upload | {kind,title,author,source,license_note?} | Enlace de subida de 15 minutos, Bearer de escritura |
+| get_media_status | {media_id} | Registro público |
 | list_sources | {} | {sources:[{provider,status}], kind?}, snapshot de GitHub Actions |
 
 Las solicitudes de importacion reales exigen el token configurado; las busquedas de catalogo son publicas, con cuota acotada para import_if_missing. Los valores de credenciales nunca se devuelven.
@@ -47,8 +50,10 @@ Bearer de escritura; cuota propia de video: 1 cada 5 minutos y 50 por día UTC p
 con el id aleatorio de 128 bits hasta done, failed o expired. file_url sirve
 el MP4 aprobado durante siete días, con Range. Si aún no aparece la corrida,
 reintenta ante 404 transitorio; warnings indica evidencia no disponible.
-La entrega no espera el índice; clips_indexed se actualiza al terminar este. El id es una credencial privada; los
+La entrega no espera el índice; clips_indexed se actualiza al terminar este. El id protege el enlace de entrega, no la privacidad del contenido; la corrida de Actions es pública; los
 nombres de Actions usan su SHA-256. El Worker necesita actions: read y write
 en CLIPOTECA_DISPATCH_TOKEN. La publicación del MP4 no existe en el contrato
 nuevo: solo se indexan los clips válidos importados. Ver
 [M32_RENDER.md](M32_RENDER.md).
+
+Todo lo que subas (archivos, guion y video final) queda público.

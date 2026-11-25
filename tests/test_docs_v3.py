@@ -214,3 +214,11 @@ def test_documented_workflows_exist():
     ):
         for name in re.findall(r"`([a-z0-9-]+\.yml)`", _text(path)):
             assert (ROOT / ".github" / "workflows" / name).is_file(), (path, name)
+
+
+def test_media_public_notice():
+    notice = "Todo lo que subas (archivos, guion y video final) queda p\u00fablico."
+    for path in (ROOT / "README.md", DOCS / "STUDIO.md", DOCS / "ESTADO.md"):
+        assert notice in _text(path)
+    media = json.loads(_text(ROOT / "schemas" / "media.schema.json"))
+    assert {"media_id", "origin", "kind", "bytes"} <= set(media["required"])
