@@ -2,6 +2,8 @@
 
 ## Sin publicar
 
+- Subida desde el celular sin PAT personal: archivo temporal por trozos en KV, control atómico por ID, validación y publicación con GitHub Actions, estados públicos y limpieza de temporales. Workflow y configuración Wrangler propuestos para activación por el mantenedor.
+
 - Escenas con fotos aportadas JPEG/PNG/WebP y SVG propios animados, encuadre cover/contain y ajuste a la voz real sin pingpong; no se indexan en el catálogo.
 
 - Aportes de video y clips fijados por escena; registro con lecturas autenticadas, seleccion explicita, origen en entrega e indexado de aportes tras QA.

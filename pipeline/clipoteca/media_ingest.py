@@ -124,6 +124,7 @@ def validate_file(manifest: dict, path: Path) -> float | None:
             ],
             check=True,
             capture_output=True,
+            env={"PATH": os.environ["PATH"], "LANG": "C"},
             timeout=45,
         )
         info = json.loads(probe.stdout)
@@ -153,6 +154,7 @@ def validate_file(manifest: dict, path: Path) -> float | None:
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            env={"PATH": os.environ["PATH"], "LANG": "C"},
             timeout=180,
         )
         return duration

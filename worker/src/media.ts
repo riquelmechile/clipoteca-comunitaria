@@ -355,7 +355,7 @@ async function queuedUpload(request:Request,env:MediaEnv,id:string){
     const cap=queue.capability();
     const ready=await queue.command(env,id,{action:"ready",manifest,capabilityHash:await queue.hash(encoder.encode(cap))});
     if(ready.code!==200)throw new Error("staging_failed");
-    if(!await queue.dispatch(env,id,cap))throw new Error("dispatch_failed");
+    if(await queue.dispatch(env,id,cap)==="failed")throw new Error("dispatch_failed");
     return json({media_id:id,status:"processing"},202);
   }catch(e){
     const reason=e instanceof Error && Object.prototype.hasOwnProperty.call(queue.reasons,e.message)?e.message:"staging_failed";
@@ -467,13 +467,18 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
       }
       if(UPLOAD_ID.test(id)){
         const state=(await queue.command(env,id,{action:"status"})).state;
-        if(state && state.status!=="registered"){
-          return json({media_id:id,status:state.status,
-            ...(state.reason?{reason:queue.reasons[state.reason]??queue.reasons.staging_failed}:{})});
+        if(!state || state.status==="registered" || state.status==="processing" ||
+            state.reason==="expired" || state.reason==="publish_failed"){
+          // The Release manifest is the durable registration commit point, even
+          // if the workflow lost its final callback or the control state expired.
+          try{
+            const record=await getUpload(env,id);
+            if(record)return json(record);
+          }catch(e){if(!state || state.status==="registered")throw e;}
         }
-        const record=await getUpload(env,id);
-        if(record)return json(record);
-        return state?json({media_id:id,status:"processing"}):err("media_not_found",404);
+        if(state)return json({media_id:id,status:state.status==="registered"?"processing":state.status,
+          ...(state.reason?{reason:queue.reasons[state.reason]??queue.reasons.staging_failed}:{})});
+        return err("media_not_found",404);
       }
       return err("media_not_found",404);
     }

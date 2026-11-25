@@ -107,14 +107,15 @@ export async function discard(env:QueueEnv,id:string,count:number){
 export async function stage(kv:KVNamespace,id:string,bytes:number,
   reader:ReadableStreamDefaultReader<Uint8Array>,prefix:(Uint8Array|undefined)[]):Promise<Chunk[]>{
   const chunks:Chunk[]=[];
-  let buffer=new Uint8Array(Math.min(CHUNK_BYTES,bytes)),used=0,total=0;
+  const buffer=new Uint8Array(Math.min(CHUNK_BYTES,bytes));
+  let used=0,total=0;
   const flush=async()=>{
     if(!used)return;
     const value=buffer.subarray(0,used);
     const sha256=await hash(value);
     await kv.put(chunkKey(id,chunks.length),value,{expirationTtl:UPLOAD_TTL});
     chunks.push({bytes:used,sha256});
-    buffer=new Uint8Array(Math.min(CHUNK_BYTES,bytes-total));used=0;
+    used=0;
   };
   const consume=async(part:Uint8Array)=>{
     if(total+part.length>bytes)throw new TypeError("truncated_upload");
@@ -135,17 +136,17 @@ export async function stage(kv:KVNamespace,id:string,bytes:number,
     throw e;
   }
 }
-export async function dispatch(env:QueueEnv,id:string,cap:string):Promise<boolean>{
+export async function dispatch(env:QueueEnv,id:string,cap:string):Promise<"queued"|"failed"|"unknown">{
   const repo=env.CLIPOTECA_GITHUB_REPO??"riquelmechile/clipoteca-comunitaria";
-  if(!env.CLIPOTECA_DISPATCH_TOKEN||!/^[\w.-]+\/[\w.-]+$/.test(repo)||!ID.test(id)||!HEX.test(cap))return false;
+  if(!env.CLIPOTECA_DISPATCH_TOKEN||!/^[\w.-]+\/[\w.-]+$/.test(repo)||!ID.test(id)||!HEX.test(cap))return "failed";
   try{
     const r=await fetch("https://api.github.com/repos/"+repo+"/actions/workflows/media-ingest.yml/dispatches",{
       method:"POST",redirect:"manual",headers:{authorization:"Bearer "+env.CLIPOTECA_DISPATCH_TOKEN,
         accept:"application/vnd.github+json","content-type":"application/json","user-agent":"clipoteca-worker",
         "x-github-api-version":"2022-11-28"},
       body:JSON.stringify({ref:"main",inputs:{upload_id:id,capability:cap}})});
-    return r.status===204;
-  }catch{return false;}
+    return r.status===204?"queued":r.status>=500?"unknown":"failed";
+  }catch{return "unknown";}
 }
 const decode=(s:string)=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));
 const decodeJson=(s:string)=>JSON.parse(new TextDecoder().decode(decode(s))) as Record<string,unknown>;
