@@ -2,6 +2,8 @@
 export const SESSION_ID=/^[a-f0-9]{64}$/;
 export const SESSION_TTL=24*60*60*1000;
 const MIB=1024*1024;
+// UTC daily limits; hourly ticket/session limits are separate.
+export const IP_UPLOADS=40, IP_BYTES=1024*MIB, GLOBAL_UPLOADS=200, GLOBAL_BYTES=2048*MIB;
 export type FileEntry={media_id:string;kind:"image"|"video"};
 type Ip={hour:string;sessions:number;tickets:number;bytes:number;uploads:number};
 export type BatchState={expires?:number;files?:FileEntry[];ips?:Record<string,Ip>;sessions?:number;tickets?:number;bytes?:number;uploads?:number};
@@ -36,7 +38,7 @@ export function batchTransition(old:BatchState|undefined,c:BatchCommand,now:numb
   }else if(c.action==="limit_bytes"){
     const n=c.bytes??0;
     if(!Number.isSafeInteger(n)||n<=0||n>100*MIB)return {code:400};
-    if(ip.uploads>=20||uploads>=200||ip.bytes+n>200*MIB||bytes+n>2048*MIB)return {code:429};
+    if(ip.uploads>=IP_UPLOADS||uploads>=GLOBAL_UPLOADS||ip.bytes+n>IP_BYTES||bytes+n>GLOBAL_BYTES)return {code:429};
     ip.bytes+=n;bytes+=n;ip.uploads++;uploads++;
   }else return {code:400};
   return {code:200,state:{ips:{...state.ips,[c.ip]:ip},sessions,tickets,bytes,uploads},write:true};

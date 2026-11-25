@@ -10,7 +10,8 @@ export type Chunk={bytes:number;sha256:string};
 export type Manifest={kind:"image"|"video";title:string;author:string;source:string;license_note?:string;
   media_id:string;bytes:number;mime:string;created_at:string;chunks:Chunk[]};
 export type State={status:"uploading"|"processing"|"registered"|"rejected";expires:number;started?:boolean;
-  manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string};
+  manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string;
+  size?:number;parts?:Record<number,Chunk>;pending?:Record<number,string>;mime?:string};
 export interface QueueEnv {
   UPLOADS?:KVNamespace; UPLOAD_CONTROL?:DurableObjectNamespace;
   CLIPOTECA_DISPATCH_TOKEN?:string;CLIPOTECA_GITHUB_REPO?:string;
@@ -37,12 +38,12 @@ export const reasons:Readonly<Record<string,string>>=Object.freeze({
   publish_failed:"No se pudo publicar el aporte.",
 });
 const reason=(r:unknown)=>typeof r==="string"&&Object.prototype.hasOwnProperty.call(reasons,r)?r:"staging_failed";
-type Command={action:string;expires?:number;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
+type Command={action:string;expires?:number;size?:number;index?:number;chunk?:Chunk;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
 type Result={code:number;state?:State;write?:boolean};
 export function transition(old:State|undefined,c:Command,now:number):Result {
   if(c.action==="create"){
     if(old||!c.expires||c.expires<=now)return {code:409};
-    return {code:200,state:{status:"uploading",expires:c.expires},write:true};
+    return {code:200,state:{status:"uploading",expires:c.expires,...(c.size===undefined?{}:{size:c.size})},write:true};
   }
   if(!old)return {code:404};
   if(c.action==="status"){
@@ -52,8 +53,37 @@ export function transition(old:State|undefined,c:Command,now:number):Result {
     return {code:200,state:old};
   }
   if(old.expires<=now)return {code:410};
+  if(c.action==="part_begin"||c.action==="part_done"||c.action==="part_abort"){
+    const i=c.index, part=c.chunk;
+    if(old.status!=="uploading"||old.started||!old.size||i===undefined||!Number.isInteger(i)||i<0||i>=Math.ceil(old.size/CHUNK_BYTES)||
+      !part||part.bytes!==Math.min(CHUNK_BYTES,old.size-i*CHUNK_BYTES)||!HEX.test(part.sha256))return {code:409};
+    const parts={...old.parts},pending={...old.pending};
+    if(c.action==="part_begin"){
+      if(pending[i])return {code:409};
+      if(parts[i]?.sha256===part.sha256)return {code:200,state:old};
+      // Fence complete against an in-flight overwrite of the KV key.
+      delete parts[i];pending[i]=part.sha256;
+      return {code:200,state:{...old,parts,pending},write:true};
+    }
+    if(pending[i]!==part.sha256)return {code:409};
+    delete pending[i];
+    if(c.action==="part_done"){
+      if(i===0&&!c.mime)return {code:400};
+      parts[i]=part;
+    }
+    return {code:200,state:{...old,parts,pending,...(c.action==="part_done"&&i===0?{mime:c.mime}:{})},write:true};
+  }
+  if(c.action==="ready_parts"){
+    if(old.status!=="uploading"||old.started||!old.size||!old.mime||Object.keys(old.pending??{}).length||
+      !c.manifest||c.manifest.bytes!==old.size||c.manifest.mime!==old.mime||!c.capabilityHash||!HEX.test(c.capabilityHash))return {code:409};
+    const count=Math.ceil(old.size/CHUNK_BYTES);
+    if(c.manifest.chunks.length!==count||!c.manifest.chunks.every((part,i)=>
+      part.bytes===Math.min(CHUNK_BYTES,old.size!-i*CHUNK_BYTES)&&part.sha256===old.parts?.[i]?.sha256))return {code:409};
+    return {code:200,state:{...old,status:"processing",started:true,manifest:c.manifest,capabilityHash:c.capabilityHash,
+      capExpires:Math.min(old.expires,now+30*60*1000)},write:true};
+  }
   if(c.action==="begin"){
-    if(old.status!=="uploading"||old.started)return {code:409};
+    if(old.status!=="uploading"||old.started||Object.keys(old.parts??{}).length||Object.keys(old.pending??{}).length)return {code:409};
     return {code:200,state:{...old,started:true,expires:now+UPLOAD_TTL*1000},write:true};
   }
   if(c.action==="ready"){

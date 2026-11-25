@@ -319,11 +319,11 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   }, async input => restResult(toolRequest("/v1/media", "POST", input), env));
   server.registerTool("create_media_upload", {
     title: "Crear enlace de subida",
-    description: "Ticket de un archivo, 15 minutos. Si tienes shell o red, usa PUT put_url con Authorization: Bearer upload_token y el archivo binario (curl --upload-file). El Worker divide en chunks de 24 MiB. No pidas al usuario abrir el enlace si puedes subirlo. " + PUBLIC_NOTICE,
-    inputSchema: z.strictObject(mediaMetadata),
+    description: "Ticket de un archivo, 2 h en modo KV. Declara size en bytes. Hasta 95 MiB puedes usar PUT binario; por encima usa partes de 24 MiB y POST complete. No pidas al usuario abrir el enlace si puedes subirlo. " + PUBLIC_NOTICE,
+    inputSchema: z.strictObject({...mediaMetadata,size:z.number().int().positive()}),
     outputSchema: z.object({
       media_id:mediaId,status:z.enum(["pending_upload","uploading"]),expires_at:z.string(),
-      upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string(),
+      upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string(),part_size:z.number().int().optional(),parts:z.number().int().optional(),
     }),
     annotations: {readOnlyHint:false,openWorldHint:true},
   }, async input => restResult(toolRequest("/v1/media/upload", "POST", input), env));
@@ -349,9 +349,9 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   },async()=>restResult(toolRequest("/v1/uploads","POST",{}),env));
   server.registerTool("ticket_subida",{
     title:"Obtener ticket para subir directamente",
-    description:"Para agentes con shell o red: curl --fail-with-body -H 'Authorization: Bearer <upload_token>' --upload-file ARCHIVO '<put_url>'. No abras enlace de usuario. Envia un PUT binario con Content-Length; Worker divide en chunks de hasta 24 MiB. Video 100 MiB y 120 s; imagen 10 MiB. "+PUBLIC_NOTICE,
-    inputSchema:z.strictObject({...sessionMeta,kind:z.enum(["image","video"])}),
-    outputSchema:z.object({media_id:mediaId,status:z.literal("uploading"),expires_at:z.string(),upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string()}),
+    description:"Declara size en bytes. Hasta 95 MiB puedes usar PUT binario. Mas de 95 MiB SIEMPRE por partes: split -b 24M -d -a 1 ARCHIVO parte-; for p in parte-*; do curl --fail-with-body -H \"Authorization: Bearer $UPLOAD_TOKEN\" --upload-file \"$p\" \"$PUT_URL/parts/${p##*-}\" || exit 1; done; curl --fail-with-body -X POST -H \"Authorization: Bearer $UPLOAD_TOKEN\" \"$PUT_URL/complete\". Video 100 MiB y 120 s; imagen 10 MiB. "+PUBLIC_NOTICE,
+    inputSchema:z.strictObject({...sessionMeta,kind:z.enum(["image","video"]),size:z.number().int().positive()}),
+    outputSchema:z.object({media_id:mediaId,status:z.literal("uploading"),expires_at:z.string(),upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string(),part_size:z.number().int(),parts:z.number().int()}),
     annotations:{readOnlyHint:false,openWorldHint:true},
   },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
   server.registerTool("subir_archivo",{
