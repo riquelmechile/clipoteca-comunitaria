@@ -11252,5 +11252,70 @@
     },
     "status": "published",
     "created_at": "2026-11-25T17:29:32.054996Z"
+  },
+  {
+    "id": "clip-000173",
+    "title": {
+      "es": "Mujer sentada en ventana con bulldog francés",
+      "en": "Woman sitting on windowsill with french bulldog"
+    },
+    "description": {
+      "es": "Mujer sentada en ventana con bulldog francés",
+      "en": "Woman sitting on windowsill with french bulldog"
+    },
+    "tags": {
+      "es": [
+        "Mujer",
+        "sentada",
+        "ventana",
+        "bulldog",
+        "francés"
+      ],
+      "en": [
+        "Woman",
+        "sitting",
+        "windowsill",
+        "french",
+        "bulldog"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "10896631",
+      "source_language": "en",
+      "source_title": "woman-sitting-on-windowsill-with-french-bulldog-10896631",
+      "source_url": "https://www.pexels.com/video/woman-sitting-on-windowsill-with-french-bulldog-10896631/",
+      "source_start": 2.0,
+      "source_end": 13.0
+    },
+    "media": {
+      "duration_seconds": 11.0,
+      "width": 720,
+      "height": 1280,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 1234823,
+      "sha256": "ebd013bcbcc9e512e7bdf61466e50e5cb55c5f50c33491fcf5f3a3d9372e406b",
+      "perceptual_hash": "bfe09807cf78a44a~4323.25:bff898218f78a44a~4373.76:bff898208f78a44b~4350.70:bff898048f79a44a~4312.26:bff898048f79a40b~4294.25"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000173.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000173.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000173_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000173_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000173_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000173_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000173_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000173_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-25T17:29:32.054996Z"
   }
 ]
