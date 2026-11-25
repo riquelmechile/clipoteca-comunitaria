@@ -107,8 +107,7 @@ def test_video_manifest_100_mib_in_five_chunks():
         "bytes": size,
         "created_at": "2026-11-25T00:00:00Z",
         "chunks": [
-            {"bytes": min(CHUNK, size - i), "sha256": "a" * 64}
-            for i in range(0, size, CHUNK)
+            {"bytes": min(CHUNK, size - i), "sha256": "a" * 64} for i in range(0, size, CHUNK)
         ],
     }
     assert len(validate_manifest(spec, UPLOAD_ID)["chunks"]) == 5

@@ -342,7 +342,7 @@ async function getUpload(env:MediaEnv,id:string):Promise<RecordMedia|null>{
   if(value.media_id!==id || value.origin!=="upload")throw new Error("invalid_manifest");
   return value;
 }
-async function queuedUpload(request:Request,env:MediaEnv,id:string){
+async function queuedUpload(request:Request,env:MediaEnv,id:string,body=request.body){
   const claim=await verify(request,env,id);
   if(!claim)return err("invalid_or_expired_upload",401);
   const begin=await queue.command(env,id,{action:"begin"});
@@ -352,9 +352,9 @@ async function queuedUpload(request:Request,env:MediaEnv,id:string){
   try{
     const bytes=length(request.headers.get("content-length"));
     if(bytes>maxBytes(claim.kind))throw new TypeError("media_too_large");
-    if(!request.body)throw new TypeError("truncated_upload");
+    if(!body)throw new TypeError("truncated_upload");
     if(!await queue.admit(request,env,"limit_bytes",bytes))throw new TypeError("rate_limited");
-    reader=request.body.getReader();
+    reader=body.getReader();
     const {head,tail,info}=await readHeader(reader,bytes,claim.kind,true,true);
     const chunks=await queue.stage(env.UPLOADS!,id,bytes,reader,[head,tail]);
     count=chunks.length;
@@ -537,7 +537,9 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
       const t=await response.json<{media_id:string;put_url:string;upload_token:string}>();
       const headers=new Headers({"authorization":"Bearer "+t.upload_token,"content-length":String(bytes)});
       const ip=request.headers.get("cf-connecting-ip");if(ip)headers.set("cf-connecting-ip",ip);
-      return await queuedUpload(new Request(t.put_url,{method:"PUT",headers,body:data??remote!.body}),env,t.media_id);
+      // Do not wrap an upstream stream in a synthetic Request (Node requires duplex).
+      const stream=data?new Response(data).body:remote!.body;
+      return await queuedUpload(new Request(t.put_url,{method:"PUT",headers}),env,t.media_id,stream);
     }finally{if(remote?.body&&!remote.body.locked)await remote.body.cancel().catch(()=>{});}
   }catch(e){
     if(e instanceof TypeError&&Object.prototype.hasOwnProperty.call(mediaMessages,e.message))return err(e.message,400);

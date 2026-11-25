@@ -127,7 +127,7 @@ describe("video REST delivery",()=>{
         const video=address.endsWith("/119");
         return Response.json({number:video?119:120,author_association:"OWNER",
           title:"[media-v1] "+"a".repeat(64),
-          body:JSON.stringify({registry:"clipoteca-media-v1",origin:"url",kind:video?"video":"image"})});
+          body:JSON.stringify({registry:"clipoteca-media-v1",origin:"url",status:"registered",kind:video?"video":"image"})});
       }
       if(address.includes("/issues/121")) return new Response(null,{status:404});
       if(address.includes("/data/clips.json")) return Response.json([
