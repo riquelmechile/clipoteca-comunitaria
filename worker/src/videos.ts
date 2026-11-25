@@ -103,8 +103,8 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
     if (!object(media) || Object.keys(media).some(k=>!["ref","start","end","motion","framing"].includes(k)) ||
         typeof media.ref !== "string" ||
         !/^(?:u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32}|clip-[0-9]{6}|asset:[a-z0-9][a-z0-9-]{0,63})$/.test(media.ref) ||
-        (media.motion!==undefined && !["auto","zoom_in","zoom_out","pan_left","pan_right"].includes(String(media.motion))) ||
-        (media.framing!==undefined && !["cover","contain"].includes(String(media.framing))) ||
+        (media.motion!==undefined && (typeof media.motion!=="string" || !["auto","zoom_in","zoom_out","pan_left","pan_right"].includes(media.motion))) ||
+        (media.framing!==undefined && (typeof media.framing!=="string" || !["cover","contain"].includes(media.framing))) ||
         [media.start,media.end].some(n=>n!==undefined && (typeof n!=="number" || !Number.isFinite(n) || n<0 || n>120)) ||
         (typeof media.end==="number" && media.end<=Number(media.start??0)) ||
         (scene.on_error!==undefined && !["fail","search"].includes(String(scene.on_error))) ||

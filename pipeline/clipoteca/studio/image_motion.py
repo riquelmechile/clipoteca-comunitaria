@@ -46,7 +46,10 @@ def load_photo(path: Path) -> Image.Image:
 
 
 def rasterize_asset(ref: str) -> Image.Image:
-    path = asset_path(ref)
+    try:
+        path = asset_path(ref)
+    except ValueError as exc:
+        raise ImageMotionError("Asset fuera de lista.") from exc
     try:
         # Stdin has no base URI; librsvg cannot resolve external resource paths.
         # The only accepted input is a trusted, checked-in SVG.

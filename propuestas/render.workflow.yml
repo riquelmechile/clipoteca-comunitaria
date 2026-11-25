@@ -1,0 +1,626 @@
+name: Render video
+run-name: render ${{ inputs.request_id }}
+
+# Render for delivery; imported clips are indexed independently.
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_json:
+        description: Video script as JSON (schemas/video.schema.json)
+        required: true
+        type: string
+      index_clips:
+        description: Index quality-filtered imported clips
+        required: false
+        default: true
+        type: boolean
+      request_id:
+        description: Caller request identifier (8 to 64 safe characters)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clipoteca-render-${{ inputs.request_id }}
+  cancel-in-progress: false
+
+env:
+  CLIPOTECA_STUDIO_MODELS: .cache/studio-models
+  CLIPOTECA_WHISPER_COMPUTE: int8
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      scenes: ${{ steps.plan.outputs.scenes }}
+      script_id: ${{ steps.plan.outputs.script_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Validate the script and plan every scene
+        id: plan
+        env:
+          # Never interpolated into the shell: the script is untrusted text.
+          SCRIPT_JSON: ${{ inputs.script_json }}
+          REQUEST_ID: ${{ inputs.request_id }}
+        run: |
+          [[ "$REQUEST_ID" =~ ^[A-Za-z0-9_-]{8,64}$ ]] || exit 2
+          mkdir -p work
+          printf '%s' "$SCRIPT_JSON" > work/guion.json
+          uv run --no-sync python -m clipoteca.studio.plan \
+            --script work/guion.json --out work/plan --catalog data/clips.json \
+            --resolve-related
+          uv run --no-sync python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan = json.load(open("work/plan/plan.json", encoding="utf-8"))
+          print("scenes=" + json.dumps([scene["id"] for scene in plan["scenes"]]))
+          print("script_id=" + plan["script_id"])
+          PY
+          uv run --no-sync python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          plan = json.load(open("work/plan/plan.json", encoding="utf-8"))
+          rows = json.load(open("work/plan/assignments.json", encoding="utf-8"))["scenes"]
+          print(f"### Plan: {len(plan['scenes'])} escenas, {plan['total_est']} s estimados\n")
+          print("| Escena | Largo estimado | Catálogo |")
+          print("|---|---|---|")
+          for scene in plan["scenes"]:
+              row = rows[scene["id"]]
+              found = (row.get("primary") or {}).get("clip_id") or row["status"]
+              print(f"| {scene['id']} | {scene['len_est']} s | {found} |")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: plan
+          path: work
+          if-no-files-found: error
+          retention-days: 7
+
+  voice:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - uses: ./.github/actions/install-ffmpeg
+        id: ffmpeg
+      - name: Restore Studio models
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            .cache/studio-models
+            ~/.cache/huggingface
+          key: studio-voice-${{ hashFiles('pipeline/clipoteca/studio/models.json') }}
+      - run: uv sync --frozen --extra studio
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: plan
+          path: work
+      - name: Voice with pronunciation control, then per-word timeline
+        run: |
+          SECONDS=0
+          uv run --no-sync python -m clipoteca.studio.voice render \
+            --script work/guion.json --out work/voz
+          uv run --no-sync python -m clipoteca.studio.timeline \
+            --script work/guion.json --voice work/voz --out work/voz/timeline.json
+          echo "{\"voice\": $SECONDS}" > work/voz/timing.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: voice
+          path: work/voz
+          if-no-files-found: error
+          retention-days: 7
+
+  music:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - uses: ./.github/actions/install-ffmpeg
+        id: ffmpeg
+      - run: uv sync --frozen --extra studio
+      - run: uv run --no-sync playwright install --with-deps chromium
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: plan
+          path: work
+      - name: Offline music render
+        run: |
+          SECONDS=0
+          uv run --no-sync python -m clipoteca.studio.music render \
+            --plan work/plan/plan.json --out work/musica
+          echo "{\"music\": $SECONDS}" > work/musica/timing.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: music
+          path: work/musica
+          if-no-files-found: error
+          retention-days: 7
+
+  scene:
+    needs: plan
+    permissions:
+      contents: read
+      issues: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        scene: ${{ fromJson(needs.plan.outputs.scenes) }}
+    env:
+      # Scene ids are validated by the plan ([A-Za-z0-9_-]); still only ever used quoted.
+      SCENE: ${{ matrix.scene }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - uses: ./.github/actions/install-ffmpeg
+        id: ffmpeg
+      - name: Restore Studio models
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .cache/studio-models
+          key: studio-scene-${{ hashFiles('pipeline/clipoteca/studio/models.json') }}
+      - name: Install offline SVG rasterizer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends librsvg2-bin
+          rsvg-convert --version
+      - run: uv sync --frozen --extra studio
+      - name: Fetch the scene model (checksum verified, cached)
+        run: |
+          uv run --no-sync python -c \
+            "from clipoteca.studio import models; models.ensure_model('clip-vit-b32')"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: plan
+          path: work
+      - name: Clip from the catalogue
+        id: catalog
+        env:
+          INSTALL_SECONDS: ${{ steps.ffmpeg.outputs.seconds }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SECONDS=0
+          source="work/plan/scenes/$SCENE"
+          out="work/scenes/$SCENE"
+          mkdir -p "$out"
+          cp "$source/job.json" "$source/assignment.json" "$out/"
+          set +e
+          uv run --no-sync python -m clipoteca.studio.selection --scene "$out" --phase catalog
+          code=$?
+          set -e
+          [ "$code" = 0 ] || [ "$code" = 3 ] || exit "$code"
+          test -s "$out/result.json" || { echo "::error::clip-scene left no result ($code)"; exit 1; }
+          status=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"])' "$out/result.json")
+          strong=$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1])).get("catalog_strong",False)).lower())' "$out/result.json")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "strong=$strong" >> "$GITHUB_OUTPUT"
+          skip=$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1])).get("skip_import",False)).lower())' "$out/result.json")
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+          echo "{\"catalog\": $SECONDS, \"install_ffmpeg\": ${INSTALL_SECONDS:-0}}" > "$out/timing.json"
+      - name: Prepare translations (only when this scene has to import)
+        if: steps.catalog.outputs.strong != 'true' && steps.catalog.outputs.skip != 'true'
+        uses: ./.github/actions/prepare-translations
+      - name: Import new material without publishing it, then try again
+        if: steps.catalog.outputs.strong != 'true' && steps.catalog.outputs.skip != 'true'
+        env:
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
+          PEERTUBE_ALLOWED_INSTANCES: ${{ vars.PEERTUBE_ALLOWED_INSTANCES }}
+        run: |
+          # The translation action syncs only its own extra; the scene needs both.
+          uv sync --frozen --extra studio --extra translate
+          out="work/scenes/$SCENE"
+          SECONDS=0
+          set +e
+          uv run --no-sync python -m clipoteca.studio.importer scene \
+            --job "$out/job.json" --catalog data/clips.json --out "$out/import" \
+            --max-results 8 --spread-queries --timeout 600
+          code=$?
+          set -e
+          echo "importer exit code: $code (0 clips found, 3 nothing usable, 1 real failure)"
+          if [ "$code" != 0 ] && [ "$code" != 3 ]; then
+            echo "::warning::The importer failed for scene $SCENE (exit code $code)"
+          fi
+          echo "{\"import\": $SECONDS}" > "$out/timing-import.json"
+      - name: Choose the best valid candidate across sources
+        if: steps.catalog.outputs.strong != 'true' && steps.catalog.outputs.skip != 'true'
+        id: choose
+        run: |
+          out="work/scenes/$SCENE"
+          set +e
+          uv run --no-sync python -m clipoteca.studio.selection --scene "$out" --phase finish
+          code=$?
+          set -e
+          [ "$code" = 0 ] || [ "$code" = 3 ] || exit "$code"
+          retry=$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1])).get("needs_retry",False)).lower())' "$out/result.json")
+          echo "retry=$retry" >> "$GITHUB_OUTPUT"
+      - name: Retry import with simpler subject queries
+        if: steps.choose.outputs.retry == 'true'
+        env:
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          VK_ACCESS_TOKEN: ${{ secrets.VK_ACCESS_TOKEN }}
+          PEERTUBE_ALLOWED_INSTANCES: ${{ vars.PEERTUBE_ALLOWED_INSTANCES }}
+        run: |
+          out="work/scenes/$SCENE"
+          SECONDS=0
+          set +e
+          uv run --no-sync python -m clipoteca.studio.importer scene \
+            --job "$out/job.json" --catalog data/clips.json --out "$out/import-retry" \
+            --max-results 2 --spread-queries --simple --timeout 180
+          code=$?
+          set -e
+          if [ "$code" != 0 ] && [ "$code" != 3 ]; then
+            echo "::warning::Simplified import failed for scene $SCENE (exit code $code)"
+          fi
+          echo "{\"import_retry\": $SECONDS}" > "$out/timing-retry.json"
+      - name: Final scene choice after retry
+        if: steps.choose.outputs.retry == 'true'
+        run: |
+          out="work/scenes/$SCENE"
+          set +e
+          uv run --no-sync python -m clipoteca.studio.selection --scene "$out" --phase finish
+          code=$?
+          set -e
+          [ "$code" = 0 ] || [ "$code" = 3 ] || exit "$code"
+      - name: Scene summary
+        if: always()
+        run: |
+          python3 - "work/scenes/$SCENE/result.json" "$SCENE" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, sys
+          try:
+              result = json.load(open(sys.argv[1], encoding="utf-8"))
+          except (OSError, ValueError):
+              result = {}
+          if not isinstance(result, dict):
+              result = {}
+          result.setdefault("status", "sin resultado")
+          clip = result.get("clip") or {}
+          tried = ", ".join(f"{t.get('clip_id')}: {t.get('reason')}" for t in result.get("tried", []))
+          origin = result.get("origin", "importado" if clip.get("imported") else "catálogo")
+          line = f"**{sys.argv[2]}** — {result['status']}"
+          if clip:
+              line += f", {clip.get('clip_id')} ({origin})"
+          if result.get("fallback"):
+              line += ", respaldo de catálogo"
+          if result.get("reason"):
+              line += f", motivo: {result['reason']}"
+          if tried:
+              line += f". Descartados: {tried}"
+          print(line)
+          PY
+      - name: Confirm a usable clip exists
+        run: |
+          python3 -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))["status"]=="ok" else 1)' "work/scenes/$SCENE/result.json"
+          test -s "work/scenes/$SCENE/clip.mp4"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: scene-${{ matrix.scene }}
+          path: work/scenes/${{ matrix.scene }}
+          if-no-files-found: error
+          retention-days: 7
+
+  assemble:
+    needs: [plan, voice, music, scene]
+    # A scene that found nothing must not hide the report: run whenever the rest exists.
+    if: ${{ !cancelled() && needs.voice.result == 'success' && needs.music.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      qa_pass: ${{ steps.qa.outputs.pass }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - uses: ./.github/actions/install-ffmpeg
+        id: ffmpeg
+      - name: Restore Studio models
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            .cache/studio-models
+            ~/.cache/huggingface
+          key: studio-assemble-${{ hashFiles('pipeline/clipoteca/studio/models.json') }}
+      - run: uv sync --frozen --extra studio
+      - name: Fetch the scene model (checksum verified, cached)
+        run: |
+          uv run --no-sync python -c \
+            "from clipoteca.studio import models; models.ensure_model('clip-vit-b32')"
+      - run: uv run --no-sync playwright install --with-deps chromium
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: plan
+          path: work
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: voice
+          path: work/voz
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: music
+          path: work/musica
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: scene-*
+          path: work/scene-artifacts
+      - name: Collect the scenes
+        run: |
+          mkdir -p work/scenes
+          for folder in work/scene-artifacts/scene-*; do
+            name="${folder##*/scene-}"
+            [[ "$name" =~ ^[A-Za-z0-9_-]{1,64}$ ]] || exit 2
+            mv "$folder" "work/scenes/$name"
+          done
+          rmdir work/scene-artifacts
+          ls work/scenes
+      - name: Resolve clips repeated across scenes (up to two rounds)
+        run: |
+          for round in 1 2; do
+            losers=$(uv run --no-sync python - <<'PY'
+          import json, pathlib
+          from clipoteca.studio import checks
+          results = {}
+          for path in sorted(pathlib.Path("work/scenes").glob("*/result.json")):
+              data = json.loads(path.read_text(encoding="utf-8"))
+              if data.get("status") == "ok":
+                  results[path.parent.name] = data
+          print(" ".join(sorted(checks.check_global(results))))
+          PY
+            )
+            if [ -z "$losers" ]; then break; fi
+            echo "Round $round: repeated clip in: $losers"
+            for scene in $losers; do
+              out="work/scenes/$scene"
+              mapfile -t used < <(python3 - "$scene" <<'PY'
+          import json, pathlib, sys
+          for path in sorted(pathlib.Path("work/scenes").glob("*/result.json")):
+              data = json.loads(path.read_text(encoding="utf-8"))
+              if data.get("status") == "ok":
+                  print(data["clip"]["clip_id"])
+          PY
+              )
+              exclude=()
+              for clip in "${used[@]}"; do exclude+=(--exclude "$clip"); done
+              set +e
+              uv run --no-sync python -m clipoteca.studio.selection \
+                --scene "$out" --phase rerun "${exclude[@]}"
+              code=$?
+              set -e
+              [ "$code" = 0 ] || [ "$code" = 3 ] || exit "$code"
+            done
+          done
+      - name: Every scene needs a clip
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          plan = json.load(open("work/plan/plan.json", encoding="utf-8"))
+          missing = []
+          for scene in plan["scenes"]:
+              path = pathlib.Path("work/scenes") / scene["id"] / "result.json"
+              try:
+                  data = json.loads(path.read_text(encoding="utf-8"))
+              except (OSError, ValueError):
+                  data = {}
+              if data.get("status") != "ok":
+                  why = data.get("reason") or data.get("status") or "sin resultado"
+                  missing.append(f"{scene['id']} ({why})")
+          if missing:
+              text = "Sin clip utilizable: " + ", ".join(missing)
+              print(f"::error::{text}")
+              with open(__import__("os").environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
+                  out.write(f"### No se arma el video\n\n{text}\n")
+              sys.exit(1)
+          PY
+      - name: Fit, mix, compose and render
+        run: |
+          py() { uv run --no-sync python -m "clipoteca.studio.$1" "${@:2}"; }
+          stamp() { echo "\"$1\": $SECONDS," >> work/stages.txt; SECONDS=0; }
+          : > work/stages.txt
+          cp work/voz/timeline.json work/timeline.json
+          mkdir -p work/clips work/mix
+          for folder in work/scenes/*/; do
+            name="$(basename "$folder")"
+            cp "$folder/clip.mp4" "work/clips/$name.mp4"
+          done
+          SECONDS=0
+          py music track --music work/musica --timeline work/timeline.json --out work/musica/music.wav
+          stamp music_track
+          py fit --timeline work/timeline.json --clips work/clips --out work/fit --scenes work/scenes
+          stamp fit
+          py mix --timeline work/timeline.json --voice work/voz \
+            --music work/musica/music.wav --out work/mix/mix.wav
+          stamp mix
+          py compose build --script work/guion.json --timeline work/timeline.json \
+            --clips work/fit --mix work/mix/mix.wav --out work/comp
+          mv work/comp/hf work/hf
+          mv work/comp/chunks.json work/chunks.json
+          stamp compose
+          py compose render --hf work/hf --out work/video.mp4
+          stamp render
+      - name: Quality control (14 gates)
+        id: qa
+        run: |
+          set -o pipefail
+          SECONDS=0
+          set +e
+          uv run --no-sync python -m clipoteca.studio.qa --work work
+          code=$?
+          set -e
+          echo "\"qa\": $SECONDS," >> work/stages.txt
+          python3 - <<'PY'
+          import json, pathlib
+          timings = {}
+          for name in ("work/voz/timing.json", "work/musica/timing.json"):
+              timings.update(json.loads(pathlib.Path(name).read_text()))
+          scenes = 0.0
+          for path in pathlib.Path("work/scenes").glob("*/timing*.json"):
+              scenes += sum(json.loads(path.read_text()).values())
+          timings["scenes_total"] = scenes
+          text = "{" + pathlib.Path("work/stages.txt").read_text().rstrip().rstrip(",") + "}"
+          timings.update(json.loads(text))
+          pathlib.Path("work/timings.json").write_text(json.dumps(timings, indent=1))
+          PY
+          if [ "$code" = 0 ]; then echo "pass=true" >> "$GITHUB_OUTPUT"; else echo "pass=false" >> "$GITHUB_OUTPUT"; fi
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          path = pathlib.Path("work/qa_report.json")
+          if not path.is_file():
+              print("### Control de calidad: no se pudo ejecutar")
+          else:
+              report = json.loads(path.read_text(encoding="utf-8"))
+              render = json.loads(pathlib.Path("work/render.json").read_text())
+              verdict = "APROBADO" if report["pass"] else "RECHAZADO"
+              size = render["size_bytes"] / 1_000_000
+              print(f"### Control de calidad: {verdict}\n")
+              print(f"Video de {render['duration_s']} s, {render['width']}×{render['height']}, {size:.1f} MB.\n")
+              print("| Compuerta | Resultado | Datos |")
+              print("|---|---|---|")
+              for name, check in report["checks"].items():
+                  data = {k: v for k, v in check.items() if k not in ("pass", "text")}
+                  mark = "pasa" if check["pass"] else "FALLA"
+                  print(f"| {name} | {mark} | `{json.dumps(data, ensure_ascii=False)[:160]}` |")
+              timings = json.loads(pathlib.Path("work/timings.json").read_text())
+              print("\n**Tiempos (s):** " + ", ".join(f"{k} {v:g}" for k, v in timings.items()))
+          PY
+          exit "$code"
+      - name: Build the local delivery manifest
+        if: always() && !cancelled()
+        run: |
+          test -s work/guion.json
+          uv run --no-sync python -m clipoteca.studio.delivery --work work --catalog data/clips.json
+      - name: Upload the approved MP4 only
+        if: steps.qa.outputs.pass == 'true' && success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: video-${{ inputs.request_id }}
+          path: work/video.mp4
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload delivery evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: entrega-${{ inputs.request_id }}
+          path: |
+            work/entrega.json
+            work/qa_report.json
+            work/render.json
+            work/timings.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  index:
+    needs: [scene, assemble]
+    if: ${{ !cancelled() && inputs.index_clips && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      indexed: ${{ steps.index.outputs.indexed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: scene-*
+          path: work/scene-artifacts
+      - name: Collect import manifests
+        run: |
+          mkdir -p work/scenes
+          shopt -s nullglob
+          for folder in work/scene-artifacts/scene-*; do
+            name="${folder##*/scene-}"
+            [[ "$name" =~ ^[A-Za-z0-9_-]{1,64}$ ]] || exit 2
+            mv "$folder" "work/scenes/$name"
+          done
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: needs.assemble.outputs.qa_pass == 'true'
+        with:
+          name: entrega-${{ inputs.request_id }}
+          path: work
+      - name: Detect imported clips
+        id: imports
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, pathlib
+          present = any(
+              json.loads(p.read_text()).get("clips")
+              for name in ("import", "import-retry")
+              for p in pathlib.Path("work/scenes").glob(f"*/{name}/imported.json")
+          )
+          qa = pathlib.Path("work/qa_report.json")
+          if qa.is_file() and json.loads(qa.read_text()).get("pass") is True:
+              present = present or any(pathlib.Path("work/scenes").glob("*/contribution/imported.json"))
+          # New related-term expansions are published even without new clips.
+          present = present or any(
+              json.loads(p.read_text()).get("related_cache_entries")
+              for p in pathlib.Path("work/scenes").glob("*/job.json")
+          )
+          print("present=" + str(present).lower())
+          PY
+      - name: Index verified imported clips
+        if: steps.imports.outputs.present == 'true'
+        id: index
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          uv run --no-sync python -m clipoteca.studio.index --work work
+          echo "indexed=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.index.outputs.indexed == 'true'
+        with:
+          name: indexed-clips
+          path: work/index.json
+          if-no-files-found: error
+          retention-days: 7

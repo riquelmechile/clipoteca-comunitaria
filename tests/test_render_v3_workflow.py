@@ -87,3 +87,14 @@ def test_pinned_ffmpeg_installer_and_scene_retry():
     assert "--max-results 2 --spread-queries --simple --timeout 180" in commands
     assert "install_ffmpeg" in commands
     assert "import-retry" in commands
+
+
+def test_image_workflow_proposal():
+    proposal = ROOT / "propuestas/render.workflow.yml"
+    actual = ROOT / ".github/workflows/render.yml"
+    spec = yaml.load(
+        (proposal if proposal.is_file() else actual).read_text(), Loader=yaml.BaseLoader
+    )
+    commands = "\n".join(step.get("run", "") for step in spec["jobs"]["scene"]["steps"])
+    assert "librsvg2-bin" in commands
+    assert "rsvg-convert --version" in commands
