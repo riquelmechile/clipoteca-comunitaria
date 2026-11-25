@@ -1,6 +1,6 @@
 import {beforeEach, afterEach, describe, expect, it, vi} from "vitest";
 import worker from "../src/index";
-import {inspectHeader, mediaUrl, videoDuration, PREFIX, maxBytes} from "../src/media-header";
+import {inspectHeader, mediaUrl, videoDuration, PREFIX, JPEG_HEADER_LIMIT, maxBytes} from "../src/media-header";
 import {quota, resetQuotaReservations} from "../src/quota";
 
 const base="https://clipoteca.test";
@@ -14,6 +14,18 @@ const png=(w=100,h=100,size=24)=>{
   v.setUint32(8,13);v.setUint32(12,0x49484452);
   v.setUint32(16,w);v.setUint32(20,h);return b;
 };
+const jpegWithApps=(sizes:number[],w=4160,h=3120,total=0)=>{
+  const end=2+sizes.reduce((n,size)=>n+size+2,0)+13;
+  const b=new Uint8Array(Math.max(end,total)),v=new DataView(b.buffer);
+  b.set([0xff,0xd8]);let p=2;
+  for(const [i,size] of sizes.entries()){
+    b.set([0xff,i===0?0xe1:0xe6],p);v.setUint16(p+2,size);p+=size+2;
+  }
+  b.set([0xff,0xc0,0,11,8,0,0,0,0,1,1,0x11,0],p);
+  v.setUint16(p+5,h);v.setUint16(p+7,w);
+  return b;
+};
+const phoneApps=[31767,60000,60000,60000,60000,60000];
 const mp4=(seconds:number)=>{
   const b=new Uint8Array(56),v=new DataView(b.buffer);
   v.setUint32(0,16);v.setUint32(4,0x66747970);v.setUint32(8,0x69736f6d);
@@ -80,7 +92,7 @@ describe("media intake",()=>{
     const fetcher=vi.fn(async (url:string|URL|Request,init?:RequestInit)=>{
       const u=new URL(String(url));
       if(u.hostname==="cdn.example.com"){
-        expect(new Headers(init?.headers).get("range")).toBe("bytes=0-"+(PREFIX-1));
+        expect(new Headers(init?.headers).get("range")).toBe("bytes=0-"+(JPEG_HEADER_LIMIT-1));
         expect(init?.redirect).toBe("manual");
         return new Response(bytes,{status:206,headers:{"content-range":"bytes 0-23/24","content-length":"24"}});
       }
@@ -134,7 +146,7 @@ describe("media intake",()=>{
       if(u.hostname==="upload.wikimedia.org"){
         const headers=new Headers(init?.headers);
         if(headers.get("user-agent")!==userAgent)return new Response("UA required",{status:403});
-        expect(headers.get("range")).toBe("bytes=0-"+(PREFIX-1));
+        expect(headers.get("range")).toBe("bytes=0-"+((u.href===videoUrl?PREFIX:JPEG_HEADER_LIMIT)-1));
         expect(headers.get("accept-encoding")).toBe("identity");
         expect(headers.get("authorization")).toBeNull();
         expect(init?.redirect).toBe("manual");
@@ -159,6 +171,58 @@ describe("media intake",()=>{
       expect(await response.json()).toMatchObject({url,kind,mime,bytes,status:"registered",
         ...(kind==="video"?{duration_seconds:15}:{})});
     }
+  });
+  it("registers phone JPEG metadata beyond 128 KiB and bounds the URL stream",async()=>{
+    const normal=jpegWithApps([],100,100,4096);
+    const phone=jpegWithApps(phoneApps,4160,3120,3088386);
+    const oversized=jpegWithApps(phoneApps,6000,5000);
+    const tooLong=jpegWithApps(Array(34).fill(65000));
+    let data=phone,read=0,issue=70;
+    for(const [bytes,code,status,partial] of [
+      [phone,null,201,true],[normal,null,201,false],[oversized,"image_dimensions",400,true],
+      [tooLong,"jpeg_header_too_long",400,true],[tooLong,"jpeg_header_too_long",400,false],
+    ] as const){
+      data=bytes;read=0;
+      vi.stubGlobal("fetch",vi.fn(async (target:string,init?:RequestInit)=>{
+        if(target.includes("/search/issues"))return Response.json({items:[]});
+        if(init?.method==="POST")return Response.json({...JSON.parse(String(init.body)),number:issue++,author_association:"OWNER"},{status:201});
+        expect(new Headers(init?.headers).get("range")).toBe("bytes=0-"+(JPEG_HEADER_LIMIT-1));
+        const limit=partial?Math.min(data.length,JPEG_HEADER_LIMIT):data.length;
+        const body=new ReadableStream<Uint8Array>({pull(controller){
+          if(read===limit){controller.close();return;}
+          const end=Math.min(limit,read+4093);controller.enqueue(data.subarray(read,end));read=end;
+        }});
+        return new Response(body,{status:partial?206:200,headers:{
+          "content-length":String(limit),
+          ...(partial?{"content-range":"bytes 0-"+(limit-1)+"/"+data.length}:{}),
+        }});
+      }));
+      const r=await worker.fetch(post("/v1/media",{...metadata,title:"JPEG "+status+" "+partial+" "+bytes.length,
+        url:"https://cdn.example.com/phone.jpg"}),env);
+      expect(r.status).toBe(status);
+      if(code){
+        const result=await r.json();
+        expect(result).toMatchObject({error:{code}});
+        if(code==="jpeg_header_too_long")expect(result).toMatchObject({error:{message:"Cabecera JPEG demasiado larga."}});
+      }else{
+        expect(await r.json()).toMatchObject({mime:"image/jpeg",bytes:data.length});
+        if(bytes===phone)expect(read).toBeLessThan(500000);
+      }
+    }
+  });
+  it("uses the early VP8X canvas even with large WebP metadata and PNG IHDR",()=>{
+    const b=new Uint8Array(PREFIX+65536),v=new DataView(b.buffer);
+    b.set(new TextEncoder().encode("RIFF"),0);
+    v.setUint32(4,b.length-8,true);
+    b.set(new TextEncoder().encode("WEBPVP8X"),8);
+    v.setUint32(16,10,true);b[20]=8;
+    b.set([0x3f,0x10,0,0x2f,0x0c,0],24);
+    b.set(new TextEncoder().encode("EXIF"),30);
+    v.setUint32(34,b.length-38,true);
+    expect(inspectHeader(b.subarray(0,PREFIX),"image")).toBe("image/webp");
+    b.set([0xff,0xff,0xff],24);
+    expect(()=>inspectHeader(b.subarray(0,PREFIX),"image")).toThrow("image_dimensions");
+    expect(inspectHeader(png(4160,3120),"image")).toBe("image/png");
   });
   it("returns specific safe errors for upstream failures and invalid media",async()=>{
     const url="https://upload.wikimedia.org/wikipedia/commons/a/a9/Example.jpg";
@@ -207,14 +271,14 @@ describe("media intake",()=>{
     expect(r.status).toBe(201);
     expect(await r.json()).toMatchObject({bytes:24,mime:"image/png"});
   });
-  it("streams a bounded prefix and the rest to GitHub, saves a manifest, and refuses a second write",async()=>{
+  it.each(["png","jpeg"] as const)("streams %s header and rest to GitHub, saves a manifest, and refuses a second write",async(format)=>{
     class TestFixedLengthStream extends TransformStream<Uint8Array,Uint8Array>{
       constructor(_size:number){super();}
     }
     vi.stubGlobal("FixedLengthStream",TestFixedLengthStream);
     const records=new Map<string,{name:string;size:number;state:string;browser_download_url:string}>();
     let manifest="", uploaded=0;
-    const bytes=png(100,100,PREFIX+4096);
+    const bytes=format==="png"?png(100,100,PREFIX+4096):jpegWithApps(phoneApps,4160,3120,524288);
     const fetcher=vi.fn(async (url:string|URL|Request,init?:RequestInit)=>{
       const u=new URL(String(url));
       if(u.hostname==="github.com")return new Response(manifest);
@@ -228,7 +292,9 @@ describe("media intake",()=>{
           expect(init?.body).toBeInstanceOf(ReadableStream);
           const reader=(init!.body as ReadableStream<Uint8Array>).getReader();
           let chunks=0;
-          for(;;){const next=await reader.read();if(next.done)break;size+=next.value.length;chunks++;}
+          for(;;){const next=await reader.read();if(next.done)break;
+            expect(next.value.every((value,i)=>value===bytes[size+i])).toBe(true);
+            size+=next.value.length;chunks++;}
           expect(chunks).toBeGreaterThan(1);uploaded++;
         }
         expect(size).toBe(Number(new Headers(init?.headers).get("content-length")));
@@ -249,7 +315,7 @@ describe("media intake",()=>{
     const first=await worker.fetch(request(),env);
     expect(first.status).toBe(201);
     const record=await first.json();
-    expect(record).toMatchObject({media_id:t.media_id,bytes:bytes.length,origin:"upload"});
+    expect(record).toMatchObject({media_id:t.media_id,bytes:bytes.length,origin:"upload",mime:format==="png"?"image/png":"image/jpeg"});
     expect(await (await worker.fetch(request(),env)).json()).toEqual(record);
     expect(uploaded).toBe(1);
     const bad=new Request(t.put_url,{method:"PUT",headers:{authorization:"Bearer "+t.upload_token+"x","content-length":"24"},body:png()});
