@@ -532,6 +532,7 @@ def test_unknown_exception_details_cannot_leak_tokens():
     assert TOKEN not in json.dumps(index._error(index.PublishError(TOKEN)))
     assert TOKEN not in json.dumps(index._error(RuntimeError(TOKEN)))
 
+
 def test_contribution_requires_approved_qa_and_preserves_origin(tmp_path):
     work = tmp_path / "work"
     root = tmp_path / "output"
@@ -594,4 +595,3 @@ def test_contribution_requires_approved_qa_and_preserves_origin(tmp_path):
         "catalog",
     ]
     assert delivery_report["scenes"][0]["source_url"] == entry["source_url"]
-

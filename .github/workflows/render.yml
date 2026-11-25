@@ -158,6 +158,9 @@ jobs:
 
   scene:
     needs: plan
+    permissions:
+      contents: read
+      issues: read
     runs-on: ubuntu-latest
     timeout-minutes: 65
     strategy:
@@ -195,6 +198,7 @@ jobs:
         id: catalog
         env:
           INSTALL_SECONDS: ${{ steps.ffmpeg.outputs.seconds }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SECONDS=0
           source="work/plan/scenes/$SCENE"
@@ -211,12 +215,14 @@ jobs:
           strong=$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1])).get("catalog_strong",False)).lower())' "$out/result.json")
           echo "status=$status" >> "$GITHUB_OUTPUT"
           echo "strong=$strong" >> "$GITHUB_OUTPUT"
+          skip=$(python3 -c 'import json,sys; print(str(json.load(open(sys.argv[1])).get("skip_import",False)).lower())' "$out/result.json")
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
           echo "{\"catalog\": $SECONDS, \"install_ffmpeg\": ${INSTALL_SECONDS:-0}}" > "$out/timing.json"
       - name: Prepare translations (only when this scene has to import)
-        if: steps.catalog.outputs.strong != 'true'
+        if: steps.catalog.outputs.strong != 'true' && steps.catalog.outputs.skip != 'true'
         uses: ./.github/actions/prepare-translations
       - name: Import new material without publishing it, then try again
-        if: steps.catalog.outputs.strong != 'true'
+        if: steps.catalog.outputs.strong != 'true' && steps.catalog.outputs.skip != 'true'
         env:
           ARGOS_MODEL_CACHE_DIR: .cache/argos
           ARGOS_MODEL_PINS_JSON: data/argos-pins.json
@@ -243,7 +249,7 @@ jobs:
           fi
           echo "{\"import\": $SECONDS}" > "$out/timing-import.json"
       - name: Choose the best valid candidate across sources
-        if: steps.catalog.outputs.strong != 'true'
+        if: steps.catalog.outputs.strong != 'true' && steps.catalog.outputs.skip != 'true'
         id: choose
         run: |
           out="work/scenes/$SCENE"
@@ -301,7 +307,7 @@ jobs:
           result.setdefault("status", "sin resultado")
           clip = result.get("clip") or {}
           tried = ", ".join(f"{t.get('clip_id')}: {t.get('reason')}" for t in result.get("tried", []))
-          origin = "importado" if clip.get("imported") else "catálogo"
+          origin = result.get("origin", "importado" if clip.get("imported") else "catálogo")
           line = f"**{sys.argv[2]}** — {result['status']}"
           if clip:
               line += f", {clip.get('clip_id')} ({origin})"
@@ -456,7 +462,7 @@ jobs:
           SECONDS=0
           py music track --music work/musica --timeline work/timeline.json --out work/musica/music.wav
           stamp music_track
-          py fit --timeline work/timeline.json --clips work/clips --out work/fit
+          py fit --timeline work/timeline.json --clips work/clips --out work/fit --scenes work/scenes
           stamp fit
           py mix --timeline work/timeline.json --voice work/voz \
             --music work/musica/music.wav --out work/mix/mix.wav
@@ -542,7 +548,7 @@ jobs:
           retention-days: 7
 
   index:
-    needs: scene
+    needs: [scene, assemble]
     if: ${{ !cancelled() && inputs.index_clips && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -571,6 +577,11 @@ jobs:
             [[ "$name" =~ ^[A-Za-z0-9_-]{1,64}$ ]] || exit 2
             mv "$folder" "work/scenes/$name"
           done
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: needs.assemble.outputs.qa_pass == 'true'
+        with:
+          name: entrega-${{ inputs.request_id }}
+          path: work
       - name: Detect imported clips
         id: imports
         run: |
@@ -581,6 +592,9 @@ jobs:
               for name in ("import", "import-retry")
               for p in pathlib.Path("work/scenes").glob(f"*/{name}/imported.json")
           )
+          qa = pathlib.Path("work/qa_report.json")
+          if qa.is_file() and json.loads(qa.read_text()).get("pass") is True:
+              present = present or any(pathlib.Path("work/scenes").glob("*/contribution/imported.json"))
           # New related-term expansions are published even without new clips.
           present = present or any(
               json.loads(p.read_text()).get("related_cache_entries")
