@@ -11073,5 +11073,52 @@
     },
     "status": "published",
     "created_at": "2026-11-25T02:17:01.731762Z"
+  },
+  {
+    "id": "clip-000170",
+    "title": {
+      "es": "Carruaje en el CHI de Ginebra 2013",
+      "en": "Carruaje en el CHI de Ginebra 2013"
+    },
+    "description": {
+      "es": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_01.webm",
+      "en": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_01.webm"
+    },
+    "tags": {
+      "es": [],
+      "en": []
+    },
+    "source": {
+      "provider": "user_contribution",
+      "provider_id": "u7a",
+      "source_language": "und",
+      "source_title": "Carruaje en el CHI de Ginebra 2013",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_01.webm",
+      "source_author": "Wikimedia Commons",
+      "declared_source": "https://commons.wikimedia.org/wiki/File:CHI_Gen%C3%A8ve_2013_-_20131215_-_Passage_attelage_01.webm",
+      "source_start": 2.16,
+      "source_end": 6.426667
+    },
+    "media": {
+      "duration_seconds": 4.266667,
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "aspect_ratio": "16:9",
+      "orientation": "horizontal",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 5283539,
+      "sha256": "4af250ddb91ee87547e1d55e82a6c49a087ca33fbf2406369b1f7fe22b2aa96b",
+      "perceptual_hash": "85856ac4b579da2e"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000170.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000170.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-25T03:17:32.470976Z"
   }
 ]
