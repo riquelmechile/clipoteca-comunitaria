@@ -57,3 +57,54 @@ nuevo: solo se indexan los clips válidos importados. Ver
 [M32_RENDER.md](M32_RENDER.md).
 
 Todo lo que subas (archivos, guion y video final) queda público.
+
+
+### Aportes de video y clips fijados (etapa 2)
+
+Todo lo que subas (archivos, guion y video final) queda público. `media.ref` acepta un aporte registrado de video (`u...` o `a...`) o un clip publicado del catálogo (`clip-NNNNNN`). `start` y `end` limitan la ventana en segundos; sin ellos se busca una ventana de buena calidad en el material indicado. No se filtra el material elegido por CLIP/OCR, pero se verifica resolución, decodificación, negro y congelamiento. El ajuste permite recorte o ralentización de hasta 1,25 veces, no pingpong. Por defecto `on_error: "fail"`; `on_error: "search"` permite buscar al fallar la selección inicial, y exige `query` y `prompt`. Las imágenes llegan en la etapa 3. La entrega distingue `contribution`, `catalog_pinned`, `catalog` e `imported`; el aporte solo se indexa tras QA aprobada y el clip fijado no se vuelve a indexar.
+
+Ejemplo mixto (sustituye los identificadores por los registrados en tu catálogo):
+
+```json
+{
+  "title": "Agua",
+  "aspect": "9:16",
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Mar",
+      "say": "El mar.",
+      "media": {
+        "ref": "u77",
+        "start": 0,
+        "end": 5
+      }
+    },
+    {
+      "id": "fact",
+      "type": "fact",
+      "title": "Agua",
+      "say": "El agua fluye.",
+      "media": {
+        "ref": "clip-000001"
+      }
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "title": "Lluvia",
+      "say": "La lluvia cae.",
+      "query": {
+        "es": [
+          "lluvia"
+        ],
+        "en": [
+          "rain"
+        ]
+      },
+      "prompt": "falling rain"
+    }
+  ]
+}
+```
