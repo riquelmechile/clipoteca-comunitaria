@@ -223,7 +223,7 @@ def test_mix_out_of_range_target_errors_cleanly(tmp_path: Path) -> None:
         mix(_timeline(), tmp_path, tmp_path / "missing.wav", tmp_path / "out.wav", lufs=0.0)
 
 
-def _fake_mix_runtime(monkeypatch, *, loudness=-14.0):
+def _fake_mix_runtime(monkeypatch, *, loudness=-14.0, missing_frames=0):
     """Fake the expensive audio pipeline while preserving WAV validation/publication."""
     import clipoteca.studio.mix as module
 
@@ -235,7 +235,7 @@ def _fake_mix_runtime(monkeypatch, *, loudness=-14.0):
                 stream.setnchannels(2)
                 stream.setframerate(48000)
                 stream.setsampwidth(2)
-                stream.writeframes(bytes(48000 * 2 * 2))
+                stream.writeframes(bytes((48000 - missing_frames) * 2 * 2))
         return subprocess.CompletedProcess(argv, 0, "", "")
 
     monkeypatch.setattr(module, "_run", fake_run)
@@ -384,3 +384,21 @@ def test_mix_stderr_redacted_and_dash_prefixed_music_path(tmp_path, monkeypatch,
         "status": "error",
         "error": "MixError",
     }
+
+
+@pytest.mark.parametrize("missing_frames", [3456, 24001])
+def test_mix_corrects_small_filter_latency_only(tmp_path, monkeypatch, missing_frames):
+    _fake_mix_runtime(monkeypatch, missing_frames=missing_frames)
+    music = tmp_path / "music.wav"
+    music.write_bytes(b"fake")
+    target = tmp_path / "mix.wav"
+    timeline = {"total": 1.0, "scenes": [{"id": "x", "dur": 0.4, "vo": 0.1}]}
+    if missing_frames > 24000:
+        with pytest.raises(MixError, match="mix duration invalid"):
+            mix(timeline, tmp_path, music, target)
+        assert not target.exists()
+    else:
+        report = mix(timeline, tmp_path, music, target)
+        with wave.open(str(target), "rb") as wav:
+            assert wav.getnframes() == 48000
+        assert report["duration_s"] == 1.0

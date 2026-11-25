@@ -14,7 +14,7 @@ const err = (code: string, message: string, status: number) =>
   Response.json({ error: { code, message } }, { status,
     headers: { "cache-control": "no-store" } });
 
-export function safePublicSourceUrl(raw: string): string {
+export function safePublicSourceUrl(raw: string, extensions = /\.(mp4|webm|ogv)$/i): string {
   if (raw.length > 2048 || !/^https:\/\//i.test(raw)) throw new TypeError("HTTPS URL required");
   let url: URL;
   try { url = new URL(raw); } catch { throw new TypeError("invalid URL"); }
@@ -26,7 +26,7 @@ export function safePublicSourceUrl(raw: string): string {
       /(^|\.)(localhost|local|internal|invalid|test|example|onion)$/.test(hostname) ||
       /^(169\.254|127\.|10\.|192\.168\.|172\.)/.test(hostname) ||
       hostname === "metadata.google.internal" || url.search ||
-      !/\.(mp4|webm|ogv)$/i.test(url.pathname)) {
+      !extensions.test(url.pathname)) {
     throw new TypeError("public HTTPS URL required");
   }
   return url.href;

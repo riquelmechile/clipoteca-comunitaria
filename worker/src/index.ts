@@ -11,6 +11,7 @@ export interface Env extends CatalogEnv {
   CATALOG_JOBS_URL?: string;
   CLIPOTECA_GITHUB_REPO?: string;
   CLIPOTECA_ISSUE_TOKEN?: string;
+  CLIPOTECA_UPLOAD_TOKEN?: string;
   MCP_ALLOWED_HOSTS?: string;
   MCP_ALLOWED_ORIGINS?: string;
   QUERY_ENCODER_URL?: string;

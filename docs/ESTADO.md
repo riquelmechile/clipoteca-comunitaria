@@ -31,7 +31,7 @@ Ninguna máquina personal ni servidor propio forma parte del servicio.
 
 ## Motor de video (v3), en main sin publicar versión
 
-El paquete es **3.0.0**, publicado como v3.0.0. La API REST/MCP y el workflow de entrega están desplegados. Consulta [STUDIO.md](STUDIO.md). El catálogo crece con todos los clips válidos importados; el MP4 final solo se entrega por artefacto temporal.
+El paquete es **3.0.0**, publicado como v3.0.0. La API REST/MCP y el workflow de entrega están desplegados. Consulta [STUDIO.md](STUDIO.md). El catálogo crece con todos los clips válidos importados; el MP4 final se entrega por artefacto temporal y no se publica en el catálogo, pero la corrida de Actions es pública. Todo lo que subas (archivos, guion y video final) queda público.
 
 | Hito | Qué entrega | Documento | Verificación en el árbol |
 |---|---|---|---|

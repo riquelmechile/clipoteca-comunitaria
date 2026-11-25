@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Registro publico de aporte",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "media_id",
+    "kind",
+    "bytes",
+    "mime",
+    "title",
+    "author",
+    "source",
+    "origin",
+    "url",
+    "created_at",
+    "status"
+  ],
+  "properties": {
+    "media_id": {
+      "type": "string",
+      "pattern": "^(?:u[1-9a-f][a-f0-9]{0,11}|a\\d{4}-\\d{2}-[a-f0-9]{32})$"
+    },
+    "kind": {
+      "enum": [
+        "video",
+        "image"
+      ]
+    },
+    "bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 52428800
+    },
+    "mime": {
+      "enum": [
+        "video/mp4",
+        "video/quicktime",
+        "video/webm",
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "license_note": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "origin": {
+      "enum": [
+        "url",
+        "upload"
+      ]
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "const": "registered"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 120
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "image"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "bytes": {
+            "maximum": 10485760
+          },
+          "mime": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          }
+        },
+        "not": {
+          "required": [
+            "duration_seconds"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "duration_seconds"
+        ],
+        "properties": {
+          "mime": {
+            "enum": [
+              "video/mp4",
+              "video/quicktime",
+              "video/webm"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

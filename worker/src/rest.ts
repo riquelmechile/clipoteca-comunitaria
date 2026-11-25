@@ -5,8 +5,9 @@ import { submitContribution } from "./contributions";
 import { semanticSearch, type SemanticEnv } from "./semantic";
 import { quota } from "./quota";
 import { handleVideos } from "./videos";
+import { handleMedia, type MediaEnv } from "./media";
 
-export interface RestEnv extends SemanticEnv {
+export interface RestEnv extends SemanticEnv, MediaEnv {
   CATALOG_URL?: string;
   CATALOG_TTL_SECONDS?: string;
   CATALOG_JOBS_URL?: string;
@@ -200,6 +201,8 @@ export async function submitImport(
 }
 
 export async function handleRest(request: Request, env: RestEnv): Promise<Response | null> {
+  const mediaResponse = await handleMedia(request, env);
+  if (mediaResponse) return mediaResponse;
   const videoResponse = await handleVideos(request, env);
   if (videoResponse) return videoResponse;
   const url = new URL(request.url);
