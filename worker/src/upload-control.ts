@@ -71,7 +71,7 @@ export function transition(old:State|undefined,c:Command,now:number):Result {
       if(i===0&&!c.mime)return {code:400};
       parts[i]=part;
     }
-    return {code:200,state:{...old,parts,pending,...(c.action==="part_done"&&i===0?{mime:c.mime}:{})},write:true};
+    return {code:200,state:{...old,parts,pending,...(c.action==="part_done"&&i===0?{mime:c.mime!}:{})},write:true};
   }
   if(c.action==="ready_parts"){
     if(old.status!=="uploading"||old.started||!old.size||!old.mime||Object.keys(old.pending??{}).length||

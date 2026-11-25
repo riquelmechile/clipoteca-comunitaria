@@ -343,7 +343,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   const staged=z.object({media_id:mediaId,status:z.literal("processing")});
   server.registerTool("crear_subida",{
     title:"Crear sesion de aportes",
-    description:"Una sesion de 24 horas, hasta 12 fotos o videos. Si el host entrega archivos, usa subir_archivo; si tienes shell, usa ticket_subida y PUT; para imagenes de hasta 40 KiB usa subir_imagen_base64. Solo comparte upload_url cuando el host no pueda subir. "+PUBLIC_NOTICE,
+    description:"Una sesion de 24 horas, hasta 12 fotos o videos. Si el host entrega archivos, usa subir_archivo; si tienes shell, usa ticket_subida con size y partes (PUT unico solo hasta 95 MiB); para imagenes de hasta 40 KiB usa subir_imagen_base64. Solo comparte upload_url cuando el host no pueda subir. "+PUBLIC_NOTICE,
     inputSchema:z.strictObject({}),outputSchema:z.object({session_id:sessionId,expires_at:z.string(),max_files:z.number(),upload_url:z.string().url()}),
     annotations:{readOnlyHint:false,openWorldHint:true},
   },async()=>restResult(toolRequest("/v1/uploads","POST",{}),env));
