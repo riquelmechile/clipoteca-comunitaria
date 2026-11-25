@@ -20,7 +20,36 @@ type Release = {id:number; assets:Asset[]};
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const json = (value:unknown,status=200) => Response.json(value,{status,headers:{"cache-control":"no-store","referrer-policy":"no-referrer"}});
-const err = (code:string,status:number) => json({error:{code,message:code}},status);
+const mediaMessages: Readonly<Record<string,string>> = Object.freeze({
+  invalid_media:"Datos del aporte no v\u00e1lidos.",
+  invalid_title:"T\u00edtulo no v\u00e1lido.",
+  invalid_author:"Autor no v\u00e1lido.",
+  invalid_source:"Origen no v\u00e1lido o sin contenido.",
+  invalid_license_note:"Nota de licencia no v\u00e1lida.",
+  invalid_json:"Se requiere un JSON v\u00e1lido.",
+  invalid_url:"Se requiere una URL HTTPS p\u00fablica y directa, sin credenciales ni par\u00e1metros.",
+  invalid_length:"Longitud del archivo ausente o no v\u00e1lida.",
+  invalid_range:"Respuesta de rango del origen no v\u00e1lida.",
+  invalid_encoding:"Codificaci\u00f3n de respuesta del origen no admitida.",
+  media_too_large:"El archivo supera el l\u00edmite de tama\u00f1o.",
+  truncated_source:"El origen entreg\u00f3 menos bytes de los esperados.",
+  invalid_media_header:"Formato del archivo no admitido o cabecera incompleta.",
+  image_dimensions:"Dimensiones de imagen no v\u00e1lidas o superiores a 24 MP.",
+  video_duration_unknown_or_exceeds_120s:"Duraci\u00f3n desconocida o superior a 120 segundos.",
+  source_unreachable:"No se pudo conectar con el origen.",
+  source_read_failed:"No se pudo leer el contenido del origen.",
+  media_unavailable:"El registro de aportes no est\u00e1 disponible.",
+  media_registry_unavailable:"No se pudo acceder al registro de aportes.",
+  media_registry_not_configured:"Registro de aportes no configurado.",
+  rate_limited:"Se alcanz\u00f3 la cuota de aportes.",
+});
+const err = (code:string,status:number,message?:string) => json({error:{
+  code,message:message ?? (Object.prototype.hasOwnProperty.call(mediaMessages,code)?mediaMessages[code]:code),
+}},status);
+class SourceError extends Error {
+  constructor(readonly code:string,readonly status:number,readonly publicMessage?:string) {super(code);}
+}
+const SOURCE_USER_AGENT = "ClipotecaComunitaria/3.0 (+https://github.com/riquelmechile/clipoteca-comunitaria)";
 const hex = (b:Uint8Array) => Array.from(b,x=>x.toString(16).padStart(2,"0")).join("");
 const digest = async (s:string) => hex(new Uint8Array(await crypto.subtle.digest("SHA-256",encoder.encode(s))));
 const repo = (env:MediaEnv) => {
@@ -68,6 +97,9 @@ async function bodyJson(request:Request):Promise<unknown> {
     }
     raw+=localDecoder.decode();
     return JSON.parse(raw);
+  }catch(e){
+    if(e instanceof SyntaxError || e instanceof TypeError)throw new TypeError("invalid_json");
+    throw e;
   }finally{await reader.cancel().catch(()=>{});}
 }
 function length(value:string|null):number {
@@ -95,24 +127,39 @@ function checked(head:Uint8Array,kind:MediaKind) {
   return {mime,duration_seconds:duration};
 }
 async function probe(url:string,kind:MediaKind) {
-  const response=await fetch(url,{redirect:"manual",headers:{range:"bytes=0-"+(PREFIX-1),"accept-encoding":"identity"}});
+  let response:Response;
+  try{
+    response=await fetch(url,{redirect:"manual",headers:{
+      range:"bytes=0-"+(PREFIX-1),"accept-encoding":"identity","user-agent":SOURCE_USER_AGENT,
+    }});
+  }catch{throw new SourceError("source_unreachable",502);}
+  // Never follow redirects or expose an upstream body, URL or exception.
+  if(response.status!==200 && response.status!==206){
+    await response.body?.cancel().catch(()=>{});
+    throw new SourceError("source_status_"+response.status,400,
+      "El origen respondi\u00f3 con HTTP "+response.status+".");
+  }
   if(!response.body)throw new TypeError("invalid_source");
   const reader=response.body.getReader();
   try{
-    if(response.headers.get("content-encoding") && response.headers.get("content-encoding")!=="identity")
-      throw new TypeError("invalid_encoding");
+    const encoding=response.headers.get("content-encoding");
+    if(encoding && encoding.toLowerCase()!=="identity")throw new TypeError("invalid_encoding");
     let bytes:number,expected:number;
     if(response.status===206){
       const range=/^bytes 0-(\d+)\/([1-9]\d*)$/.exec(response.headers.get("content-range")??"");
       if(!range)throw new TypeError("invalid_range");
-      bytes=length(range[2]!);expected=Math.min(bytes,PREFIX);
-      if(Number(range[1])+1!==expected || length(response.headers.get("content-length"))!==expected)
+      bytes=Number(range[2]);expected=Math.min(bytes,PREFIX);
+      const contentLength=response.headers.get("content-length");
+      if(!Number.isSafeInteger(bytes) || Number(range[1])+1!==expected ||
+        (contentLength!==null && (!/^[1-9]\d*$/.test(contentLength) || Number(contentLength)!==expected)))
         throw new TypeError("invalid_range");
-    }else if(response.status===200){
+    }else{
       bytes=length(response.headers.get("content-length"));expected=Math.min(bytes,PREFIX);
-    }else throw new TypeError("invalid_source");
+    }
     if(bytes>maxBytes(kind))throw new TypeError("media_too_large");
-    const {head}=await prefix(reader,expected);
+    let head:Uint8Array;
+    try{({head}=await prefix(reader,expected));}
+    catch{throw new SourceError("source_read_failed",502);}
     if(head.length!==expected)throw new TypeError("truncated_source");
     return {bytes,...checked(head,kind)};
   }finally{await reader.cancel().catch(()=>{});}
@@ -137,7 +184,9 @@ async function registerUrl(request:Request,env:MediaEnv) {
   const raw=await bodyJson(request);
   const meta=metadata(raw,["url"]);
   if(!object(raw)||typeof raw.url!=="string")throw new TypeError("invalid_url");
-  const url=mediaUrl(raw.url,meta.kind);
+  let url:string;
+  try{url=mediaUrl(raw.url,meta.kind);}
+  catch(e){if(e instanceof TypeError)throw new TypeError("invalid_url");throw e;}
   const key=await digest(JSON.stringify({...meta,url}));
   if(reservations.has(key))return err("media_registration_in_progress",409);
   reservations.add(key);
@@ -360,7 +409,10 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
     }
     return err("method_not_allowed",405);
   }catch(e){
-    if(e instanceof TypeError || e instanceof SyntaxError)return err("invalid_media",400);
+    if(e instanceof SourceError)return err(e.code,e.status,e.publicMessage);
+    // Only fixed, locally defined messages are exposed. Unexpected errors are
+    // infrastructure failures, not malformed user media.
+    if(e instanceof TypeError && Object.prototype.hasOwnProperty.call(mediaMessages,e.message))return err(e.message,400);
     return err("media_unavailable",503);
   }
 }

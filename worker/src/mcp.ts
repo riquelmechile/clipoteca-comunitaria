@@ -119,7 +119,19 @@ type ActionResult = ReturnType<typeof answer> | ReturnType<typeof fail>;
 async function restResult(request: Request, env: McpEnv): Promise<ActionResult> {
   const response = await handleRest(request, env) ?? await handleCatalog(request, env);
   if (!response) return fail("Unknown route");
-  if (!response.ok) return fail("Clipoteca API error " + response.status);
+  if (!response.ok) {
+    // Only this local media handler produces these safe, fixed diagnostics.
+    if (new URL(request.url).pathname === "/v1/media") {
+      try {
+        const {error} = await response.json() as {error?: {code?: string; message?: string}};
+        if (typeof error?.code === "string" && /^[a-z0-9_]+$/.test(error.code) &&
+            typeof error.message === "string") {
+          return fail(error.code + ": " + error.message);
+        }
+      } catch { /* Fall back to the HTTP status. */ }
+    }
+    return fail("Clipoteca API error " + response.status);
+  }
   const result = (await response.json()) as object;
   return answer(result);
 }

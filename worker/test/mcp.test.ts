@@ -109,6 +109,28 @@ describe("M10 MCP Streamable HTTP", () => {
     expect(parsed.result.structuredContent).toMatchObject({clip:{id:"clip-000003"}});
   });
 
+  it("preserves the safe media registration error through MCP", async () => {
+    const token = "test-write-token-123456";
+    vi.stubGlobal("fetch",vi.fn(async (url:string) => {
+      if (url.includes("/search/issues")) return Response.json({items:[]});
+      return new Response("token=private",{status:403});
+    }));
+    const request = rpc("tools/call",{
+      name:"register_media_url",arguments:{
+        kind:"image",title:"Example",author:"Autor",source:"Commons",
+        url:"https://upload.wikimedia.org/wikipedia/commons/a/a9/Example.jpg",
+      },
+    });
+    request.headers.set("authorization","Bearer "+token);
+    const response=await worker.fetch(request,{
+      ...environment,CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:"test-issues-token",
+    });
+    const payload=await rpcPayload(response);
+    expect(payload.result.isError).toBe(true);
+    expect(payload.result.content[0].text).toContain("source_status_403");
+    expect(payload.result.content[0].text).not.toContain("token=private");
+  });
+
   it("blocks invalid tool arguments at SDK schema", async () => {
     const response = await worker.fetch(rpc("tools/call", {
       name: "get_clip", arguments: { clip_id: "../../secrets" },
