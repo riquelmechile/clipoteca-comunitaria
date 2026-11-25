@@ -11187,5 +11187,70 @@
     },
     "status": "published",
     "created_at": "2026-11-25T17:29:32.054996Z"
+  },
+  {
+    "id": "clip-000172",
+    "title": {
+      "es": "Natación de perros en el lago con chaqueta de vida",
+      "en": "Dog swimming in lake with life jacket"
+    },
+    "description": {
+      "es": "Natación de perros en el lago con chaqueta de vida",
+      "en": "Dog swimming in lake with life jacket"
+    },
+    "tags": {
+      "es": [
+        "Natación",
+        "perros",
+        "lago",
+        "chaqueta",
+        "vida"
+      ],
+      "en": [
+        "Dog",
+        "swimming",
+        "lake",
+        "life",
+        "jacket"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "39796362",
+      "source_language": "en",
+      "source_title": "dog-swimming-in-lake-with-life-jacket-39796362",
+      "source_url": "https://www.pexels.com/video/dog-swimming-in-lake-with-life-jacket-39796362/",
+      "source_start": 4.0,
+      "source_end": 13.933333
+    },
+    "media": {
+      "duration_seconds": 9.933333,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 19680032,
+      "sha256": "6dc27f62a4f880081afc4b3d337a7c5ed92ef78aaf91f0aec4be304d7ad42069",
+      "perceptual_hash": "bcaa9b6a38ce3388~2064.52:f783d1c781cc345c~2299.11:ca2b8ae9bf19ce01~4129.69:9a6c32d849ee3719~5398.35:9f072bd45a2b2dc2~5199.32"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000172.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000172.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000172_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000172_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000172_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000172_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000172_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000172_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-25T17:29:32.054996Z"
   }
 ]
