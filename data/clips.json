@@ -11582,5 +11582,70 @@
     },
     "status": "published",
     "created_at": "2026-11-25T17:29:32.054996Z"
+  },
+  {
+    "id": "clip-000178",
+    "title": {
+      "es": "Juguetes cachorros de bulldog francés en interiores",
+      "en": "Playful french bulldog puppies indoors"
+    },
+    "description": {
+      "es": "Juguetes cachorros de bulldog francés en interiores",
+      "en": "Playful french bulldog puppies indoors"
+    },
+    "tags": {
+      "es": [
+        "Juguetes",
+        "cachorros",
+        "bulldog",
+        "francés",
+        "interiores"
+      ],
+      "en": [
+        "Playful",
+        "french",
+        "bulldog",
+        "puppies",
+        "indoors"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "35556862",
+      "source_language": "en",
+      "source_title": "playful-french-bulldog-puppies-indoors-35556862",
+      "source_url": "https://www.pexels.com/video/playful-french-bulldog-puppies-indoors-35556862/",
+      "source_start": 2.0,
+      "source_end": 10.116667
+    },
+    "media": {
+      "duration_seconds": 8.116667,
+      "width": 1080,
+      "height": 1920,
+      "fps": 60.0,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 10697363,
+      "sha256": "d32dfe740687fbece5acc4a871f42c0126bdd055b21457ee2e9d33cb06fa1de0",
+      "perceptual_hash": "a2633693758c4fca~2772.22:916f6854332794cf~2472.50:8d55751f58e03729~2254.48:9017cf5e31173ca5~3179.78:96c137a9d28f5a2a~2992.07"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000178.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000178.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000178_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000178_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000178_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000178_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000178_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000178_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-25T17:29:32.054996Z"
   }
 ]
