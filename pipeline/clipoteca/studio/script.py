@@ -89,8 +89,12 @@ class SceneSpec:
     query: Mapping[str, tuple[str, ...] | Mapping[str, tuple[str, ...]]]
     prompt: str
     avoid: tuple[str, ...]
+    media: Mapping[str, str | float] | None = None
+    on_error: Literal["fail", "search"] = "fail"
 
     def __post_init__(self) -> None:
+        if self.media is not None:
+            object.__setattr__(self, "media", _FrozenMap(self.media))
         object.__setattr__(
             self,
             "query",
@@ -197,6 +201,9 @@ def parse_video_script(data: object) -> VideoScript:
     if not any(scene["type"] == "fact" for scene in input_scenes):
         raise ScriptError("scenes.type: se requiere al menos una fact")
     for index, scene in enumerate(input_scenes):
+        media = scene.get("media")
+        if media is not None and "end" in media and media["end"] <= media.get("start", 0):
+            raise ScriptError(f"scenes[{index}].media: end debe superar start")
         scene_id = scene["id"]
         if scene_id in ids:
             raise ScriptError(f"scenes[{index}].id: duplicado")
@@ -221,9 +228,11 @@ def parse_video_script(data: object) -> VideoScript:
             sub=scene.get("sub", ""),
             say=scene["say"],
             caption=scene.get("caption", scene["say"]),
-            query=scene["query"],
-            prompt=scene["prompt"],
+            query=scene.get("query", {}),
+            prompt=scene.get("prompt", ""),
             avoid=tuple(scene.get("avoid", [])),
+            media=scene.get("media"),
+            on_error=scene.get("on_error", "fail"),
         )
         for scene in input_scenes
     )
@@ -276,7 +285,11 @@ def estimate_durations(script: VideoScript, *, include_render: bool = False) -> 
 def _plain(value: object) -> object:
     """JSON-compatible snapshot of dataclasses with immutable mapping fields."""
     if is_dataclass(value) and not isinstance(value, type):
-        return {field.name: _plain(getattr(value, field.name)) for field in fields(value)}
+        result = {field.name: _plain(getattr(value, field.name)) for field in fields(value)}
+        if isinstance(value, SceneSpec) and value.media is None:
+            result.pop("media")
+            result.pop("on_error")
+        return result
     if isinstance(value, Mapping):
         return {key: _plain(item) for key, item in value.items()}
     if isinstance(value, (tuple, list)):

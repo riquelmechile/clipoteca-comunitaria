@@ -125,7 +125,11 @@ def build_delivery(work, catalog_path):
         clip = result["clip"]
         identifier = clip["clip_id"]
         imported = clip.get("imported", False)
-        if imported:
+        origin = result.get("origin", "imported" if imported else "catalog")
+        if origin == "contribution":
+            manifest = _read(folder / "contribution" / "imported.json")
+            record = next(row["record"] for row in manifest["clips"] if row["imp_id"] == identifier)
+        elif imported:
             name = result.get("import_round", "import")
             if name not in ("import", "import-retry"):
                 raise ValueError("invalid import round")
@@ -144,7 +148,7 @@ def build_delivery(work, catalog_path):
                     else {}
                 ),
                 "clip_id": indexed["clips"].get(identifier, identifier),
-                "origin": "imported" if imported else "catalog",
+                "origin": origin,
                 "source": record["source"]["provider"],
                 "source_url": record["source"]["source_url"],
                 **evidence,

@@ -2,6 +2,8 @@
 
 ## Sin publicar
 
+- Aportes de video y clips fijados por escena; registro con lecturas autenticadas, seleccion explicita, origen en entrega e indexado de aportes tras QA.
+
 - Cuota de video: el tope diario por IP sube de 12 a 50 solicitudes; se mantiene una cada cinco minutos.
 
 ## 3.0.0 (2026-11-24)

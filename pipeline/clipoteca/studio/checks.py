@@ -233,7 +233,13 @@ def check_global(
     else:
         rows = list(results)
     rows = [row for row in rows if isinstance(row, dict) and _clip_info(row)]
-    rows.sort(key=lambda row: (-float(row["clip"].get("score", 0)), str(row["id"])))
+    rows.sort(
+        key=lambda row: (
+            row.get("origin") not in ("contribution", "catalog_pinned"),
+            -float(row["clip"].get("score", 0)),
+            str(row["id"]),
+        )
+    )
     kept: list[dict[str, Any]] = []
     losers: dict[str, str] = {}
     for row in rows:

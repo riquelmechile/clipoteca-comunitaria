@@ -118,6 +118,38 @@ describe("video REST delivery",()=>{
     expect((await worker.fetch(request("/v1/videos",{script}),env)).status).toBe(429);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+
+  it("prevalidates contributions and pinned clips without dispatching invalid refs",async()=>{
+    const fetcher=vi.fn(async (url:string|URL|Request, init?:RequestInit)=>{
+      const address=url instanceof Request?url.url:String(url);
+      if(address.includes("/issues/119") || address.includes("/issues/120")){
+        expect(new Headers(init?.headers).get("authorization")).toBe("Bearer issue-test");
+        const video=address.endsWith("/119");
+        return Response.json({number:video?119:120,author_association:"OWNER",
+          title:"[media-v1] "+"a".repeat(64),
+          body:JSON.stringify({registry:"clipoteca-media-v1",origin:"url",kind:video?"video":"image"})});
+      }
+      if(address.includes("/issues/121")) return new Response(null,{status:404});
+      if(address.includes("/data/clips.json")) return Response.json([
+        {id:"clip-000001",status:"published"},{id:"clip-000002",status:"retired"},
+      ]);
+      if(address.endsWith("/dispatches")) return new Response(null,{status:204});
+      throw new Error("unexpected upstream");
+    });
+    vi.stubGlobal("fetch",fetcher);
+    const configured={...env,CLIPOTECA_ISSUE_TOKEN:"issue-test"};
+    const body=(ref:string)=>({script:{...script,scenes:[{media:{ref}},{},{}]}});
+    for(const [ref,code] of [["u78","media_not_video"],["u79","media_not_found"],
+      ["clip-000002","clip_not_found"],["bad","invalid_media_ref"]]){
+      const response=await worker.fetch(request("/v1/videos",body(ref!)),configured);
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(await response.json()).toMatchObject({error:{code}});
+    }
+    expect(fetcher.mock.calls.some(c=>String(c[0]).endsWith("/dispatches"))).toBe(false);
+    const response=await worker.fetch(request("/v1/videos",{script:{...script,
+      scenes:[{media:{ref:"u77"}},{media:{ref:"clip-000001"}},{}]}}),configured);
+    expect(response.status).toBe(202);
+  });
   it.each(["queued","in_progress","completed"])("reports %s",async(state)=>{
     fakeActions({status:state});
     const res=await worker.fetch(request("/v1/videos/"+id),env);

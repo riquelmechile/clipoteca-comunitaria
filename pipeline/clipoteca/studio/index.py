@@ -389,10 +389,16 @@ class DryStorage:
 
 def _collect(work, created, token):
     imports, errors, ambiguous = {}, [], set()
+    qa = work / "qa_report.json"
+    try:
+        approved = qa.is_file() and _read(qa).get("pass") is True
+    except (OSError, ValueError, AttributeError):
+        approved = False
+    folders = ("import", "import-retry", "contribution") if approved else ("import", "import-retry")
     paths = [
         path
         for scene in sorted((work / "scenes").glob("*"))
-        for name in ("import", "import-retry")
+        for name in folders
         if (path := scene / name / "imported.json").is_file()
     ]
     for path in paths:
@@ -411,11 +417,22 @@ def _collect(work, created, token):
                 # Fallback material only fills a scene; it never grows the catalogue.
                 if entry.get("fallback"):
                     continue
+                is_contribution = root.name == "contribution"
+                if is_contribution:
+                    selected = _read(_local(root.parent, "result.json"))
+                    if (
+                        selected.get("status") != "ok"
+                        or selected.get("origin") != "contribution"
+                        or selected.get("clip", {}).get("clip_id") != entry.get("imp_id")
+                    ):
+                        continue
                 raw = entry["imp_id"]
                 if not isinstance(raw, str) or not _IMP_ID.fullmatch(raw):
                     raise PublishError("invalid imported identifier")
                 identifier = raw
                 record, assets = _imported(root, identifier, entry)
+                if (record["source"]["provider"] == "user_contribution") != is_contribution:
+                    raise PublishError("invalid index input")
                 urls = [f"https://example.invalid/{i}" for i in range(len(assets))]
                 _record_clip(record, "clip-999999", created, urls)
                 if token and token in json.dumps(record):

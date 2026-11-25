@@ -38,6 +38,24 @@ def _read(path):
 def select_scene(root, phase, *, exclude=(), runner=clip_scene):
     root = Path(root)
     job = _read(root / "job.json")
+    assignment = _read(root / "assignment.json")
+    if "media" in job:
+        from .explicit_media import select_explicit
+
+        if phase == "catalog":
+            direct = select_explicit(root, job, assignment)
+            if direct["status"] == "ok" or direct.get("skip_import"):
+                return direct
+            assignment = {"status": "needs_import"}
+        elif (root / "result.json").is_file():
+            prior = _read(root / "result.json")
+            if prior.get("origin") in ("contribution", "catalog_pinned") or prior.get(
+                "skip_import"
+            ):
+                return prior
+            assignment = {"status": "needs_import"}
+        else:
+            assignment = {"status": "needs_import"}
     job.setdefault("catalog_min_sim", 0.27)
     # Keep the best rendered degraded candidate while normal import/retry still runs.
     job["_allow_fallback"] = True
@@ -45,7 +63,7 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
     (root / "result.json").unlink(missing_ok=True)
     (root / "clip.mp4").unlink(missing_ok=True)
     if phase in ("catalog", "rerun"):
-        catalog = runner(job, _read(root / "assignment.json"), folders["catalog"], exclude=exclude)
+        catalog = runner(job, assignment, folders["catalog"], exclude=exclude)
     else:
         catalog = _read(folders["catalog"] / "result.json")
     imported = None
