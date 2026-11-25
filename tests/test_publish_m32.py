@@ -531,3 +531,67 @@ def test_index_release_has_capacity_for_entire_clip(setup):
 def test_unknown_exception_details_cannot_leak_tokens():
     assert TOKEN not in json.dumps(index._error(index.PublishError(TOKEN)))
     assert TOKEN not in json.dumps(index._error(RuntimeError(TOKEN)))
+
+def test_contribution_requires_approved_qa_and_preserves_origin(tmp_path):
+    work = tmp_path / "work"
+    root = tmp_path / "output"
+    directory = work / "scenes" / "a" / "contribution"
+    entry = imported(directory, 3)
+    entry["record"]["source"].update(
+        provider="user_contribution",
+        provider_id="u77",
+        source_author="Autor",
+        declared_source="Origen",
+    )
+    put(directory / "imported.json", {"clips": [entry]})
+    put(
+        directory.parent / "result.json",
+        {"status": "ok", "origin": "contribution", "clip": {"clip_id": entry["imp_id"]}},
+    )
+    writer = Writer(root)
+    state = (work, root, [entry], index.DryStorage(root), writer)
+    put(work / "qa_report.json", {"pass": False})
+    assert run(state)["clips"] == {}
+    put(work / "qa_report.json", {"pass": True})
+    result = run(state)
+    assert len(result["indexed"]) == 1
+    assert result["clips"][entry["imp_id"]] == result["indexed"][0]
+    source = writer.updates[0][0][0]["source"]
+    assert source["provider"] == "user_contribution"
+    assert source["source_author"] == "Autor"
+    assert source["declared_source"] == "Origen"
+    assert run(state)["indexed"] == []
+
+    scenes = [
+        {"id": "a", "type": "intro", "title": "A", "say": "Hola.", "media": {"ref": "u77"}},
+        {
+            "id": "b",
+            "type": "fact",
+            "title": "B",
+            "say": "Agua.",
+            "media": {"ref": "clip-000001"},
+        },
+        {
+            "id": "c",
+            "type": "outro",
+            "title": "C",
+            "say": "Adios.",
+            "query": {"es": ["agua"], "en": ["water"]},
+            "prompt": "Water flowing",
+        },
+    ]
+    put(work / "guion.json", {"title": "Mixto", "aspect": "9:16", "scenes": scenes})
+    put(
+        work / "scenes/b/result.json",
+        {"status": "ok", "origin": "catalog_pinned", "clip": {"clip_id": "clip-000001"}},
+    )
+    put(work / "scenes/c/result.json", {"status": "ok", "clip": {"clip_id": "clip-000002"}})
+    put(work / "qa_report.json", {"pass": False, "failed": ["assembly"]})
+    delivery_report = delivery.build_delivery(work, writer.path)
+    assert [row["origin"] for row in delivery_report["scenes"]] == [
+        "contribution",
+        "catalog_pinned",
+        "catalog",
+    ]
+    assert delivery_report["scenes"][0]["source_url"] == entry["source_url"]
+

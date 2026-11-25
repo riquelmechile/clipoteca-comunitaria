@@ -390,7 +390,10 @@ class DryStorage:
 def _collect(work, created, token):
     imports, errors, ambiguous = {}, [], set()
     qa = work / "qa_report.json"
-    approved = qa.is_file() and _read(qa).get("pass") is True
+    try:
+        approved = qa.is_file() and _read(qa).get("pass") is True
+    except (OSError, ValueError, AttributeError):
+        approved = False
     folders = ("import", "import-retry", "contribution") if approved else ("import", "import-retry")
     paths = [
         path
