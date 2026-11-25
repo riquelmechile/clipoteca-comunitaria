@@ -103,6 +103,9 @@
         "related_to": {"type": "string", "minLength": 1, "maxLength": 200},
         "commons_category": {"type": "string", "minLength": 1},
         "commons_place_aliases": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "source_author": {"type": "string", "minLength": 1, "maxLength": 120},
+        "declared_source": {"type": "string", "minLength": 1, "maxLength": 500},
+        "license_note": {"type": "string", "minLength": 1, "maxLength": 500},
         "source_title": {
           "type": "string"
         },

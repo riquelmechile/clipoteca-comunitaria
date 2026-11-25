@@ -119,7 +119,9 @@
               "origin": {
                 "enum": [
                   "catalog",
-                  "imported"
+                  "imported",
+                  "contribution",
+                  "catalog_pinned"
                 ]
               },
               "source": {
