@@ -89,6 +89,7 @@ describe("media intake",()=>{
         issue={...JSON.parse(String(init.body)),number:42,author_association:"OWNER"};
         return Response.json(issue,{status:201});
       }
+      if(u.pathname.endsWith("/issues/42") && new Headers(init?.headers).get("authorization")!=="Bearer "+env.CLIPOTECA_ISSUE_TOKEN) return new Response(null,{status:403});
       return Response.json(issue);
     });
     vi.stubGlobal("fetch",fetcher);

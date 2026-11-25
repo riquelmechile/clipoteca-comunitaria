@@ -254,7 +254,7 @@ async function verify(request:Request,env:MediaEnv,id:string):Promise<Ticket|nul
 }
 const tag=(id:string)=>"uploads-"+id.slice(1,8);
 async function release(env:MediaEnv,id:string,create=false):Promise<Release|null>{
-  const token=create?env.CLIPOTECA_UPLOAD_TOKEN:undefined;
+  const token=create?env.CLIPOTECA_UPLOAD_TOKEN:env.CLIPOTECA_ISSUE_TOKEN ?? env.CLIPOTECA_UPLOAD_TOKEN;
   let response=await api(env,"/releases/tags/"+tag(id),token);
   if(response.status===404 && create){
     response=await api(env,"/releases",token,{method:"POST",body:JSON.stringify({
@@ -271,7 +271,7 @@ async function release(env:MediaEnv,id:string,create=false):Promise<Release|null
 async function asset(env:MediaEnv,r:Release,name:string):Promise<Asset|undefined>{
   // The release payload can truncate assets. Page explicitly.
   for(let page=1;page<=20;page++){
-    const response=await api(env,"/releases/"+r.id+"/assets?per_page=100&page="+page,env.CLIPOTECA_UPLOAD_TOKEN);
+    const response=await api(env,"/releases/"+r.id+"/assets?per_page=100&page="+page,env.CLIPOTECA_ISSUE_TOKEN ?? env.CLIPOTECA_UPLOAD_TOKEN);
     if(!response.ok)throw new Error("release_unavailable");
     const rows=await response.json() as Asset[];
     if(!Array.isArray(rows))throw new Error("release_unavailable");
@@ -395,7 +395,7 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
     if(request.method==="GET"){
       const id=suffix.slice(1);
       if(/^u[1-9a-f][a-f0-9]{0,11}$/.test(id)){
-        const response=await api(env,"/issues/"+parseInt(id.slice(1),16));
+        const response=await api(env,"/issues/"+parseInt(id.slice(1),16),env.CLIPOTECA_ISSUE_TOKEN);
         if(response.status===404)return err("media_not_found",404);
         if(!response.ok)return err("media_registry_unavailable",503);
         const record=parseIssue(await response.json());
