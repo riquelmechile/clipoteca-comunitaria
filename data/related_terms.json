@@ -296,6 +296,69 @@
       "country_only": false
     },
     {
+      "seed": "patagonia",
+      "context": [],
+      "place": true,
+      "topic": null,
+      "date": "2026-11-25T05:31:55.601854+00:00",
+      "terms": [
+        {
+          "term": "Patagonia Lake Ranch Estates",
+          "origin": "commons"
+        },
+        {
+          "term": "Tierra del Fuego",
+          "origin": "commons"
+        },
+        {
+          "term": "Valdivian temperate rainforest",
+          "origin": "commons"
+        },
+        {
+          "term": "Ays\u00e9n Region",
+          "origin": "commons"
+        },
+        {
+          "term": "Magallanes y la Ant\u00e1rtica Chilena Region",
+          "origin": "commons"
+        },
+        {
+          "term": "Cady Hall (Patagonia",
+          "origin": "commons"
+        },
+        {
+          "term": "Torres del Paine National Park",
+          "origin": "commons"
+        },
+        {
+          "term": "Neuqu\u00e9n Province",
+          "origin": "commons"
+        }
+      ],
+      "roots": [
+        {
+          "qid": "Q1507",
+          "label": "Patagonia"
+        },
+        {
+          "qid": "Q1024689",
+          "label": "Patagonia"
+        },
+        {
+          "qid": "Q6066209",
+          "label": "Patagonia chilena"
+        }
+      ],
+      "commons_roots": [
+        "Category:Patagonia",
+        "Category:Patagonia, Arizona",
+        "Category:Patagonia, Chile"
+      ],
+      "wiki_geo": true,
+      "commons_geo": true,
+      "country_only": false
+    },
+    {
       "seed": "rapa nui",
       "context": [],
       "place": true,
