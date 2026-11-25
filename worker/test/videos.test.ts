@@ -139,15 +139,18 @@ describe("video REST delivery",()=>{
     vi.stubGlobal("fetch",fetcher);
     const configured={...env,CLIPOTECA_ISSUE_TOKEN:"issue-test"};
     const body=(ref:string)=>({script:{...script,scenes:[{media:{ref}},{},{}]}});
-    for(const [ref,code] of [["u78","media_not_video"],["u79","media_not_found"],
+    for(const [ref,code] of [["asset:unknown","asset_not_found"],["u79","media_not_found"],
       ["clip-000002","clip_not_found"],["bad","invalid_media_ref"]]){
       const response=await worker.fetch(request("/v1/videos",body(ref!)),configured);
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(await response.json()).toMatchObject({error:{code}});
     }
+    const invalidWindow=await worker.fetch(request("/v1/videos",{script:{...script,
+      scenes:[{media:{ref:"u78",start:0}},{},{}]}}),configured);
+    expect(await invalidWindow.json()).toMatchObject({error:{code:"invalid_image_window"}});
     expect(fetcher.mock.calls.some(c=>String(c[0]).endsWith("/dispatches"))).toBe(false);
     const response=await worker.fetch(request("/v1/videos",{script:{...script,
-      scenes:[{media:{ref:"u77"}},{media:{ref:"clip-000001"}},{}]}}),configured);
+      scenes:[{media:{ref:"u78",motion:"zoom_in"}},{media:{ref:"clip-000001"}},{media:{ref:"asset:clipoteca-pipeline"}}]}}),configured);
     expect(response.status).toBe(202);
   });
   it.each(["queued","in_progress","completed"])("reports %s",async(state)=>{

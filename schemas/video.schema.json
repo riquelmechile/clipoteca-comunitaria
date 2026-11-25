@@ -220,7 +220,13 @@
           "properties": {
             "ref": {
               "type": "string",
-              "pattern": "^(?:u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32}|clip-[0-9]{6})$"
+              "pattern": "^(?:u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32}|clip-[0-9]{6}|asset:[a-z0-9][a-z0-9-]{0,63})$"
+            },
+            "motion": {
+              "enum": ["auto", "zoom_in", "zoom_out", "pan_left", "pan_right"]
+            },
+            "framing": {
+              "enum": ["cover", "contain"]
             },
             "start": {
               "type": "number",
