@@ -7,6 +7,7 @@ import { handleCatalog } from "./catalog";
 import { handleRest, type RestEnv } from "./rest";
 import { handleScript } from "./script";
 import { APP_VERSION } from "./version";
+import { PUBLIC_NOTICE } from "./media";
 
 export interface McpEnv extends RestEnv {
   MCP_ALLOWED_HOSTS?: string;
@@ -284,9 +285,47 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   }, async ({ request_id }) => restResult(
     toolRequest("/v1/jobs/" + request_id, "GET"), env));
 
+
+  const mediaMetadata = {
+    kind: z.enum(["video", "image"]), title: z.string().min(1).max(120),
+    author: z.string().min(1).max(120), source: z.string().min(1).max(500),
+    license_note: z.string().min(1).max(500).optional(),
+  };
+  const mediaId = z.string().regex(/^(?:u[1-9a-f][a-f0-9]{0,11}|a\d{4}-\d{2}-[a-f0-9]{32})$/);
+  const mediaRecord = z.object({
+    ...mediaMetadata, media_id: mediaId, bytes: z.number().int().positive(),
+    mime: z.string(), origin: z.enum(["url", "upload"]), url: z.string().url(),
+    created_at: z.string(), status: z.literal("registered"),
+    duration_seconds: z.number().positive().max(120).optional(),
+  });
+  server.registerTool("register_media_url", {
+    title: "Registrar un aporte por URL",
+    description: "Registra una URL HTTPS directa. " + PUBLIC_NOTICE,
+    inputSchema: z.strictObject({...mediaMetadata, url: z.string().url()}),
+    outputSchema: mediaRecord,
+    annotations: {readOnlyHint:false, openWorldHint:true},
+  }, async input => restResult(toolRequest("/v1/media", "POST", input), env));
+  server.registerTool("create_media_upload", {
+    title: "Crear enlace de subida",
+    description: "Enlace de un solo uso, 15 minutos. " + PUBLIC_NOTICE,
+    inputSchema: z.strictObject(mediaMetadata),
+    outputSchema: z.object({
+      media_id:mediaId,status:z.literal("pending_upload"),expires_at:z.string(),
+      upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string(),
+    }),
+    annotations: {readOnlyHint:false,openWorldHint:true},
+  }, async input => restResult(toolRequest("/v1/media/upload", "POST", input), env));
+  server.registerTool("get_media_status", {
+    title: "Consultar un aporte",
+    description: "Consulta el registro del aporte. " + PUBLIC_NOTICE,
+    inputSchema: z.strictObject({media_id:mediaId}),
+    outputSchema: mediaRecord,
+    annotations: {readOnlyHint:true,openWorldHint:true},
+  }, async ({media_id}) => restResult(toolRequest("/v1/media/"+media_id, "GET"), env));
+
   server.registerTool("render_video", {
     title: "Render a video",
-    description: "Deliver a narrated video from your own script. Spanish, 3-12 scenes, maximum 60 seconds, 9:16/16:9/1:1. Optional scene query.related supports es/en arrays of related landmarks, places or concepts. Requires write Bearer. Example script: {\"title\":\"Water\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Water\",\"say\":\"El agua fluye.\",\"query\":{\"es\":[\"rio\"],\"en\":[\"river\"]},\"prompt\":\"flowing river\"},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Nubes\",\"say\":\"El agua forma nubes.\",\"query\":{\"es\":[\"nubes\"],\"en\":[\"clouds\"]},\"prompt\":\"clouds moving\"},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
+    description: PUBLIC_NOTICE + " Deliver a narrated video from your own script. Spanish, 3-12 scenes, maximum 60 seconds, 9:16/16:9/1:1. Optional scene query.related supports es/en arrays of related landmarks, places or concepts. Requires write Bearer. Example script: {\"title\":\"Water\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Water\",\"say\":\"El agua fluye.\",\"query\":{\"es\":[\"rio\"],\"en\":[\"river\"]},\"prompt\":\"flowing river\"},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Nubes\",\"say\":\"El agua forma nubes.\",\"query\":{\"es\":[\"nubes\"],\"en\":[\"clouds\"]},\"prompt\":\"clouds moving\"},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
     inputSchema: z.strictObject({
       script: z.object({
         title: z.string(), aspect: z.enum(["9:16","16:9","1:1"]),
@@ -302,7 +341,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
 
   server.registerTool("get_video_status", {
     title: "Get video status and download URL",
-    description: "Check render stages, quality results and the private delivery URL (7 days).",
+    description: "Check render stages, quality results and the temporary delivery URL (7 days); the Actions run is public.",
     inputSchema: z.strictObject({id: z.string().regex(/^[a-f0-9]{32}$/)}),
     outputSchema: z.object({
       id: z.string(), status: z.enum(["queued","running","done","failed","expired"]),
