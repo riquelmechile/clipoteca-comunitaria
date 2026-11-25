@@ -454,7 +454,8 @@ const fileKind=(name:unknown):MediaKind|undefined=>typeof name==="string"?
   /\.(jpe?g|png|webp)$/i.test(name)?"image":/\.(mp4|mov|webm)$/i.test(name)?"video":undefined:undefined;
 function allowedFileUrl(raw:unknown,env:MediaEnv):URL {
   if(typeof raw!=="string"||raw.length>4096)throw new TypeError("invalid_url");
-  const url=new URL(raw);
+  let url:URL;
+  try{url=new URL(raw);}catch{throw new TypeError("invalid_url");}
   const hosts=(env.CLIPOTECA_FILE_HOSTS??"oaiusercontent.com").split(",").map(v=>v.trim().toLowerCase()).filter(Boolean);
   if(url.protocol!=="https:"||url.username||url.password||url.port||url.hash||
     !hosts.some(h=>/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h)&&(url.hostname===h||url.hostname.endsWith("."+h))))throw new TypeError("invalid_url");
@@ -487,13 +488,14 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
     const session=await queue.batchCommand(env,id,{action:"session_status"});
     if(!session.state?.files||!session.state.expires)return sessionError(session.code);
     if(!match[2]&&request.method==="GET"){
-      const files=await Promise.all(session.state.files.map(async file=>{
+      const files=[];
+      for(const file of session.state.files){
         const response=await handleMedia(new Request(new URL("/v1/media/"+file.media_id,request.url)),env);
-        if(!response?.ok)return {...file,status:response?.status===404?"rejected":"processing",
-          reason:response?.status===404?"No se pudo iniciar la subida o ha vencido.":"No se pudo consultar el estado."};
+        if(!response?.ok){files.push({...file,status:response?.status===404?"rejected":"processing",
+          reason:response?.status===404?"No se pudo iniciar la subida o ha vencido.":"No se pudo consultar el estado."});continue;}
         const value=await response.json<{status:string;reason?:string}>();
-        return {...file,status:value.status,...(value.reason?{reason:value.reason}:{})};
-      }));
+        files.push({...file,status:value.status,...(value.reason?{reason:value.reason}:{})});
+      }
       return json({session_id:id,expires_at:new Date(session.state.expires).toISOString(),files});
     }
     if(!match[2]||request.method!=="POST")return err("method_not_allowed",405);
@@ -504,7 +506,7 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
        (raw.file!==undefined&&raw.image_base64!==undefined))return err("invalid_media",400);
     if(!await queue.admit(request,env,"limit_ticket"))return err("rate_limited",429);
     let remote:Response|undefined;
-    let data:Uint8Array|undefined;
+    let data:Uint8Array<ArrayBuffer>|undefined;
     let kind=raw.kind;
     try{
       if(raw.file!==undefined){

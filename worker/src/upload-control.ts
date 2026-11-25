@@ -220,5 +220,5 @@ export async function batchCommand(env:QueueEnv,id:string,c:BatchCommand):Promis
 export async function admit(request:Request,env:QueueEnv,action:"limit_session"|"limit_ticket"|"limit_bytes",bytes?:number){
   const ip=await hash(enc.encode(request.headers.get("cf-connecting-ip")??"unknown"));
   const day=new Date().toISOString().slice(0,10);
-  return (await batchCommand(env,"limits:"+day,{action,ip,bytes})).code===200;
+  return (await batchCommand(env,"limits:"+day,{action,ip,...(bytes===undefined?{}:{bytes})})).code===200;
 }
