@@ -251,6 +251,30 @@ def measure_loudness(path: str | Path) -> dict[str, float]:
     }
 
 
+def _fit_mix_wav(path: Path, total: float) -> None:
+    """Correct small filter latency without concealing a truncated render."""
+    try:
+        with wave.open(str(path), "rb") as wav:
+            if (wav.getframerate(), wav.getnchannels(), wav.getsampwidth()) != (48000, 2, 2):
+                raise MixError("mix.wav must be stereo 48000 Hz PCM16")
+            frames = wav.getnframes()
+            expected = round(total * 48000)
+            if abs(frames - expected) > 24000 or frames == 0:
+                raise MixError(f"mix duration invalid: {frames / 48000:.3f} vs {total:.3f}")
+            if frames == expected:
+                return
+            data = wav.readframes(min(frames, expected))
+            if len(data) != min(frames, expected) * 4:
+                raise MixError("mix.wav truncated")
+        with wave.open(str(path), "wb") as wav:
+            wav.setnchannels(2)
+            wav.setsampwidth(2)
+            wav.setframerate(48000)
+            wav.writeframes(data + bytes(max(0, expected - frames) * 4))
+    except (OSError, EOFError, wave.Error) as exc:
+        raise MixError("mix.wav unreadable") from exc
+
+
 def mix(
     timeline: dict[str, Any],
     voice_dir: str | Path,
@@ -317,6 +341,7 @@ def mix(
                 str(premix.resolve()),
             ]
         )
+        _fit_mix_wav(premix, total)
         measured = _measure(premix, target, peak_limit)
         normalized = (
             f"loudnorm=I={target}:TP={peak_limit}:LRA=11:"
@@ -349,6 +374,7 @@ def mix(
                 str(final.resolve()),
             ]
         )
+        _fit_mix_wav(final, total)
         stats = measure_loudness(final)
         try:
             with wave.open(str(final), "rb") as wav:
