@@ -58,6 +58,7 @@ def estimate_scenes(script: VideoScript) -> list[dict[str, Any]]:
         result.append(
             {
                 "id": scene.id,
+                **({"source_kind": "catalog_pinned" if str(scene.media["ref"]).startswith("clip-") else "contribution"} if scene.media else {}),
                 "type": scene.type,
                 "voice_est": duration,
                 "len_est": rounded,
@@ -109,8 +110,9 @@ def scene_job(script: VideoScript, scene: SceneSpec, est: dict[str, Any]) -> dic
         "len_est": est["len_est"],
         "len_fetch": est["len_fetch"],
         "start_est": est["start_est"],
+        **({"media": dict(scene.media), "source_kind": est["source_kind"], "on_error": scene.on_error} if scene.media else {}),
         "queries": {
-            **{lang: list(scene.query[lang]) for lang in ("es", "en")},
+            **{lang: list(scene.query.get(lang, ())) for lang in ("es", "en")},
             **(
                 {"related": {lang: list(terms) for lang, terms in scene.query["related"].items()}}
                 if "related" in scene.query
@@ -159,12 +161,14 @@ def write_plan(
         scene_job(script, scene, est)
         for scene, est in zip(script.scenes, plan["scenes"], strict=True)
     ]
+    free_jobs = [job for job in jobs if "media" not in job]
     if resolve_related:
         from .related import resolve_jobs
         from .related_cache import load_cache
 
-        diagnostics = asyncio.run(resolve_jobs(jobs, persistent_cache=load_cache()))
-        for job, estimate, diagnostic in zip(jobs, plan["scenes"], diagnostics, strict=True):
+        diagnostics = asyncio.run(resolve_jobs(free_jobs, persistent_cache=load_cache()))
+        for job, diagnostic in zip(free_jobs, diagnostics, strict=True):
+            estimate = next(row for row in plan["scenes"] if row["id"] == job["id"])
             job["related_diagnostic"] = diagnostic
             estimate["related_diagnostic"] = diagnostic
             # A single machine-readable line per scene, retained in Actions logs.
@@ -176,7 +180,20 @@ def write_plan(
     if catalog_path is not None:
         from .library import assign_scenes, load_catalog
 
-        listed = assign_scenes(jobs, load_catalog(catalog_path))
+        catalog = load_catalog(catalog_path)
+        reserved = {job["media"]["ref"] for job in jobs if job.get("source_kind") == "catalog_pinned"}
+        free_catalog = {"clips": [clip for clip in catalog["clips"] if clip["id"] not in reserved]}
+        listed = assign_scenes(free_jobs, free_catalog)
+        for job in jobs:
+            if "media" not in job:
+                continue
+            row = {"id": job["id"], "status": job["source_kind"]}
+            if job["source_kind"] == "catalog_pinned":
+                clip = next((clip for clip in catalog["clips"] if clip["id"] == job["media"]["ref"]), None)
+                if clip is None:
+                    raise ScriptError("clip fijado inexistente o retirado")
+                row["primary"] = {"clip_id": clip["id"], "asset_url": clip["storage"]["asset_url"], "sha256": clip["media"]["sha256"], "size_bytes": clip["media"]["size_bytes"], "source_url": clip["source"].get("source_url")}
+            listed.append(row)
         assignments = {
             "version": 1,
             "script_id": plan["script_id"],
