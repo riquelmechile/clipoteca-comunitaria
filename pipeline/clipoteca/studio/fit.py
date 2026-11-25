@@ -205,6 +205,8 @@ def fit_all(
     timeline: dict[str, Any],
     clips_dir: str | Path,
     out_dir: str | Path,
+    *,
+    scenes_dir: str | Path | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Write a durable status for every scene, even when one must be re-dispatched."""
     if not isinstance(timeline, dict) or not isinstance(timeline.get("scenes"), list):
@@ -223,7 +225,12 @@ def fit_all(
                 raise FitError("duplicate scene id")
             seen.add(key)
             length = _positive(scene.get("len"), "scene.len")
-            rows[key] = fit_clip(root / f"{key}.mp4", output / f"{key}.mp4", length)
+            source = root / f"{key}.mp4"
+            if scenes_dir is not None:
+                result = json.loads((Path(scenes_dir) / key / "result.json").read_text(encoding="utf-8"))
+                if result.get("origin") in ("contribution", "catalog_pinned") and length > 1.25 * probe_duration(source) + 1e-6:
+                    raise FitError("Aporte demasiado corto para la voz real: no se admite pingpong.")
+            rows[key] = fit_clip(source, output / f"{key}.mp4", length)
         except (FitError, OSError) as exc:
             failures[str(scene.get("id", index)) if isinstance(scene, dict) else str(index)] = str(
                 exc
@@ -238,10 +245,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeline", type=Path, required=True)
     parser.add_argument("--clips", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--scenes", type=Path)
     args = parser.parse_args(argv)
     try:
         report = fit_all(
-            json.loads(args.timeline.read_text(encoding="utf-8")), args.clips, args.out
+            json.loads(args.timeline.read_text(encoding="utf-8")), args.clips, args.out,
+            scenes_dir=args.scenes
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "error", "error": type(exc).__name__}))
