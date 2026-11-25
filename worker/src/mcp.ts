@@ -322,16 +322,16 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     description: "Enlace de un solo uso, 15 minutos. " + PUBLIC_NOTICE,
     inputSchema: z.strictObject(mediaMetadata),
     outputSchema: z.object({
-      media_id:mediaId,status:z.literal("pending_upload"),expires_at:z.string(),
+      media_id:mediaId,status:z.enum(["pending_upload","uploading"]),expires_at:z.string(),
       upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string(),
     }),
     annotations: {readOnlyHint:false,openWorldHint:true},
   }, async input => restResult(toolRequest("/v1/media/upload", "POST", input), env));
   server.registerTool("get_media_status", {
     title: "Consultar un aporte",
-    description: "Consulta el registro del aporte. " + PUBLIC_NOTICE,
+    description: "Consulta si el aporte esta subiendo, procesando, registrado o rechazado. " + PUBLIC_NOTICE,
     inputSchema: z.strictObject({media_id:mediaId}),
-    outputSchema: mediaRecord,
+    outputSchema: mediaRecord.partial().extend({media_id:mediaId,status:z.enum(["uploading","processing","registered","rejected"]),reason:z.string().optional()}),
     annotations: {readOnlyHint:true,openWorldHint:true},
   }, async ({media_id}) => restResult(toolRequest("/v1/media/"+media_id, "GET"), env));
 

@@ -330,39 +330,47 @@ El MP4 final no forma parte del catálogo de clips. No existe modo privado.
 
 - `register_media_url` / POST `/v1/media`: URL HTTPS directa (sin query, credenciales, IP literal ni redirecciones), kind (video o image), title, author, source y license_note opcional.
 - `create_media_upload` / POST `/v1/media/upload`: mismos metadatos sin URL. Devuelve media_id, upload_url, put_url, upload_token y expires_at. Abre upload_url en el navegador o envía PUT a put_url con el archivo binario, Content-Length y Authorization: Bearer seguido de upload_token (no el token de escritura). El enlace vence a los 15 minutos y no permite publicar un segundo archivo.
-- `get_media_status` / GET `/v1/media/{id}`: registro público del aporte ya registrado; 404 si aún no existe. Las dos solicitudes POST requieren Bearer de escritura.
+- `get_media_status` / GET `/v1/media/{id}`: estado público `uploading` (subiendo), `processing` (procesando), `registered` (registrado) o `rejected` (rechazado, con motivo en castellano). Un ID desconocido devuelve 404. Las dos solicitudes POST requieren Bearer de escritura.
 
-Videos MP4, MOV o WebM: máximo 50 MiB y 120 s. Imágenes JPEG, PNG o WebP:
-máximo 10 MiB y 24 MP. La validación de cabeceras lee hasta 128 KiB; si
-la duración o las dimensiones no se pueden comprobar allí, rechaza el
-archivo (por ejemplo, MP4 con moov al final; reexportar con faststart).
-No es una decodificación integral. La procedencia es declarada por el
-usuario, sin compuerta de copyright. El límite de 12 aportes por video y
-la incorporación de medios al guion/render pertenecen a la etapa 2;
-solo los videos se indexarán. No se ha modificado el contrato de guion.
+**Desde el celular:** pide el enlace de subida, abre el enlace en el navegador,
+elige tu foto o video y pulsa Subir aporte. No necesitas una llave personal
+de GitHub ni subirlo antes a otro sitio. Guarda el ID y consulta el estado.
+Todo lo que subas queda público. No subas material privado ni de terceros sin permiso.
 
-El registro de URL usa un Issue público con manifiesto JSON y el token
-existente CLIPOTECA_ISSUE_TOKEN (permiso Issues: write de un colaborador
-del repositorio). Esto evita depender del nuevo token de Releases.
-La subida usa un asset de nombre aleatorio y su manifiesto JSON en la
-Release pública mensual uploads-YYYY-MM. No se usa R2, KV ni D1.
-El SHA-256 de contenido queda opcional: en esta etapa no se calcula
-para no almacenar el archivo completo ni descargar una URL completa.
-Si falla el registro después de subir el binario, el asset queda público
-sin manifiesto; requiere conciliación manual. No se repite la subida.
+Videos MP4, MOV o WebM: máximo 50 MiB y 120 s. Imágenes JPEG, PNG o WebP
+no animadas: máximo 10 MiB y 24 MP. Para la subida, el Worker revisa magic
+y cabecera (JPEG con hasta 2 MiB de cabecera); el workflow comprueba
+duración, formato y decodificación completa antes de publicar. El registro
+por URL conserva su verificación acotada, no decodifica el archivo completo.
+
+El flujo nuevo usa KV UPLOADS para trozos de hasta 24 MiB, SHA-256 por
+trozo y TTL de 2 horas. El Durable Object SQLite UPLOAD_CONTROL
+coordina atómicamente cada ID: KV por sí solo no ofrece consumo de un
+solo uso. La capacidad de lectura vence a los 30 minutos y solo puede
+ser reclamada por un run de media-ingest.yml en main, autenticado con
+OIDC de GitHub Actions; el mismo run puede reintentar trozos por la
+consistencia eventual de KV. Los inputs del workflow son públicos,
+no son credenciales. El workflow publica los assets ID.media e ID.json
+en uploads-YYYY-MM con GITHUB_TOKEN del job y confirma al Worker para
+borrar los trozos. El manifiesto es el registro definitivo.
+Los estados temporales se conservan hasta 24 h; el registro publicado
+es permanente. Una respuesta de publicación perdida puede dejar un
+asset huérfano sin manifiesto; no se borra automáticamente una
+publicación de resultado incierto.
+
+Activación por el mantenedor: mover propuestas/media-ingest.workflow.yml
+a .github/workflows/media-ingest.yml y aplicar
+propuestas/worker.wrangler.toml a worker/wrangler.toml (Panter no
+permite editar esos destinos). El despliegue del Worker debe aplicar
+la migración SQLite y el binding KV existente. Se usa el dominio
+clipoteca-worker.clipoteca.workers.dev, CLIPOTECA_DISPATCH_TOKEN,
+CLIPOTECA_WRITE_TOKEN y CLIPOTECA_ISSUE_TOKEN ya existentes. No
+se necesita crear PAT nuevo. CLIPOTECA_UPLOAD_TOKEN sigue como
+alternativa opcional si no está configurado el flujo KV.
+Sin ninguno, la subida devuelve 503; el registro por URL sigue funcionando.
+El registro por URL usa Issues públicos y CLIPOTECA_ISSUE_TOKEN.
 La cuota media por IP es 20 aportes y 200 MiB por día UTC (Cache API,
-best-effort, sin garantía global entre centros de datos). Las URL se
-deduplican por metadatos normalizados y URL; la búsqueda de Issues
-tiene consistencia eventual, así que no es una garantía transaccional global.
-
-Para habilitar la subida, crea un token fine-grained de GitHub limitado
-al repositorio Clipoteca, con Contents: Read and write. Configura el
-secreto del Worker CLIPOTECA_UPLOAD_TOKEN mediante
-`wrangler secret put CLIPOTECA_UPLOAD_TOKEN` desde worker/.
-No publiques el valor, ni lo pongas en wrangler.toml.
-Sin ese secreto la página y las rutas de subida devuelven 503
-(uploads_not_configured); el registro por URL sigue funcionando.
-
+best-effort entre centros de datos).
 
 ### Aportes de video y clips fijados (etapa 2)
 

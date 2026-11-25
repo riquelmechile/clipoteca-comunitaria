@@ -1,8 +1,9 @@
 /** Public contribution registry and single-use Release upload capability. */
 import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, type MediaKind} from "./media-header";
 import {quota} from "./quota";
+import * as queue from "./upload-control";
 
-export interface MediaEnv {
+export interface MediaEnv extends queue.QueueEnv {
   CLIPOTECA_GITHUB_REPO?: string;
   CLIPOTECA_WRITE_TOKEN?: string;
   CLIPOTECA_ISSUE_TOKEN?: string;
@@ -112,7 +113,7 @@ function length(value:string|null):number {
  * must replay the consumed bytes verbatim to GitHub after validation.
  * Only uploads retain a bounded replay buffer, never an entire large file.
  */
-async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:number,kind:MediaKind,upload=false) {
+async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:number,kind:MediaKind,upload=false,fullValidationLater=false) {
   const limit=Math.min(bytes,probeLimit(kind));
   const replay=upload?new Uint8Array(limit):undefined;
   let consumed=0,offset=0,chunk:Uint8Array|undefined,jpeg=false;
@@ -149,7 +150,7 @@ async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:n
     const head=new Uint8Array(Math.min(PREFIX,limit));
     head.set(signature);
     head.set(await read(head.length-signature.length),signature.length);
-    info=checked(head,kind);
+    info=fullValidationLater?{mime:inspectHeader(head,kind)}:checked(head,kind);
   }
   return {info,head:replay?.subarray(0,consumed),tail:chunk?.subarray(offset)};
 }
@@ -266,7 +267,9 @@ async function ticket(request:Request,env:MediaEnv) {
   const payload=b64(encoder.encode(JSON.stringify({...meta,id,exp})));
   const sig=b64(new Uint8Array(await crypto.subtle.sign("HMAC",await signKey(env),encoder.encode(payload))));
   const capability=payload+"."+sig;
-  return json({media_id:id,status:"pending_upload",expires_at:new Date(exp).toISOString(),
+  const queued=queue.configured(env);
+  if(queued && (await queue.command(env,id,{action:"create",expires:exp})).code!==200)return err("media_unavailable",503);
+  return json({media_id:id,status:queued?"uploading":"pending_upload",expires_at:new Date(exp).toISOString(),
     upload_url:new URL("/v1/media/upload",request.url).href+"#"+capability,
     put_url:new URL("/v1/media/upload/"+id,request.url).href,upload_token:capability},201);
 }
@@ -330,6 +333,37 @@ async function getUpload(env:MediaEnv,id:string):Promise<RecordMedia|null>{
   const value=await response.json() as RecordMedia;
   if(value.media_id!==id || value.origin!=="upload")throw new Error("invalid_manifest");
   return value;
+}
+async function queuedUpload(request:Request,env:MediaEnv,id:string){
+  const claim=await verify(request,env,id);
+  if(!claim)return err("invalid_or_expired_upload",401);
+  const begin=await queue.command(env,id,{action:"begin"});
+  if(begin.code!==200)return err("upload_already_used",409);
+  let reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
+  let count=0;
+  try{
+    const bytes=length(request.headers.get("content-length"));
+    if(bytes>maxBytes(claim.kind))throw new TypeError("media_too_large");
+    if(!request.body)throw new TypeError("truncated_upload");
+    if(!await quota(request,"media",bytes))throw new TypeError("rate_limited");
+    reader=request.body.getReader();
+    const {head,tail,info}=await readHeader(reader,bytes,claim.kind,true,true);
+    const chunks=await queue.stage(env.UPLOADS!,id,bytes,reader,[head,tail]);
+    count=chunks.length;
+    const {id:_id,exp:_exp,...meta}=claim;
+    const manifest:queue.Manifest={...meta,media_id:id,bytes,mime:info.mime,created_at:new Date().toISOString(),chunks};
+    const cap=queue.capability();
+    const ready=await queue.command(env,id,{action:"ready",manifest,capabilityHash:await queue.hash(encoder.encode(cap))});
+    if(ready.code!==200)throw new Error("staging_failed");
+    if(await queue.dispatch(env,id,cap)==="failed")throw new Error("dispatch_failed");
+    return json({media_id:id,status:"processing"},202);
+  }catch(e){
+    const reason=e instanceof Error && Object.prototype.hasOwnProperty.call(queue.reasons,e.message)?e.message:"staging_failed";
+    const failed=await queue.command(env,id,{action:"fail",reason});
+    if(failed.code===200)await queue.discard(env,id,count);
+    if(failed.code===409)return json({media_id:id,status:"processing"},202);
+    return err(reason,reason==="media_too_large"?413:reason==="rate_limited"?429:e instanceof TypeError?400:503,queue.reasons[reason]);
+  }finally{await reader?.cancel().catch(()=>{});}
 }
 async function upload(request:Request,env:MediaEnv,id:string){
   const claim=await verify(request,env,id);
@@ -395,7 +429,7 @@ function page(configured:boolean):Response {
   const html='<!doctype html><html lang="es"><meta charset="utf-8"><title>Aporte a Clipoteca</title>'+
     '<meta name="viewport" content="width=device-width,initial-scale=1"><h1>Aporte a Clipoteca</h1><p>'+PUBLIC_NOTICE+'</p>'+
     (configured?'<p>Video: 50 MiB y 120 s. Imagen: 10 MiB y 24 MP.</p><input id="file" type="file" accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp"><button id="send">Subir aporte p\u00fablico</button><pre id="result"></pre>'+
-    '<script nonce="'+nonce+'">const t=location.hash.slice(1);history.replaceState(null,"",location.pathname);document.getElementById("send").onclick=async()=>{const o=document.getElementById("result"),f=document.getElementById("file").files[0];try{if(!f||!t)throw Error("Falta archivo o enlace");const p=t.split(".")[0].replace(/-/g,"+").replace(/_/g,"/");const id=JSON.parse(atob(p)).id;if(!/^a\\d{4}-\\d{2}-[a-f0-9]{32}$/.test(id))throw Error("Enlace inv\u00e1lido");const r=await fetch("/v1/media/upload/"+id,{method:"PUT",headers:{authorization:"Bearer "+t},body:f});o.textContent=JSON.stringify(await r.json());}catch(e){o.textContent="No se pudo subir el aporte";}};</script>':
+    '<script nonce="'+nonce+'">const t=location.hash.slice(1);history.replaceState(null,"",location.pathname);document.getElementById("send").onclick=async()=>{const o=document.getElementById("result"),f=document.getElementById("file").files[0];try{if(!f||!t)throw Error("Falta archivo o enlace");const p=t.split(".")[0].replace(/-/g,"+").replace(/_/g,"/");const id=JSON.parse(atob(p)).id;if(!/^a\\d{4}-\\d{2}-[a-f0-9]{32}$/.test(id))throw Error("Enlace inv\u00e1lido");const r=await fetch("/v1/media/upload/"+id,{method:"PUT",headers:{authorization:"Bearer "+t},body:f});const v=await r.json();o.textContent=r.ok&&v.status==="processing"?"Archivo recibido. Procesando el aporte. Guarda este ID: "+id:JSON.stringify(v);}catch(e){o.textContent="No se pudo subir el aporte";}};</script>':
     '<p>Subidas no configuradas (uploads_not_configured). Puedes registrar una URL p\u00fablica.</p>')+'</html>';
   return new Response(html,{status:configured?200:503,headers:{"content-type":"text/html;charset=utf-8",
     "cache-control":"no-store","referrer-policy":"no-referrer","x-content-type-options":"nosniff",
@@ -406,15 +440,16 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
   if(path!=="/v1/media" && !path.startsWith("/v1/media/"))return null;
   const suffix=path.slice("/v1/media".length);
   try{
-    if(suffix==="/upload" && request.method==="GET")return page(Boolean(env.CLIPOTECA_UPLOAD_TOKEN));
+    if(suffix.startsWith("/ingest/"))return await queue.ingestRoute(request,env);
+    if(suffix==="/upload" && request.method==="GET")return page(queue.configured(env)||Boolean(env.CLIPOTECA_UPLOAD_TOKEN));
     if(suffix==="/upload" || suffix.startsWith("/upload/")){
-      if(!env.CLIPOTECA_UPLOAD_TOKEN)return err("uploads_not_configured",503);
+      if(!queue.configured(env) && !env.CLIPOTECA_UPLOAD_TOKEN)return err("uploads_not_configured",503);
       if(suffix==="/upload" && request.method==="POST"){
         if(!authorized(request,env))return err("unauthorized",401);
         return await ticket(request,env);
       }
       const id=suffix.slice("/upload/".length);
-      if(request.method==="PUT" && UPLOAD_ID.test(id))return await upload(request,env,id);
+      if(request.method==="PUT" && UPLOAD_ID.test(id))return queue.configured(env)?await queuedUpload(request,env,id):await upload(request,env,id);
       return err("method_not_allowed",405);
     }
     if(!suffix && request.method==="POST"){
@@ -431,8 +466,19 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
         return record?json(record):err("media_not_found",404);
       }
       if(UPLOAD_ID.test(id)){
-        const record=await getUpload(env,id);
-        return record?json(record):err("media_not_found",404);
+        const state=(await queue.command(env,id,{action:"status"})).state;
+        if(!state || state.status==="registered" || state.status==="processing" ||
+            state.reason==="expired" || state.reason==="publish_failed"){
+          // The Release manifest is the durable registration commit point, even
+          // if the workflow lost its final callback or the control state expired.
+          try{
+            const record=await getUpload(env,id);
+            if(record)return json(record);
+          }catch(e){if(!state || state.status==="registered")throw e;}
+        }
+        if(state)return json({media_id:id,status:state.status==="registered"?"processing":state.status,
+          ...(state.reason?{reason:queue.reasons[state.reason]??queue.reasons.staging_failed}:{})});
+        return err("media_not_found",404);
       }
       return err("media_not_found",404);
     }

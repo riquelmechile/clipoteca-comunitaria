@@ -175,7 +175,7 @@ Código bajo [licencia MIT](LICENSE). Las ideas y mejoras son bienvenidas en [CO
 
 ### Aportes de medios (etapa 1)
 
-Todo lo que subas (archivos, guion y video final) queda público. Consulta [STUDIO.md](docs/STUDIO.md) para las herramientas, límites y configuración. Los aportes aún no se usan en el render.
+Todo lo que subas (archivos, guion y video final) queda público. Para subir desde el celular, pide `create_media_upload`, abre su enlace de 15 minutos, elige la foto o video y pulsa Subir aporte. No necesitas una cuenta ni una llave personal de GitHub. Guarda el `media_id` y consulta `get_media_status`: cuando diga `registered`, puedes usarlo como `media.ref`. Fotos JPEG/PNG/WebP hasta 10 MiB y 24 MP; videos MP4/MOV/WebM hasta 50 MiB y 120 s. Consulta [STUDIO.md](docs/STUDIO.md) para la activación del Worker y Actions.
 
 
 ### Aportes de video y clips fijados (etapa 2)

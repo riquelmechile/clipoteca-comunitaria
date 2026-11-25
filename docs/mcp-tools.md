@@ -14,11 +14,15 @@ Endpoint /mcp con SDK oficial TypeScript. Expone **exactamente diez tools** con 
 | render_video | {script, index_clips?} (3–12 escenas, ≤60 s, 9:16/16:9/1:1) | {id,status,status_url}; Bearer de escritura |
 | get_video_status | {id} | {id,status,stages?,qa?,clips_indexed?,file_url?} |
 | register_media_url | {url,kind,title,author,source,license_note?} | Registro público, Bearer de escritura |
-| create_media_upload | {kind,title,author,source,license_note?} | Enlace de subida de 15 minutos, Bearer de escritura |
-| get_media_status | {media_id} | Registro público |
+| create_media_upload | {kind,title,author,source,license_note?} | Enlace de subida de 15 minutos, Bearer de escritura; no requiere PAT personal |
+| get_media_status | {media_id} | Estado público: uploading, processing, registered, rejected (reason) |
 | list_sources | {} | {sources:[{provider,status}], kind?}, snapshot de GitHub Actions |
 
 Las solicitudes de importacion reales exigen el token configurado; las busquedas de catalogo son publicas, con cuota acotada para import_if_missing. Los valores de credenciales nunca se devuelven.
+
+## Subir desde el celular
+
+Pide `create_media_upload`, abre el enlace, elige el archivo y pulsa Subir aporte. Guarda `media_id`. Consulta `get_media_status` hasta `registered` antes de usar `media.ref`. Todo lo que subas queda público. No necesitas una llave personal de GitHub. La activación y límites están en STUDIO.md.
 
 ## Seguridad y host de despliegue
 

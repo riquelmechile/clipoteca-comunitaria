@@ -2,6 +2,7 @@ import {beforeEach, afterEach, describe, expect, it, vi} from "vitest";
 import worker from "../src/index";
 import {inspectHeader, mediaUrl, videoDuration, PREFIX, JPEG_HEADER_LIMIT, maxBytes} from "../src/media-header";
 import {quota, resetQuotaReservations} from "../src/quota";
+import {CHUNK_BYTES, UPLOAD_TTL, transition, stage, actionsRun, type State, type Manifest} from "../src/upload-control";
 
 const base="https://clipoteca.test";
 const token="test-write-token-123456";
@@ -321,5 +322,112 @@ describe("media intake",()=>{
     const bad=new Request(t.put_url,{method:"PUT",headers:{authorization:"Bearer "+t.upload_token+"x","content-length":"24"},body:png()});
     expect((await worker.fetch(bad,env)).status).toBe(401);
     expect(await (await worker.fetch(new Request(base+"/v1/media/"+t.media_id),env)).json()).toEqual(record);
+  });
+});
+
+describe("queued mobile upload without a personal token",()=>{
+  beforeEach(()=>{resetQuotaReservations();fakeCache();});
+  afterEach(()=>vi.unstubAllGlobals());
+
+  function fakeBindings(){
+    const states=new Map<string,State>();
+    const puts=vi.fn(async (_key:string,_value:Uint8Array,_options:unknown)=>{});
+    const deletes=vi.fn(async (_key:string)=>{});
+    const kv={put:puts,delete:deletes} as unknown as KVNamespace;
+    const control={
+      idFromName:(name:string)=>name,
+      get:(id:string)=>({fetch:async (_url:string,init:RequestInit)=>{
+        const next=transition(states.get(id),JSON.parse(String(init.body)),Date.now());
+        if(next.write&&next.state)states.set(id,next.state);
+        return Response.json(next.state??{},{status:next.code});
+      }}),
+    } as unknown as DurableObjectNamespace;
+    return {states,puts,deletes,kv,control};
+  }
+
+  it("stores phone JPEG with large metadata and dispatches without a PAT",async()=>{
+    const b=fakeBindings();
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:"issue",
+      CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const dispatch=vi.fn(async (_url:string,init?:RequestInit)=>{
+      expect(new Headers(init?.headers).get("authorization")).toBe("Bearer dispatch");
+      return new Response(null,{status:204});
+    });
+    vi.stubGlobal("fetch",dispatch);
+    const created=await worker.fetch(post("/v1/media/upload",metadata),queued);
+    expect(created.status).toBe(201);
+    const t=await created.json() as {media_id:string;put_url:string;upload_token:string;status:string};
+    expect(t.status).toBe("uploading");
+    const pending=await worker.fetch(new Request(base+"/v1/media/"+t.media_id),queued);
+    expect(await pending.json()).toMatchObject({status:"uploading"});
+    const bytes=jpegWithApps(phoneApps);
+    const request=()=>new Request(t.put_url,{method:"PUT",headers:{
+      authorization:"Bearer "+t.upload_token,"content-length":String(bytes.length)},body:bytes});
+    const accepted=await worker.fetch(request(),queued);
+    expect(accepted.status).toBe(202);
+    expect(await accepted.json()).toEqual({media_id:t.media_id,status:"processing"});
+    expect(b.puts).toHaveBeenCalledTimes(1);
+    expect(b.puts.mock.calls[0]?.[2]).toEqual({expirationTtl:UPLOAD_TTL});
+    expect(b.states.get(t.media_id)?.manifest?.mime).toBe("image/jpeg");
+    const payload=JSON.parse(String(dispatch.mock.calls[0]?.[1]?.body));
+    expect(payload.inputs.upload_id).toBe(t.media_id);
+    expect(payload.inputs.capability).toMatch(/^[a-f0-9]{64}$/);
+    expect(dispatch.mock.calls[0]?.[0]).toContain("/actions/workflows/media-ingest.yml/dispatches");
+    expect((await worker.fetch(request(),queued)).status).toBe(409);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects an oversized image without writing bytes or dispatching",async()=>{
+    const b=fakeBindings();
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",
+      UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const dispatch=vi.fn();vi.stubGlobal("fetch",dispatch);
+    const t=await (await worker.fetch(post("/v1/media/upload",metadata),queued)).json() as {
+      media_id:string;put_url:string;upload_token:string};
+    const r=await worker.fetch(new Request(t.put_url,{method:"PUT",headers:{
+      authorization:"Bearer "+t.upload_token,"content-length":String(11*1024*1024)},body:png()}),queued);
+    expect(r.status).toBe(413);
+    expect(b.states.get(t.media_id)?.status).toBe("rejected");
+    expect(b.puts).not.toHaveBeenCalled();expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("chunks 50 MiB into bounded KV values, each with a two hour TTL",async()=>{
+    const b=fakeBindings(),block=new Uint8Array(1024*1024);
+    let remaining=50;
+    const stream=new ReadableStream<Uint8Array>({pull(c){
+      if(remaining--<=0)c.close();else c.enqueue(block);
+    }});
+    const result=await stage(b.kv,"a2026-11-"+"a".repeat(32),50*block.length,stream.getReader(),[]);
+    expect(result.map(c=>c.bytes)).toEqual([CHUNK_BYTES,CHUNK_BYTES,2*block.length]);
+    expect(result.every(c=>/^[a-f0-9]{64}$/.test(c.sha256))).toBe(true);
+    expect(b.puts.mock.calls.map(c=>c[1].length)).toEqual([CHUNK_BYTES,CHUNK_BYTES,2*block.length]);
+    expect(b.puts.mock.calls.every(c=>JSON.stringify(c[2])===JSON.stringify({expirationTtl:7200}))).toBe(true);
+  });
+
+  it("consumes a capability for one run, permits its retries and expires it",()=>{
+    const now=100,hash="a".repeat(64);
+    const manifest:Manifest={kind:"image",title:"T",author:"A",source:"S",media_id:"a2026-11-"+"a".repeat(32),
+      mime:"image/png",bytes:24,created_at:new Date().toISOString(),chunks:[{bytes:24,sha256:hash}]};
+    const created=transition(undefined,{action:"create",expires:now+1000},now).state!;
+    const begun=transition(created,{action:"begin"},now).state!;
+    expect(transition(begun,{action:"begin"},now).code).toBe(409);
+    const ready=transition(begun,{action:"ready",manifest,capabilityHash:hash},now).state!;
+    const claim={action:"claim",run:"1:1",capabilityHash:hash};
+    const claimed=transition(ready,claim,now).state!;
+    expect(transition(claimed,claim,now).code).toBe(200);
+    expect(transition(claimed,{...claim,run:"2:1"},now).code).toBe(409);
+    expect(transition(claimed,{...claim,action:"read",run:"2:1"},now).code).toBe(401);
+    expect(transition(claimed,{...claim,action:"read"},now).code).toBe(200);
+    const done=transition(claimed,{...claim,action:"finish",status:"registered"},now).state!;
+    expect(done.status).toBe("registered");
+    expect(transition(done,{...claim,action:"read"},now).code).toBe(409);
+    expect(transition(ready,claim,now+31*60*1000).code).toBe(401);
+  });
+
+  it("does not accept a public capability as Actions authentication",async()=>{
+    const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);
+    expect(await actionsRun(new Request(base,{headers:{"x-clipoteca-capability":"a".repeat(64)}}),{})).toBeNull();
+    expect(await actionsRun(new Request(base,{headers:{authorization:"Bearer "+"a".repeat(64)}}),{})).toBeNull();
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });

@@ -4,7 +4,10 @@ import { createClipotecaServer, handleMcp, sourceSnapshot } from "./mcp";
 import { handleScript } from "./script";
 import { APP_VERSION } from "./version";
 
-export interface Env extends CatalogEnv {
+export { UploadControl } from "./upload-control";
+import type { QueueEnv } from "./upload-control";
+
+export interface Env extends CatalogEnv, QueueEnv {
   CATALOG_TTL_SECONDS?: string;
   CLIPOTECA_DISPATCH_TOKEN?: string;
   CLIPOTECA_WRITE_TOKEN?: string;
