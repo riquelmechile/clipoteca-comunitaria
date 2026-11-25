@@ -11451,5 +11451,71 @@
     },
     "status": "published",
     "created_at": "2026-11-25T17:29:32.054996Z"
+  },
+  {
+    "id": "clip-000176",
+    "title": {
+      "es": "Video de un bulldog francés acostado en la silla",
+      "en": "Video of a french bulldog lying down the chair"
+    },
+    "description": {
+      "es": "Video de un bulldog francés acostado en la silla",
+      "en": "Video of a french bulldog lying down the chair"
+    },
+    "tags": {
+      "es": [
+        "Video",
+        "bulldog",
+        "francés",
+        "acostado",
+        "silla"
+      ],
+      "en": [
+        "Video",
+        "french",
+        "bulldog",
+        "lying",
+        "down",
+        "chair"
+      ]
+    },
+    "source": {
+      "provider": "pexels",
+      "provider_id": "8626904",
+      "source_language": "en",
+      "source_title": "video-of-a-french-bulldog-lying-down-the-chair-8626904",
+      "source_url": "https://www.pexels.com/video/video-of-a-french-bulldog-lying-down-the-chair-8626904/",
+      "source_start": 0.0,
+      "source_end": 9.64
+    },
+    "media": {
+      "duration_seconds": 9.64,
+      "width": 1080,
+      "height": 2048,
+      "fps": 25.0,
+      "aspect_ratio": "other",
+      "orientation": "other",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 3178371,
+      "sha256": "7a78d49de3f537b2495307e43afed5ec33f5982b368224b45cadc1c58934ec12",
+      "perceptual_hash": "9ebdb0990ce01b7c~2510.56:993fa4f01bed814c~2185.75:b53f9aec3560320e~2006.00:b53f9ae424e21a4e~2078.26:b53f9aec25e0321c~2014.39"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/clip_clip-000176.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/thumb_clip-000176.webp",
+      "storyboard_urls": [
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000176_00.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000176_01.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000176_02.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000176_03.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000176_04.webp",
+        "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-25-001/story_clip-000176_05.webp"
+      ]
+    },
+    "status": "published",
+    "created_at": "2026-11-25T17:29:32.054996Z"
   }
 ]
