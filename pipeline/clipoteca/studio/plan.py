@@ -162,7 +162,7 @@ def write_plan(
         for scene, est in zip(script.scenes, plan["scenes"], strict=True)
     ]
     free_jobs = [job for job in jobs if "media" not in job]
-    if resolve_related:
+    if resolve_related and free_jobs:
         from .related import resolve_jobs
         from .related_cache import load_cache
 
