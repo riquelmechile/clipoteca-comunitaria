@@ -1,6 +1,7 @@
 import {beforeEach, afterEach, describe, expect, it, vi} from "vitest";
 import worker from "../src/index";
 import {inspectHeader, mediaUrl, videoDuration, PREFIX, JPEG_HEADER_LIMIT, maxBytes} from "../src/media-header";
+import {batchTransition,type BatchState} from "../src/upload-batch-control";
 import {quota, resetQuotaReservations} from "../src/quota";
 import {CHUNK_BYTES, UPLOAD_TTL, transition, stage, actionsRun, type State, type Manifest} from "../src/upload-control";
 
@@ -65,7 +66,7 @@ describe("media intake",()=>{
     expect(videoDuration(mp4(121),"video/mp4")).toBe(121);
     expect(videoDuration(mp4(20).subarray(0,16),"video/mp4")).toBeNull();
     expect(maxBytes("image")).toBe(10*1024*1024);
-    expect(maxBytes("video")).toBe(50*1024*1024);
+    expect(maxBytes("video")).toBe(100*1024*1024);
   });
   it("requires write auth and explains disabled uploads without touching upstream",async()=>{
     const fetcher=vi.fn();vi.stubGlobal("fetch",fetcher);
@@ -331,13 +332,20 @@ describe("queued mobile upload without a personal token",()=>{
 
   function fakeBindings(){
     const states=new Map<string,State>();
+    const batches=new Map<string,BatchState>();
     const puts=vi.fn(async (_key:string,_value:Uint8Array,_options:unknown)=>{});
     const deletes=vi.fn(async (_key:string)=>{});
     const kv={put:puts,delete:deletes} as unknown as KVNamespace;
     const control={
       idFromName:(name:string)=>name,
       get:(id:string)=>({fetch:async (_url:string,init:RequestInit)=>{
-        const next=transition(states.get(id),JSON.parse(String(init.body)),Date.now());
+        const command=JSON.parse(String(init.body));
+        if(command.action.startsWith("session_")||command.action.startsWith("limit_")){
+          const next=batchTransition(batches.get(id),command,Date.now());
+          if(next.write&&next.state)batches.set(id,next.state);
+          return Response.json(next.state??{},{status:next.code});
+        }
+        const next=transition(states.get(id),command,Date.now());
         if(next.write&&next.state)states.set(id,next.state);
         return Response.json(next.state??{},{status:next.code});
       }}),
@@ -391,16 +399,16 @@ describe("queued mobile upload without a personal token",()=>{
     expect(b.puts).not.toHaveBeenCalled();expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it("chunks 50 MiB into bounded KV values, each with a two hour TTL",async()=>{
+  it("chunks 100 MiB into bounded KV values, each with a two hour TTL",async()=>{
     const b=fakeBindings(),block=new Uint8Array(1024*1024);
-    let remaining=50;
+    let remaining=100;
     const stream=new ReadableStream<Uint8Array>({pull(c){
       if(remaining--<=0)c.close();else c.enqueue(block);
     }});
-    const result=await stage(b.kv,"a2026-11-"+"a".repeat(32),50*block.length,stream.getReader(),[]);
-    expect(result.map(c=>c.bytes)).toEqual([CHUNK_BYTES,CHUNK_BYTES,2*block.length]);
+    const result=await stage(b.kv,"a2026-11-"+"a".repeat(32),100*block.length,stream.getReader(),[]);
+    expect(result.map(c=>c.bytes)).toEqual([CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,4*block.length]);
     expect(result.every(c=>/^[a-f0-9]{64}$/.test(c.sha256))).toBe(true);
-    expect(b.puts.mock.calls.map(c=>c[1].length)).toEqual([CHUNK_BYTES,CHUNK_BYTES,2*block.length]);
+    expect(b.puts.mock.calls.map(c=>c[1].length)).toEqual([CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,CHUNK_BYTES,4*block.length]);
     expect(b.puts.mock.calls.every(c=>JSON.stringify(c[2])===JSON.stringify({expirationTtl:7200}))).toBe(true);
   });
 

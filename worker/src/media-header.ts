@@ -2,7 +2,7 @@
 import {safePublicSourceUrl} from "./contributions";
 
 export type MediaKind = "video" | "image";
-export const maxBytes = (kind: MediaKind) => (kind === "video" ? 50 : 10) * 1024 * 1024;
+export const maxBytes = (kind: MediaKind) => (kind === "video" ? 100 : 10) * 1024 * 1024;
 export const PREFIX = 128 * 1024;
 export const JPEG_HEADER_LIMIT = 2 * 1024 * 1024;
 export const probeLimit = (kind: MediaKind) => kind === "image" ? JPEG_HEADER_LIMIT : PREFIX;

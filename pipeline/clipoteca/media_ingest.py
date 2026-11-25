@@ -41,7 +41,7 @@ def validate_manifest(raw: object, upload_id: str) -> dict:
         or not isinstance(mime, str)
         or mime not in (IMAGES if kind == "image" else VIDEOS)
         or type(size) is not int
-        or not 0 < size <= (10 if kind == "image" else 50) * MIB
+        or not 0 < size <= (10 if kind == "image" else 100) * MIB
     ):
         raise IngestError("invalid_file")
     for key, limit in (("title", 120), ("author", 120), ("source", 500), ("license_note", 500)):

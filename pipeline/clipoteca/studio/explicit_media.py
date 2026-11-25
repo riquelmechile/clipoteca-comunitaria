@@ -351,7 +351,7 @@ def select_explicit(root, job, assignment):
                     download_media(
                         source_url,
                         folder,
-                        max_bytes=50 * 1024 * 1024,
+                        max_bytes=100 * 1024 * 1024,
                         user_agent=_USER_AGENT,
                     )
                 )
