@@ -205,7 +205,7 @@ export async function actionsRun(request:Request,env:QueueEnv):Promise<string|nu
       c.ref!=="refs/heads/main"||c.event_name!=="workflow_dispatch"||typeof c.exp!=="number"||c.exp<=now||
       typeof c.nbf!=="number"||c.nbf>now+30||typeof c.run_id!=="string"||!/^\d+$/.test(c.run_id)||
       typeof c.run_attempt!=="string"||!/^\d+$/.test(c.run_attempt))return null;
-    const response=await fetch("https://token.actions.githubusercontent.com/.well-known/jwks",{redirect:"error"});
+    const response=await fetch("https://token.actions.githubusercontent.com/.well-known/jwks",{redirect:"manual"});
     if(!response.ok)return null;
     const keys=await response.json<{keys:(JsonWebKey&{kid?:string})[]}>();
     const jwk=keys.keys.find(k=>k.kid===h.kid&&k.kty==="RSA");

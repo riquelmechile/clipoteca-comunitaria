@@ -229,7 +229,7 @@ async function bytes(url:string, cap:number, ttl:number):Promise<Uint8Array|null
   const cache=cacheDefault(), request=new Request(url);
   let response=cache&&ttl>0 ? await cache.match(request):undefined;
   if(!response){
-    response=await fetch(url,{redirect:"error",headers:{
+    response=await fetch(url,{redirect:"manual",headers:{
       accept:"application/octet-stream","user-agent":"clipoteca-worker",
     }});
     if(response.status===404){
@@ -541,7 +541,7 @@ export async function queryVector(env:SemanticEnv,query:string,request?:Request)
   if(!allowed.allowed)return null;
   try{
     const response=await fetch(url.href,{
-      method:"POST",redirect:"error",headers:{"content-type":"application/json"},
+      method:"POST",redirect:"manual",headers:{"content-type":"application/json"},
       body:JSON.stringify({query:normalized}),signal:AbortSignal.timeout(5000),
     });
     if(!response.ok)throw new SemanticFault("query_encoder_unavailable");
@@ -570,7 +570,7 @@ export async function queueQuery(request:Request,env:SemanticEnv,query:string):P
   try{
     const response=await fetch(
       "https://api.github.com/repos/"+repository(env)+"/actions/workflows/ingest.yml/dispatches",
-      {method:"POST",redirect:"error",headers:{
+      {method:"POST",redirect:"manual",headers:{
         authorization:"Bearer "+token,
         accept:"application/vnd.github+json",
         "content-type":"application/json",
