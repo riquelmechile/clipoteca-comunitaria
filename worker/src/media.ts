@@ -1,5 +1,5 @@
 /** Public contribution registry and single-use Release upload capability. */
-import {inspectHeader, maxBytes, mediaUrl, PREFIX, videoDuration, type MediaKind} from "./media-header";
+import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, type MediaKind} from "./media-header";
 import {quota} from "./quota";
 
 export interface MediaEnv {
@@ -32,8 +32,10 @@ const mediaMessages: Readonly<Record<string,string>> = Object.freeze({
   invalid_range:"Respuesta de rango del origen no v\u00e1lida.",
   invalid_encoding:"Codificaci\u00f3n de respuesta del origen no admitida.",
   media_too_large:"El archivo supera el l\u00edmite de tama\u00f1o.",
+  truncated_upload:"La subida entreg\u00f3 menos bytes de los esperados.",
   truncated_source:"El origen entreg\u00f3 menos bytes de los esperados.",
   invalid_media_header:"Formato del archivo no admitido o cabecera incompleta.",
+  jpeg_header_too_long:"Cabecera JPEG demasiado larga.",
   image_dimensions:"Dimensiones de imagen no v\u00e1lidas o superiores a 24 MP.",
   video_duration_unknown_or_exceeds_120s:"Duraci\u00f3n desconocida o superior a 120 segundos.",
   source_unreachable:"No se pudo conectar con el origen.",
@@ -106,18 +108,50 @@ function length(value:string|null):number {
   if(!value || !/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value)))throw new TypeError("invalid_length");
   return Number(value);
 }
-/** Read only a bounded prefix and preserve unread bytes of the current chunk. */
-async function prefix(reader:ReadableStreamDefaultReader<Uint8Array>,limit:number) {
-  const buffer=new Uint8Array(limit);
-  let n=0,tail:Uint8Array|undefined;
-  while(n<limit){
-    const part=await reader.read();
-    if(part.done)break;
-    const count=Math.min(limit-n,part.value.length);
-    buffer.set(part.value.subarray(0,count),n);n+=count;
-    if(count<part.value.length){tail=part.value.subarray(count);break;}
+/** Read bounded header fields. URL probes discard skipped metadata; uploads
+ * must replay the consumed bytes verbatim to GitHub after validation.
+ * Only uploads retain a bounded replay buffer, never an entire large file.
+ */
+async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:number,kind:MediaKind,upload=false) {
+  const limit=Math.min(bytes,probeLimit(kind));
+  const replay=upload?new Uint8Array(limit):undefined;
+  let consumed=0,offset=0,chunk:Uint8Array|undefined,jpeg=false;
+  const transfer=async(count:number,out?:Uint8Array)=>{
+    if(consumed+count>limit)throw new TypeError(jpeg && bytes>limit?"jpeg_header_too_long":"invalid_media_header");
+    let copied=0;
+    while(copied<count){
+      if(!chunk || offset===chunk.length){
+        let part:ReadableStreamReadResult<Uint8Array>;
+        try{part=await reader.read();}
+        catch(e){if(!upload)throw new SourceError("source_read_failed",502);throw e;}
+        if(part.done)throw new TypeError(upload?"truncated_upload":"truncated_source");
+        chunk=part.value;offset=0;
+        if(!chunk.length)continue;
+      }
+      const n=Math.min(count-copied,chunk.length-offset);
+      const slice=chunk.subarray(offset,offset+n);
+      out?.set(slice,copied);
+      replay?.set(slice,consumed);
+      copied+=n;consumed+=n;offset+=n;
+    }
+  };
+  const read=async(count:number)=>{
+    const value=new Uint8Array(count);
+    await transfer(count,value);
+    return value;
+  };
+  const signature=await read(Math.min(2,limit));
+  jpeg=kind==="image" && signature[0]===0xff && signature[1]===0xd8;
+  let info:ReturnType<typeof checked>;
+  if(jpeg){
+    info={mime:await scanJpeg(read,count=>transfer(count))};
+  }else{
+    const head=new Uint8Array(Math.min(PREFIX,limit));
+    head.set(signature);
+    head.set(await read(head.length-signature.length),signature.length);
+    info=checked(head,kind);
   }
-  return {head:buffer.subarray(0,n),tail};
+  return {info,head:replay?.subarray(0,consumed),tail:chunk?.subarray(offset)};
 }
 function checked(head:Uint8Array,kind:MediaKind) {
   const mime=inspectHeader(head,kind);
@@ -130,7 +164,7 @@ async function probe(url:string,kind:MediaKind) {
   let response:Response;
   try{
     response=await fetch(url,{redirect:"manual",headers:{
-      range:"bytes=0-"+(PREFIX-1),"accept-encoding":"identity","user-agent":SOURCE_USER_AGENT,
+      range:"bytes=0-"+(probeLimit(kind)-1),"accept-encoding":"identity","user-agent":SOURCE_USER_AGENT,
     }});
   }catch{throw new SourceError("source_unreachable",502);}
   // Never follow redirects or expose an upstream body, URL or exception.
@@ -148,20 +182,17 @@ async function probe(url:string,kind:MediaKind) {
     if(response.status===206){
       const range=/^bytes 0-(\d+)\/([1-9]\d*)$/.exec(response.headers.get("content-range")??"");
       if(!range)throw new TypeError("invalid_range");
-      bytes=Number(range[2]);expected=Math.min(bytes,PREFIX);
+      bytes=Number(range[2]);expected=Math.min(bytes,probeLimit(kind));
       const contentLength=response.headers.get("content-length");
       if(!Number.isSafeInteger(bytes) || Number(range[1])+1!==expected ||
         (contentLength!==null && (!/^[1-9]\d*$/.test(contentLength) || Number(contentLength)!==expected)))
         throw new TypeError("invalid_range");
     }else{
-      bytes=length(response.headers.get("content-length"));expected=Math.min(bytes,PREFIX);
+      bytes=length(response.headers.get("content-length"));expected=Math.min(bytes,probeLimit(kind));
     }
     if(bytes>maxBytes(kind))throw new TypeError("media_too_large");
-    let head:Uint8Array;
-    try{({head}=await prefix(reader,expected));}
-    catch{throw new SourceError("source_read_failed",502);}
-    if(head.length!==expected)throw new TypeError("truncated_source");
-    return {bytes,...checked(head,kind)};
+    const {info}=await readHeader(reader,bytes,kind);
+    return {bytes,...info};
   }finally{await reader.cancel().catch(()=>{});}
 }
 // URL registration uses the existing Issues grant: no contents:write is needed.
@@ -313,9 +344,7 @@ async function upload(request:Request,env:MediaEnv,id:string){
     if(bytes>maxBytes(claim.kind))return err("media_too_large",413);
     if(!request.body)return err("invalid_media",400);
     reader=request.body.getReader();
-    const {head,tail}=await prefix(reader,Math.min(PREFIX,bytes));
-    if(head.length!==Math.min(PREFIX,bytes))return err("truncated_upload",400);
-    const info=checked(head,claim.kind);
+    const {head,tail,info}=await readHeader(reader,bytes,claim.kind,true);
     if(!await quota(request,"media",bytes))return err("rate_limited",429);
     const r=await release(env,id,true);
     if(!r)return err("release_unavailable",503);
@@ -333,7 +362,7 @@ async function upload(request:Request,env:MediaEnv,id:string){
         await writer.write(chunk);
       };
       try{
-        await write(head);
+        if(head)await write(head);
         if(tail)await write(tail);
         while(true){
           const part=await activeReader.read();
