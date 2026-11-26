@@ -34,11 +34,7 @@ async def resolve_pending_jobs(
         or origin.fragment
     ):
         raise ScriptError("media API must be a trusted HTTPS origin")
-    refs = {
-        job["media"]["ref"]
-        for job in jobs
-        if job.get("source_kind") == "contribution"
-    }
+    refs = {job["media"]["ref"] for job in jobs if job.get("source_kind") == "contribution"}
     if not refs:
         return
     loop = asyncio.get_running_loop()

@@ -70,7 +70,7 @@ describe("M10 MCP Streamable HTTP", () => {
     }>}};
     const tools = payload.result.tools;
     expect(tools.map(t=>t.name).sort()).toEqual([
-      "buscar_aportes", "crear_subida", "create_media_upload", "download_clip", "estado_subida", "esperar_aportes", "esperar_video", "get_clip", "get_job_status", "get_media_status", "get_storyboard", "get_video_status",
+      "buscar_aportes", "crear_subida", "create_media_upload", "download_clip", "esperar_aportes", "esperar_video", "estado_subida", "get_clip", "get_job_status", "get_media_status", "get_storyboard", "get_video_status",
       "list_sources", "register_media_url", "render_video", "resolve_script", "search_and_import", "search_clips", "subir_archivo", "subir_imagen_base64", "ticket_subida",
     ]);
     const properties:Record<string,string> = {

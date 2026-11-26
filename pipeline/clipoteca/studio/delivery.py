@@ -187,7 +187,8 @@ def build_delivery(work, catalog_path):
             {"scene_id": row["id"], "degraded_reason": row["degraded_reason"]}
             for row in rows
             if row.get("fallback")
-        ] + quality_warnings,
+        ]
+        + quality_warnings,
         "clips_indexed": indexed["indexed"],
         "timings": _timings(work),
     }

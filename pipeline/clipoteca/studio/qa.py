@@ -820,7 +820,8 @@ def run_qa(
                 [result.get("degraded_reason", "weak_catalog_match")]
                 if result.get("fallback")
                 else []
-            ) + ([result["quality_warning"]] if result.get("quality_warning") else [])
+            )
+            + ([result["quality_warning"]] if result.get("quality_warning") else [])
         ],
         "checks": report_checks,
         "time_s": round(time.monotonic() - started, 3),

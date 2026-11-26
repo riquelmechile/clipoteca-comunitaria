@@ -34,7 +34,7 @@ env:
 jobs:
   plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     outputs:
       scenes: ${{ steps.plan.outputs.scenes }}
       script_id: ${{ steps.plan.outputs.script_id }}
@@ -52,13 +52,14 @@ jobs:
           # Never interpolated into the shell: the script is untrusted text.
           SCRIPT_JSON: ${{ inputs.script_json }}
           REQUEST_ID: ${{ inputs.request_id }}
+          MEDIA_API: ${{ vars.CLIPOTECA_PUBLIC_API_URL || 'https://clipoteca-worker.clipoteca.workers.dev' }}
         run: |
           [[ "$REQUEST_ID" =~ ^[A-Za-z0-9_-]{8,64}$ ]] || exit 2
           mkdir -p work
           printf '%s' "$SCRIPT_JSON" > work/guion.json
           uv run --no-sync python -m clipoteca.studio.plan \
             --script work/guion.json --out work/plan --catalog data/clips.json \
-            --resolve-related
+            --resolve-related --media-api "$MEDIA_API"
           uv run --no-sync python - <<'PY' >> "$GITHUB_OUTPUT"
           import json
           plan = json.load(open("work/plan/plan.json", encoding="utf-8"))

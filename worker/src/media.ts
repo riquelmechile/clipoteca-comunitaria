@@ -188,7 +188,7 @@ async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:n
     const actual=head.subarray(0,signature.length+count);
     info=checked(actual,kind,fullValidationLater);
   }
-  if(!fullValidationLater&&info.width!==undefined&&info.height!==undefined&&Math.min(info.width,info.height)<360)
+  if(!fullValidationLater&&kind==="video"&&info.width!==undefined&&info.height!==undefined&&Math.min(info.width,info.height)<360)
     throw new TypeError("resolution_too_low");
   return {info,head:replay?.subarray(0,consumed),tail:chunk?.subarray(offset)};
 }
