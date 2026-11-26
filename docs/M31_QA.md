@@ -40,8 +40,8 @@ se escribe el informe.
 | whisper_wer | audio PCM 16 kHz mono y ASR faster-whisper small int8 | WER normalizado <=0,12 contra el texto escrito o contra el hablado (léxico aplicado), el menor de los dos; guarda primeras 400 letras |
 | subtitle_sync | palabras del timeline, inicio absoluto vo+a, vs ASR | >=70% emparejadas, diferencia media <=120 ms y percentil 95 <=350 ms |
 | clips_all_scenes | result.json, fit/ID.mp4 y HTML | todas las escenas status=ok, un video por escena, ningún img |
-| clips_unique | result.json de cada escena y checks.check_global M28 | cada escena con status=ok, clip_id y pHash hexadecimal válido; sin conflictos por clips/rangos ni pHash con distancia <=6 |
-| clips_resolution | dimensiones de result.json y compose.CONFIG | fuente corta >=720 o misma orientación con lado largo >=0,53 del destino; salida exacta |
+| clips_unique | result.json de cada escena y checks.check_global M28 | cada escena con status=ok, clip_id y pHash hexadecimal válido; sin conflictos por clips/rangos ni pHash con distancia <=6, salvo entre aportes explícitos registrados |
+| clips_resolution | dimensiones de result.json y compose.CONFIG | fuente corta >=720 o misma orientación con lado largo >=0,53 del destino; aportes explícitos de resolución menor con dimensiones positivas se admiten con advertencia; salida exacta |
 | clips_black_freeze | checks.black_frozen M28 sobre cada fit | sin negro >=0,3 s ni congelación >=1,5 s |
 
 Playwright reutiliza las zonas seguras de M30:
