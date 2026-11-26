@@ -12,7 +12,7 @@ from clipoteca.providers.base import (
 )
 from clipoteca.providers.pexels import Pexels
 from clipoteca.providers.pixabay import Pixabay
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 
 def http_client(body: dict | str, status: int = 200, content_type: str = "application/json"):

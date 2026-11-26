@@ -20,7 +20,7 @@ from clipoteca.security.hls import (
     parse_media,
 )
 from clipoteca.security.ssrf import UnsafeMediaURL
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 
 VIDEO = "8411dde9e6521796b6805e5966ad4297"

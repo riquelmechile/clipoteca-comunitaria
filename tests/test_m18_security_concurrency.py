@@ -19,7 +19,7 @@ from clipoteca.providers.smithsonian import Smithsonian
 from clipoteca.security.download import DownloadError, download_media
 from clipoteca.security.ssrf import UnsafeMediaURL, validate_public_url
 from clipoteca.storage.github import ReleaseAsset
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 
 def candidate(provider, url: str) -> Candidate:

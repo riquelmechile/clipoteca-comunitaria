@@ -9,7 +9,7 @@ from clipoteca.providers.base import AuthRequired, SearchLimits, SupportStatus
 from clipoteca.providers.coverr import Coverr
 from clipoteca.providers.library_of_congress import LibraryOfCongress
 from clipoteca.sources import list_sources
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

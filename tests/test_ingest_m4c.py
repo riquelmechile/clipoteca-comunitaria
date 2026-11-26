@@ -25,7 +25,7 @@ from clipoteca.providers.nasa import NASA
 from clipoteca.security.download import DownloadError, download_media
 from clipoteca.security.ssrf import UnsafeMediaURL, validate_public_url
 from clipoteca.storage.github import ReleaseAsset, ReleaseBatch
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 
 FAKE_TOKEN = fake_secret("ingest")

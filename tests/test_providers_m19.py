@@ -12,7 +12,7 @@ from clipoteca.providers.douyin import Douyin
 from clipoteca.providers.signing import ABogus, BROWSER_UA, XBogus, sign_tiktok, sm3_hexdigest
 from clipoteca.providers.tiktok import TikTok
 from clipoteca.sources import list_sources
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 FIXTURES = Path(__file__).parent / "fixtures" / "m19"
 
@@ -182,7 +182,7 @@ async def test_code_2483_is_session_required_not_generic(platform):
 @pytest.mark.parametrize("platform", ["douyin", "tiktok"])
 async def test_secret_cookie_is_fallback_only_and_never_in_results(platform):
     private_cookie = fake_secret("m19-cookie")
-    secret = "session=" + private_cookie
+    cookie_header = "session=" + private_cookie
     seen = []
 
     def handler(req):
@@ -191,7 +191,7 @@ async def test_secret_cookie_is_fallback_only_and_never_in_results(platform):
         seen.append(req.headers.get("cookie"))
         if len(seen) == 1:
             return httpx.Response(200, json=fixture("session_required.json"))
-        assert req.headers.get("cookie") == secret
+        assert req.headers.get("cookie") == cookie_header
         return httpx.Response(
             200,
             json=fixture("douyin_video.json" if platform == "douyin" else "tiktok_page2.json"),
@@ -199,12 +199,12 @@ async def test_secret_cookie_is_fallback_only_and_never_in_results(platform):
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         adapter = (
-            Douyin(cookie=secret, client=client)
+            Douyin(cookie=cookie_header, client=client)
             if platform == "douyin"
-            else TikTok(cookie=secret, client=client)
+            else TikTok(cookie=cookie_header, client=client)
         )
         rows = await adapter.search("rain", "en", SearchLimits(max_pages=1))
-    assert seen == ["ttwid=guest-identity", secret]
+    assert seen == ["ttwid=guest-identity", cookie_header]
     assert rows
     assert private_cookie not in json.dumps([r.__dict__ for r in rows], ensure_ascii=False)
 

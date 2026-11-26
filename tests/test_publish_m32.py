@@ -10,7 +10,7 @@ import pytest
 from clipoteca.catalog import Catalog
 from clipoteca.studio import delivery, index
 from clipoteca.studio.script import parse_video_script, script_id
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 DAY = date(2026, 1, 2)
 NOW = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)

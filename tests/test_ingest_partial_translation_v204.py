@@ -12,7 +12,7 @@ from clipoteca.jobs import JobStore
 from clipoteca.metadata import MetadataTranslationError, localize_candidate
 from clipoteca.providers.base import Adapter, Candidate, SearchLimits, SupportStatus
 from clipoteca.translate.argos import TranslationFailed, public_translation_error
-from tests.fake_secrets import fake_secret
+from fake_secrets import fake_secret
 
 
 class RecordingAdapter(Adapter):
