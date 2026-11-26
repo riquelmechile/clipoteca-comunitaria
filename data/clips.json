@@ -11781,5 +11781,55 @@
     },
     "status": "published",
     "created_at": "2026-11-26T02:38:30.116248Z"
+  },
+  {
+    "id": "clip-000181",
+    "title": {
+      "es": "Aporte comunitario",
+      "en": "Aporte comunitario"
+    },
+    "description": {
+      "es": "Bulldogs francés jugando",
+      "en": "Aporte de usuario"
+    },
+    "tags": {
+      "es": [
+        "Lady",
+        "leia"
+      ],
+      "en": []
+    },
+    "source": {
+      "provider": "user_contribution",
+      "provider_id": "a2026-11-f85c92c3e58a18f318dcebf0b21090cd",
+      "source_language": "und",
+      "source_title": "Aporte comunitario",
+      "source_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/uploads-2026-11/a2026-11-f85c92c3e58a18f318dcebf0b21090cd.media",
+      "source_author": "Anonimo",
+      "declared_source": "Aporte de usuario",
+      "source_start": 36.0,
+      "source_end": 41.366667
+    },
+    "media": {
+      "duration_seconds": 5.366667,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2592696,
+      "sha256": "8308db1c7de3505e02eea905abef2f57188d595ee1af53102699814a24f36ca7",
+      "perceptual_hash": "9c4c6663a1b796d8"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-26-001/clip_clip-000181.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-26-001/thumb_clip-000181.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-26T02:38:30.116248Z"
   }
 ]
