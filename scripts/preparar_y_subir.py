@@ -142,7 +142,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archivo", type=Path)
     parser.add_argument("--api", required=True, help="Origen HTTPS del servicio")
-    parser.add_argument("--metadata", required=True, type=Path, help="JSON descriptivo es/en")
+    parser.add_argument("--metadata", required=True, type=Path, help="JSON con description.es; ingles y tags recomendados")
     parser.add_argument("--session")
     parser.add_argument("--desde", type=float)
     parser.add_argument("--hasta", type=float)

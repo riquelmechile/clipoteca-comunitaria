@@ -8,7 +8,7 @@ la validacion completa ocurre antes del registro y la QA del clip antes de index
 
 Pide al LLM que suba tus archivos. Si el host no puede transmitirlos, pide una sesion
 (`crear_subida`) y abre su enlace de lote desde el celular. Selecciona hasta 12 archivos,
-escribe una descripcion y tags en espanol e ingles para cada archivo, opcionalmente titulo y autor, y pulsa Subir archivos publicos. Veras el progreso
+escribe que se ve en espanol para cada archivo y, si quieres, tags en espanol, opcionalmente titulo y autor, y pulsa Subir archivos publicos. Veras el progreso
 y los IDs. Consulta el estado con el boton de la pagina o con `estado_subida`.
 El enlace dura 24 horas; guardalo como una capacidad temporal, no lo publiques.
 Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion si hace falta.
@@ -16,11 +16,11 @@ Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion
 ## Para LLM y agentes
 
 1. Llama a `crear_subida` una vez por lote. No muestres el enlace si puedes subir tu mismo.
-2. Si el host proporciona un archivo MCP, llama a `subir_archivo(session_id, file, description, tags)`.
+2. Si el host proporciona un archivo MCP, llama a `subir_archivo(session_id, file, description, tags opcionales)`.
    ChatGPT admite `_meta["openai/fileParams"]` con un objeto que tiene `download_url`
    y `file_id` obligatorios, `mime_type` y `file_name` opcionales.
    Ver [referencia oficial de OpenAI](https://developers.openai.com/plugins/reference#file-apis).
-   No inventes URLs, IDs ni bytes. El Worker descarga directamente la URL temporal;
+   No inventes URLs, IDs ni bytes. Entrega description.es siempre y, como LLM, procura entregar tambien description.en y tags en ambos idiomas. El Worker descarga directamente la URL temporal;
    no la guarda en el manifiesto ni la envia a Actions. Solo HTTPS de los dominios
    permitidos y sin redirecciones; por defecto oaiusercontent.com y sus subdominios.
    El operador puede ajustar CLIPOTECA_FILE_HOSTS (lista de sufijos de hosts confiables)
@@ -64,7 +64,7 @@ Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion
   expires_at y upload_url.
 - GET /v1/uploads/{session_id}: estado del lote.
 - POST /v1/uploads/{session_id}/files: JSON con kind image/video, titulo y autor
-  opcionales (campos title y author), source y license_note opcionales; description y tags es/en obligatorios; size obligatorio en bytes para un ticket.
+  opcionales (campos title y author), source y license_note opcionales; description.es obligatoria; description.en y tags opcionales; size obligatorio en bytes para un ticket.
   Tambien admite file o image_base64 como en MCP; devuelve 202 si recibe los bytes,
   o 201 con ticket si no se suministran bytes.
 - PUT /v1/media/upload/{id}/parts/{n}: parte binaria con Content-Length exacto y Bearer del ticket (n desde 0). POST /v1/media/upload/{id}/complete: verifica las partes y dispara ingesta.

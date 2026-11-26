@@ -31,10 +31,14 @@ del clip. El contrato actual localizado del clip es es/en.
 - Ingesta: valida manifiesto, tamanos y SHA-256 de partes, decodifica original,
   normaliza, vuelve a decodificar y valida la salida. Solo publica salida.
   El registro contiene los datos tecnicos reales y SHA-256 de salida.
-- Descripcion es/en (1..400 caracteres cada una), tags es/en (1..8 por idioma,
-  1..40 caracteres cada uno), titulo, autor, fuente y nota de licencia opcional.
-  No inventar metadatos. Los tickets antiguos sin los dos campos se admiten
-  por compatibilidad, no se inventa una descripcion para ellos.
+- Descripcion en espanol obligatoria (1..400 caracteres); ingles y tags
+  opcionales (1..8 por idioma, 1..40 caracteres por tag). Los LLM deben aportar
+  ambos idiomas y tags cuando puedan. Las personas solo describen en espanol.
+  La ingesta deriva palabras de la descripcion sin inventar contenido y usa
+  el traductor Argos verificado existente para completar el ingles.
+  metadata_auto enumera los campos generados. Si falla Argos, se conserva
+  e indexa el espanol, sin rechazar el archivo. Los tickets antiguos sin
+  descripcion se admiten por compatibilidad.
 - Los registros antiguos de URL y modo legacy sin Actions mantienen su
   contrato historico. Para normalizacion obligatoria usa la ingesta KV/Actions.
 - Al finalizar la publicacion de un aporte con metadatos, se actualiza

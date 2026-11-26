@@ -13,7 +13,7 @@ export interface MediaEnv extends queue.QueueEnv {
   CLIPOTECA_FILE_HOSTS?: string;
 }
 export const PUBLIC_NOTICE = "Todo lo que subas (archivos, guion y video final) queda p\u00fablico.";
-type Descriptive = {description:Record<'es'|'en',string>;tags:Record<'es'|'en',string[]>};
+type Descriptive = {description:{es:string;en?:string};tags?:Partial<Record<'es'|'en',string[]>>};
 type Metadata = Partial<Descriptive> & {kind: MediaKind; title: string; author: string; source: string; license_note?: string};
 type RecordMedia = Metadata & {
   media_id: string; bytes: number; mime: string; origin: "url" | "upload";
@@ -28,8 +28,8 @@ const decoder = new TextDecoder();
 const json = (value:unknown,status=200) => Response.json(value,{status,headers:{"cache-control":"no-store","referrer-policy":"no-referrer"}});
 const mediaMessages: Readonly<Record<string,string>> = Object.freeze({
   invalid_media:"Datos del aporte no v\u00e1lidos.",
-  invalid_description:"Descripcion es/en obligatoria (maximo 400 caracteres).",
-  invalid_tags:"Tags es/en obligatorios (1 a 8 por idioma, maximo 40 caracteres).",
+  invalid_description:"Describe lo que se ve en espanol (maximo 400 caracteres).",
+  invalid_tags:"Tags opcionales (1 a 8 por idioma, maximo 40 caracteres).",
   invalid_title:"T\u00edtulo no v\u00e1lido.",
   invalid_author:"Autor no v\u00e1lido.",
   invalid_source:"Origen no v\u00e1lido o sin contenido.",
@@ -97,11 +97,18 @@ function metadata(x:unknown,extra:string[]=[]):Metadata {
   if(x.description!==undefined||x.tags!==undefined){
     const d=x.description, tags=x.tags;
     if(!object(d)||Object.keys(d).some(k=>k!=="es"&&k!=="en")||
-      !clean(d.es,400)||!clean(d.en,400))throw new TypeError("invalid_description");
-    if(!object(tags)||Object.keys(tags).some(k=>k!=="es"&&k!=="en")||
-      ![tags.es,tags.en].every(v=>Array.isArray(v)&&v.length>=1&&v.length<=8&&v.every(s=>clean(s,40))))throw new TypeError("invalid_tags");
-    descriptive={description:{es:(d.es as string).trim(),en:(d.en as string).trim()},
-      tags:{es:(tags.es as string[]).map(s=>s.trim()),en:(tags.en as string[]).map(s=>s.trim())}};
+      !clean(d.es,400)||(d.en!==undefined&&!clean(d.en,400)))throw new TypeError("invalid_description");
+    descriptive.description={es:(d.es as string).trim(),
+      ...(d.en===undefined?{}:{en:(d.en as string).trim()})};
+    if(tags!==undefined){
+      if(!object(tags)||Object.keys(tags).some(k=>k!=="es"&&k!=="en")||
+        !Object.values(tags).every(v=>Array.isArray(v)&&v.length>=1&&v.length<=8&&v.every(s=>clean(s,40))))
+        throw new TypeError("invalid_tags");
+      descriptive.tags={
+        ...(tags.es===undefined?{}:{es:(tags.es as string[]).map(s=>s.trim())}),
+        ...(tags.en===undefined?{}:{en:(tags.en as string[]).map(s=>s.trim())}),
+      };
+    }
   }
   return {...descriptive,kind:x.kind,title:field("title",120),author:field("author",120),source:field("source",500),
     ...(x.license_note===undefined?{}:{license_note:field("license_note",500)})};
@@ -289,7 +296,7 @@ async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:strin
     meta=metadata(raw,["size"]);
     if(object(raw))size=raw.size as number|undefined;
   }
-  if(queued&&(!meta.description||!meta.tags))return err("invalid_description",400);
+  if(queued&&!meta.description?.es)return err("invalid_description",400);
   if((queued||size!==undefined)&&(!Number.isSafeInteger(size)||size!<=0))return err("invalid_length",400);
   if(size!==undefined&&size>maxBytes(meta.kind))return err("media_too_large",413);
   if(!queued&&size!==undefined&&size>SINGLE_PUT_MAX)return err("use_parts",413);
@@ -566,8 +573,8 @@ function allowedFileUrl(raw:unknown,env:MediaEnv):URL {
 const B64_LIMIT=40*1024;
 function batchPage():Response{
   const nonce=hex(crypto.getRandomValues(new Uint8Array(16)));
-  const html='<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aportar a Clipoteca</title><h1>Aporta tus videos y fotos</h1><p>'+PUBLIC_NOTICE+'</p><p>Hasta 12 archivos. Video: 100 MiB y 120 s. Imagen: 10 MiB y 24 MP.</p><label>Titulo (opcional) <input id="title" maxlength="120"></label><label>Autor (opcional) <input id="author" maxlength="120"></label><p><input id="files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></p><button id="send">Subir archivos publicos</button><button id="refresh">Consultar estado</button><pre id="out"></pre><script nonce="'+nonce+'">'+
-    'const id=location.hash.slice(1);const out=document.getElementById("out");const button=document.getElementById("send");const api="/v1/uploads/"+id;const get=async(r)=>{const v=await r.json();if(!r.ok)throw Error(v.error?.message||"Error "+r.status);return v};const log=s=>out.textContent+=s+"\\n";const status=async()=>{try{const v=await get(await fetch(api));out.textContent=v.files.map(f=>f.media_id+" "+f.kind+" "+f.status+" "+(f.reason||"")).join("\\n")}catch(e){log(e.message)}};document.getElementById("refresh").onclick=status;button.onclick=async()=>{if(!/^[a-f0-9]{64}$/.test(id)){log("Enlace invalido");return}button.disabled=true;try{const files=Array.from(document.getElementById("files").files);const total=files.reduce((n,f)=>n+f.size,0);let uploaded=0;const s=await get(await fetch(api));if(!files.length||files.length+s.files.length>12)throw Error("Selecciona hasta "+(12-s.files.length)+" archivos");for(const f of files){try{const mime=f.type;const kind=mime.startsWith("image/")||/\\.(jpe?g|png|webp)$/i.test(f.name)?"image":mime.startsWith("video/")||/\\.(mp4|mov|webm)$/i.test(f.name)?"video":null;if(!kind)throw Error("Formato no admitido");if(!f.size||f.size>(kind==="image"?10:100)*1048576)throw Error("Tamano no admitido");const t=await get(await fetch(api+"/files",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind,size:f.size,title:document.getElementById("title").value||undefined,author:document.getElementById("author").value||undefined,description:{es:prompt("Describe en espanol: "+f.name),en:prompt("Describe en ingles: "+f.name)},tags:{es:(prompt("Tags en espanol, separados por coma: "+f.name)||"").split(",").map(s=>s.trim()).filter(Boolean),en:(prompt("Tags en ingles, separados por coma: "+f.name)||"").split(",").map(s=>s.trim()).filter(Boolean)}})}));for(let n=0;n<t.parts;n++){const offset=n*t.part_size;const part=f.slice(offset,offset+t.part_size);for(let attempt=0;;attempt++){try{await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open("PUT",t.put_url+"/parts/"+n);x.setRequestHeader("Authorization","Bearer "+t.upload_token);x.upload.onprogress=e=>{if(e.lengthComputable)out.textContent=f.name+" "+Math.floor(100*(offset+e.loaded)/f.size)+"% (lote "+Math.floor(100*(uploaded+offset+e.loaded)/total)+"%) "+t.media_id};x.onload=()=>x.status>=200&&x.status<300?resolve():reject(Error("Subida rechazada "+x.status));x.onerror=()=>reject(Error("Error de red"));x.ontimeout=()=>reject(Error("Tiempo de espera agotado"));x.timeout=180000;x.send(part)});break}catch(e){if(attempt===2)throw e;await new Promise(r=>setTimeout(r,1500*(attempt+1)))}}}await get(await fetch(t.put_url+"/complete",{method:"POST",headers:{authorization:"Bearer "+t.upload_token}}));uploaded+=f.size;log(f.name+" recibido: "+t.media_id)}catch(e){log(f.name+": "+e.message)}}}catch(e){log(e.message)}finally{button.disabled=false;await status()}};if(/^[a-f0-9]{64}$/.test(id))status();</script></html>';
+  const html='<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aportar a Clipoteca</title><h1>Aporta tus videos y fotos</h1><p>'+PUBLIC_NOTICE+'</p><p>Hasta 12 archivos. Video: 100 MiB y 120 s. Imagen: 10 MiB y 24 MP.</p><label>Titulo (opcional) <input id="title" maxlength="120"></label><label>Autor (opcional) <input id="author" maxlength="120"></label><p><input id="files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></p><div id="metadata"></div><button id="send">Subir archivos publicos</button><button id="refresh">Consultar estado</button><pre id="out"></pre><script nonce="'+nonce+'">'+
+    'const id=location.hash.slice(1);const out=document.getElementById("out");const button=document.getElementById("send");const api="/v1/uploads/"+id;const input=document.getElementById("files");const fields=document.getElementById("metadata");const formRows=[];input.onchange=()=>{fields.replaceChildren();formRows.length=0;for(const f of input.files){const row=document.createElement("fieldset");const name=document.createElement("legend");name.textContent=f.name;row.append(name);const label=document.createElement("label");label.textContent="\\u00bfQu\\u00e9 se ve? (obligatorio) ";const desc=document.createElement("textarea");desc.required=true;desc.maxLength=400;desc.rows=3;label.append(desc);row.append(label);const tagLabel=document.createElement("label");tagLabel.textContent=" Tags (opcional, separados por coma) ";const tags=document.createElement("input");tags.type="text";tags.maxLength=328;tagLabel.append(tags);row.append(tagLabel);fields.append(row);formRows.push({file:f,desc,tags})}};const get=async(r)=>{const v=await r.json();if(!r.ok)throw Error(v.error?.message||"Error "+r.status);return v};const log=s=>out.textContent+=s+"\\n";const status=async()=>{try{const v=await get(await fetch(api));out.textContent=v.files.map(f=>f.media_id+" "+f.kind+" "+f.status+" "+(f.reason||"")).join("\\n")}catch(e){log(e.message)}};document.getElementById("refresh").onclick=status;button.onclick=async()=>{if(!/^[a-f0-9]{64}$/.test(id)){log("Enlace invalido");return}button.disabled=true;try{const files=Array.from(document.getElementById("files").files);if(formRows.length!==files.length||formRows.some(r=>!r.desc.value.trim()))throw Error("Describe lo que se ve en cada archivo.");const total=files.reduce((n,f)=>n+f.size,0);let uploaded=0;const s=await get(await fetch(api));if(!files.length||files.length+s.files.length>12)throw Error("Selecciona hasta "+(12-s.files.length)+" archivos");for(const entry of formRows){const f=entry.file;try{const mime=f.type;const kind=mime.startsWith("image/")||/\\.(jpe?g|png|webp)$/i.test(f.name)?"image":mime.startsWith("video/")||/\\.(mp4|mov|webm)$/i.test(f.name)?"video":null;if(!kind)throw Error("Formato no admitido");if(!f.size||f.size>(kind==="image"?10:100)*1048576)throw Error("Tamano no admitido");const t=await get(await fetch(api+"/files",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind,size:f.size,title:document.getElementById("title").value||undefined,author:document.getElementById("author").value||undefined,description:{es:entry.desc.value.trim()},...(entry.tags.value.trim()?{tags:{es:entry.tags.value.split(",").map(s=>s.trim()).filter(Boolean)}}:{})})}));for(let n=0;n<t.parts;n++){const offset=n*t.part_size;const part=f.slice(offset,offset+t.part_size);for(let attempt=0;;attempt++){try{await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open("PUT",t.put_url+"/parts/"+n);x.setRequestHeader("Authorization","Bearer "+t.upload_token);x.upload.onprogress=e=>{if(e.lengthComputable)out.textContent=f.name+" "+Math.floor(100*(offset+e.loaded)/f.size)+"% (lote "+Math.floor(100*(uploaded+offset+e.loaded)/total)+"%) "+t.media_id};x.onload=()=>x.status>=200&&x.status<300?resolve():reject(Error("Subida rechazada "+x.status));x.onerror=()=>reject(Error("Error de red"));x.ontimeout=()=>reject(Error("Tiempo de espera agotado"));x.timeout=180000;x.send(part)});break}catch(e){if(attempt===2)throw e;await new Promise(r=>setTimeout(r,1500*(attempt+1)))}}}await get(await fetch(t.put_url+"/complete",{method:"POST",headers:{authorization:"Bearer "+t.upload_token}}));uploaded+=f.size;log(f.name+" recibido: "+t.media_id)}catch(e){log(f.name+": "+e.message)}}}catch(e){log(e.message)}finally{button.disabled=false;await status()}};if(/^[a-f0-9]{64}$/.test(id))status();</script></html>';
   return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"no-store","referrer-policy":"no-referrer","x-content-type-options":"nosniff","content-security-policy":"default-src 'none'; script-src 'nonce-"+nonce+"'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
@@ -662,8 +669,8 @@ async function searchContributions(request:Request,env:MediaEnv):Promise<Respons
   const items=[];
   for(const row of rows){
     if(!object(row)||row.status!=="registered"||typeof row.media_id!=="string"||
-      !UPLOAD_ID.test(row.media_id)||!object(row.description)||!object(row.tags))continue;
-    const values=[row.title,row.source,...Object.values(row.description),...Object.values(row.tags).flat()];
+      !UPLOAD_ID.test(row.media_id)||!object(row.description)||typeof row.description.es!=="string")continue;
+    const values=[row.title,row.source,...Object.values(row.description),...Object.values(object(row.tags)?row.tags:{}).flat()];
     const vocabulary=new Set(searchTokens(values.filter(v=>typeof v==="string").join(" ")));
     if(terms.every(term=>vocabulary.has(term)))items.push(row);
   }

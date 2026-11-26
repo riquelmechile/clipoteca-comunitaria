@@ -178,7 +178,7 @@ export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider:
 }
 
 export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer {
-  const contributionFlow = " Flujo: escribe el guion y aspecto; solicita permiso de publicacion; describe cada aporte en es/en y tags es/en. Si tienes shell descarga scripts/preparar_y_subir.py desde raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/scripts/preparar_y_subir.py y ejecuta python3 preparar_y_subir.py ARCHIVO --api ORIGEN_HTTPS --metadata aporte.json (opcional --session ID --desde SEG --hasta SEG). ffmpeg -i ORIGINAL -vf scale=W:H:flags=lanczos,setsar=1,fps=FPS -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart SALIDA.mp4; W/H son dimensiones pares con lado corto maximo 720, sin ampliar, rotar el encuadre ni recortar; FPS original limitado a 1..60. Si no hay shell usa subir_archivo o bytes originales. Espera registered con get_media_status/estado_subida, usa media_id en media.ref, llama render_video, consulta get_video_status y entrega URL final.";
+  const contributionFlow = " Flujo: escribe el guion y aspecto; solicita permiso de publicacion; describe cada aporte en espanol (obligatorio). Como LLM entrega tambien descripcion en ingles y tags es/en siempre que puedas; si faltan, el servidor los completa sin bloquear el registro. Si tienes shell descarga scripts/preparar_y_subir.py desde raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/scripts/preparar_y_subir.py y ejecuta python3 preparar_y_subir.py ARCHIVO --api ORIGEN_HTTPS --metadata aporte.json (opcional --session ID --desde SEG --hasta SEG). ffmpeg -i ORIGINAL -vf scale=W:H:flags=lanczos,setsar=1,fps=FPS -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart SALIDA.mp4; W/H son dimensiones pares con lado corto maximo 720, sin ampliar, rotar el encuadre ni recortar; FPS original limitado a 1..60. Si no hay shell usa subir_archivo o bytes originales. Espera registered con get_media_status/estado_subida, usa media_id en media.ref, llama render_video, consulta get_video_status y entrega URL final.";
   const server = new McpServer(
     { name: "clipoteca-comunitaria", version: APP_VERSION },
     { capabilities: { tools: {} } },
@@ -300,9 +300,9 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
 
 
   const descriptive = {
-    description:z.strictObject({es:z.string().trim().min(1).max(400),en:z.string().trim().min(1).max(400)}),
-    tags:z.strictObject({es:z.array(z.string().trim().min(1).max(40)).min(1).max(8),
-      en:z.array(z.string().trim().min(1).max(40)).min(1).max(8)}),
+    description:z.strictObject({es:z.string().trim().min(1).max(400),en:z.string().trim().min(1).max(400).optional()}),
+    tags:z.strictObject({es:z.array(z.string().trim().min(1).max(40)).min(1).max(8).optional(),
+      en:z.array(z.string().trim().min(1).max(40)).min(1).max(8).optional()}).optional(),
   };
   const mediaMetadata = {
     kind: z.enum(["video", "image"]), title: z.string().min(1).max(120),
@@ -311,7 +311,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   };
   const mediaId = z.string().regex(/^(?:u[1-9a-f][a-f0-9]{0,11}|a\d{4}-\d{2}-[a-f0-9]{32})$/);
   const mediaRecord = z.object({
-    ...mediaMetadata, description:descriptive.description.optional(), tags:descriptive.tags.optional(), media_id: mediaId, bytes: z.number().int().positive(),
+    ...mediaMetadata, description:descriptive.description.optional(), tags:descriptive.tags, metadata_auto:z.array(z.enum(["description.en","tags.es","tags.en"])).optional(), media_id: mediaId, bytes: z.number().int().positive(),
     mime: z.string(), origin: z.enum(["url", "upload"]), url: z.string().url(),
     created_at: z.string(), status: z.literal("registered"),
     duration_seconds: z.number().positive().max(120).optional(),
@@ -329,13 +329,13 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   server.registerTool("register_media_url", {
     title: "Registrar un aporte por URL",
     description: "Registra una URL HTTPS directa. " + PUBLIC_NOTICE,
-    inputSchema: z.strictObject({...mediaMetadata, url: z.string().url()}),
+    inputSchema: z.strictObject({...mediaMetadata,description:descriptive.description.optional(),tags:descriptive.tags,url:z.string().url()}),
     outputSchema: mediaRecord,
     annotations: {readOnlyHint:false, openWorldHint:true},
   }, async input => restResult(toolRequest("/v1/media", "POST", input), env));
   server.registerTool("create_media_upload", {
     title: "Crear enlace de subida",
-    description: "Ticket de un archivo, 2 h en modo KV. Declara size en bytes. Hasta 95 MiB puedes usar PUT binario; por encima usa partes de 24 MiB y POST complete. No pidas al usuario abrir el enlace si puedes subirlo. " + PUBLIC_NOTICE,
+    description: "Ticket de un archivo, 2 h en modo KV. Declara size en bytes. Hasta 95 MiB puedes usar PUT binario; por encima usa partes de 24 MiB y POST complete. No pidas al usuario abrir el enlace si puedes subirlo. " + contributionFlow + " " + PUBLIC_NOTICE,
     inputSchema: z.strictObject({...mediaMetadata,...descriptive,size:z.number().int().positive()}),
     outputSchema: z.object({
       media_id:mediaId,status:z.enum(["pending_upload","uploading"]),expires_at:z.string(),
@@ -372,14 +372,14 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
   server.registerTool("subir_archivo",{
     title:"Aportar archivo del usuario",
-    description:"Primera opcion cuando el host MCP entrega un archivo temporal (ChatGPT fileParams). El servidor descarga la URL temporal HTTPS autorizada, valida el contenido y devuelve media_id. No pidas al usuario abrir enlaces. Si el host no entrega archivos o el origen no esta admitido, usa ticket_subida si tienes red; ultimo recurso: upload_url de crear_subida. "+PUBLIC_NOTICE,
+    description:"Primera opcion cuando el host MCP entrega un archivo temporal (ChatGPT fileParams). El servidor descarga la URL temporal HTTPS autorizada, valida el contenido y devuelve media_id. No pidas al usuario abrir enlaces. Si el host no entrega archivos o el origen no esta admitido, usa ticket_subida si tienes red; ultimo recurso: upload_url de crear_subida. Entrega description.es y, preferiblemente, description.en y tags es/en. "+PUBLIC_NOTICE,
     inputSchema:z.strictObject({...sessionMeta,kind:z.enum(["image","video"]).optional(),file:z.strictObject({download_url:z.string().url().max(4096),file_id:z.string().min(1).max(256),mime_type:z.string().optional(),file_name:z.string().optional()})}),
     outputSchema:staged,_meta:{"openai/fileParams":["file"]},
     annotations:{readOnlyHint:false,openWorldHint:true},
   },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
   server.registerTool("subir_imagen_base64",{
     title:"Aportar imagen pequena",
-    description:"Solo si el host puede leer los bytes: base64 puro de hasta 40 KiB decodificados, sin prefijo data:. No inventes bytes. "+PUBLIC_NOTICE,
+    description:"Solo si el host puede leer los bytes: base64 puro de hasta 40 KiB decodificados, sin prefijo data:. No inventes bytes. Entrega description.es y, preferiblemente, description.en y tags es/en. "+PUBLIC_NOTICE,
     inputSchema:z.strictObject({...sessionMeta,image_base64:z.string().max(54616)}),outputSchema:staged,
     annotations:{readOnlyHint:false,openWorldHint:true},
   },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
