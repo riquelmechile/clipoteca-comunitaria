@@ -33,7 +33,7 @@ function context(env: RestEnv): Context | null {
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   const token = env.CLIPOTECA_DISPATCH_TOKEN;
   return token && /^[\w.-]+\/[\w.-]+$/.test(repo)
-    ? {base: "https://api.github.com/repos/" + repo, token,fetcher:env.WAIT_FETCH??fetch} : null;
+    ? {base: "https://api.github.com/repos/" + repo, token,fetcher:env.WAIT_FETCH??((input,init)=>fetch(input,init))} : null;
 }
 function github(ctx: Context, path: string, init: RequestInit = {}) {
   return ctx.fetcher(ctx.base + path, {...init, redirect:"manual", headers: {

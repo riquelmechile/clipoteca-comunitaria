@@ -285,3 +285,16 @@ describe("streaming and isolated video quota",()=>{
     expect((await worker.fetch(request("/v1/videos",{script}),env)).status).toBe(202);
   });
 });
+
+describe("Workers fetch binding", () => {
+  it("never calls global fetch as a method (Workers throws Illegal invocation)", async () => {
+    vi.stubGlobal("fetch", vi.fn(function(this:unknown) {
+      if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+      return Promise.resolve(new Response(null,{status:204}));
+    }));
+    try {
+      const response = await worker.fetch(request("/v1/videos",{script}), env);
+      expect(response.status).toBe(202);
+    } finally { vi.unstubAllGlobals(); }
+  });
+});
