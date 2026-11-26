@@ -166,7 +166,7 @@ jobs:
     timeout-minutes: 65
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 8
       matrix:
         scene: ${{ fromJson(needs.plan.outputs.scenes) }}
     env:
@@ -246,7 +246,7 @@ jobs:
           set +e
           uv run --no-sync python -m clipoteca.studio.importer scene \
             --job "$out/job.json" --catalog data/clips.json --out "$out/import" \
-            --max-results 8 --spread-queries --timeout 600
+            --max-results 8 --spread-queries --fast --timeout 600
           code=$?
           set -e
           echo "importer exit code: $code (0 clips found, 3 nothing usable, 1 real failure)"
@@ -283,7 +283,7 @@ jobs:
           set +e
           uv run --no-sync python -m clipoteca.studio.importer scene \
             --job "$out/job.json" --catalog data/clips.json --out "$out/import-retry" \
-            --max-results 2 --spread-queries --simple --timeout 180
+            --max-results 2 --spread-queries --simple --fast --timeout 180
           code=$?
           set -e
           if [ "$code" != 0 ] && [ "$code" != 3 ]; then
@@ -550,6 +550,8 @@ jobs:
             work/qa_report.json
             work/render.json
             work/timings.json
+            work/comp/stage-compose-build.json
+            work/stage-compose-render.json
           if-no-files-found: warn
           retention-days: 7
 
