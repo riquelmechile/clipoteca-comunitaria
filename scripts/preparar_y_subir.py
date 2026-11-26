@@ -21,17 +21,31 @@ def run(args, timeout=180):
 
 
 def probe(path):
-    return json.loads(run([
-        "ffprobe", "-v", "error", "-protocol_whitelist", "file,pipe", "-show_streams",
-        "-show_format", "-of", "json", str(path),
-    ]))
+    return json.loads(
+        run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-protocol_whitelist",
+                "file,pipe",
+                "-show_streams",
+                "-show_format",
+                "-of",
+                "json",
+                str(path),
+            ]
+        )
+    )
 
 
 def prepare(source, target, kind, start, end):
     info = probe(source)
     stream = next(s for s in info["streams"] if s["codec_type"] == "video")
-    rotation = next((s["rotation"] for s in stream.get("side_data_list", [])
-                     if "rotation" in s), stream.get("tags", {}).get("rotate", 0))
+    rotation = next(
+        (s["rotation"] for s in stream.get("side_data_list", []) if "rotation" in s),
+        stream.get("tags", {}).get("rotate", 0),
+    )
     width, height = int(stream["width"]), int(stream["height"])
     try:
         sar = Fraction(stream.get("sample_aspect_ratio", "1:1").replace(":", "/"))
@@ -47,15 +61,34 @@ def prepare(source, target, kind, start, end):
             raise ValueError("No se recorta una foto en el tiempo.")
         factor = min(1, 1920 / max(width, height))
         dims = f"{max(1, int(width * factor))}:{max(1, int(height * factor))}"
-        run(base + ["-i", str(source), "-map", "0:v:0", "-frames:v", "1",
-                    "-vf", f"scale={dims}:flags=lanczos,setsar=1", "-map_metadata", "-1",
-                    "-c:v", "libwebp", "-quality", "85", str(target)], 480)
+        run(
+            base
+            + [
+                "-i",
+                str(source),
+                "-map",
+                "0:v:0",
+                "-frames:v",
+                "1",
+                "-vf",
+                f"scale={dims}:flags=lanczos,setsar=1",
+                "-map_metadata",
+                "-1",
+                "-c:v",
+                "libwebp",
+                "-quality",
+                "85",
+                str(target),
+            ],
+            480,
+        )
     else:
         duration = float(info["format"]["duration"])
         start = 0.0 if start is None else start
         end = duration if end is None else end
-        if not (math.isfinite(duration) and 0 <= start < end <= duration
-                and end - start <= MAX_SECONDS):
+        if not (
+            math.isfinite(duration) and 0 <= start < end <= duration and end - start <= MAX_SECONDS
+        ):
             raise ValueError("Video: indica un tramo valido de hasta 120 s con --desde/--hasta.")
         factor = min(1, 720 / min(width, height))
         dims = f"{max(2, int(width * factor) // 2 * 2)}:{max(2, int(height * factor) // 2 * 2)}"
@@ -65,12 +98,45 @@ def prepare(source, target, kind, start, end):
         except (ValueError, ZeroDivisionError):
             fps = Fraction(30)
         fps = min(max(fps, Fraction(1)), Fraction(60))
-        run(base + ["-ss", str(start), "-i", str(source), "-t", str(end - start),
-                    "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "-1",
-                    "-map_chapters", "-1", "-vf", f"scale={dims}:flags=lanczos,setsar=1,fps={fps}",
-                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium",
-                    "-crf", "23", "-threads", "2", "-c:a", "aac", "-b:a", "128k",
-                    "-movflags", "+faststart", str(target)], 480)
+        run(
+            base
+            + [
+                "-ss",
+                str(start),
+                "-i",
+                str(source),
+                "-t",
+                str(end - start),
+                "-map",
+                "0:v:0",
+                "-map",
+                "0:a?",
+                "-map_metadata",
+                "-1",
+                "-map_chapters",
+                "-1",
+                "-vf",
+                f"scale={dims}:flags=lanczos,setsar=1,fps={fps}",
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-preset",
+                "medium",
+                "-crf",
+                "23",
+                "-threads",
+                "2",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
+                "-movflags",
+                "+faststart",
+                str(target),
+            ],
+            480,
+        )
         if not 0 < float(probe(target)["format"]["duration"]) <= MAX_SECONDS:
             raise ValueError("El video preparado excede 120 s.")
     if not 0 < target.stat().st_size <= (10 if kind == "image" else 100) * MIB:
@@ -78,13 +144,28 @@ def prepare(source, target, kind, start, end):
 
 
 def curl(url, method="GET", *, body=None, file=None, token=None):
-    args = ["curl", "--silent", "--show-error", "--fail-with-body", "--max-time", "180",
-            "--proto", "=https", "--request", method, url]
+    args = [
+        "curl",
+        "--silent",
+        "--show-error",
+        "--fail-with-body",
+        "--max-time",
+        "180",
+        "--proto",
+        "=https",
+        "--request",
+        method,
+        url,
+    ]
     if token:
         args += ["-H", "Authorization: Bearer " + token]
     if body is not None:
-        args += ["-H", "Content-Type: application/json", "--data-binary",
-                 json.dumps(body, ensure_ascii=True)]
+        args += [
+            "-H",
+            "Content-Type: application/json",
+            "--data-binary",
+            json.dumps(body, ensure_ascii=True),
+        ]
     if file is not None:
         args += ["--upload-file", str(file)]
     try:
@@ -97,11 +178,17 @@ def curl(url, method="GET", *, body=None, file=None, token=None):
 def upload(api, session, target, metadata, root):
     if not session:
         session = curl(api + "/v1/uploads", "POST", body={})["session_id"]
-    ticket = curl(api + "/v1/uploads/" + session + "/files", "POST",
-                  body={**metadata, "size": target.stat().st_size})
+    ticket = curl(
+        api + "/v1/uploads/" + session + "/files",
+        "POST",
+        body={**metadata, "size": target.stat().st_size},
+    )
     url, token = ticket["put_url"], ticket["upload_token"]
-    if (urlsplit(url).netloc != urlsplit(api).netloc or urlsplit(url).scheme != "https"
-            or ticket["part_size"] != CHUNK):
+    if (
+        urlsplit(url).netloc != urlsplit(api).netloc
+        or urlsplit(url).scheme != "https"
+        or ticket["part_size"] != CHUNK
+    ):
         raise ValueError("Ticket no valido.")
     with target.open("rb") as stream:
         for i in range(ticket["parts"]):
@@ -142,7 +229,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archivo", type=Path)
     parser.add_argument("--api", required=True, help="Origen HTTPS del servicio")
-    parser.add_argument("--metadata", required=True, type=Path, help="JSON con description.es; ingles y tags recomendados")
+    parser.add_argument(
+        "--metadata",
+        required=True,
+        type=Path,
+        help="JSON con description.es; ingles y tags recomendados",
+    )
     parser.add_argument("--session")
     parser.add_argument("--desde", type=float)
     parser.add_argument("--hasta", type=float)
@@ -150,8 +242,15 @@ def main():
     try:
         api = args.api.rstrip("/")
         parsed = urlsplit(api)
-        if (parsed.scheme != "https" or not parsed.netloc or parsed.username
-                or parsed.password or parsed.path or parsed.query or parsed.fragment):
+        if (
+            parsed.scheme != "https"
+            or not parsed.netloc
+            or parsed.username
+            or parsed.password
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
             raise ValueError("La API debe ser un origen HTTPS.")
         metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
         kind = metadata["kind"]
@@ -162,10 +261,18 @@ def main():
             target = root / ("normalized.mp4" if kind == "video" else "normalized.webp")
             prepare(args.archivo.resolve(), target, kind, args.desde, args.hasta)
             print(upload(api, args.session, target, metadata, root))
-    except (OSError, ValueError, KeyError, RuntimeError, StopIteration,
-            subprocess.SubprocessError) as exc:
+    except (
+        OSError,
+        ValueError,
+        KeyError,
+        RuntimeError,
+        StopIteration,
+        subprocess.SubprocessError,
+    ) as exc:
         # The error may contain curl arguments; only expose our bounded messages.
-        if isinstance(exc, (ValueError, RuntimeError)) and not isinstance(exc, json.JSONDecodeError):
+        if isinstance(exc, (ValueError, RuntimeError)) and not isinstance(
+            exc, json.JSONDecodeError
+        ):
             parser.exit(1, str(exc) + "\n")
         parser.exit(1, "No se pudo preparar o registrar el archivo.\n")
 

@@ -76,7 +76,7 @@ def enrich_metadata(manifest: dict) -> dict:
             description["en"] = translated
             automatic.append("description.en")
     if "es" not in tags:
-        words = re.findall(r"[^\\W_]+", description["es"].casefold())
+        words = re.findall(r"[^\W_]+", description["es"].casefold())
         derived = list(
             dict.fromkeys(word for word in words if 2 <= len(word) <= 40 and word not in _STOP_ES)
         )[:8]
@@ -272,7 +272,6 @@ def validate_file(manifest: dict, path: Path) -> float | None:
         raise IngestError("invalid_file") from exc
 
 
-
 def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Path, float | None]:
     """Decode the original, then publish only a normalized and revalidated asset."""
     duration = validate_file(manifest, source)
@@ -283,8 +282,9 @@ def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Pa
             with Image.open(source, formats=[IMAGES[manifest["mime"]]]) as image:
                 image = ImageOps.exif_transpose(image)
                 image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
-                image = image.convert("RGBA" if "A" in image.getbands() or
-                                      "transparency" in image.info else "RGB")
+                image = image.convert(
+                    "RGBA" if "A" in image.getbands() or "transparency" in image.info else "RGB"
+                )
                 image.save(target, "WEBP", quality=85, method=4)
             result.update(mime="image/webp", width=image.width, height=image.height)
         else:
@@ -292,41 +292,116 @@ def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Pa
             env = {"PATH": os.environ["PATH"], "LANG": "C"}
             input_args = ["-protocol_whitelist", "file,pipe", "-f", VIDEOS[manifest["mime"]]]
             probe = subprocess.run(
-                ["ffprobe", "-v", "error", *input_args, "-show_streams", "-show_format",
-                 "-of", "json", str(source)],
-                check=True, capture_output=True, env=env, timeout=45,
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    *input_args,
+                    "-show_streams",
+                    "-show_format",
+                    "-of",
+                    "json",
+                    str(source),
+                ],
+                check=True,
+                capture_output=True,
+                env=env,
+                timeout=45,
             )
             original = parse_probe(json.loads(probe.stdout), source)
             factor = min(1.0, 720 / min(original.display_width, original.display_height))
             width = max(2, int(original.display_width * factor) // 2 * 2)
             height = max(2, int(original.display_height * factor) // 2 * 2)
-            fps = original.fps_fraction if 1 <= original.fps <= 60 else (
-                "60" if original.fps > 60 else "1"
+            fps = (
+                original.fps_fraction
+                if 1 <= original.fps <= 60
+                else ("60" if original.fps > 60 else "1")
             )
             filters = f"scale={width}:{height}:flags=lanczos,setsar=1,fps={fps}"
             subprocess.run(
-                ["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-threads", "2",
-                 *input_args, "-i", str(source), "-map", "0:v:0", "-map", "0:a?",
-                 "-map_metadata", "-1", "-map_chapters", "-1", "-vf", filters,
-                 "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium",
-                 "-crf", "23", "-threads", "2", "-c:a", "aac", "-b:a", "128k",
-                 "-movflags", "+faststart", "-t", "120", str(target)],
-                check=True, capture_output=True, env=env, timeout=480,
+                [
+                    "ffmpeg",
+                    "-nostdin",
+                    "-v",
+                    "error",
+                    "-xerror",
+                    "-threads",
+                    "2",
+                    *input_args,
+                    "-i",
+                    str(source),
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "0:a?",
+                    "-map_metadata",
+                    "-1",
+                    "-map_chapters",
+                    "-1",
+                    "-vf",
+                    filters,
+                    "-c:v",
+                    "libx264",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-preset",
+                    "medium",
+                    "-crf",
+                    "23",
+                    "-threads",
+                    "2",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "128k",
+                    "-movflags",
+                    "+faststart",
+                    "-t",
+                    "120",
+                    str(target),
+                ],
+                check=True,
+                capture_output=True,
+                env=env,
+                timeout=480,
             )
             output = subprocess.run(
-                ["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of",
-                 "json", str(target)],
-                check=True, capture_output=True, env=env, timeout=45,
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_streams",
+                    "-show_format",
+                    "-of",
+                    "json",
+                    str(target),
+                ],
+                check=True,
+                capture_output=True,
+                env=env,
+                timeout=45,
             )
             actual = parse_probe(json.loads(output.stdout), target)
-            if (actual.codec != "h264" or actual.pix_fmt != "yuv420p"
-                    or actual.width != width or actual.height != height
-                    or actual.fps > 60 or actual.rotation != 0
-                    or actual.orientation != original.orientation):
+            if (
+                actual.codec != "h264"
+                or actual.pix_fmt != "yuv420p"
+                or actual.width != width
+                or actual.height != height
+                or actual.fps > 60
+                or actual.rotation != 0
+                or actual.orientation != original.orientation
+            ):
                 raise ValueError("normalized video")
-            result.update(mime="video/mp4", width=width, height=height,
-                          fps=actual.fps, has_audio=actual.has_audio,
-                          aspect_ratio=actual.aspect_ratio, codec="h264", container="mp4")
+            result.update(
+                mime="video/mp4",
+                width=width,
+                height=height,
+                fps=actual.fps,
+                has_audio=actual.has_audio,
+                aspect_ratio=actual.aspect_ratio,
+                codec="h264",
+                container="mp4",
+            )
         size = target.stat().st_size
         if not 0 < size <= (10 if manifest["kind"] == "image" else 100) * MIB:
             raise ValueError("normalized size")
@@ -335,8 +410,15 @@ def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Pa
         with target.open("rb") as stream:
             result["sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
         return result, target, duration
-    except (OSError, ValueError, KeyError, TypeError, ProbeError,
-            subprocess.SubprocessError, Image.DecompressionBombError) as exc:
+    except (
+        OSError,
+        ValueError,
+        KeyError,
+        TypeError,
+        ProbeError,
+        subprocess.SubprocessError,
+        Image.DecompressionBombError,
+    ) as exc:
         raise IngestError("invalid_file") from exc
 
 
@@ -520,9 +602,14 @@ class GitHubPublisher:
             response.raise_for_status()
             payload = response.json()
             if payload.get("encoding") == "none" or not payload.get("content"):
-                raw = self.client.get(url, headers={
-                    **self.headers, "Accept": "application/vnd.github.raw",
-                }, params={"ref": "main"})
+                raw = self.client.get(
+                    url,
+                    headers={
+                        **self.headers,
+                        "Accept": "application/vnd.github.raw",
+                    },
+                    params={"ref": "main"},
+                )
                 raw.raise_for_status()
                 rows = raw.json()
             else:
@@ -536,14 +623,19 @@ class GitHubPublisher:
                     return
             rows.append(record)
             content = json.dumps(rows, ensure_ascii=True, separators=(",", ":")) + "\n"
-            saved = self.client.put(url, headers=self.headers, json={
-                "message": "chore: index verified public contribution",
-                "branch": "main", "sha": payload["sha"],
-                "content": base64.b64encode(content.encode()).decode(),
-            })
+            saved = self.client.put(
+                url,
+                headers=self.headers,
+                json={
+                    "message": "chore: index verified public contribution",
+                    "branch": "main",
+                    "sha": payload["sha"],
+                    "content": base64.b64encode(content.encode()).decode(),
+                },
+            )
             if saved.status_code in (409, 422):
                 if attempt < 4:
-                    time.sleep(min(8, 2 ** attempt))
+                    time.sleep(min(8, 2**attempt))
                     continue
                 raise IngestError("publish_failed")
             saved.raise_for_status()

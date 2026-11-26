@@ -47,7 +47,7 @@ describe("M10 MCP Streamable HTTP", () => {
     const response = await worker.fetch(request);
     expect(response.status).toBe(200);
     const payload = (await rpcPayload(response)) as {result:{tools:Array<{name:string}>}};
-    expect(payload.result.tools).toHaveLength(18);
+    expect(payload.result.tools).toHaveLength(19);
     const invalid = rpc("tools/list", {}, "clipoteca.sub.workers.dev", "");
     invalid.headers.set("host", "malicious.test");
     expect((await worker.fetch(invalid)).status).toBe(403);
