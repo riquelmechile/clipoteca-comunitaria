@@ -29,9 +29,14 @@ jobs:
           python-version: "3.13"
       - uses: ./.github/actions/install-ffmpeg
       - run: uv sync --frozen
+      - name: Prepare verified translation resources (best effort)
+        uses: ./.github/actions/prepare-translations
+        continue-on-error: true
       - name: Validate and register public upload
         env:
           UPLOAD_ID: ${{ inputs.upload_id }}
           UPLOAD_CAPABILITY: ${{ inputs.capability }}
           GH_TOKEN: ${{ github.token }}
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
         run: uv run --no-sync python -m clipoteca.media_ingest

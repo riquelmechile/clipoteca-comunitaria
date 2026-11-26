@@ -6,12 +6,15 @@ export const ID=/^a\d{4}-\d{2}-[a-f0-9]{32}$/;
 const HEX=/^[a-f0-9]{64}$/;
 const AUD="clipoteca-media-ingest-v1";
 const enc=new TextEncoder();
-export type Chunk={bytes:number;sha256:string};
+export type Chunk={bytes:number;sha256:string;keyed?:true};
+export const PART_LEASE_MS=120_000;
+type PendingPart={sha256:string;attempt:string;until:number};
 export type Manifest={kind:"image"|"video";title:string;author:string;source:string;license_note?:string;
+  description?:{es:string;en?:string};tags?:Partial<Record<'es'|'en',string[]>>;
   media_id:string;bytes:number;mime:string;created_at:string;chunks:Chunk[]};
 export type State={status:"uploading"|"processing"|"registered"|"rejected";expires:number;started?:boolean;
   manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string;
-  size?:number;parts?:Record<number,Chunk>;pending?:Record<number,string>;mime?:string};
+  size?:number;parts?:Record<number,Chunk>;pending?:Record<number,PendingPart|string>;mime?:string};
 export interface QueueEnv {
   UPLOADS?:KVNamespace; UPLOAD_CONTROL?:DurableObjectNamespace;
   CLIPOTECA_DISPATCH_TOKEN?:string;CLIPOTECA_GITHUB_REPO?:string;
@@ -20,7 +23,7 @@ export const configured=(env:QueueEnv)=>Boolean(env.UPLOADS&&env.UPLOAD_CONTROL&
 const hex=(b:Uint8Array)=>Array.from(b,x=>x.toString(16).padStart(2,"0")).join("");
 export const hash=async(b:BufferSource)=>hex(new Uint8Array(await crypto.subtle.digest("SHA-256",b)));
 export const capability=()=>hex(crypto.getRandomValues(new Uint8Array(32)));
-export const chunkKey=(id:string,i:number)=>"media:"+id+":"+i;
+export const chunkKey=(id:string,i:number,sha256?:string)=>"media:"+id+":"+i+(sha256?":"+sha256:"");
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{"cache-control":"no-store","referrer-policy":"no-referrer"}});
 export const reasons:Readonly<Record<string,string>>=Object.freeze({
   expired:"El enlace o plazo de procesamiento ha vencido.",
@@ -38,7 +41,7 @@ export const reasons:Readonly<Record<string,string>>=Object.freeze({
   publish_failed:"No se pudo publicar el aporte.",
 });
 const reason=(r:unknown)=>typeof r==="string"&&Object.prototype.hasOwnProperty.call(reasons,r)?r:"staging_failed";
-type Command={action:string;expires?:number;size?:number;index?:number;chunk?:Chunk;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
+type Command={action:string;expires?:number;size?:number;index?:number;chunk?:Chunk;attempt?:string;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
 type Result={code:number;state?:State;write?:boolean};
 export function transition(old:State|undefined,c:Command,now:number):Result {
   if(c.action==="create"){
@@ -56,20 +59,25 @@ export function transition(old:State|undefined,c:Command,now:number):Result {
   if(c.action==="part_begin"||c.action==="part_done"||c.action==="part_abort"){
     const i=c.index, part=c.chunk;
     if(old.status!=="uploading"||old.started||!old.size||i===undefined||!Number.isInteger(i)||i<0||i>=Math.ceil(old.size/CHUNK_BYTES)||
-      !part||part.bytes!==Math.min(CHUNK_BYTES,old.size-i*CHUNK_BYTES)||!HEX.test(part.sha256))return {code:409};
+      !part||part.bytes!==Math.min(CHUNK_BYTES,old.size-i*CHUNK_BYTES)||!HEX.test(part.sha256)||!c.attempt||!HEX.test(c.attempt))return {code:409};
     const parts={...old.parts},pending={...old.pending};
     if(c.action==="part_begin"){
-      if(pending[i])return {code:409};
+      const previous=pending[i];
+      // Legacy reservations have no timestamp: permit replacement with a fenced,
+      // content-addressed write. A live reservation cannot be stolen.
+      if(previous&&typeof previous!=="string"&&previous.until>now)return {code:409};
       if(parts[i]?.sha256===part.sha256)return {code:200,state:old};
       // Fence complete against an in-flight overwrite of the KV key.
-      delete parts[i];pending[i]=part.sha256;
+      delete parts[i];pending[i]={sha256:part.sha256,attempt:c.attempt,until:now+PART_LEASE_MS};
       return {code:200,state:{...old,parts,pending},write:true};
     }
-    if(pending[i]!==part.sha256)return {code:409};
+    const current=pending[i];
+    if(!current||typeof current==="string"||current.sha256!==part.sha256||
+      current.attempt!==c.attempt||current.until<=now)return {code:409};
     delete pending[i];
     if(c.action==="part_done"){
       if(i===0&&!c.mime)return {code:400};
-      parts[i]=part;
+      parts[i]={...part,keyed:true};
     }
     return {code:200,state:{...old,parts,pending,...(c.action==="part_done"&&i===0?{mime:c.mime!}:{})},write:true};
   }
@@ -141,8 +149,8 @@ export async function command(env:QueueEnv,id:string,c:Command):Promise<Result>{
   const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c)});
   return r.ok?{code:r.status,state:await r.json<State>()}:{code:r.status};
 }
-export async function discard(env:QueueEnv,id:string,count:number){
-  await Promise.allSettled(Array.from({length:count},(_,i)=>env.UPLOADS?.delete(chunkKey(id,i))));
+export async function discard(env:QueueEnv,id:string,count:number,chunks?:Chunk[]){
+  await Promise.allSettled(Array.from({length:count},(_,i)=>env.UPLOADS?.delete(chunkKey(id,i,chunks?.[i]?.keyed?chunks[i]!.sha256:undefined))));
 }
 export async function stage(kv:KVNamespace,id:string,bytes:number,
   reader:ReadableStreamDefaultReader<Uint8Array>,prefix:(Uint8Array|undefined)[]):Promise<Chunk[]>{
@@ -232,12 +240,13 @@ export async function ingestRoute(request:Request,env:QueueEnv):Promise<Response
   if(op==="finish"){
     const r=await command(env,id,{action:"finish",...proof,status:request.headers.get("x-clipoteca-result")??"",
       reason:request.headers.get("x-clipoteca-reason")??""});
-    if(r.state)await discard(env,id,r.state.manifest?.chunks.length??0);
+    if(r.state)await discard(env,id,r.state.manifest?.chunks.length??0,r.state.manifest?.chunks);
     return json({},r.code);
   }
   const index=Number(op.slice(6)),r=await command(env,id,{action:"read",...proof});
   if(!r.state?.manifest?.chunks[index])return json({},r.state?404:r.code);
-  const value=await env.UPLOADS!.get(chunkKey(id,index),"stream");
+  const part=r.state.manifest.chunks[index]!;
+  const value=await env.UPLOADS!.get(chunkKey(id,index,part.keyed?part.sha256:undefined),"stream");
   return value?new Response(value,{headers:{"content-type":"application/octet-stream","cache-control":"no-store"}}):json({},503);
 }
 

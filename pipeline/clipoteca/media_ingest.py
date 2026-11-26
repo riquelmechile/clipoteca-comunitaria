@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import math
@@ -15,7 +16,10 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-from PIL import Image
+from PIL import Image, ImageOps
+
+from .media.probe import ProbeError, parse_probe
+from .translate.argos import translate_text
 
 WORKER = "https://clipoteca-worker.clipoteca.workers.dev"
 AUD = "clipoteca-media-ingest-v1"
@@ -29,6 +33,67 @@ VIDEOS = {"video/mp4": "mov", "video/quicktime": "mov", "video/webm": "matroska"
 
 class IngestError(Exception):
     """Fixed public reason code."""
+
+
+def clean_metadata(value: object, limit: int) -> bool:
+    return (
+        isinstance(value, str)
+        and bool(value.strip())
+        and len(value) <= limit
+        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
+    )
+
+
+_STOP_ES = frozenset(
+    "a al algo ante bajo cada como con contra cual cuando de del desde donde dos el ella ellos "
+    "en entre era es esa ese esta este esto hay la las le les lo los mas me mi muy no nos o "
+    "para pero por que se sin sobre son su sus te tiene todo tu un una unos unas y ya".split()
+)
+
+
+def enrich_metadata(manifest: dict) -> dict:
+    """Fill missing fields with the existing verified translator; never reject on failure."""
+    if not manifest.get("description"):
+        return manifest
+    result = dict(manifest)
+    description = dict(manifest["description"])
+    tags = dict(manifest.get("tags", {}))
+    automatic = []
+
+    def english(value: str, limit: int) -> str | None:
+        try:
+            translated = translate_text(value, "es", "en")
+            if clean_metadata(translated, limit):
+                return translated.strip()
+        except Exception:
+            pass
+        print("Aviso: no se pudo completar una traduccion de metadatos; se conserva el espanol.")
+        return None
+
+    if "en" not in description:
+        translated = english(description["es"], 400)
+        if translated:
+            description["en"] = translated
+            automatic.append("description.en")
+    if "es" not in tags:
+        words = re.findall(r"[^\W_]+", description["es"].casefold())
+        derived = list(
+            dict.fromkeys(word for word in words if 2 <= len(word) <= 40 and word not in _STOP_ES)
+        )[:8]
+        if derived:
+            tags["es"] = derived
+            automatic.append("tags.es")
+    if "en" not in tags and tags.get("es"):
+        translated_tags = []
+        for tag in tags["es"]:
+            translated = english(tag, 40)
+            if translated:
+                translated_tags.append(translated)
+        if translated_tags:
+            tags["en"] = list(dict.fromkeys(translated_tags))
+            automatic.append("tags.en")
+    result.update(description=description, tags=tags, metadata_auto=automatic)
+    return result
 
 
 def validate_manifest(raw: object, upload_id: str) -> dict:
@@ -53,6 +118,24 @@ def validate_manifest(raw: object, upload_id: str) -> dict:
             or not value.strip()
             or len(value) > limit
             or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
+        ):
+            raise IngestError("invalid_file")
+    # Old tickets issued before descriptive metadata remain valid.
+    if "description" in raw or "tags" in raw:
+        description, tags = raw.get("description"), raw.get("tags", {})
+        if (
+            not isinstance(description, dict)
+            or "es" not in description
+            or not set(description) <= {"es", "en"}
+            or not all(clean_metadata(v, 400) for v in description.values())
+            or not isinstance(tags, dict)
+            or not set(tags) <= {"es", "en"}
+            or not all(
+                isinstance(v, list)
+                and 1 <= len(v) <= 8
+                and all(clean_metadata(tag, 40) for tag in v)
+                for v in tags.values()
+            )
         ):
             raise IngestError("invalid_file")
     try:
@@ -189,6 +272,156 @@ def validate_file(manifest: dict, path: Path) -> float | None:
         raise IngestError("invalid_file") from exc
 
 
+def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Path, float | None]:
+    """Decode the original, then publish only a normalized and revalidated asset."""
+    duration = validate_file(manifest, source)
+    result = dict(manifest)
+    try:
+        if manifest["kind"] == "image":
+            target = root / "normalized.webp"
+            with Image.open(source, formats=[IMAGES[manifest["mime"]]]) as image:
+                image = ImageOps.exif_transpose(image)
+                image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+                image = image.convert(
+                    "RGBA" if "A" in image.getbands() or "transparency" in image.info else "RGB"
+                )
+                image.save(target, "WEBP", quality=85, method=4)
+            result.update(mime="image/webp", width=image.width, height=image.height)
+        else:
+            target = root / "normalized.mp4"
+            env = {"PATH": os.environ["PATH"], "LANG": "C"}
+            input_args = ["-protocol_whitelist", "file,pipe", "-f", VIDEOS[manifest["mime"]]]
+            probe = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    *input_args,
+                    "-show_streams",
+                    "-show_format",
+                    "-of",
+                    "json",
+                    str(source),
+                ],
+                check=True,
+                capture_output=True,
+                env=env,
+                timeout=45,
+            )
+            original = parse_probe(json.loads(probe.stdout), source)
+            factor = min(1.0, 720 / min(original.display_width, original.display_height))
+            width = max(2, int(original.display_width * factor) // 2 * 2)
+            height = max(2, int(original.display_height * factor) // 2 * 2)
+            fps = (
+                original.fps_fraction
+                if 1 <= original.fps <= 60
+                else ("60" if original.fps > 60 else "1")
+            )
+            filters = f"scale={width}:{height}:flags=lanczos,setsar=1,fps={fps}"
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-nostdin",
+                    "-v",
+                    "error",
+                    "-xerror",
+                    "-threads",
+                    "2",
+                    *input_args,
+                    "-i",
+                    str(source),
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "0:a?",
+                    "-map_metadata",
+                    "-1",
+                    "-map_chapters",
+                    "-1",
+                    "-vf",
+                    filters,
+                    "-c:v",
+                    "libx264",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-preset",
+                    "medium",
+                    "-crf",
+                    "23",
+                    "-threads",
+                    "2",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "128k",
+                    "-movflags",
+                    "+faststart",
+                    "-t",
+                    "120",
+                    str(target),
+                ],
+                check=True,
+                capture_output=True,
+                env=env,
+                timeout=480,
+            )
+            output = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_streams",
+                    "-show_format",
+                    "-of",
+                    "json",
+                    str(target),
+                ],
+                check=True,
+                capture_output=True,
+                env=env,
+                timeout=45,
+            )
+            actual = parse_probe(json.loads(output.stdout), target)
+            if (
+                actual.codec != "h264"
+                or actual.pix_fmt != "yuv420p"
+                or actual.width != width
+                or actual.height != height
+                or actual.fps > 60
+                or actual.rotation != 0
+                or actual.orientation != original.orientation
+            ):
+                raise ValueError("normalized video")
+            result.update(
+                mime="video/mp4",
+                width=width,
+                height=height,
+                fps=actual.fps,
+                has_audio=actual.has_audio,
+                aspect_ratio=actual.aspect_ratio,
+                codec="h264",
+                container="mp4",
+            )
+        size = target.stat().st_size
+        if not 0 < size <= (10 if manifest["kind"] == "image" else 100) * MIB:
+            raise ValueError("normalized size")
+        result["bytes"] = size
+        duration = validate_file(result, target)
+        with target.open("rb") as stream:
+            result["sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
+        return result, target, duration
+    except (
+        OSError,
+        ValueError,
+        KeyError,
+        TypeError,
+        ProbeError,
+        subprocess.SubprocessError,
+        Image.DecompressionBombError,
+    ) as exc:
+        raise IngestError("invalid_file") from exc
+
+
 def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
     upload_id = manifest["media_id"]
     tag = "uploads-" + upload_id[1:8]
@@ -204,6 +437,17 @@ def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
             "bytes",
             "mime",
             "created_at",
+            "description",
+            "tags",
+            "metadata_auto",
+            "width",
+            "height",
+            "fps",
+            "has_audio",
+            "aspect_ratio",
+            "codec",
+            "container",
+            "sha256",
         )
         if key in manifest
     }
@@ -348,6 +592,55 @@ class GitHubPublisher:
         ):
             raise IngestError("publish_failed")
 
+    def index(self, record: dict) -> None:
+        """Optimistic append to the searchable registry of QA-approved contributions."""
+        if not record.get("description", {}).get("es"):
+            return  # Legacy records lack honest descriptive metadata.
+        url = self.api + "/contents/data/aportes.json"
+        for attempt in range(5):
+            response = self.client.get(url, headers=self.headers, params={"ref": "main"})
+            response.raise_for_status()
+            payload = response.json()
+            if payload.get("encoding") == "none" or not payload.get("content"):
+                raw = self.client.get(
+                    url,
+                    headers={
+                        **self.headers,
+                        "Accept": "application/vnd.github.raw",
+                    },
+                    params={"ref": "main"},
+                )
+                raw.raise_for_status()
+                rows = raw.json()
+            else:
+                rows = json.loads(base64.b64decode(payload["content"]))
+            if not isinstance(rows, list) or not payload.get("sha"):
+                raise IngestError("publish_failed")
+            for row in rows:
+                if row.get("media_id") == record["media_id"]:
+                    if row != record:
+                        raise IngestError("publish_failed")
+                    return
+            rows.append(record)
+            content = json.dumps(rows, ensure_ascii=True, separators=(",", ":")) + "\n"
+            saved = self.client.put(
+                url,
+                headers=self.headers,
+                json={
+                    "message": "chore: index verified public contribution",
+                    "branch": "main",
+                    "sha": payload["sha"],
+                    "content": base64.b64encode(content.encode()).decode(),
+                },
+            )
+            if saved.status_code in (409, 422):
+                if attempt < 4:
+                    time.sleep(min(8, 2**attempt))
+                    continue
+                raise IngestError("publish_failed")
+            saved.raise_for_status()
+            return
+
     def publish(self, record: dict, media: Path) -> None:
         upload_id = record["media_id"]
         release_id = self.release("uploads-" + upload_id[1:8])
@@ -388,11 +681,12 @@ def main() -> int:
             media = root / "upload.media"
             assemble(manifest, parts, media)
             reason = "invalid_file"
-            duration = validate_file(manifest, media)
+            manifest, media, duration = normalize_upload(manifest, media, root)
             reason = "publish_failed"
             repo = os.environ["GITHUB_REPOSITORY"]
-            record = record_for(manifest, repo, duration)
-            GitHubPublisher(client, repo, os.environ["GH_TOKEN"]).publish(record, media)
+            record = record_for(enrich_metadata(manifest), repo, duration)
+            publisher = GitHubPublisher(client, repo, os.environ["GH_TOKEN"])
+            publisher.publish(record, media)
         except (IngestError, httpx.HTTPError, OSError, KeyError, ValueError):
             try:
                 worker.finish("rejected", reason)
@@ -400,13 +694,21 @@ def main() -> int:
                 print("No se pudo informar el rechazo; el temporal vencera.")
             print("Aporte rechazado: " + reason)
             return 1
+        index_ok = True
+        try:
+            publisher.index(record)
+        except (IngestError, httpx.HTTPError, OSError, KeyError, ValueError):
+            # A published immutable record cannot be rolled back. Report the
+            # index failure independently, without mislabeling a valid upload.
+            print("Aporte registrado, pero no se pudo actualizar su indice.")
+            index_ok = False
         try:
             worker.finish("registered")
         except (httpx.HTTPError, KeyError, ValueError):
             print("Aporte publicado, pero no se pudo confirmar la limpieza temporal.")
             return 1
     print("Aporte registrado.")
-    return 0
+    return 0 if index_ok else 1
 
 
 if __name__ == "__main__":

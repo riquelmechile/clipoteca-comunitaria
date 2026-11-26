@@ -1,6 +1,7 @@
 /** Public contribution registry and single-use Release upload capability. */
 import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, type MediaKind} from "./media-header";
 import {quota} from "./quota";
+import {searchTokens} from "./catalog";
 import * as queue from "./upload-control";
 import {SESSION_ID} from "./upload-batch-control";
 
@@ -12,7 +13,8 @@ export interface MediaEnv extends queue.QueueEnv {
   CLIPOTECA_FILE_HOSTS?: string;
 }
 export const PUBLIC_NOTICE = "Todo lo que subas (archivos, guion y video final) queda p\u00fablico.";
-type Metadata = {kind: MediaKind; title: string; author: string; source: string; license_note?: string};
+type Descriptive = {description:{es:string;en?:string};tags?:Partial<Record<'es'|'en',string[]>>};
+type Metadata = Partial<Descriptive> & {kind: MediaKind; title: string; author: string; source: string; license_note?: string};
 type RecordMedia = Metadata & {
   media_id: string; bytes: number; mime: string; origin: "url" | "upload";
   url: string; created_at: string; status: "registered"; duration_seconds?: number;
@@ -26,6 +28,8 @@ const decoder = new TextDecoder();
 const json = (value:unknown,status=200) => Response.json(value,{status,headers:{"cache-control":"no-store","referrer-policy":"no-referrer"}});
 const mediaMessages: Readonly<Record<string,string>> = Object.freeze({
   invalid_media:"Datos del aporte no v\u00e1lidos.",
+  invalid_description:"Describe lo que se ve en espanol (maximo 400 caracteres).",
+  invalid_tags:"Tags opcionales (1 a 8 por idioma, maximo 40 caracteres).",
   invalid_title:"T\u00edtulo no v\u00e1lido.",
   invalid_author:"Autor no v\u00e1lido.",
   invalid_source:"Origen no v\u00e1lido o sin contenido.",
@@ -80,7 +84,7 @@ const authorized = (request:Request,env:MediaEnv) =>
     request.headers.get("authorization")==="Bearer "+env.CLIPOTECA_WRITE_TOKEN);
 const object = (x:unknown):x is Record<string,unknown> => Boolean(x && typeof x==="object" && !Array.isArray(x));
 function metadata(x:unknown,extra:string[]=[]):Metadata {
-  if(!object(x) || Object.keys(x).some(k=>!["kind","title","author","source","license_note",...extra].includes(k)) ||
+  if(!object(x) || Object.keys(x).some(k=>!["kind","title","author","source","license_note","description","tags",...extra].includes(k)) ||
     (x.kind!=="video" && x.kind!=="image"))throw new TypeError("invalid_media");
   const field=(name:string,max:number)=>{
     const value=x[name];
@@ -88,7 +92,25 @@ function metadata(x:unknown,extra:string[]=[]):Metadata {
       throw new TypeError("invalid_"+name);
     return value.trim();
   };
-  return {kind:x.kind,title:field("title",120),author:field("author",120),source:field("source",500),
+  const clean=(v:unknown,max:number)=>typeof v==="string"&&v.trim().length>0&&v.length<=max&&!/[\x00-\x1f\x7f]/.test(v);
+  let descriptive:Partial<Descriptive>={};
+  if(x.description!==undefined||x.tags!==undefined){
+    const d=x.description, tags=x.tags;
+    if(!object(d)||Object.keys(d).some(k=>k!=="es"&&k!=="en")||
+      !clean(d.es,400)||(d.en!==undefined&&!clean(d.en,400)))throw new TypeError("invalid_description");
+    descriptive.description={es:(d.es as string).trim(),
+      ...(d.en===undefined?{}:{en:(d.en as string).trim()})};
+    if(tags!==undefined){
+      if(!object(tags)||Object.keys(tags).some(k=>k!=="es"&&k!=="en")||
+        !Object.values(tags).every(v=>Array.isArray(v)&&v.length>=1&&v.length<=8&&v.every(s=>clean(s,40))))
+        throw new TypeError("invalid_tags");
+      descriptive.tags={
+        ...(tags.es===undefined?{}:{es:(tags.es as string[]).map(s=>s.trim())}),
+        ...(tags.en===undefined?{}:{en:(tags.en as string[]).map(s=>s.trim())}),
+      };
+    }
+  }
+  return {...descriptive,kind:x.kind,title:field("title",120),author:field("author",120),source:field("source",500),
     ...(x.license_note===undefined?{}:{license_note:field("license_note",500)})};
 }
 async function bodyJson(request:Request,limit=8192):Promise<unknown> {
@@ -274,6 +296,7 @@ async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:strin
     meta=metadata(raw,["size"]);
     if(object(raw))size=raw.size as number|undefined;
   }
+  if(queued&&!meta.description?.es)return err("invalid_description",400);
   if((queued||size!==undefined)&&(!Number.isSafeInteger(size)||size!<=0))return err("invalid_length",400);
   if(size!==undefined&&size>maxBytes(meta.kind))return err("media_too_large",413);
   if(!queued&&size!==undefined&&size>SINGLE_PUT_MAX)return err("use_parts",413);
@@ -296,7 +319,7 @@ async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:strin
 }
 async function verify(request:Request,env:MediaEnv,id:string):Promise<Ticket|null>{
   const token=request.headers.get("authorization")?.slice(7)??"";
-  if(!request.headers.get("authorization")?.startsWith("Bearer ") || token.length>8192 ||
+  if(!request.headers.get("authorization")?.startsWith("Bearer ") || token.length>16384 ||
     !env.CLIPOTECA_WRITE_TOKEN || env.CLIPOTECA_WRITE_TOKEN.length<16)return null;
   const [payload,sig,...rest]=token.split(".");
   if(!payload||!sig||rest.length)return null;
@@ -398,6 +421,7 @@ async function uploadPart(request:Request,env:MediaEnv,id:string,index:number){
   if(request.headers.get("content-length")!==String(bytes)||!request.body)return err("invalid_part_size",400);
   const reader=request.body.getReader();
   let chunk:queue.Chunk|undefined,locked=false;
+  const attempt=queue.capability();
   try{
     const buffer=new Uint8Array(bytes);
     let total=0;
@@ -415,12 +439,12 @@ async function uploadPart(request:Request,env:MediaEnv,id:string,index:number){
       finally{await header.cancel().catch(()=>{});}
     }
     chunk={bytes,sha256:await queue.hash(buffer)};
-    const begin=await queue.command(env,id,{action:"part_begin",index,chunk});
+    const begin=await queue.command(env,id,{action:"part_begin",index,chunk,attempt});
     if(begin.code!==200)return err("upload_already_used",begin.code===410?410:409);
     if(begin.state?.parts?.[index]?.sha256===chunk.sha256)return json({part:index,...chunk});
     locked=true;
-    await env.UPLOADS!.put(queue.chunkKey(id,index),buffer,{expirationTtl:queue.UPLOAD_TTL});
-    const done=await queue.command(env,id,{action:"part_done",index,chunk,...(mime===undefined?{}:{mime})});
+    await env.UPLOADS!.put(queue.chunkKey(id,index,chunk.sha256),buffer,{expirationTtl:queue.UPLOAD_TTL});
+    const done=await queue.command(env,id,{action:"part_done",index,chunk,attempt,...(mime===undefined?{}:{mime})});
     if(done.code!==200)return err("media_unavailable",503);
     locked=false;
     return json({part:index,...chunk});
@@ -428,7 +452,7 @@ async function uploadPart(request:Request,env:MediaEnv,id:string,index:number){
     if(e instanceof TypeError&&Object.prototype.hasOwnProperty.call(mediaMessages,e.message))return err(e.message,400);
     return err("media_unavailable",503);
   }finally{
-    if(locked&&chunk)await queue.command(env,id,{action:"part_abort",index,chunk}).catch(()=>{});
+    if(locked&&chunk)await queue.command(env,id,{action:"part_abort",index,chunk,attempt}).catch(()=>{});
     await reader.cancel().catch(()=>{});
   }
 }
@@ -451,7 +475,7 @@ async function completeParts(request:Request,env:MediaEnv,id:string){
   if(ready.code!==200)return err("parts_missing",409);
   if(await queue.dispatch(env,id,cap)==="failed"){
     const failed=await queue.command(env,id,{action:"fail",reason:"dispatch_failed"});
-    if(failed.code===200)await queue.discard(env,id,chunks.length);
+    if(failed.code===200)await queue.discard(env,id,chunks.length,chunks);
     return err("dispatch_failed",503,queue.reasons.dispatch_failed);
   }
   return json({media_id:id,status:"processing"},202);
@@ -549,8 +573,8 @@ function allowedFileUrl(raw:unknown,env:MediaEnv):URL {
 const B64_LIMIT=40*1024;
 function batchPage():Response{
   const nonce=hex(crypto.getRandomValues(new Uint8Array(16)));
-  const html='<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aportar a Clipoteca</title><h1>Aporta tus videos y fotos</h1><p>'+PUBLIC_NOTICE+'</p><p>Hasta 12 archivos. Video: 100 MiB y 120 s. Imagen: 10 MiB y 24 MP.</p><label>Titulo (opcional) <input id="title" maxlength="120"></label><label>Autor (opcional) <input id="author" maxlength="120"></label><p><input id="files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></p><button id="send">Subir archivos publicos</button><button id="refresh">Consultar estado</button><pre id="out"></pre><script nonce="'+nonce+'">'+
-    'const id=location.hash.slice(1);const out=document.getElementById("out");const button=document.getElementById("send");const api="/v1/uploads/"+id;const get=async(r)=>{const v=await r.json();if(!r.ok)throw Error(v.error?.message||"Error "+r.status);return v};const log=s=>out.textContent+=s+"\\n";const status=async()=>{try{const v=await get(await fetch(api));out.textContent=v.files.map(f=>f.media_id+" "+f.kind+" "+f.status+" "+(f.reason||"")).join("\\n")}catch(e){log(e.message)}};document.getElementById("refresh").onclick=status;button.onclick=async()=>{if(!/^[a-f0-9]{64}$/.test(id)){log("Enlace invalido");return}button.disabled=true;try{const files=Array.from(document.getElementById("files").files);const total=files.reduce((n,f)=>n+f.size,0);let uploaded=0;const s=await get(await fetch(api));if(!files.length||files.length+s.files.length>12)throw Error("Selecciona hasta "+(12-s.files.length)+" archivos");for(const f of files){try{const mime=f.type;const kind=mime.startsWith("image/")||/\\.(jpe?g|png|webp)$/i.test(f.name)?"image":mime.startsWith("video/")||/\\.(mp4|mov|webm)$/i.test(f.name)?"video":null;if(!kind)throw Error("Formato no admitido");if(!f.size||f.size>(kind==="image"?10:100)*1048576)throw Error("Tamano no admitido");const t=await get(await fetch(api+"/files",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind,size:f.size,title:document.getElementById("title").value||undefined,author:document.getElementById("author").value||undefined})}));for(let n=0;n<t.parts;n++){const offset=n*t.part_size;const part=f.slice(offset,offset+t.part_size);for(let attempt=0;;attempt++){try{await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open("PUT",t.put_url+"/parts/"+n);x.setRequestHeader("Authorization","Bearer "+t.upload_token);x.upload.onprogress=e=>{if(e.lengthComputable)out.textContent=f.name+" "+Math.floor(100*(offset+e.loaded)/f.size)+"% (lote "+Math.floor(100*(uploaded+offset+e.loaded)/total)+"%) "+t.media_id};x.onload=()=>x.status>=200&&x.status<300?resolve():reject(Error("Subida rechazada "+x.status));x.onerror=()=>reject(Error("Error de red"));x.ontimeout=()=>reject(Error("Tiempo de espera agotado"));x.timeout=180000;x.send(part)});break}catch(e){if(attempt===2)throw e;await new Promise(r=>setTimeout(r,1500*(attempt+1)))}}}await get(await fetch(t.put_url+"/complete",{method:"POST",headers:{authorization:"Bearer "+t.upload_token}}));uploaded+=f.size;log(f.name+" recibido: "+t.media_id)}catch(e){log(f.name+": "+e.message)}}}catch(e){log(e.message)}finally{button.disabled=false;await status()}};if(/^[a-f0-9]{64}$/.test(id))status();</script></html>';
+  const html='<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aportar a Clipoteca</title><h1>Aporta tus videos y fotos</h1><p>'+PUBLIC_NOTICE+'</p><p>Hasta 12 archivos. Video: 100 MiB y 120 s. Imagen: 10 MiB y 24 MP.</p><label>Titulo (opcional) <input id="title" maxlength="120"></label><label>Autor (opcional) <input id="author" maxlength="120"></label><p><input id="files" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></p><div id="metadata"></div><button id="send">Subir archivos publicos</button><button id="refresh">Consultar estado</button><pre id="out"></pre><script nonce="'+nonce+'">'+
+    'const id=location.hash.slice(1);const out=document.getElementById("out");const button=document.getElementById("send");const api="/v1/uploads/"+id;const input=document.getElementById("files");const fields=document.getElementById("metadata");const formRows=[];input.onchange=()=>{fields.replaceChildren();formRows.length=0;for(const f of input.files){const row=document.createElement("fieldset");const name=document.createElement("legend");name.textContent=f.name;row.append(name);const label=document.createElement("label");label.textContent="\\u00bfQu\\u00e9 se ve? (obligatorio) ";const desc=document.createElement("textarea");desc.required=true;desc.maxLength=400;desc.rows=3;label.append(desc);row.append(label);const tagLabel=document.createElement("label");tagLabel.textContent=" Tags (opcional, separados por coma) ";const tags=document.createElement("input");tags.type="text";tags.maxLength=328;tagLabel.append(tags);row.append(tagLabel);fields.append(row);formRows.push({file:f,desc,tags})}};const get=async(r)=>{const v=await r.json();if(!r.ok)throw Error(v.error?.message||"Error "+r.status);return v};const log=s=>out.textContent+=s+"\\n";const status=async()=>{try{const v=await get(await fetch(api));out.textContent=v.files.map(f=>f.media_id+" "+f.kind+" "+f.status+" "+(f.reason||"")).join("\\n")}catch(e){log(e.message)}};document.getElementById("refresh").onclick=status;button.onclick=async()=>{if(!/^[a-f0-9]{64}$/.test(id)){log("Enlace invalido");return}button.disabled=true;try{const files=Array.from(document.getElementById("files").files);if(formRows.length!==files.length||formRows.some(r=>!r.desc.value.trim()))throw Error("Describe lo que se ve en cada archivo.");const total=files.reduce((n,f)=>n+f.size,0);let uploaded=0;const s=await get(await fetch(api));if(!files.length||files.length+s.files.length>12)throw Error("Selecciona hasta "+(12-s.files.length)+" archivos");for(const entry of formRows){const f=entry.file;try{const mime=f.type;const kind=mime.startsWith("image/")||/\\.(jpe?g|png|webp)$/i.test(f.name)?"image":mime.startsWith("video/")||/\\.(mp4|mov|webm)$/i.test(f.name)?"video":null;if(!kind)throw Error("Formato no admitido");if(!f.size||f.size>(kind==="image"?10:100)*1048576)throw Error("Tamano no admitido");const t=await get(await fetch(api+"/files",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind,size:f.size,title:document.getElementById("title").value||undefined,author:document.getElementById("author").value||undefined,description:{es:entry.desc.value.trim()},...(entry.tags.value.trim()?{tags:{es:entry.tags.value.split(",").map(s=>s.trim()).filter(Boolean)}}:{})})}));for(let n=0;n<t.parts;n++){const offset=n*t.part_size;const part=f.slice(offset,offset+t.part_size);for(let attempt=0;;attempt++){try{await new Promise((resolve,reject)=>{const x=new XMLHttpRequest();x.open("PUT",t.put_url+"/parts/"+n);x.setRequestHeader("Authorization","Bearer "+t.upload_token);x.upload.onprogress=e=>{if(e.lengthComputable)out.textContent=f.name+" "+Math.floor(100*(offset+e.loaded)/f.size)+"% (lote "+Math.floor(100*(uploaded+offset+e.loaded)/total)+"%) "+t.media_id};x.onload=()=>x.status>=200&&x.status<300?resolve():reject(Error("Subida rechazada "+x.status));x.onerror=()=>reject(Error("Error de red"));x.ontimeout=()=>reject(Error("Tiempo de espera agotado"));x.timeout=180000;x.send(part)});break}catch(e){if(attempt===2)throw e;await new Promise(r=>setTimeout(r,1500*(attempt+1)))}}}await get(await fetch(t.put_url+"/complete",{method:"POST",headers:{authorization:"Bearer "+t.upload_token}}));uploaded+=f.size;log(f.name+" recibido: "+t.media_id)}catch(e){log(f.name+": "+e.message)}}}catch(e){log(e.message)}finally{button.disabled=false;await status()}};if(/^[a-f0-9]{64}$/.test(id))status();</script></html>';
   return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"no-store","referrer-policy":"no-referrer","x-content-type-options":"nosniff","content-security-policy":"default-src 'none'; script-src 'nonce-"+nonce+"'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}});
 }
 async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
@@ -587,7 +611,7 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
     if(session.state.expires<=Date.now())return sessionError(410);
     if(session.state.files.length>=12)return sessionError(409);
     const raw=await bodyJson(request,60*1024);
-    if(!object(raw)||Object.keys(raw).some(k=>!["kind","title","author","source","license_note","file","image_base64","size"].includes(k))||
+    if(!object(raw)||Object.keys(raw).some(k=>!["kind","title","author","source","license_note","description","tags","file","image_base64","size"].includes(k))||
        (raw.file!==undefined&&raw.image_base64!==undefined))return err("invalid_media",400);
     if(!await queue.admit(request,env,"limit_ticket"))return err("rate_limited",429);
     let remote:Response|undefined;
@@ -611,7 +635,7 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
         if(kind!=="image")return err("invalid_media",400);
       }
       const meta=metadata({kind,title:raw.title??"Aporte comunitario",author:raw.author??"Anonimo",
-        source:raw.source??"Aporte de usuario",...(raw.license_note===undefined?{}:{license_note:raw.license_note})});
+        source:raw.source??"Aporte de usuario",description:raw.description,tags:raw.tags,...(raw.license_note===undefined?{}:{license_note:raw.license_note})});
       let bytes:number|undefined;
       if(remote||data){
         bytes=data?.length??length(remote!.headers.get("content-length"));
@@ -633,12 +657,33 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
   }
 }
 
+async function searchContributions(request:Request,env:MediaEnv):Promise<Response>{
+  const query=new URL(request.url).searchParams.get("q")??"";
+  const terms=searchTokens(query);
+  if(query.length>200||!terms.length)return err("invalid_media",400,"Describe el aporte buscado.");
+  const source=await fetch("https://raw.githubusercontent.com/"+repo(env)+"/main/data/aportes.json",
+    {redirect:"manual",headers:{"cache-control":"no-cache","user-agent":"clipoteca-worker"}});
+  if(!source.ok)return err("media_registry_unavailable",503);
+  const rows=await source.json<unknown>();
+  if(!Array.isArray(rows))return err("media_registry_unavailable",503);
+  const items=[];
+  for(const row of rows){
+    if(!object(row)||row.status!=="registered"||typeof row.media_id!=="string"||
+      !UPLOAD_ID.test(row.media_id)||!object(row.description)||typeof row.description.es!=="string")continue;
+    const values=[row.title,row.source,...Object.values(row.description),...Object.values(object(row.tags)?row.tags:{}).flat()];
+    const vocabulary=new Set(searchTokens(values.filter(v=>typeof v==="string").join(" ")));
+    if(terms.every(term=>vocabulary.has(term)))items.push(row);
+  }
+  return json({items:items.slice(0,50)});
+}
+
 export async function handleMedia(request:Request,env:MediaEnv):Promise<Response|null>{
   const path=new URL(request.url).pathname;
   if(path==="/v1/uploads"||path.startsWith("/v1/uploads/"))return handleBatch(request,env);
   if(path!=="/v1/media" && !path.startsWith("/v1/media/"))return null;
   const suffix=path.slice("/v1/media".length);
   try{
+    if(suffix==="/search"&&request.method==="GET")return await searchContributions(request,env);
     if(suffix.startsWith("/ingest/"))return await queue.ingestRoute(request,env);
     if(suffix==="/upload" && request.method==="GET")return page(queue.configured(env)||Boolean(env.CLIPOTECA_UPLOAD_TOKEN));
     if(suffix==="/upload" || suffix.startsWith("/upload/")){
