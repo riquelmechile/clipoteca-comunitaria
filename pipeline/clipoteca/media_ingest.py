@@ -19,6 +19,7 @@ import httpx
 from PIL import Image, ImageOps
 
 from .media.probe import ProbeError, parse_probe
+from .translate.argos import translate_text
 
 WORKER = "https://clipoteca-worker.clipoteca.workers.dev"
 AUD = "clipoteca-media-ingest-v1"
@@ -32,6 +33,67 @@ VIDEOS = {"video/mp4": "mov", "video/quicktime": "mov", "video/webm": "matroska"
 
 class IngestError(Exception):
     """Fixed public reason code."""
+
+
+def clean_metadata(value: object, limit: int) -> bool:
+    return (
+        isinstance(value, str)
+        and bool(value.strip())
+        and len(value) <= limit
+        and not any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
+    )
+
+
+_STOP_ES = frozenset(
+    "a al algo ante bajo cada como con contra cual cuando de del desde donde dos el ella ellos "
+    "en entre era es esa ese esta este esto hay la las le les lo los mas me mi muy no nos o "
+    "para pero por que se sin sobre son su sus te tiene todo tu un una unos unas y ya".split()
+)
+
+
+def enrich_metadata(manifest: dict) -> dict:
+    """Fill missing fields with the existing verified translator; never reject on failure."""
+    if not manifest.get("description"):
+        return manifest
+    result = dict(manifest)
+    description = dict(manifest["description"])
+    tags = dict(manifest.get("tags", {}))
+    automatic = []
+
+    def english(value: str, limit: int) -> str | None:
+        try:
+            translated = translate_text(value, "es", "en")
+            if clean_metadata(translated, limit):
+                return translated.strip()
+        except Exception:
+            pass
+        print("Aviso: no se pudo completar una traduccion de metadatos; se conserva el espanol.")
+        return None
+
+    if "en" not in description:
+        translated = english(description["es"], 400)
+        if translated:
+            description["en"] = translated
+            automatic.append("description.en")
+    if "es" not in tags:
+        words = re.findall(r"[^\\W_]+", description["es"].casefold())
+        derived = list(
+            dict.fromkeys(word for word in words if 2 <= len(word) <= 40 and word not in _STOP_ES)
+        )[:8]
+        if derived:
+            tags["es"] = derived
+            automatic.append("tags.es")
+    if "en" not in tags and tags.get("es"):
+        translated_tags = []
+        for tag in tags["es"]:
+            translated = english(tag, 40)
+            if translated:
+                translated_tags.append(translated)
+        if translated_tags:
+            tags["en"] = list(dict.fromkeys(translated_tags))
+            automatic.append("tags.en")
+    result.update(description=description, tags=tags, metadata_auto=automatic)
+    return result
 
 
 def validate_manifest(raw: object, upload_id: str) -> dict:
@@ -58,21 +120,22 @@ def validate_manifest(raw: object, upload_id: str) -> dict:
             or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
         ):
             raise IngestError("invalid_file")
-    def clean(value: object, limit: int) -> bool:
-        return (
-            isinstance(value, str) and bool(value.strip()) and len(value) <= limit
-            and not any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
-        )
-
-    # Old in-flight tickets may lack both fields; new tickets require both.
+    # Old tickets issued before descriptive metadata remain valid.
     if "description" in raw or "tags" in raw:
-        description, tags = raw.get("description"), raw.get("tags")
+        description, tags = raw.get("description"), raw.get("tags", {})
         if (
-            not isinstance(description, dict) or set(description) != {"es", "en"}
-            or not all(clean(v, 400) for v in description.values())
-            or not isinstance(tags, dict) or set(tags) != {"es", "en"}
-            or not all(isinstance(v, list) and 1 <= len(v) <= 8
-                       and all(clean(tag, 40) for tag in v) for v in tags.values())
+            not isinstance(description, dict)
+            or "es" not in description
+            or not set(description) <= {"es", "en"}
+            or not all(clean_metadata(v, 400) for v in description.values())
+            or not isinstance(tags, dict)
+            or not set(tags) <= {"es", "en"}
+            or not all(
+                isinstance(v, list)
+                and 1 <= len(v) <= 8
+                and all(clean_metadata(tag, 40) for tag in v)
+                for v in tags.values()
+            )
         ):
             raise IngestError("invalid_file")
     try:
@@ -294,6 +357,7 @@ def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
             "created_at",
             "description",
             "tags",
+            "metadata_auto",
             "width",
             "height",
             "fps",
@@ -448,7 +512,7 @@ class GitHubPublisher:
 
     def index(self, record: dict) -> None:
         """Optimistic append to the searchable registry of QA-approved contributions."""
-        if not record.get("description") or not record.get("tags"):
+        if not record.get("description", {}).get("es"):
             return  # Legacy records lack honest descriptive metadata.
         url = self.api + "/contents/data/aportes.json"
         for attempt in range(5):
@@ -528,7 +592,7 @@ def main() -> int:
             manifest, media, duration = normalize_upload(manifest, media, root)
             reason = "publish_failed"
             repo = os.environ["GITHUB_REPOSITORY"]
-            record = record_for(manifest, repo, duration)
+            record = record_for(enrich_metadata(manifest), repo, duration)
             publisher = GitHubPublisher(client, repo, os.environ["GH_TOKEN"])
             publisher.publish(record, media)
         except (IngestError, httpx.HTTPError, OSError, KeyError, ValueError):

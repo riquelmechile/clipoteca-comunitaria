@@ -92,8 +92,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "es",
-        "en"
+        "es"
       ],
       "properties": {
         "es": {
@@ -111,10 +110,6 @@
     "tags": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "es",
-        "en"
-      ],
       "properties": {
         "es": {
           "type": "array",
@@ -162,6 +157,17 @@
     },
     "container": {
       "const": "mp4"
+    },
+    "metadata_auto": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "description.en",
+          "tags.es",
+          "tags.en"
+        ]
+      }
     }
   },
   "allOf": [

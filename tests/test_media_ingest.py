@@ -11,6 +11,7 @@ from PIL import Image
 from clipoteca.media_ingest import (
     CHUNK,
     IngestError,
+    enrich_metadata,
     GitHubPublisher,
     assemble,
     record_for,
@@ -152,14 +153,48 @@ def test_normalize_image(tmp_path):
         assert image.size == (1920, 960)
         assert image.mode == "RGBA"
 
-def test_descriptive_metadata(tmp_path):
+def test_descriptive_metadata():
     spec = manifest(b"media", "video", "video/mp4")
-    spec.update(description={"es": "Lluvia", "en": "Rain"},
-                tags={"es": ["lluvia"], "en": ["rain"]})
-    assert validate_manifest(spec, UPLOAD_ID)["tags"]["en"] == ["rain"]
-    for wrong in ({"es": []}, {"es": ["lluvia"], "en": [""]}):
+    spec["description"] = {"es": "Lluvia"}
+    assert validate_manifest(spec, UPLOAD_ID)["description"] == {"es": "Lluvia"}
+    for wrong in ({"en": "Rain"}, {"es": ""}, {"es": "Lluvia", "fr": "Pluie"}):
+        with pytest.raises(IngestError):
+            validate_manifest(dict(spec, description=wrong), UPLOAD_ID)
+    for wrong in ({"es": []}, {"en": [""]}):
         with pytest.raises(IngestError):
             validate_manifest(dict(spec, tags=wrong), UPLOAD_ID)
+
+
+def test_enrich_metadata_uses_existing_translation(monkeypatch):
+    translations = {"Lluvia en el campo": "Rain in the field", "lluvia": "rain", "campo": "field"}
+
+    def translator(value, src, dst):
+        assert (src, dst) == ("es", "en")
+        return translations[value]
+
+    monkeypatch.setattr("clipoteca.media_ingest.translate_text", translator)
+    original = {"description": {"es": "Lluvia en el campo"}}
+    result = enrich_metadata(original)
+    assert result["description"]["en"] == "Rain in the field"
+    assert result["tags"] == {"es": ["lluvia", "campo"], "en": ["rain", "field"]}
+    assert result["metadata_auto"] == ["description.en", "tags.es", "tags.en"]
+    assert original == {"description": {"es": "Lluvia en el campo"}}
+
+
+def test_enrich_metadata_failure_preserves_spanish(monkeypatch, capsys):
+    def translator(*args):
+        raise RuntimeError("offline")
+
+    monkeypatch.setattr("clipoteca.media_ingest.translate_text", translator)
+    spec = manifest(b"media", "video", "video/mp4")
+    spec["description"] = {"es": "Lluvia en el campo"}
+    result = record_for(enrich_metadata(validate_manifest(spec, UPLOAD_ID)), "owner/repo", 1)
+    assert result["status"] == "registered"
+    assert result["description"] == spec["description"]
+    assert result["tags"] == {"es": ["lluvia", "campo"]}
+    assert result["metadata_auto"] == ["tags.es"]
+    assert "Aviso" in capsys.readouterr().out
+
 
 def test_index_optimistic_retry_and_idempotency(monkeypatch):
     monkeypatch.setattr("clipoteca.media_ingest.time.sleep", lambda _: None)

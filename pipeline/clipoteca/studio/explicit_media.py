@@ -217,8 +217,9 @@ def _index_manifest(root, rendered, record, ref, start, duration, aspect, deadli
         "record": {
             "id": "clip-000000",
             "title": {"es": title, "en": title},
-            "description": record.get("description", {"es": record["source"], "en": record["source"]}),
-            "tags": record.get("tags", {"es": [], "en": []}),
+            "description": {"es": record["source"], "en": record["source"]}
+            | record.get("description", {}),
+            "tags": {"es": [], "en": []} | record.get("tags", {}),
             "source": source,
             "media": {
                 "duration_seconds": seconds,
