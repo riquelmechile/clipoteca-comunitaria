@@ -197,6 +197,8 @@ def validate_file(manifest: dict, path: Path) -> float | None:
                     or getattr(image, "n_frames", 1) != 1
                 ):
                     raise ValueError
+                if min(image.width, image.height) < 360:
+                    raise IngestError("resolution_too_low")
                 image.verify()
             with Image.open(path, formats=[IMAGES[mime]]) as image:
                 image.load()
@@ -233,6 +235,8 @@ def validate_file(manifest: dict, path: Path) -> float | None:
             or len(streams) > 16
         ):
             raise ValueError
+        if min(int(video["width"]), int(video["height"])) < 360:
+            raise IngestError("resolution_too_low")
         for stream in streams:
             raw = stream.get("duration")
             if raw not in (None, "N/A"):
@@ -287,7 +291,13 @@ def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Pa
             target = root / "normalized.webp"
             with Image.open(source, formats=[IMAGES[manifest["mime"]]]) as image:
                 image = ImageOps.exif_transpose(image)
-                image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+                # Keep the short side at least 360 even for panoramic inputs.
+                factor = max(360 / min(image.size), min(1, 1920 / max(image.size)))
+                if factor < 1:
+                    image = image.resize(
+                        tuple(max(360, round(side * factor)) for side in image.size),
+                        Image.Resampling.LANCZOS,
+                    )
                 image = image.convert(
                     "RGBA" if "A" in image.getbands() or "transparency" in image.info else "RGB"
                 )
@@ -315,6 +325,8 @@ def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Pa
                 timeout=45,
             )
             original = parse_probe(json.loads(probe.stdout), source)
+            if min(original.display_width, original.display_height) < 360:
+                raise IngestError("resolution_too_low")
             factor = min(1.0, 720 / min(original.display_width, original.display_height))
             width = max(2, int(original.display_width * factor) // 2 * 2)
             height = max(2, int(original.display_height * factor) // 2 * 2)
@@ -408,6 +420,7 @@ def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Pa
                 codec="h264",
                 container="mp4",
             )
+        result["low_resolution"] = min(result["width"], result["height"]) < 720
         size = target.stat().st_size
         if not 0 < size <= (10 if manifest["kind"] == "image" else 100) * MIB:
             raise ValueError("normalized size")
@@ -448,6 +461,7 @@ def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
             "metadata_auto",
             "width",
             "height",
+            "low_resolution",
             "fps",
             "has_audio",
             "aspect_ratio",
@@ -693,7 +707,9 @@ def main() -> int:
             record = record_for(enrich_metadata(manifest), repo, duration)
             publisher = GitHubPublisher(client, repo, os.environ["GH_TOKEN"])
             publisher.publish(record, media)
-        except (IngestError, httpx.HTTPError, OSError, KeyError, ValueError):
+        except (IngestError, httpx.HTTPError, OSError, KeyError, ValueError) as exc:
+            if isinstance(exc, IngestError) and str(exc) == "resolution_too_low":
+                reason = "resolution_too_low"
             try:
                 worker.finish("rejected", reason)
             except (httpx.HTTPError, KeyError, ValueError):

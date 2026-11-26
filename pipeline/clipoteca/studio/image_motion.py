@@ -80,8 +80,8 @@ def prepare_canvas(
 ) -> tuple[int, int]:
     width, height = framing.target_size(aspect)
     sw, sh = image.size
-    if max(sw, sh) < 0.5 * max(width, height):
-        raise ImageMotionError("Resolucion insuficiente: lado largo menor al 50% del formato.")
+    if min(sw, sh) < 360 and not repo_asset:
+        raise ImageMotionError("Resolucion insuficiente: lado corto menor a 360 px.")
     if mode not in FRAMINGS:
         raise ImageMotionError("Framing no valido.")
     # Supersampled coordinates reduce integer rounding in FFmpeg zoompan.

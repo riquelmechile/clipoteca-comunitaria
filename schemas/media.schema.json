@@ -133,6 +133,9 @@
         }
       }
     },
+    "low_resolution": {
+      "type": "boolean"
+    },
     "width": {
       "type": "integer",
       "minimum": 1

@@ -63,7 +63,7 @@ def test_assemble_and_record(tmp_path):
 
 def test_image_real_decode_and_limits(tmp_path):
     path = tmp_path / "image.jpg"
-    Image.new("RGB", (20, 10)).save(path)
+    Image.new("RGB", (400, 360)).save(path)
     spec = validate_manifest(manifest(path.read_bytes(), "image", "image/jpeg"), UPLOAD_ID)
     assert validate_file(spec, path) is None
     wrong = dict(spec, mime="image/png")
@@ -89,7 +89,7 @@ def test_video_real_decode(tmp_path):
             "-f",
             "lavfi",
             "-i",
-            "color=c=black:s=32x32:d=1",
+            "color=c=black:s=360x360:d=1",
             "-c:v",
             "mpeg4",
             str(path),
@@ -126,7 +126,12 @@ def test_video_manifest_100_mib_in_five_chunks():
 )
 @pytest.mark.parametrize(
     "size,expected",
-    [("1920x1080", (1280, 720)), ("1080x1920", (720, 1280)), ("320x180", (320, 180))],
+    [
+        ("1920x1080", (1280, 720)),
+        ("1080x1920", (720, 1280)),
+        ("464x688", (464, 688)),
+        ("360x360", (360, 360)),
+    ],
 )
 def test_normalize_video_preserves_frame(tmp_path, size, expected):
     path = tmp_path / "original.mp4"
@@ -150,6 +155,9 @@ def test_normalize_video_preserves_frame(tmp_path, size, expected):
     normalized, target, duration = normalize_upload(spec, path, tmp_path)
     assert (normalized["width"], normalized["height"]) == expected
     assert normalized["mime"] == "video/mp4"
+    assert normalized["low_resolution"] == (min(expected) < 720)
+    record = record_for(normalized, "riquelmechile/clipoteca-comunitaria", duration)
+    assert record["low_resolution"] == (min(expected) < 720)
     assert normalized["codec"] == "h264"
     assert normalized["bytes"] == target.stat().st_size
     assert 0.9 <= duration <= 1.1
@@ -269,3 +277,35 @@ def test_enrich_metadata_unchanged_tag_and_existing_provenance(monkeypatch, caps
     assert result["metadata_auto"] == ["tags.es", "description.en", "tags.en"]
     assert "unchanged_translation" in capsys.readouterr().out
     assert enrich_metadata(result) == result
+
+
+def test_reject_small_image_before_publish(tmp_path):
+    path = tmp_path / "small.png"
+    Image.new("RGB", (464, 359)).save(path)
+    with pytest.raises(IngestError, match="resolution_too_low"):
+        normalize_upload(manifest(path.read_bytes(), "image", "image/png"), path, tmp_path)
+
+
+@pytest.mark.skipif(
+    not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="ffmpeg missing"
+)
+def test_reject_small_video_before_publish(tmp_path):
+    path = tmp_path / "small.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=s=320x180:d=1",
+            "-c:v",
+            "mpeg4",
+            str(path),
+        ],
+        check=True,
+        timeout=30,
+    )
+    with pytest.raises(IngestError, match="resolution_too_low"):
+        normalize_upload(manifest(path.read_bytes(), "video", "video/mp4"), path, tmp_path)

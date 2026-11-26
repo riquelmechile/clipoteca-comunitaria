@@ -1,5 +1,5 @@
 /** Public contribution registry and single-use Release upload capability. */
-import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, type MediaKind} from "./media-header";
+import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, videoDimensions, type MediaKind} from "./media-header";
 import {quota} from "./quota";
 import {searchTokens} from "./catalog";
 import * as queue from "./upload-control";
@@ -11,6 +11,8 @@ export interface MediaEnv extends queue.QueueEnv {
   CLIPOTECA_ISSUE_TOKEN?: string;
   CLIPOTECA_UPLOAD_TOKEN?: string;
   CLIPOTECA_FILE_HOSTS?: string;
+  WAIT_FETCH?:typeof fetch;
+  WAIT_FAST_MEDIA?:boolean;
 }
 export const PUBLIC_NOTICE = "Todo lo que subas (archivos, guion y video final) queda p\u00fablico.";
 type Descriptive = {description:{es:string;en?:string};tags?:Partial<Record<'es'|'en',string[]>>};
@@ -18,6 +20,7 @@ type Metadata = Partial<Descriptive> & {kind: MediaKind; title: string; author: 
 type RecordMedia = Metadata & {
   media_id: string; bytes: number; mime: string; origin: "url" | "upload";
   url: string; created_at: string; status: "registered"; duration_seconds?: number;
+  width?:number;height?:number;low_resolution?:boolean;
 };
 type Ticket = Metadata & {id:string; exp:number; size?:number};
 const SINGLE_PUT_MAX=95*1024*1024;
@@ -48,6 +51,7 @@ const mediaMessages: Readonly<Record<string,string>> = Object.freeze({
   invalid_media_header:"Formato del archivo no admitido o cabecera incompleta.",
   jpeg_header_too_long:"Cabecera JPEG demasiado larga.",
   image_dimensions:"Dimensiones de imagen no v\u00e1lidas o superiores a 24 MP.",
+  resolution_too_low:"El lado corto del aporte debe ser de al menos 360 px.",
   video_duration_unknown_or_exceeds_120s:"Duraci\u00f3n desconocida o superior a 120 segundos.",
   source_unreachable:"No se pudo conectar con el origen.",
   source_read_failed:"No se pudo leer el contenido del origen.",
@@ -71,7 +75,7 @@ const repo = (env:MediaEnv) => {
   return value;
 };
 const api = (env:MediaEnv,path:string,token?:string,init:RequestInit={}) =>
-  fetch("https://api.github.com/repos/"+repo(env)+path,{
+  (env.WAIT_FETCH??fetch)("https://api.github.com/repos/"+repo(env)+path,{
     ...init,redirect:"manual",headers:{
       accept:"application/vnd.github+json","user-agent":"clipoteca-worker",
       "x-github-api-version":"2022-11-28",
@@ -174,22 +178,34 @@ async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:n
   jpeg=kind==="image" && signature[0]===0xff && signature[1]===0xd8;
   let info:ReturnType<typeof checked>;
   if(jpeg){
-    info={mime:await scanJpeg(read,async count=>{await transfer(count);})};
+    let dimensions:{width:number;height:number}|undefined;
+    const mime=await scanJpeg(read,async count=>{await transfer(count);},(width,height)=>{dimensions={width,height};});
+    info={mime,...quality(dimensions)};
   }else{
     const head=new Uint8Array(Math.min(PREFIX,limit));
     head.set(signature);
     const count=await transfer(head.length-signature.length,head.subarray(signature.length),unknownLength);
     const actual=head.subarray(0,signature.length+count);
-    info=fullValidationLater?{mime:inspectHeader(actual,kind)}:checked(actual,kind);
+    info=checked(actual,kind,fullValidationLater);
   }
+  if(!fullValidationLater&&kind==="video"&&info.width!==undefined&&info.height!==undefined&&Math.min(info.width,info.height)<360)
+    throw new TypeError("resolution_too_low");
   return {info,head:replay?.subarray(0,consumed),tail:chunk?.subarray(offset)};
 }
-function checked(head:Uint8Array,kind:MediaKind) {
-  const mime=inspectHeader(head,kind);
-  if(kind==="image")return {mime};
+function quality(dimensions?:{width:number;height:number}):{width?:number;height?:number;low_resolution?:boolean}{
+  return dimensions?{...dimensions,low_resolution:Math.min(dimensions.width,dimensions.height)<720}:{};
+}
+function checked(head:Uint8Array,kind:MediaKind,fullValidationLater=false):{
+  mime:string;duration_seconds?:number;width?:number;height?:number;low_resolution?:boolean;
+} {
+  let dimensions:{width:number;height:number}|undefined;
+  const mime=inspectHeader(head,kind,(width,height)=>{dimensions={width,height};});
+  if(kind==="image")return {mime,...quality(dimensions)};
+  const geometry=quality(videoDimensions(head,mime));
+  if(fullValidationLater)return {mime,...geometry};
   const duration=videoDuration(head,mime);
   if(duration===null || duration>120)throw new TypeError("video_duration_unknown_or_exceeds_120s");
-  return {mime,duration_seconds:duration};
+  return {mime,duration_seconds:duration,...geometry};
 }
 async function probe(url:string,kind:MediaKind) {
   let response:Response;
@@ -314,7 +330,7 @@ async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:strin
   const payload=b64(encoder.encode(JSON.stringify({...meta,id,exp,...(size===undefined?{}:{size})})));
   const sig=b64(new Uint8Array(await crypto.subtle.sign("HMAC",await signKey(env),encoder.encode(payload))));
   const capability=payload+"."+sig;
-  if(queued && (await queue.command(env,id,{action:"create",expires:exp,...(size===undefined?{}:{size})})).code!==200)return err("media_unavailable",503);
+  if(queued && (await queue.command(env,id,{action:"create",expires:exp,kind:meta.kind,...(size===undefined?{}:{size})})).code!==200)return err("media_unavailable",503);
   return json({media_id:id,status:queued?"uploading":"pending_upload",expires_at:new Date(exp).toISOString(),
     upload_url:new URL("/v1/media/upload",request.url).href+"#"+capability,
     put_url:new URL("/v1/media/upload/"+id,request.url).href,upload_token:capability,
@@ -370,6 +386,16 @@ function putAsset(env:MediaEnv,r:Release,name:string,mime:string,bytes:number,bo
   });
 }
 async function getUpload(env:MediaEnv,id:string):Promise<RecordMedia|null>{
+  if(env.WAIT_FETCH){
+    // Exact immutable manifest: no release-asset pagination per status poll.
+    const response=await env.WAIT_FETCH("https://github.com/"+repo(env)+"/releases/download/"+tag(id)+"/"+id+".json",{redirect:"follow"});
+    if(response.status===404){await response.body?.cancel();return null;}
+    if(!response.ok)throw new Error("media_registry_unavailable");
+    const value=await response.json() as RecordMedia;
+    if(value.media_id!==id||value.origin!=="upload"||value.status!=="registered")throw new Error("invalid_manifest");
+    return typeof value.width==="number"&&typeof value.height==="number"
+      ? {...value,low_resolution:Math.min(value.width,value.height)<720}:value;
+  }
   const r=await release(env,id);
   if(!r)return null;
   const found=await asset(env,r,id+".json");
@@ -379,7 +405,8 @@ async function getUpload(env:MediaEnv,id:string):Promise<RecordMedia|null>{
   if(!response.ok)throw new Error("media_registry_unavailable");
   const value=await response.json() as RecordMedia;
   if(value.media_id!==id || value.origin!=="upload")throw new Error("invalid_manifest");
-  return value;
+  return typeof value.width==="number"&&typeof value.height==="number"
+    ? {...value,low_resolution:Math.min(value.width,value.height)<720}:value;
 }
 async function queuedUpload(request:Request,env:MediaEnv,id:string,body=request.body,internal=false){
   const claim=await verify(request,env,id);
@@ -409,7 +436,8 @@ async function queuedUpload(request:Request,env:MediaEnv,id:string,body=request.
     const ready=await queue.command(env,id,{action:"ready",manifest,capabilityHash:await queue.hash(encoder.encode(cap))});
     if(ready.code!==200)throw new Error("staging_failed");
     if(await queue.dispatch(env,id,cap)==="failed")throw new Error("dispatch_failed");
-    return json({media_id:id,status:"processing"},202);
+    return json({media_id:id,status:"processing",...(internal?{quality_pending:true,
+      ...(info.low_resolution===undefined?{}:{low_resolution:info.low_resolution})}:{})},202);
   }catch(e){
     const reason=e instanceof Error && Object.prototype.hasOwnProperty.call(queue.reasons,e.message)?e.message:"staging_failed";
     const failed=await queue.command(env,id,{action:"fail",reason});
@@ -640,8 +668,10 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
         const response=await handleMedia(new Request(new URL("/v1/media/"+file.media_id,request.url)),env);
         if(!response?.ok){files.push({...file,status:response?.status===404?"rejected":"processing",
           reason:response?.status===404?"No se pudo iniciar la subida o ha vencido.":"No se pudo consultar el estado."});continue;}
-        const value=await response.json<{status:string;reason?:string}>();
-        files.push({...file,status:value.status,...(value.reason?{reason:value.reason}:{})});
+        const value=await response.json<{status:string;reason?:string;low_resolution?:boolean;width?:number;height?:number}>();
+        files.push({...file,status:value.status,...(value.reason?{reason:value.reason}:{}),
+          ...(typeof value.low_resolution==="boolean"?{low_resolution:value.low_resolution}:{}),
+          ...(typeof value.width==="number"?{width:value.width}:{}),...(typeof value.height==="number"?{height:value.height}:{})});
       }
       return json({session_id:id,expires_at:new Date(session.state.expires).toISOString(),files});
     }
@@ -762,7 +792,7 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
       }
       if(UPLOAD_ID.test(id)){
         const state=(await queue.command(env,id,{action:"status"})).state;
-        if(!state || state.status==="registered" || state.status==="processing" ||
+        if(!state || state.status==="registered" || (state.status==="processing"&&!env.WAIT_FAST_MEDIA) ||
             state.reason==="expired" || state.reason==="publish_failed"){
           // The Release manifest is the durable registration commit point, even
           // if the workflow lost its final callback or the control state expired.
@@ -772,6 +802,7 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
           }catch(e){if(!state || state.status==="registered")throw e;}
         }
         if(state)return json({media_id:id,status:state.status==="registered"?"processing":state.status,
+          ...(state.manifest?.kind||state.kind?{kind:state.manifest?.kind??state.kind}:{}),
           ...(state.reason?{reason:queue.reasons[state.reason]??queue.reasons.staging_failed}:{})});
         return err("media_not_found",404);
       }

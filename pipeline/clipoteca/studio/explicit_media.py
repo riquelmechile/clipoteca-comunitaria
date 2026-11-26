@@ -276,6 +276,11 @@ def _select_image(root, job, ref, record, folder, deadline):
     )
     rw, rh, duration = checks.probe_video(rendered, deadline=deadline)
     return {
+        **(
+            {"quality_warning": "aporte de baja resoluci\u00f3n escalado"}
+            if not repo_asset and min(sw, sh) < 720
+            else {}
+        ),
         "version": 1,
         "id": job["id"],
         "status": "ok",
@@ -369,8 +374,13 @@ def select_explicit(root, job, assignment):
             if not 0 < duration <= 120.04:
                 raise ExplicitMediaError("Duracion de aporte no valida.")
             width, height = framing.target_size(job["aspect"])
-            if not framing.resolution_ok(sw, sh, width, height, job.get("min_short_side", 720)):
-                raise ExplicitMediaError("Resolucion insuficiente del aporte.")
+            if record is not None:
+                if min(sw, sh) < 360:
+                    raise ExplicitMediaError(
+                        "Resolucion insuficiente del aporte: lado corto menor a 360 px."
+                    )
+            elif not framing.resolution_ok(sw, sh, width, height, job.get("min_short_side", 720)):
+                raise ExplicitMediaError("Resolucion insuficiente del clip.")
             start, end = window_bounds(media, duration, job["len_est"])
             span = min(end - start, job["len_fetch"])
             vf, crop = framing.crop_filter(sw, sh, job["aspect"])
@@ -413,6 +423,11 @@ def select_explicit(root, job, assignment):
                 "phash": checks.mid_phash(rendered, deadline=deadline),
             }
             result = {
+                **(
+                    {"quality_warning": "aporte de baja resoluci\u00f3n escalado"}
+                    if record is not None and min(sw, sh) < 720
+                    else {}
+                ),
                 "version": 1,
                 "id": job["id"],
                 "status": "ok",

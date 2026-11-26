@@ -26,17 +26,17 @@ type Run = {id:number; display_title:string; status:string; conclusion:string|nu
 type Job = {name:string; status:string; conclusion:string|null;
   steps?: {name:string; status:string; conclusion:string|null}[]};
 type Artifact = {id:number; name:string; expired:boolean; size_in_bytes:number};
-type Context = {base:string; token:string};
+type Context = {base:string; token:string; fetcher:typeof fetch};
 type SceneWarning = {scene_id:string;degraded_reason:string};
 type Delivery = {qa?:{pass:boolean;failed:string[];warnings?:SceneWarning[]}; clips_indexed?:string[]};
 function context(env: RestEnv): Context | null {
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   const token = env.CLIPOTECA_DISPATCH_TOKEN;
   return token && /^[\w.-]+\/[\w.-]+$/.test(repo)
-    ? {base: "https://api.github.com/repos/" + repo, token} : null;
+    ? {base: "https://api.github.com/repos/" + repo, token,fetcher:env.WAIT_FETCH??fetch} : null;
 }
 function github(ctx: Context, path: string, init: RequestInit = {}) {
-  return fetch(ctx.base + path, {...init, redirect:"manual", headers: {
+  return ctx.fetcher(ctx.base + path, {...init, redirect:"manual", headers: {
     authorization: "Bearer " + ctx.token, accept: "application/vnd.github+json",
     "x-github-api-version": "2022-11-28", "user-agent": "clipoteca-worker",
     ...(init.method === "POST" ? {"content-type":"application/json"} : {}),
@@ -114,6 +114,10 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
       return problem("invalid_media_ref","Referencia o ventana multimedia no valida.");
     }
     const ref=media.ref;
+    if (!ref.startsWith("asset:") && !ref.startsWith("clip-") && scene.on_error===undefined &&
+        object(scene.query) && typeof scene.prompt==="string" && scene.prompt.trim()) {
+      scene.on_error="search";
+    }
     let kind = kinds.get(ref);
     if (ref.startsWith("asset:")) {
       if (!repoAssets.includes(ref)) return problem("asset_not_found","Asset fuera de lista.",404);
@@ -130,13 +134,16 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
       if (!response?.ok) return problem(response?.status===404?"media_not_found":"media_registry_unavailable",
         response?.status===404?"Aporte inexistente.":"Registro de aportes no disponible.",response?.status===404?404:503);
       const record:unknown=await response.json();
-      if (object(record) && record.status!=="registered") {
-        return problem("media_not_registered","El aporte "+ref+" aun no esta registrado. Consulta estado_subida o get_media_status.",409);
+      if (!object(record)) return problem("invalid_media_ref","Registro de aporte no valido.");
+      if (record.status==="rejected") {
+        return problem("media_rejected","El aporte "+ref+" fue rechazado: "+String(record.reason??"sin motivo"),409);
       }
-      if (!object(record) || (record.kind!=="video" && record.kind!=="image")) {
-        return problem("invalid_media_ref","Tipo de aporte no valido.");
+      if (!["registered","uploading","processing"].includes(String(record.status))) {
+        return problem("invalid_media_ref","Estado de aporte no valido.");
       }
-      kind = record.kind;
+      // Old upload tickets may not carry kind until staging completes.
+      if (record.kind==="video" || record.kind==="image") kind = record.kind;
+      else if (record.status==="registered") return problem("invalid_media_ref","Tipo de aporte no valido.");
     }
     if (kind === "image" && (media.start!==undefined || media.end!==undefined)) {
       return problem("invalid_image_window","start/end no aplican a imagenes.");
@@ -144,7 +151,7 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
     if (kind === "video" && (media.motion!==undefined || media.framing!==undefined)) {
       return problem("invalid_video_motion","motion/framing solo para imagenes.");
     }
-    kinds.set(ref,kind);
+    if (kind) kinds.set(ref,kind);
   }
   const script = JSON.stringify(raw.script);
   if (script.length > 60_000) return error("body_too_large", 413);
@@ -211,7 +218,7 @@ async function archive(ctx: Context, artifact: Artifact, limit: number): Promise
   if (!Number.isFinite(artifact.size_in_bytes) || artifact.size_in_bytes > limit ||
       artifact.size_in_bytes < 1) throw new Error("invalid artifact");
   const signed = await signedArtifact(ctx,artifact);
-  const response = signed.url ? await artifactResponse(signed.url) : signed.response!;
+  const response = signed.url ? await artifactResponse(signed.url,undefined,ctx.fetcher) : signed.response!;
   const length = Number(response.headers.get("content-length") ?? artifact.size_in_bytes);
   if (!response.ok || !Number.isFinite(length) || length > limit) {
     await response.body?.cancel();

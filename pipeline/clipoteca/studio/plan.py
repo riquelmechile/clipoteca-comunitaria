@@ -169,6 +169,7 @@ def write_plan(
     catalog_path: str | Path | None = None,
     *,
     resolve_related: bool = False,
+    media_api: str | None = None,
 ) -> dict[str, Any]:
     """Write plan and one job per scene, rejecting unsafe IDs before any write."""
     for scene in script.scenes:
@@ -179,6 +180,10 @@ def write_plan(
         scene_job(script, scene, est)
         for scene, est in zip(script.scenes, plan["scenes"], strict=True)
     ]
+    if media_api is not None:
+        from .pending_media import resolve_pending_jobs
+
+        asyncio.run(resolve_pending_jobs(jobs, plan["scenes"], media_api))
     free_jobs = [job for job in jobs if "media" not in job]
     if resolve_related and free_jobs:
         from .related import resolve_jobs
@@ -204,10 +209,25 @@ def write_plan(
         }
         free_catalog = {"clips": [clip for clip in catalog["clips"] if clip["id"] not in reserved]}
         listed = assign_scenes(free_jobs, free_catalog)
+        fallback_jobs = [
+            job
+            for job in jobs
+            if job.get("source_kind") == "contribution" and job.get("on_error") == "search"
+        ]
+        fallback_assignments = {
+            row["id"]: {
+                "status": row["status"],
+                "primary": row.get("primary"),
+                "backups": row.get("backups", []),
+            }
+            for row in assign_scenes(fallback_jobs, free_catalog)
+        }
         for job in jobs:
             if "media" not in job:
                 continue
             row = {"id": job["id"], "status": job["source_kind"]}
+            if job["id"] in fallback_assignments:
+                row["fallback_assignment"] = fallback_assignments[job["id"]]
             if job["source_kind"] == "catalog_pinned":
                 clip = next(
                     (clip for clip in catalog["clips"] if clip["id"] == job["media"]["ref"]), None
@@ -230,6 +250,11 @@ def write_plan(
                     "status": item["status"],
                     "primary": item.get("primary"),
                     "backups": item.get("backups", []),
+                    **(
+                        {"fallback_assignment": item["fallback_assignment"]}
+                        if "fallback_assignment" in item
+                        else {}
+                    ),
                 }
                 for item in listed
             },
@@ -251,10 +276,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--catalog", type=Path)
     parser.add_argument("--resolve-related", action="store_true")
+    parser.add_argument("--media-api", help="Trusted HTTPS origin of the public media API")
     args = parser.parse_args(argv)
     try:
         script = parse_video_script(json.loads(args.script.read_text(encoding="utf-8")))
-        plan = write_plan(script, args.out, args.catalog, resolve_related=args.resolve_related)
+        plan = write_plan(
+            script,
+            args.out,
+            args.catalog,
+            resolve_related=args.resolve_related,
+            media_api=args.media_api,
+        )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         parser.exit(2, f"plan: {exc}\n")
     print(

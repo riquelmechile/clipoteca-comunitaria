@@ -13,10 +13,11 @@ export type Manifest={kind:"image"|"video";title:string;author:string;source:str
   description?:{es:string;en?:string};tags?:Partial<Record<'es'|'en',string[]>>;
   media_id:string;bytes:number;mime:string;created_at:string;chunks:Chunk[]};
 export type State={status:"uploading"|"processing"|"registered"|"rejected";expires:number;started?:boolean;
-  manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string;
+  manifest?:Manifest;kind?:"video"|"image";capabilityHash?:string;capExpires?:number;run?:string;reason?:string;
   size?:number;parts?:Record<number,Chunk>;pending?:Record<number,PendingPart|string>;mime?:string};
 export interface QueueEnv {
   UPLOADS?:KVNamespace; UPLOAD_CONTROL?:DurableObjectNamespace;
+  WAIT_SIGNAL?:AbortSignal;
   CLIPOTECA_DISPATCH_TOKEN?:string;CLIPOTECA_GITHUB_REPO?:string;
 }
 export const configured=(env:QueueEnv)=>Boolean(env.UPLOADS&&env.UPLOAD_CONTROL&&env.CLIPOTECA_DISPATCH_TOKEN);
@@ -38,15 +39,16 @@ export const reasons:Readonly<Record<string,string>>=Object.freeze({
   dispatch_failed:"No se pudo iniciar el procesamiento.",
   download_failed:"No se pudo recuperar el archivo temporal.",
   invalid_file:"El archivo no se pudo decodificar o excede los limites.",
+  resolution_too_low:"El lado corto del aporte debe ser de al menos 360 px.",
   publish_failed:"No se pudo publicar el aporte.",
 });
 const reason=(r:unknown)=>typeof r==="string"&&Object.prototype.hasOwnProperty.call(reasons,r)?r:"staging_failed";
-type Command={action:string;expires?:number;size?:number;index?:number;chunk?:Chunk;attempt?:string;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
+type Command={action:string;expires?:number;kind?:"video"|"image";size?:number;index?:number;chunk?:Chunk;attempt?:string;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
 type Result={code:number;state?:State;write?:boolean};
 export function transition(old:State|undefined,c:Command,now:number):Result {
   if(c.action==="create"){
     if(old||!c.expires||c.expires<=now)return {code:409};
-    return {code:200,state:{status:"uploading",expires:c.expires,...(c.size===undefined?{}:{size:c.size})},write:true};
+    return {code:200,state:{status:"uploading",expires:c.expires,...(c.kind?{kind:c.kind}:{}),...(c.size===undefined?{}:{size:c.size})},write:true};
   }
   if(!old)return {code:404};
   if(c.action==="status"){
@@ -146,7 +148,7 @@ export class UploadControl {
 export async function command(env:QueueEnv,id:string,c:Command):Promise<Result>{
   if(!env.UPLOAD_CONTROL||!ID.test(id))return {code:404};
   const stub=env.UPLOAD_CONTROL.get(env.UPLOAD_CONTROL.idFromName(id));
-  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c)});
+  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c),...(env.WAIT_SIGNAL?{signal:env.WAIT_SIGNAL}:{})});
   return r.ok?{code:r.status,state:await r.json<State>()}:{code:r.status};
 }
 export async function discard(env:QueueEnv,id:string,count:number,chunks?:Chunk[]){
@@ -253,7 +255,7 @@ export async function ingestRoute(request:Request,env:QueueEnv):Promise<Response
 export async function batchCommand(env:QueueEnv,id:string,c:BatchCommand):Promise<{code:number;state?:BatchState}>{
   if(!env.UPLOAD_CONTROL||!(SESSION_ID.test(id)||/^limits:\d{4}-\d{2}-\d{2}$/.test(id)))return {code:404};
   const stub=env.UPLOAD_CONTROL.get(env.UPLOAD_CONTROL.idFromName(id));
-  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c)});
+  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c),...(env.WAIT_SIGNAL?{signal:env.WAIT_SIGNAL}:{})});
   return r.ok?{code:r.status,state:await r.json<BatchState>()}:{code:r.status};
 }
 export async function admit(request:Request,env:QueueEnv,action:"limit_session"|"limit_ticket"|"limit_bytes"|"limit_video",bytes?:number){

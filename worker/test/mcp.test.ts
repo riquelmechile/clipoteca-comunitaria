@@ -47,7 +47,7 @@ describe("M10 MCP Streamable HTTP", () => {
     const response = await worker.fetch(request);
     expect(response.status).toBe(200);
     const payload = (await rpcPayload(response)) as {result:{tools:Array<{name:string}>}};
-    expect(payload.result.tools).toHaveLength(19);
+    expect(payload.result.tools).toHaveLength(21);
     const invalid = rpc("tools/list", {}, "clipoteca.sub.workers.dev", "");
     invalid.headers.set("host", "malicious.test");
     expect((await worker.fetch(invalid)).status).toBe(403);
@@ -62,7 +62,7 @@ describe("M10 MCP Streamable HTTP", () => {
     expect((await worker.fetch(foreign, environment)).status).toBe(403);
   });
 
-  it("registers nineteen official tools with real per-tool output schemas", async () => {
+  it("registers twenty-one official tools with real per-tool output schemas", async () => {
     const response = await worker.fetch(rpc("tools/list", {}), environment);
     expect(response.status).toBe(200);
     const payload = (await rpcPayload(response)) as {result:{tools:Array<{
@@ -70,14 +70,14 @@ describe("M10 MCP Streamable HTTP", () => {
     }>}};
     const tools = payload.result.tools;
     expect(tools.map(t=>t.name).sort()).toEqual([
-      "buscar_aportes", "crear_subida", "create_media_upload", "download_clip", "estado_subida", "get_clip", "get_job_status", "get_media_status", "get_storyboard", "get_video_status",
+      "buscar_aportes", "crear_subida", "create_media_upload", "download_clip", "esperar_aportes", "esperar_video", "estado_subida", "get_clip", "get_job_status", "get_media_status", "get_storyboard", "get_video_status",
       "list_sources", "register_media_url", "render_video", "resolve_script", "search_and_import", "search_clips", "subir_archivo", "subir_imagen_base64", "ticket_subida",
     ]);
     const properties:Record<string,string> = {
       search_clips:"clips",resolve_script:"scenes",get_clip:"clip",get_storyboard:"frames",download_clip:"url",
       search_and_import:"request_id",get_job_status:"request_id",list_sources:"sources",
       render_video:"id",get_video_status:"id",register_media_url:"media_id",create_media_upload:"media_id",get_media_status:"media_id",
-      buscar_aportes:"items",crear_subida:"session_id",estado_subida:"files",ticket_subida:"put_url",subir_archivo:"media_id",subir_imagen_base64:"media_id",
+      esperar_video:"listo",esperar_aportes:"listo",buscar_aportes:"items",crear_subida:"session_id",estado_subida:"files",ticket_subida:"put_url",subir_archivo:"media_id",subir_imagen_base64:"media_id",
     };
     for(const tool of tools) {
       expect(tool.outputSchema.type).toBe("object");
