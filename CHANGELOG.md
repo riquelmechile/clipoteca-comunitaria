@@ -1,5 +1,21 @@
 # Historial de cambios
 
+## 3.2.0 (2026-11-26)
+
+Render más rápido, errores claros al pedir un video y un MCP local de solo lectura.
+
+- Render rápido: el importador mide cada etapa (`stage-*.json`), intercala búsqueda, descarga y evaluación, reparte el tiempo por término y corta antes cuando no hay candidatos prometedores y ya existe un respaldo del catálogo. Los candidatos se prefiltran por palabras sin traducir, las traducciones se guardan en caché (máximo 20 por término) y se normaliza una sola ventana por candidato. En una corrida real con el guion de ejemplo de Chile, el render pasó de ~16 a ~6 minutos con el mismo resultado.
+- El workflow de render usa el modo rápido y hasta 8 escenas en paralelo.
+- El Worker valida el guion completo contra `schemas/video.schema.json` antes de despachar y responde `400 invalid_script` con la ruta del campo y el motivo; por MCP llega como error de `render_video`. La descripción de `render_video` lista los campos permitidos por escena.
+- QA respeta los aportes explícitos: el mismo aporte puede usarse en varias escenas y los aportes de baja resolución se aceptan con el aviso «aporte de baja resolución escalado». Los clips automáticos mantienen los umbrales.
+- MCP local de solo lectura por stdio (`uv run clipoteca-mcp`): `search_clips`, `get_clip` y `list_sources` sobre el catálogo incluido, sin red ni credenciales. El MCP completo sigue en el Worker.
+- Seguridad y mantenimiento: `SECURITY.md`, tokens de prueba generados en tiempo de ejecución, Dependabot semanal solo para versiones menores y parches, y el escáner de HOL en cada push (100/100).
+
+Correcciones
+
+- Los guiones con campos no permitidos (por ejemplo `duration` por escena) fallaban recién en Actions sin aviso para el LLM.
+- QA rechazaba videos que reutilizaban un mismo aporte o usaban aportes escalados.
+
 ## 3.1.0 (2026-11-26)
 
 Aportes propios: el usuario adjunta sus videos o fotos en el mismo chat donde

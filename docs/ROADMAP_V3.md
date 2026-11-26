@@ -54,6 +54,7 @@ es aleatorio; su SHA-256 identifica la corrida pública.
 - [x] **M33 · API y MCP.** POST /v1/videos, GET de estado y MP4 y las dos tools MCP, desplegados y probados de punta a punta.
 - [x] **M34 · Cierre 3.0.0.** Versión sincronizada, tres guiones válidos y corridas reales aprobadas en 9:16, 16:9 y 1:1. Publicada como v3.0.0.
 - [x] **3.1.0 · Aportes propios.** El usuario adjunta videos o fotos en el chat, el LLM los sube, se normalizan a 720p, se usan por escena y el video se entrega en el mismo turno con espera larga. Publicada como v3.1.0.
+- [x] **3.2.0 · Render rápido y MCP local.** Búsqueda con prefiltro sin traducción y corte temprano (un guion de 3 escenas pasó de ~16 a ~6 minutos), validación del guion en el Worker, aportes repetidos o de baja resolución aceptados en QA con aviso y MCP local de solo lectura por stdio. Publicada como v3.2.0.
 
 ## Camino crítico
 
