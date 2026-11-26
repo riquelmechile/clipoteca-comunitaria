@@ -11,6 +11,8 @@ export interface MediaEnv extends queue.QueueEnv {
   CLIPOTECA_ISSUE_TOKEN?: string;
   CLIPOTECA_UPLOAD_TOKEN?: string;
   CLIPOTECA_FILE_HOSTS?: string;
+  WAIT_FETCH?:typeof fetch;
+  WAIT_FAST_MEDIA?:boolean;
 }
 export const PUBLIC_NOTICE = "Todo lo que subas (archivos, guion y video final) queda p\u00fablico.";
 type Descriptive = {description:{es:string;en?:string};tags?:Partial<Record<'es'|'en',string[]>>};
@@ -72,7 +74,7 @@ const repo = (env:MediaEnv) => {
   return value;
 };
 const api = (env:MediaEnv,path:string,token?:string,init:RequestInit={}) =>
-  fetch("https://api.github.com/repos/"+repo(env)+path,{
+  (env.WAIT_FETCH??fetch)("https://api.github.com/repos/"+repo(env)+path,{
     ...init,redirect:"manual",headers:{
       accept:"application/vnd.github+json","user-agent":"clipoteca-worker",
       "x-github-api-version":"2022-11-28",
@@ -371,6 +373,16 @@ function putAsset(env:MediaEnv,r:Release,name:string,mime:string,bytes:number,bo
   });
 }
 async function getUpload(env:MediaEnv,id:string):Promise<RecordMedia|null>{
+  if(env.WAIT_FETCH){
+    // Exact immutable manifest: no release-asset pagination per status poll.
+    const response=await env.WAIT_FETCH("https://github.com/"+repo(env)+"/releases/download/"+tag(id)+"/"+id+".json",{redirect:"follow"});
+    if(response.status===404){await response.body?.cancel();return null;}
+    if(!response.ok)throw new Error("media_registry_unavailable");
+    const value=await response.json() as RecordMedia;
+    if(value.media_id!==id||value.origin!=="upload"||value.status!=="registered")throw new Error("invalid_manifest");
+    return typeof value.width==="number"&&typeof value.height==="number"
+      ? {...value,low_resolution:Math.min(value.width,value.height)<720}:value;
+  }
   const r=await release(env,id);
   if(!r)return null;
   const found=await asset(env,r,id+".json");
@@ -766,7 +778,7 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
       }
       if(UPLOAD_ID.test(id)){
         const state=(await queue.command(env,id,{action:"status"})).state;
-        if(!state || state.status==="registered" || state.status==="processing" ||
+        if(!state || state.status==="registered" || (state.status==="processing"&&!env.WAIT_FAST_MEDIA) ||
             state.reason==="expired" || state.reason==="publish_failed"){
           // The Release manifest is the durable registration commit point, even
           // if the workflow lost its final callback or the control state expired.

@@ -41,8 +41,8 @@ function bounds(response:Response) {
   if (length !== null && Number(length) !== end-start+1) throw new Error("wrong range length");
   return {start,end,total};
 }
-export async function artifactResponse(url:string, range?:string) {
-  const response = await fetch(url,{redirect:"manual",headers:{
+export async function artifactResponse(url:string, range?:string,fetcher:typeof fetch=fetch) {
+  const response = await fetcher(url,{redirect:"manual",headers:{
     ...(range ? {range} : {}), "accept-encoding":"identity",
   }});
   checkExpired(response);

@@ -488,7 +488,7 @@ export async function handleMcp(request: Request, env: McpEnv): Promise<Response
     originValidationResponse(request, origins);
   if (rejection) return rejection;
   const handler = createMcpHandler(() => createClipotecaServer(env, request), {
-    legacy: "stateless", maxRequestBodySize: 65536, responseMode: "auto",
+    legacy: "stateless", maxRequestBodySize: 65536, responseMode: "sse", keepAliveMs:15000,
   });
   return handler.fetch(request);
 }

@@ -26,17 +26,17 @@ type Run = {id:number; display_title:string; status:string; conclusion:string|nu
 type Job = {name:string; status:string; conclusion:string|null;
   steps?: {name:string; status:string; conclusion:string|null}[]};
 type Artifact = {id:number; name:string; expired:boolean; size_in_bytes:number};
-type Context = {base:string; token:string};
+type Context = {base:string; token:string; fetcher:typeof fetch};
 type SceneWarning = {scene_id:string;degraded_reason:string};
 type Delivery = {qa?:{pass:boolean;failed:string[];warnings?:SceneWarning[]}; clips_indexed?:string[]};
 function context(env: RestEnv): Context | null {
   const repo = env.CLIPOTECA_GITHUB_REPO ?? "riquelmechile/clipoteca-comunitaria";
   const token = env.CLIPOTECA_DISPATCH_TOKEN;
   return token && /^[\w.-]+\/[\w.-]+$/.test(repo)
-    ? {base: "https://api.github.com/repos/" + repo, token} : null;
+    ? {base: "https://api.github.com/repos/" + repo, token,fetcher:env.WAIT_FETCH??fetch} : null;
 }
 function github(ctx: Context, path: string, init: RequestInit = {}) {
-  return fetch(ctx.base + path, {...init, redirect:"manual", headers: {
+  return ctx.fetcher(ctx.base + path, {...init, redirect:"manual", headers: {
     authorization: "Bearer " + ctx.token, accept: "application/vnd.github+json",
     "x-github-api-version": "2022-11-28", "user-agent": "clipoteca-worker",
     ...(init.method === "POST" ? {"content-type":"application/json"} : {}),
@@ -218,7 +218,7 @@ async function archive(ctx: Context, artifact: Artifact, limit: number): Promise
   if (!Number.isFinite(artifact.size_in_bytes) || artifact.size_in_bytes > limit ||
       artifact.size_in_bytes < 1) throw new Error("invalid artifact");
   const signed = await signedArtifact(ctx,artifact);
-  const response = signed.url ? await artifactResponse(signed.url) : signed.response!;
+  const response = signed.url ? await artifactResponse(signed.url,undefined,ctx.fetcher) : signed.response!;
   const length = Number(response.headers.get("content-length") ?? artifact.size_in_bytes);
   if (!response.ok || !Number.isFinite(length) || length > limit) {
     await response.body?.cancel();

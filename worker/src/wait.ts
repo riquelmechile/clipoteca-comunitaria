@@ -29,7 +29,7 @@ function sleep(ms:number,signal:AbortSignal):Promise<void>{
 type Sample={response:Response;done:boolean};
 /** Poll at most once per interval; heartbeat can run while the upstream is slow. */
 export async function pollWait(
-  sample:()=>Promise<Sample>, seconds:number, options:WaitOptions, interval=10_000,
+  sample:(signal:AbortSignal)=>Promise<Sample>, seconds:number, options:WaitOptions, interval=10_000,
 ):Promise<Response>{
   const start=Date.now(), deadline=start+seconds*1000;
   let last:Sample|undefined;
@@ -54,10 +54,12 @@ export async function pollWait(
         controller.signal.addEventListener("abort",abort,{once:true});
       });
       let next:Sample|undefined;
-      try{next=await Promise.race([sample(),bounded]);}
+      try{next=await Promise.race([sample(controller.signal),bounded]);}
       finally{clearTimeout(timer);controller.signal.removeEventListener("abort",abort);}
       if(!next)return last?.response??error("wait_upstream_timeout",503);
-      last=next;
+      if(next.response.status===503&&last){
+        if(next.done)return last.response;
+      }else last=next;
       if(next.done)return next.response;
       await sleep(Math.min(interval,Math.max(0,deadline-Date.now())),controller.signal);
     }
@@ -66,6 +68,26 @@ export async function pollWait(
     options.signal.removeEventListener("abort",stop);
     controller.abort();
   }
+}
+// Free Workers permit 50 external subrequests. Reserve headroom and charge
+// redirect-follow requests conservatively; all wait fetches use this wrapper.
+// On a paid Worker the operator may explicitly raise this budget.
+function waitBudget(env:RestEnv){
+  const configured=Number(env.CLIPOTECA_WAIT_SUBREQUESTS??45);
+  let remaining=Number.isSafeInteger(configured)&&configured>0?Math.min(2000,configured):45;
+  let exhausted=false;
+  return {
+    exhausted:()=>exhausted,
+    env:(signal:AbortSignal,fastMedia=false):RestEnv=>({...env,WAIT_SIGNAL:signal,WAIT_FAST_MEDIA:fastMedia,
+      WAIT_FETCH:async(input,init)=>{
+        signal.throwIfAborted();
+        const cost=init?.redirect==="manual"?1:5;
+        if(remaining<cost){exhausted=true;throw new Error("wait_subrequest_budget");}
+        remaining-=cost;
+        return fetch(input,{...init,signal});
+      },
+    }),
+  };
 }
 type Row=Record<string,unknown>;
 const terminal=(row:Row)=>row.status==="registered"||row.status==="rejected";
@@ -81,11 +103,10 @@ export async function waitVideo(request:Request,env:RestEnv,id:string,seconds:un
   let limit:number;
   try{limit=waitLimit(seconds,env.CLIPOTECA_WAIT_MAX_SECONDS);}catch{return error("invalid_wait");}
   const path="/v1/videos/"+id;
-  // Existing status can make multiple external requests per sample. Paid Worker
-  // is required for the maximum interval; see docs/ESPERA_LARGA.md.
-  return pollWait(async()=>{
-    const response=await handleVideos(new Request(new URL(path,request.url),{signal:options.signal}),env);
-    if(!response?.ok)return {response:response??error("video_not_found",404),done:true};
+  const budget=waitBudget(env);
+  return pollWait(async signal=>{
+    const response=await handleVideos(new Request(new URL(path,request.url),{signal}),budget.env(signal));
+    if(!response?.ok)return {response:response??error("video_not_found",404),done:budget.exhausted()||response?.status!==503};
     const row=await response.json<Row>();
     const done=["done","failed","expired"].includes(String(row.status));
     return {response:json({...row,listo:done,tracking_url:new URL(path+"/ver",request.url).href}),done};
@@ -100,21 +121,26 @@ export async function waitMedia(request:Request,env:RestEnv,input:{session_id?:s
   let limit:number;
   try{limit=waitLimit(input.max_segundos,env.CLIPOTECA_WAIT_MAX_SECONDS);}catch{return error("invalid_wait");}
   const settled=new Map<string,Row>();
-  const get=(path:string)=>handleMedia(new Request(new URL(path,request.url),{signal:options.signal}),env);
-  return pollWait(async()=>{
+  const budget=waitBudget(env);
+  let round=0;
+  return pollWait(async signal=>{
+    // The DO is authoritative for active uploads; periodically check the public
+    // manifest to recover a lost registration callback.
+    const local=budget.env(signal,round++%6!==0);
+    const get=(path:string)=>handleMedia(new Request(new URL(path,request.url),{signal}),local);
     let data:Row={};
     if(session){
       const response=await get("/v1/uploads/"+session);
-      if(!response?.ok)return {response:response??error("session_not_found",404),done:true};
+      if(!response?.ok)return {response:response??error("session_not_found",404),done:budget.exhausted()||response?.status!==503};
       data=await response.json<Row>();
     }else{
       const files:Row[]=[];
       for(const id of new Set(ids)){
-        options.signal.throwIfAborted();
+        signal.throwIfAborted();
         let row=settled.get(id);
         if(!row){
           const response=await get("/v1/media/"+id);
-          if(!response?.ok)return {response:response??error("media_not_found",404),done:true};
+          if(!response?.ok)return {response:response??error("media_not_found",404),done:budget.exhausted()||response?.status!==503};
           row=mediaRow(await response.json<Row>());
           if(terminal(row))settled.set(id,row);
         }

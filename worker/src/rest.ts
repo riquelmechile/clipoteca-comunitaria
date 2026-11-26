@@ -10,6 +10,7 @@ import {handleWait} from "./wait";
 
 export interface RestEnv extends SemanticEnv, MediaEnv {
   CLIPOTECA_WAIT_MAX_SECONDS?: string;
+  CLIPOTECA_WAIT_SUBREQUESTS?: string;
   CATALOG_URL?: string;
   CATALOG_TTL_SECONDS?: string;
   CATALOG_JOBS_URL?: string;

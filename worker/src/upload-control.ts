@@ -17,6 +17,7 @@ export type State={status:"uploading"|"processing"|"registered"|"rejected";expir
   size?:number;parts?:Record<number,Chunk>;pending?:Record<number,PendingPart|string>;mime?:string};
 export interface QueueEnv {
   UPLOADS?:KVNamespace; UPLOAD_CONTROL?:DurableObjectNamespace;
+  WAIT_SIGNAL?:AbortSignal;
   CLIPOTECA_DISPATCH_TOKEN?:string;CLIPOTECA_GITHUB_REPO?:string;
 }
 export const configured=(env:QueueEnv)=>Boolean(env.UPLOADS&&env.UPLOAD_CONTROL&&env.CLIPOTECA_DISPATCH_TOKEN);
@@ -147,7 +148,7 @@ export class UploadControl {
 export async function command(env:QueueEnv,id:string,c:Command):Promise<Result>{
   if(!env.UPLOAD_CONTROL||!ID.test(id))return {code:404};
   const stub=env.UPLOAD_CONTROL.get(env.UPLOAD_CONTROL.idFromName(id));
-  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c)});
+  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c),...(env.WAIT_SIGNAL?{signal:env.WAIT_SIGNAL}:{})});
   return r.ok?{code:r.status,state:await r.json<State>()}:{code:r.status};
 }
 export async function discard(env:QueueEnv,id:string,count:number,chunks?:Chunk[]){
@@ -254,7 +255,7 @@ export async function ingestRoute(request:Request,env:QueueEnv):Promise<Response
 export async function batchCommand(env:QueueEnv,id:string,c:BatchCommand):Promise<{code:number;state?:BatchState}>{
   if(!env.UPLOAD_CONTROL||!(SESSION_ID.test(id)||/^limits:\d{4}-\d{2}-\d{2}$/.test(id)))return {code:404};
   const stub=env.UPLOAD_CONTROL.get(env.UPLOAD_CONTROL.idFromName(id));
-  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c)});
+  const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c),...(env.WAIT_SIGNAL?{signal:env.WAIT_SIGNAL}:{})});
   return r.ok?{code:r.status,state:await r.json<BatchState>()}:{code:r.status};
 }
 export async function admit(request:Request,env:QueueEnv,action:"limit_session"|"limit_ticket"|"limit_bytes"|"limit_video",bytes?:number){

@@ -153,6 +153,32 @@ describe("video REST delivery",()=>{
       scenes:[{media:{ref:"u78",motion:"zoom_in"}},{media:{ref:"clip-000001"}},{media:{ref:"asset:clipoteca-pipeline"}}]}}),configured);
     expect(response.status).toBe(202);
   });
+  it("accepts processing contribution and rejects nonexistent one",async()=>{
+    const mediaId="a2026-11-"+"d".repeat(32);
+    const missing="a2026-11-"+"e".repeat(32);
+    const fetcher=vi.fn(async(url:string|URL|Request)=>{
+      if(String(url).includes("/releases/tags/"))return new Response(null,{status:404});
+      if(String(url).endsWith("/dispatches"))return new Response(null,{status:204});
+      throw new Error("unexpected upstream");
+    });
+    vi.stubGlobal("fetch",fetcher);
+    const uploadControl={
+      idFromName:(name:string)=>name,
+      get:(name:string)=>({fetch:async()=>name===mediaId
+        ?Response.json({status:"processing",kind:"video",expires:Date.now()+60_000})
+        :new Response(null,{status:404})}),
+    } as unknown as DurableObjectNamespace;
+    const configured={...env,UPLOAD_CONTROL:uploadControl};
+    const body=(ref:string)=>({script:{...script,scenes:[{media:{ref}},{},{}]}});
+    expect((await worker.fetch(request("/v1/videos",body(missing)),configured)).status).toBe(404);
+    expect((await worker.fetch(request("/v1/videos",body(mediaId)),configured)).status).toBe(202);
+  });
+  it("wait endpoint returns the full terminal video status",async()=>{
+    fakeActions();
+    const result=await worker.fetch(request("/v1/videos/"+id+"/esperar?max_segundos=2"),env);
+    expect(await result.json()).toMatchObject({id,status:"done",listo:true,
+      file_url:base+"/v1/videos/"+id+"/file",tracking_url:base+"/v1/videos/"+id+"/ver"});
+  });
   it.each(["queued","in_progress","completed"])("reports %s",async(state)=>{
     fakeActions({status:state});
     const res=await worker.fetch(request("/v1/videos/"+id),env);
