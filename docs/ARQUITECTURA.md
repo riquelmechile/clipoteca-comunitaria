@@ -67,7 +67,7 @@ Releases es un mecanismo de distribución de software y GitHub puede limitar pat
 ## Motor de video (studio)
 
 El motor v3 se ejecuta por etapas y usa archivos como contrato.
-El Worker ofrece despacho y consulta de Actions en el código 3.1.0;
+El Worker ofrece despacho y consulta de Actions en el código 3.2.0;
 el workflow de entrega está propuesto y falta promoverlo y desplegar.
 El job studio de CI comprueba componentes con permiso de lectura.
 

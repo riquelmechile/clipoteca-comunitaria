@@ -74,7 +74,7 @@ Cuando el traductor falla en un idioma, la búsqueda sigue con los idiomas que s
 
 ## Video a partir de un guion (v3)
 
-La versión del repositorio es **3.1.0**; la versión desplegada se indica en [ESTADO.md](docs/ESTADO.md).
+La versión del repositorio es **3.2.0**; la versión desplegada se indica en [ESTADO.md](docs/ESTADO.md).
 El motor produce un MP4 desde un guion español de 3 a 12 escenas, hasta 60 segundos,
 en 9:16, 16:9 o 1:1. No genera el guion ni usa un modelo de lenguaje.
 Cada escena busca una coincidencia fuerte en el catálogo (sim ≥0,27, umbral provisional).

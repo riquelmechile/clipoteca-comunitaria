@@ -1,6 +1,6 @@
 # Estado de Clipoteca
 
-**Versión del repositorio 3.1.0 · catálogo medido el 22 de noviembre de 2026.**
+**Versión del repositorio 3.2.0 · catálogo medido el 22 de noviembre de 2026.**
 El Worker desplegado permanece en **2.0.5** hasta un despliegue autorizado; no se
 redespliega en este cambio.
 Esta página es la referencia de estado del proyecto. Todo lo que afirma tiene una ejecución enlazada; lo que no se midió, se dice.
@@ -31,7 +31,7 @@ Ninguna máquina personal ni servidor propio forma parte del servicio.
 
 ## Motor de video (v3), en main sin publicar versión
 
-El paquete es **3.1.0**, publicado como v3.1.0. La API REST/MCP, el workflow de entrega y los aportes propios (subida desde el chat, normalización a 720p, espera larga) están desplegados. Consulta [STUDIO.md](STUDIO.md). El catálogo crece con todos los clips válidos importados; el MP4 final se entrega por artefacto temporal y no se publica en el catálogo, pero la corrida de Actions es pública. Todo lo que subas (archivos, guion y video final) queda público.
+El paquete es **3.2.0**, publicado como v3.2.0. Desde 3.2.0 el render es más rápido (búsqueda con prefiltro sin traducción y corte temprano), el Worker valida el guion antes de despachar y hay un MCP local de solo lectura (`uv run clipoteca-mcp`). La API REST/MCP, el workflow de entrega y los aportes propios (subida desde el chat, normalización a 720p, espera larga) están desplegados. Consulta [STUDIO.md](STUDIO.md). El catálogo crece con todos los clips válidos importados; el MP4 final se entrega por artefacto temporal y no se publica en el catálogo, pero la corrida de Actions es pública. Todo lo que subas (archivos, guion y video final) queda público.
 
 | Hito | Qué entrega | Documento | Verificación en el árbol |
 |---|---|---|---|

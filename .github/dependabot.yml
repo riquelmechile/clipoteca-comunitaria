@@ -20,6 +20,9 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Cambian formato o traduccion; se actualizan a mano.
+      - dependency-name: "ruff"
+      - dependency-name: "argostranslate"
     groups:
       python:
         patterns: ["*"]
