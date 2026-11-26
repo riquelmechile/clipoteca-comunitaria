@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from typing import Callable
 
@@ -44,6 +45,35 @@ class SceneBudget:
     commons_exhausted: bool = False
     rejections: dict[str, int] = field(default_factory=dict)
     rejected: set[tuple[str, str]] = field(default_factory=set)
+    stage_seconds: dict[str, float] = field(default_factory=dict)
+    fast: bool = False
+    early_deadline: float | None = None
+    term_deadline: float | None = None
+
+    def time_reason(self):
+        now = self.clock()
+        if now >= self.deadline:
+            return "timeout"
+        if self.early_deadline is not None and not self.visual_cache and now >= self.early_deadline:
+            return "early_fallback"
+        if self.term_deadline is not None and now >= self.term_deadline:
+            return "term_timeout"
+        return None
+
+    def term_seconds(self, terms_left):
+        """Fair share of remaining wall time; unused time flows to the next term."""
+        remaining = self.deadline - self.clock()
+        if self.early_deadline is not None and not self.visual_cache:
+            remaining = min(remaining, self.early_deadline - self.clock())
+        return max(0.0, remaining / max(1, terms_left))
+
+    @contextmanager
+    def timed(self, name):
+        started = self.clock()
+        try:
+            yield
+        finally:
+            self.stage_seconds[name] = self.stage_seconds.get(name, 0.0) + self.clock() - started
 
     @property
     def place(self):
@@ -158,18 +188,19 @@ class SceneBudget:
             return False
         digest = str(media.get("sha256") or id(record)).lower()
         if digest not in self.visual_cache:
-            if self.clock() >= self.deadline or self.visual_match is None:
+            if self.time_reason() or self.visual_match is None:
                 self._reject(record, "timeout_before_check")
                 return False
-            self.visual_cache[digest] = bool(self.visual_match(record))
+            with self.timed("visual"):
+                self.visual_cache[digest] = bool(self.visual_match(record))
         return self.visual_cache[digest]
 
     def relevant_count(self):
         return sum(self.good(record) for record in self._unique_valid())
 
     def reason(self):
-        if self.clock() >= self.deadline:
-            return "timeout"
+        if reason := self.time_reason():
+            return reason
         if self.place and not (self.commons_consulted or self.commons_exhausted):
             return None
         count = self.relevant_count()
@@ -194,7 +225,8 @@ def _ordered(adapters, *, place=False):
 
 async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
     """Search bounded parallel waves, consume priority results, and cancel the rest."""
-    expansion = expand_query(query, translator=kwargs.get("translator"))
+    with scene_budget.timed("translation"):
+        expansion = expand_query(query, translator=kwargs.get("translator"))
     # Preserve the normal ingest translation gate, including its error reporting.
     if any(
         (not expansion.terms.get(lang) or lang in expansion.errors)
@@ -238,7 +270,7 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
             )
             if adapter.support_status == _DOWNLOAD:
                 scene_budget.discovered.update(c.origin_id for c in result.candidates)
-            return replace(result, expansion=expansion)
+            return adapter, replace(result, expansion=expansion)
         except asyncio.CancelledError:
             scene_budget.searches_cancelled += 1
             raise
@@ -275,10 +307,32 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
             break
         tasks = [asyncio.create_task(discover(adapter, lang)) for adapter in batch]
         try:
-            for adapter, task in zip(batch, tasks, strict=True):
-                if scene_budget.reason():
+            # Keep priority for launching tasks and the mandatory first Commons wave,
+            # but do not block a completed provider behind a slow sibling in fast mode.
+            results = asyncio.as_completed(tasks) if scene_budget.fast else tasks
+            for task in results:
+                if not scene_budget.fast and scene_budget.reason():
                     break
-                result = await task
+                with scene_budget.timed("discovery_wait"):
+                    if (
+                        scene_budget.fast
+                        and first is not None
+                        and (lang, batch) == (first[0], [first[1]])
+                    ):
+                        # Give the mandatory Commons attempt a share of this seed,
+                        # rather than letting a stalled endpoint starve all peers.
+                        deadline = scene_budget.term_deadline or scene_budget.deadline
+                        seconds = min(30.0, max(0.001, (deadline - scene_budget.clock()) * 0.35))
+                        try:
+                            adapter, result = await asyncio.wait_for(task, timeout=seconds)
+                        except TimeoutError:
+                            scene_budget.commons_exhausted = True
+                            scene_budget.rejections["commons_budget"] = (
+                                scene_budget.rejections.get("commons_budget", 0) + 1
+                            )
+                            break
+                    else:
+                        adapter, result = await task
                 # Discovery has completed; media processing may still time out.
                 if (
                     scene_budget.place
@@ -291,15 +345,16 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
                 unique = [c for c in result.candidates if c.origin_id not in seen]
                 seen.update(c.origin_id for c in unique)
                 result = replace(result, candidates=unique)
-                report = await _ingest(
-                    query,
-                    adapters,
-                    max_results=limit,
-                    horizon=f"{horizon}-batch-{index}",
-                    discovery=result,
-                    scene_budget=scene_budget,
-                    **kwargs,
-                )
+                with scene_budget.timed("ingest"):
+                    report = await _ingest(
+                        query,
+                        adapters,
+                        max_results=limit,
+                        horizon=f"{horizon}-batch-{index}",
+                        discovery=result,
+                        scene_budget=scene_budget,
+                        **kwargs,
+                    )
                 # Evaluate the final candidate too, even if no other wave follows.
                 scene_budget.relevant_count()
                 index += 1
@@ -308,6 +363,8 @@ async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
                 statuses.append(report.status)
                 if report.status == "published":
                     ids.extend(report.published_ids)
+                if scene_budget.reason():
+                    break
         finally:
             for task in tasks:
                 if not task.done():
@@ -416,7 +473,8 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
             for (_, query, _, adapter, _), task in zip(batch, tasks, strict=True):
                 if scene_budget.reason():
                     break
-                result = await task
+                with scene_budget.timed("discovery_wait"):
+                    result = await task
                 if adapter.name == "wikimedia_commons" and adapter.support_status in _SEARCHABLE:
                     scene_budget.commons_consulted = True
                 if scene_budget.reason():
@@ -425,15 +483,16 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
                     candidate for candidate in result.candidates if candidate.origin_id not in seen
                 ]
                 seen.update(candidate.origin_id for candidate in unique)
-                report = await _ingest(
-                    query,
-                    adapters,
-                    max_results=max(1, limit - scene_budget.relevant_count()),
-                    horizon=f"{horizon}-batch-{index}",
-                    discovery=replace(result, candidates=unique),
-                    scene_budget=scene_budget,
-                    **kwargs,
-                )
+                with scene_budget.timed("ingest"):
+                    report = await _ingest(
+                        query,
+                        adapters,
+                        max_results=max(1, limit - scene_budget.relevant_count()),
+                        horizon=f"{horizon}-batch-{index}",
+                        discovery=replace(result, candidates=unique),
+                        scene_budget=scene_budget,
+                        **kwargs,
+                    )
                 scene_budget.relevant_count()
                 index += 1
                 last = report.request_id
