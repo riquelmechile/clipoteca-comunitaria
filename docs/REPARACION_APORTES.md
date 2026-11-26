@@ -24,3 +24,18 @@ El resumen indica registros cambiados y pendientes (sin descripcion o tags
 en ingles). Un codigo de salida 1 indica pendientes; se puede volver a
 ejecutar cuando los recursos esten disponibles. El aviso de traduccion
 incluye solo un codigo de error o clase, nunca el texto de usuario.
+
+## Diagnostico del workflow
+
+La corrida 45731884452 instalo Argos 1.10.0 y preparo los seis paquetes
+fijados; el antiguo aviso generico no permite saber por que fallo la
+traduccion. El CI real realiza un sync adicional despues de preparar los
+recursos, que elimina el paquete auxiliar xx-sent-ud-sm no fijado en el lock.
+Es una diferencia observada, no una causa demostrada.
+
+La propuesta `propuestas/media-ingest.yml` comprueba la traduccion antes de
+procesar datos de usuarios, en el mismo entorno que la ingesta. Si falla,
+resincroniza el extra translate fijado y repite la comprobacion. No requiere
+credenciales ni modifica aportes; la ingesta sigue siendo best effort.
+Los mantenedores deben aplicar el workflow propuesto y verificar la corrida
+real para distinguir un problema de entorno de otros errores.

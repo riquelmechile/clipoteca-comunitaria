@@ -76,12 +76,12 @@ def enrich_metadata(manifest: dict) -> dict:
         )
         return None
 
-    if "en" not in description:
+    if not description.get("en"):
         translated = english(description["es"], 400)
         if translated:
             description["en"] = translated
             automatic.append("description.en")
-    if "es" not in tags:
+    if not tags.get("es"):
         words = re.findall(r"[^\W_]+", description["es"].casefold())
         derived = list(
             dict.fromkeys(word for word in words if 2 <= len(word) <= 40 and word not in _STOP_ES)
@@ -89,7 +89,7 @@ def enrich_metadata(manifest: dict) -> dict:
         if derived:
             tags["es"] = derived
             automatic.append("tags.es")
-    if "en" not in tags and tags.get("es"):
+    if not tags.get("en") and tags.get("es"):
         translated_tags = []
         for tag in tags["es"]:
             translated = english(tag, 40)
