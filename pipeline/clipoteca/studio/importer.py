@@ -671,6 +671,8 @@ def import_scene(
         early_deadline=started + timeout * 0.4 if fast else None,
         rejections=rejections,
     )
+    catalog_candidates = library.candidates(job, {"clips": catalog.clips})
+    budget.catalog_fallback = bool(catalog_candidates and catalog_candidates[0].get("fallback"))
     searchable_slots = sum(
         len(set(adapter.accepts_text_languages) & {"en", "es", "zh", "ru"})
         for adapter in selected
@@ -756,6 +758,14 @@ def import_scene(
                         failures.append(type(exc).__name__)
                     finally:
                         budget.term_deadline = None
+                    if (
+                        index == 0
+                        and primary
+                        and budget.catalog_fallback
+                        and not any(budget.visual_cache.values())
+                    ):
+                        budget.forced_reason = "no_promising_candidates"
+                        break
                 return
             # Reserve time within the existing deadline, never add another scene budget.
             primary_deadline = started + timeout * (0.6 if related else 1.0)
@@ -864,6 +874,10 @@ def import_scene(
         "downloads_started": budget.downloads_started,
         "downloads_completed": budget.downloads_completed,
         "text_evaluated": len(budget.text_checked),
+        "candidates_prefiltered": budget.candidates_prefiltered,
+        "prefilter_hits": budget.prefilter_hits,
+        "candidates_translated": budget.candidates_translated,
+        "translation_cache_hits": budget.translation_cache_hits,
         "evaluated_count": len(budget.visual_cache),
         "downloads_avoided": len(budget.discovered - budget.attempted),
     }
@@ -878,6 +892,10 @@ def import_scene(
         "Importer",
         {
             **budget.stage_seconds,
+            "candidates_prefiltered": budget.candidates_prefiltered,
+            "prefilter_hits": budget.prefilter_hits,
+            "candidates_translated": budget.candidates_translated,
+            "translation_cache_hits": budget.translation_cache_hits,
             "setup": setup_done - started,
             "finalize": finished - finalized_started,
             "total": finished - started,
@@ -935,6 +953,10 @@ def main(argv: list[str] | None = None) -> int:
                 "downloads_started": result["downloads_started"],
                 "downloads_completed": result["downloads_completed"],
                 "text_evaluated": result["text_evaluated"],
+                "candidates_prefiltered": result["candidates_prefiltered"],
+                "prefilter_hits": result["prefilter_hits"],
+                "candidates_translated": result["candidates_translated"],
+                "translation_cache_hits": result["translation_cache_hits"],
                 "evaluated_count": result["evaluated_count"],
                 "downloads_avoided": result["downloads_avoided"],
             },

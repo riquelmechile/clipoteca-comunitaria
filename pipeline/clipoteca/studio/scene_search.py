@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
+import unicodedata
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from typing import Callable
@@ -12,7 +14,7 @@ from ..engine import SearchEngine, SearchResult
 from ..ingest import IngestReport
 from ..ingest import ingest as _ingest
 from ..providers.base import SupportStatus
-from ..translate.argos import QUALITY_TRANSLATION_REASONS, public_translation_error
+from ..translate.argos import QUALITY_TRANSLATION_REASONS, public_translation_error, translate_text
 from ..translate.expand import expand_query
 from . import library
 from .related import primary_queries, related_parent, related_search_query, related_terms
@@ -49,8 +51,22 @@ class SceneBudget:
     fast: bool = False
     early_deadline: float | None = None
     term_deadline: float | None = None
+    translation_limit: int = 20
+    active_term: str = ""
+    forced_reason: str | None = None
+    catalog_fallback: bool = False
+    candidates_prefiltered: int = 0
+    prefilter_hits: int = 0
+    candidates_translated: int = 0
+    translation_cache_hits: int = 0
+    translation_cache: dict[tuple[str, str, str], str] = field(default_factory=dict)
+    translations_by_term: dict[str, int] = field(default_factory=dict)
+    prefilter_seen: set[str] = field(default_factory=set)
+    translated_seen: set[str] = field(default_factory=set)
 
     def time_reason(self):
+        if self.forced_reason:
+            return self.forced_reason
         now = self.clock()
         if now >= self.deadline:
             return "timeout"
@@ -59,6 +75,74 @@ class SceneBudget:
         if self.term_deadline is not None and now >= self.term_deadline:
             return "term_timeout"
         return None
+
+    def begin_term(self, query: str) -> None:
+        self.active_term = query
+
+    @staticmethod
+    def _words(value: str) -> set[str]:
+        folded = unicodedata.normalize("NFKD", value.casefold())
+        folded = "".join(char for char in folded if not unicodedata.combining(char))
+        return {word for word in re.findall(r"[^\W_]+", folded) if len(word) > 2}
+
+    def candidate_prefilter(self, candidate) -> bool | None:
+        """Accept obvious source-text matches without paying for translation."""
+        key = candidate.origin_id
+        if key not in self.prefilter_seen:
+            self.prefilter_seen.add(key)
+            self.candidates_prefiltered += 1
+        metadata = candidate.metadata or {}
+        source_data = metadata.get("data", metadata) if isinstance(metadata, dict) else {}
+        values = [candidate.source_title]
+        if isinstance(source_data, dict):
+            for name in ("description", "tags", "keywords", "commons_place_aliases"):
+                value = source_data.get(name)
+                if isinstance(value, str):
+                    values.append(value)
+                elif isinstance(value, list):
+                    values.extend(str(item) for item in value if isinstance(item, str))
+        source_words = self._words(" ".join(values))
+        terms = [
+            *primary_queries(self.job["queries"]),
+            *(row["term"] for row in related_terms(self.job)),
+        ]
+        query_words = set().union(*(self._words(term) for term in terms)) if terms else set()
+        if source_words & query_words:
+            self.prefilter_hits += 1
+            self.text_checked[key] = True
+            return True
+        return None
+
+    def reserve_translation(self, candidate) -> bool:
+        key = candidate.origin_id
+        if key in self.translated_seen:
+            return True
+        term = self.active_term or "_"
+        used = self.translations_by_term.get(term, 0)
+        if used >= self.translation_limit:
+            self.text_checked[key] = False
+            self._reject({"id": key}, "translation_limit")
+            return False
+        self.translations_by_term[term] = used + 1
+        self.translated_seen.add(key)
+        self.candidates_translated += 1
+        return True
+
+    def cached_translator(self, translator):
+        def cached(text: str, source: str, target: str) -> str:
+            key = (text, source, target)
+            if key in self.translation_cache:
+                self.translation_cache_hits += 1
+                return self.translation_cache[key]
+            value = (
+                translator(text, source, target)
+                if translator is not None
+                else translate_text(text, source, target)
+            )
+            self.translation_cache[key] = value
+            return value
+
+        return cached
 
     def term_seconds(self, terms_left):
         """Fair share of remaining wall time; unused time flows to the next term."""
@@ -225,6 +309,7 @@ def _ordered(adapters, *, place=False):
 
 async def ingest(query, adapters, *, scene_budget: SceneBudget, **kwargs):
     """Search bounded parallel waves, consume priority results, and cancel the rest."""
+    scene_budget.begin_term(query)
     with scene_budget.timed("translation"):
         expansion = expand_query(query, translator=kwargs.get("translator"))
     # Preserve the normal ingest translation gate, including its error reporting.
@@ -403,6 +488,7 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
         if scene_budget.reason():
             break
         query = related_search_query(scene_budget.job, term)
+        scene_budget.begin_term(query)
         expansion = expand_query(query, translator=kwargs.get("translator"))
         invalid = any(
             (not expansion.terms.get(lang) or lang in expansion.errors)
@@ -483,6 +569,7 @@ async def ingest_related(queries, adapters, *, scene_budget, on_query, **kwargs)
                     candidate for candidate in result.candidates if candidate.origin_id not in seen
                 ]
                 seen.update(candidate.origin_id for candidate in unique)
+                scene_budget.begin_term(query)
                 with scene_budget.timed("ingest"):
                     report = await _ingest(
                         query,

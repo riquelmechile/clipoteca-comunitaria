@@ -530,11 +530,18 @@ async def ingest(
                 try:
                     # Studio text gate uses source metadata, never the search terms.
                     # Do it before resolving media or starting any download.
+                    localized = None
                     if scene_budget:
                         with scene_budget.timed("text_filter") if scene_budget else nullcontext():
-                            localized = localize_candidate(candidate, translator=translator)
-                            if not scene_budget.candidate_text_good(candidate, localized):
-                                continue
+                            if scene_budget.candidate_prefilter(candidate) is not True:
+                                if not scene_budget.reserve_translation(candidate):
+                                    continue
+                                localized = localize_candidate(
+                                    candidate,
+                                    translator=scene_budget.cached_translator(translator),
+                                )
+                                if not scene_budget.candidate_text_good(candidate, localized):
+                                    continue
                     advance("fetching")
                     with scene_budget.timed("media_resolution") if scene_budget else nullcontext():
                         ref = await adapter.direct_media(candidate)
@@ -595,6 +602,16 @@ async def ingest(
                             embedding_encoder=embedding_encoder,
                             embedding_frames=semantic_frames,
                         )
+                    if scene_budget and scene_budget.fast:
+                        windows = windows[:1]
+                    if scene_budget and localized is None and windows:
+                        with scene_budget.timed("text_filter"):
+                            if not scene_budget.reserve_translation(candidate):
+                                continue
+                            localized = localize_candidate(
+                                candidate,
+                                translator=scene_budget.cached_translator(translator),
+                            )
                     for window_index, window in enumerate(windows):
                         if scene_budget.reason() if scene_budget else len(ids) >= max_results:
                             break
