@@ -45,26 +45,20 @@ prompt usa busqueda, con el motivo y media_id en QA. Sin esos campos falla
 el plan con el motivo. El workflow propuesto requiere promocion por el
 mantenedor: propuestas/render.yml (no se modifica el workflow activo).
 
-## Diagnostico fileParams
+## Diagnostico fileParams (UPDATE 3c64a9db)
+
+El propietario confirmo que las dos animaciones de la prueba real (run
+45755693333) ya tenian 464x688 px y aproximadamente seis segundos antes
+de subirlas. El download_url entrego archivos de esas dimensiones tal
+como venian en este caso; no hubo reduccion atribuible a ChatGPT.
+No se requiere otra prueba 1080p segun la correccion del encargo.
 
 Documentacion oficial:
 https://developers.openai.com/plugins/reference#define-file-inputs
-El host entrega download_url, file_id, mime_type y file_name. No hay un
-parametro documentado para solicitar el original en lugar de una previsualizacion.
-getFileDownloadUrl renueva la URL temporal; no garantiza otra calidad.
-La normalizacion local usa min(1,720/lado_corto), conserva duracion y no
-recorta. Por eso 464x688 no puede originarse de 1080p mediante esa regla,
-salvo transformacion anterior o metadatos de origen diferentes. Esto es una
-hipotesis, no prueba de compresion por ChatGPT; dos archivos identicos en
-dimension y duracion tampoco demuestran igualdad de bytes.
-
-Para confirmar: crear un video sintetico 1920x1080 de 6 s con ffmpeg, guardar
-sha256, bytes y ffprobe; adjuntarlo en ChatGPT, llamar subir_archivo via
-fileParams y comparar dimensiones/duracion/sha256 del origen antes de
-normalizar con los valores originales y el registro final. No guardar ni
-publicar download_url, file_id ni tokens. La prueba nativa del host requiere
-Clipoteca conectado y un adjunto real; no se reemplaza por una llamada REST
-con URL inventada. Hasta que se mida, no se atribuye la causa al host.
+El contrato publica download_url, file_id, mime_type y file_name. No
+documenta un selector de calidad ni garantiza identidad de bytes en todos
+los casos. La ingesta propia normaliza a H.264 y lado corto maximo 720,
+sin ampliar los originales menores.
 
 El recibo inmediato de subir_archivo incluye quality_pending:true y, si el
 prefijo contiene geometria de imagen o una pista MP4 completa, low_resolution
@@ -72,5 +66,3 @@ como aviso preliminar. No se inventa un valor para WebM/moov tardio. El
 resultado definitivo llega por esperar_aportes. Las rutas antiguas de
 registro sincronico por URL aplican el umbral si su cabecera ofrece medidas;
 no pueden certificar dimensiones que no esten presentes en el prefijo.
-El pipeline registra en logs geometria, bytes y sha256 del archivo recibido
-antes de normalizar, sin registrar el enlace temporal ni credenciales.

@@ -210,16 +210,18 @@ def write_plan(
         free_catalog = {"clips": [clip for clip in catalog["clips"] if clip["id"] not in reserved]}
         listed = assign_scenes(free_jobs, free_catalog)
         fallback_jobs = [
-            job for job in jobs
+            job
+            for job in jobs
             if job.get("source_kind") == "contribution" and job.get("on_error") == "search"
         ]
         fallback_assignments = {
             row["id"]: {
-                "status": row["status"], "primary": row.get("primary"),
+                "status": row["status"],
+                "primary": row.get("primary"),
                 "backups": row.get("backups", []),
             }
             for row in assign_scenes(fallback_jobs, free_catalog)
-        } if fallback_jobs else {}
+        }
         for job in jobs:
             if "media" not in job:
                 continue
@@ -250,7 +252,8 @@ def write_plan(
                     "backups": item.get("backups", []),
                     **(
                         {"fallback_assignment": item["fallback_assignment"]}
-                        if "fallback_assignment" in item else {}
+                        if "fallback_assignment" in item
+                        else {}
                     ),
                 }
                 for item in listed
@@ -278,8 +281,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         script = parse_video_script(json.loads(args.script.read_text(encoding="utf-8")))
         plan = write_plan(
-            script, args.out, args.catalog,
-            resolve_related=args.resolve_related, media_api=args.media_api,
+            script,
+            args.out,
+            args.catalog,
+            resolve_related=args.resolve_related,
+            media_api=args.media_api,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         parser.exit(2, f"plan: {exc}\n")

@@ -35,9 +35,7 @@ def test_rejected_falls_back_to_catalogue_with_warning(tmp_path):
     scene = job()
     estimate = {"id": "fact", "source_kind": "contribution"}
     asyncio.run(
-        resolve_pending_jobs(
-            [scene], [estimate], API, transport=httpx.MockTransport(rejected)
-        )
+        resolve_pending_jobs([scene], [estimate], API, transport=httpx.MockTransport(rejected))
     )
     assert "media" not in scene
     assert "source_kind" not in estimate
@@ -81,8 +79,11 @@ def test_processing_then_registered_preserves_reference():
     scene = job()
     asyncio.run(
         resolve_pending_jobs(
-            [scene], [{"id": "fact"}], API,
-            poll_seconds=0, transport=httpx.MockTransport(response),
+            [scene],
+            [{"id": "fact"}],
+            API,
+            poll_seconds=0,
+            transport=httpx.MockTransport(response),
         )
     )
     assert count == 2
@@ -91,7 +92,5 @@ def test_processing_then_registered_preserves_reference():
 
 def test_timeout_fallback():
     scene = job()
-    asyncio.run(
-        resolve_pending_jobs([scene], [{"id": "fact"}], API, max_seconds=0)
-    )
+    asyncio.run(resolve_pending_jobs([scene], [{"id": "fact"}], API, max_seconds=0))
     assert "registration_timeout" in scene["media_fallback_reason"]

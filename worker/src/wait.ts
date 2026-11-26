@@ -55,7 +55,7 @@ export async function pollWait(
       });
       let next:Sample|undefined;
       try{next=await Promise.race([sample(controller.signal),bounded]);}
-      finally{clearTimeout(timer);controller.signal.removeEventListener("abort",abort);}
+      finally{if(timer!==undefined)clearTimeout(timer);controller.signal.removeEventListener("abort",abort);}
       if(!next)return last?.response??error("wait_upstream_timeout",503);
       if(next.response.status===503&&last){
         if(next.done)return last.response;

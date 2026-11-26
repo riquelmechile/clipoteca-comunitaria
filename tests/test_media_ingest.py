@@ -126,7 +126,12 @@ def test_video_manifest_100_mib_in_five_chunks():
 )
 @pytest.mark.parametrize(
     "size,expected",
-    [("1920x1080", (1280, 720)), ("1080x1920", (720, 1280)), ("464x688", (464, 688)), ("360x360", (360, 360))],
+    [
+        ("1920x1080", (1280, 720)),
+        ("1080x1920", (720, 1280)),
+        ("464x688", (464, 688)),
+        ("360x360", (360, 360)),
+    ],
 )
 def test_normalize_video_preserves_frame(tmp_path, size, expected):
     path = tmp_path / "original.mp4"
@@ -151,9 +156,8 @@ def test_normalize_video_preserves_frame(tmp_path, size, expected):
     assert (normalized["width"], normalized["height"]) == expected
     assert normalized["mime"] == "video/mp4"
     assert normalized["low_resolution"] == (min(expected) < 720)
-    assert record_for(normalized, "riquelmechile/clipoteca-comunitaria", duration)[
-        "low_resolution"
-    ] == (min(expected) < 720)
+    record = record_for(normalized, "riquelmechile/clipoteca-comunitaria", duration)
+    assert record["low_resolution"] == (min(expected) < 720)
     assert normalized["codec"] == "h264"
     assert normalized["bytes"] == target.stat().st_size
     assert 0.9 <= duration <= 1.1
@@ -274,6 +278,7 @@ def test_enrich_metadata_unchanged_tag_and_existing_provenance(monkeypatch, caps
     assert "unchanged_translation" in capsys.readouterr().out
     assert enrich_metadata(result) == result
 
+
 def test_reject_small_image_before_publish(tmp_path):
     path = tmp_path / "small.png"
     Image.new("RGB", (464, 359)).save(path)
@@ -287,8 +292,20 @@ def test_reject_small_image_before_publish(tmp_path):
 def test_reject_small_video_before_publish(tmp_path):
     path = tmp_path / "small.mp4"
     subprocess.run(
-        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=s=320x180:d=1",
-         "-c:v", "mpeg4", str(path)], check=True, timeout=30,
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=s=320x180:d=1",
+            "-c:v",
+            "mpeg4",
+            str(path),
+        ],
+        check=True,
+        timeout=30,
     )
     with pytest.raises(IngestError, match="resolution_too_low"):
         normalize_upload(manifest(path.read_bytes(), "video", "video/mp4"), path, tmp_path)

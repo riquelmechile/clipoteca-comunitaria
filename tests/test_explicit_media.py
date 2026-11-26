@@ -77,7 +77,7 @@ def _contribution_job():
         "aspect": "16:9",
         "len_est": 2,
         "len_fetch": 2,
-        "min_short_side": 360,
+        "min_short_side": 720,
     }
 
 
@@ -136,7 +136,7 @@ def test_contribution_webm_without_frame_count(tmp_path, monkeypatch):
     result = explicit_media.select_explicit(root, _contribution_job(), {})
     assert result["status"] == "ok", result
     assert result["origin"] == "contribution"
-    assert result["quality_warning"] == "aporte de baja resolucion escalado"
+    assert result["quality_warning"] == "aporte de baja resoluci\u00f3n escalado"
     assert result["fallback"] is False
     assert result["clip"]["media_ref"] == "u7a"
     assert checks.probe_video(root / "clip.mp4") == (1920, 1080, 2.0)
@@ -182,6 +182,7 @@ def test_registry_http_error_is_safe(tmp_path, monkeypatch):
     result = explicit_media.select_explicit(tmp_path, _contribution_job(), {})
     assert result["status"] == "fail"
     assert result["reason"] == "Registro de aporte no accesible o invalido. HTTP 403."
+
 
 def test_default_search_for_contribution_with_queries():
     data = json.loads((FIXTURES / "m25/valid_min.json").read_text())
