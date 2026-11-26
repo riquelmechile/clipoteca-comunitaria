@@ -4,11 +4,13 @@ import {inspectHeader, mediaUrl, videoDuration, videoDimensions, PREFIX, JPEG_HE
 import {batchTransition,type BatchState} from "../src/upload-batch-control";
 import {quota, resetQuotaReservations} from "../src/quota";
 import {CHUNK_BYTES, UPLOAD_TTL, transition, stage, actionsRun, type State, type Manifest} from "../src/upload-control";
+import {fakeSecret} from "./fake-secrets";
 
 const base="https://clipoteca.test";
-const token="test-write-token-123456";
-const env={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:"test-issues-token",
-  CLIPOTECA_UPLOAD_TOKEN:"test-upload-token"};
+const token=fakeSecret("write"),issueToken=fakeSecret("issue"),uploadToken=fakeSecret("upload");
+const dispatchToken=fakeSecret("dispatch");
+const env={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:issueToken,
+  CLIPOTECA_UPLOAD_TOKEN:uploadToken};
 const descriptive={description:{es:"Lluvia sobre el campo",en:"Rain in a field"},tags:{es:["lluvia"],en:["rain"]}};
 const metadata={kind:"image",title:"Lluvia",author:"Autor",source:"Origen",...descriptive};
 const png=(w=464,h=688,size=24)=>{
@@ -356,10 +358,10 @@ describe("queued mobile upload without a personal token",()=>{
 
   it("stores phone JPEG with large metadata and dispatches without a PAT",async()=>{
     const b=fakeBindings();
-    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:"issue",
-      CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:issueToken,
+      CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const dispatch=vi.fn(async (_url:string,init?:RequestInit)=>{
-      expect(new Headers(init?.headers).get("authorization")).toBe("Bearer dispatch");
+      expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${dispatchToken}`);
       return new Response(null,{status:204});
     });
     vi.stubGlobal("fetch",dispatch);
@@ -388,7 +390,7 @@ describe("queued mobile upload without a personal token",()=>{
 
   it("rejects an oversized image without writing bytes or dispatching",async()=>{
     const b=fakeBindings();
-    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,
       UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const dispatch=vi.fn();vi.stubGlobal("fetch",dispatch);
     const r=await worker.fetch(post("/v1/media/upload",{...metadata,size:11*1024*1024}),queued);
@@ -399,7 +401,7 @@ describe("queued mobile upload without a personal token",()=>{
 
   it("allows a public batch and public tickets without a write bearer",async()=>{
     const b=fakeBindings();
-    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const sessionResponse=await worker.fetch(post("/v1/uploads",{},false),queued);
     expect(sessionResponse.status).toBe(201);
     const session=await sessionResponse.json() as {session_id:string;upload_url:string;max_files:number};
@@ -425,7 +427,7 @@ describe("queued mobile upload without a personal token",()=>{
   });
 
   it("uploads parts out of order, replaces parts, validates sizes and completes once",async()=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const dispatch=vi.fn(async()=>new Response(null,{status:204}));vi.stubGlobal("fetch",dispatch);
     const response=await worker.fetch(post("/v1/media/upload",{...metadata,kind:"video",size:CHUNK_BYTES+4},false),queued);
     expect(response.status).toBe(201);
@@ -456,7 +458,7 @@ describe("queued mobile upload without a personal token",()=>{
   });
 
   it("rejects expired tickets and directs large single PUTs to parts",async()=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const dispatch=vi.fn();vi.stubGlobal("fetch",dispatch);
     const size=100*1024*1024;
     expect((await worker.fetch(post("/v1/media/upload",{...metadata,kind:"video"},false),queued)).status).toBe(400);
@@ -475,7 +477,7 @@ describe("queued mobile upload without a personal token",()=>{
 
   it("stages small base64 images and rejects untrusted file URLs without fetching",async()=>{
     const b=fakeBindings();
-    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const path="/v1/uploads/"+session.session_id+"/files";
     const upstream=vi.fn(async ()=>new Response(null,{status:204}));
@@ -492,7 +494,7 @@ describe("queued mobile upload without a personal token",()=>{
 
   it("downloads a permitted temporary file without forwarding authorization or signed URL",async()=>{
     const b=fakeBindings();
-    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const remote="https://files.oaiusercontent.com/x?signature=temporary";
     const fetcher=vi.fn(async (url:string,init?:RequestInit)=>{
@@ -512,7 +514,7 @@ describe("queued mobile upload without a personal token",()=>{
   });
 
   it("follows at most three trusted redirects, never sending credentials",async()=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const urls=["https://files.oaiusercontent.com/a?token=secret","https://files.openai.com/b?token=secret",
       "https://cdn.oaiusercontent.com/c?token=secret","https://cdn.oaiusercontent.com/d"];
@@ -537,7 +539,7 @@ describe("queued mobile upload without a personal token",()=>{
 
   it.each(["https://evil.example/secret?token=secret","http://files.oaiusercontent.com/secret?token=secret",
     "https://user:password@files.oaiusercontent.com/secret?token=secret"])("blocks unsafe redirect %s",async(destination)=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const fetcher=vi.fn(async()=>new Response(null,{status:302,headers:{location:destination}}));
     vi.stubGlobal("fetch",fetcher);
@@ -552,7 +554,7 @@ describe("queued mobile upload without a personal token",()=>{
   });
 
   it("stops redirect loops and reports safe origin errors before making a ticket",async()=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const path="/v1/uploads/"+session.session_id+"/files",url="https://files.oaiusercontent.com/start?token=secret";
     const run=(file:unknown)=>worker.fetch(post(path,{...descriptive,kind:"image",file},false),queued);
@@ -579,7 +581,7 @@ describe("queued mobile upload without a personal token",()=>{
   });
 
   it.each(["image","video"] as const)("streams a short %s without Content-Length",async(kind)=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const url="https://files.oaiusercontent.com/asset";
     const bytes=kind==="image"?png():mp4(10);
@@ -591,7 +593,7 @@ describe("queued mobile upload without a personal token",()=>{
   });
 
   it("aborts an oversized unknown-length stream and never dispatches",async()=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const block=new Uint8Array(1024*1024);block.set(png());
     let remaining=11;
@@ -606,7 +608,7 @@ describe("queued mobile upload without a personal token",()=>{
   });
 
   it("stages a 96 MiB remote video internally in 24 MiB chunks",async()=>{
-    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:dispatchToken,UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
     const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
     const block=new Uint8Array(1024*1024);block.set(mp4(10));
     let remaining=96;

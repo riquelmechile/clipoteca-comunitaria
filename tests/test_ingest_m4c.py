@@ -25,6 +25,10 @@ from clipoteca.providers.nasa import NASA
 from clipoteca.security.download import DownloadError, download_media
 from clipoteca.security.ssrf import UnsafeMediaURL, validate_public_url
 from clipoteca.storage.github import ReleaseAsset, ReleaseBatch
+from fake_secrets import fake_secret
+
+
+FAKE_TOKEN = fake_secret("ingest")
 
 
 def api_client(mapping):
@@ -241,7 +245,7 @@ async def test_two_provider_real_ffmpeg_to_mock_github_publication(tmp_path):
 
     writer = GitHubCatalogWriter(
         repo,
-        "fake-token",
+        FAKE_TOKEN,
         client=httpx.Client(transport=httpx.MockTransport(github)),
     )
     storage = FakeStorage()
@@ -273,7 +277,7 @@ async def test_two_provider_real_ffmpeg_to_mock_github_publication(tmp_path):
 
     params = {
         "repository": repo,
-        "token": "fake-token",
+        "token": FAKE_TOKEN,
         "job_root": tmp_path / "jobs",
         "writer": writer,
         "storage": storage,
@@ -403,14 +407,14 @@ async def test_v206_publication_round_robins_providers_without_lowering_quality(
 
     writer = GitHubCatalogWriter(
         repo,
-        "fake-token",
+        FAKE_TOKEN,
         client=httpx.Client(transport=httpx.MockTransport(github)),
     )
     report = await ingest(
         "lluvia",
         [Multiple("pexels"), Multiple("pixabay"), Multiple("wikimedia_commons")],
         repository=repo,
-        token="fake-token",
+        token=FAKE_TOKEN,
         job_root=tmp_path / "jobs",
         writer=writer,
         storage=FakeStorage(),

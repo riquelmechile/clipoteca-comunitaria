@@ -2,14 +2,17 @@ import {beforeEach, describe, expect, it, vi} from "vitest";
 import worker from "../src/index";
 import {quota, resetQuotaReservations, VIDEO_DAILY_LIMIT} from "../src/quota";
 import {zipEntry} from "../src/video-zip";
+import {fakeSecret} from "./fake-secrets";
 
 const id = "a".repeat(32);
 async function workflowId(value:string) {
   const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));
   return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,"0")).join("");
 }
-const token = "write-test-token-1234";
-const env = {CLIPOTECA_WRITE_TOKEN:token, CLIPOTECA_DISPATCH_TOKEN:"actions-test-token"};
+const token = fakeSecret("write");
+const dispatchToken = fakeSecret("dispatch");
+const issueToken = fakeSecret("issue");
+const env = {CLIPOTECA_WRITE_TOKEN:token, CLIPOTECA_DISPATCH_TOKEN:dispatchToken};
 const base = "https://clipoteca.test";
 const script = {title:"Water",aspect:"9:16",scenes:[{},{},{}]};
 function request(path:string, body?:unknown, auth=true) {
@@ -123,7 +126,7 @@ describe("video REST delivery",()=>{
     const fetcher=vi.fn(async (url:string|URL|Request, init?:RequestInit)=>{
       const address=url instanceof Request?url.url:String(url);
       if(address.includes("/issues/119") || address.includes("/issues/120")){
-        expect(new Headers(init?.headers).get("authorization")).toBe("Bearer issue-test");
+        expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${issueToken}`);
         const video=address.endsWith("/119");
         return Response.json({number:video?119:120,author_association:"OWNER",
           title:"[media-v1] "+"a".repeat(64),
@@ -137,7 +140,7 @@ describe("video REST delivery",()=>{
       throw new Error("unexpected upstream");
     });
     vi.stubGlobal("fetch",fetcher);
-    const configured={...env,CLIPOTECA_ISSUE_TOKEN:"issue-test"};
+    const configured={...env,CLIPOTECA_ISSUE_TOKEN:issueToken};
     const body=(ref:string)=>({script:{...script,scenes:[{media:{ref}},{},{}]}});
     for(const [ref,code] of [["asset:unknown","asset_not_found"],["u79","media_not_found"],
       ["clip-000002","clip_not_found"],["bad","invalid_media_ref"]]){

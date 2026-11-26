@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchIngest } from "../src/dispatch";
+import { fakeSecret } from "./fake-secrets";
 
 const req = new Request("https://clipoteca.test/v1/import", { method: "POST" });
 const requestId = "a".repeat(64);
 const input = { query: "lluvia", filters: { aspect_ratio: "9:16", max_duration: 20, limit: 2 } };
+const dispatchToken = fakeSecret("dispatch");
 const env = {
-  CLIPOTECA_DISPATCH_TOKEN: "secret-not-for-logs",
+  CLIPOTECA_DISPATCH_TOKEN: dispatchToken,
   CLIPOTECA_GITHUB_REPO: "riquelmechile/clipoteca-comunitaria",
 };
 
@@ -27,7 +29,7 @@ describe("M8 dispatch via official GitHub workflow API", () => {
       expect(body.ref).toBe("main");
       expect(body.inputs).toMatchObject({ query: "lluvia", request_id: requestId,
         aspect_ratio: "9:16", max_duration: "20", max_results: "2", filters_json: JSON.stringify(input.filters) });
-      expect(options?.headers).toMatchObject({ authorization: "Bearer secret-not-for-logs" });
+      expect(options?.headers).toMatchObject({ authorization: "Bearer " + dispatchToken });
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal("fetch", fetcher);

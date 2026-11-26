@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { APP_VERSION } from "../src/version";
+import { fakeSecret } from "./fake-secrets";
 
 const environment = { MCP_ALLOWED_HOSTS: "clipoteca.test", MCP_ALLOWED_ORIGINS: "https://client.example" };
 const rpc = (method: string, params?: unknown, domain = "clipoteca.test", origin = "https://client.example") =>
@@ -111,10 +112,12 @@ describe("M10 MCP Streamable HTTP", () => {
   });
 
   it("preserves the safe media registration error through MCP", async () => {
-    const token = "test-write-token-123456";
+    const token = fakeSecret("write");
+    const issueToken = fakeSecret("issue");
+    const upstreamMarker = "token=" + fakeSecret("upstream");
     vi.stubGlobal("fetch",vi.fn(async (url:string) => {
       if (url.includes("/search/issues")) return Response.json({items:[]});
-      return new Response("token=private",{status:403});
+      return new Response(upstreamMarker,{status:403});
     }));
     const request = rpc("tools/call",{
       name:"register_media_url",arguments:{
@@ -124,12 +127,12 @@ describe("M10 MCP Streamable HTTP", () => {
     });
     request.headers.set("authorization","Bearer "+token);
     const response=await worker.fetch(request,{
-      ...environment,CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:"test-issues-token",
+      ...environment,CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:issueToken,
     });
     const payload=await rpcPayload(response);
     expect(payload.result.isError).toBe(true);
     expect(payload.result.content[0].text).toContain("source_status_403");
-    expect(payload.result.content[0].text).not.toContain("token=private");
+    expect(payload.result.content[0].text).not.toContain(upstreamMarker);
   });
 
   it("blocks invalid tool arguments at SDK schema", async () => {

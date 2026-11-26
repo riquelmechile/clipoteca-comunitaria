@@ -146,6 +146,7 @@ Que una fuente funcione hoy no garantiza que funcione mañana: los proveedores c
 | Integrar la API o el MCP | [OpenAPI](docs/openapi.yaml) · [Tools MCP](docs/mcp-tools.md) · [Contratos](docs/CONTRATOS_API_MCP.md) |
 | Entender el diseño | [Arquitectura](docs/ARQUITECTURA.md) · [Especificación completa](docs/ESPECIFICACION_COMPLETA.md) |
 | Operar o desplegar | [Despliegue](docs/DESPLIEGUE.md) · [Operación v2](docs/OPERACION_V2.md) · [Proveedores](docs/PROVEEDORES.md) |
+| Reportar una vulnerabilidad | [Política de seguridad](SECURITY.md) |
 | Ver cómo se llegó hasta aquí | [Roadmap v1](docs/ROADMAP.md) · [Roadmap v2](docs/ROADMAP_V2.md) · [Roadmap v3](docs/ROADMAP_V3.md) · [Historial de cambios](CHANGELOG.md) |
 | Ejecutar el motor de video | [Studio](docs/STUDIO.md) · [Guion de ejemplo](docs/ejemplos/guion-minimo.json) |
 | Ver todo | [Índice de documentación](docs/README.md) |

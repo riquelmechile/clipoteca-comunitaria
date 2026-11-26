@@ -20,6 +20,7 @@ from clipoteca.security.hls import (
     parse_media,
 )
 from clipoteca.security.ssrf import UnsafeMediaURL
+from fake_secrets import fake_secret
 
 
 VIDEO = "8411dde9e6521796b6805e5966ad4297"
@@ -561,7 +562,7 @@ async def test_ingest_hls_mime_dispatches_to_bounded_hls_downloader(tmp_path, mo
         "rain",
         [AdapterFixture()],
         repository="riquelmechile/clipoteca-comunitaria",
-        token="test-only",
+        token=fake_secret("hls"),
         job_root=tmp_path / "jobs",
         writer=SimpleNamespace(read_catalog=lambda: (Catalog(), None)),
         storage=SimpleNamespace(),

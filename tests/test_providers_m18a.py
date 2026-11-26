@@ -9,6 +9,7 @@ from clipoteca.providers.base import AuthRequired, SearchLimits, SupportStatus
 from clipoteca.providers.coverr import Coverr
 from clipoteca.providers.library_of_congress import LibraryOfCongress
 from clipoteca.sources import list_sources
+from fake_secrets import fake_secret
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -55,14 +56,15 @@ async def test_library_of_congress_empty_fixture():
 @pytest.mark.asyncio
 async def test_coverr_uses_only_download_and_rejects_preview_only_rows():
     requests: list[httpx.Request] = []
+    api_key = fake_secret("coverr")
     adapter = Coverr(
-        api_key="fixture-key", client=http_client(fixture("coverr", "search.json"), requests)
+        api_key=api_key, client=http_client(fixture("coverr", "search.json"), requests)
     )
     found = await adapter.search("雨", "zh", SearchLimits(max_pages=1))
 
     assert [item.provider_id for item in found] == ["coverr-rain-1"]
     assert (await adapter.direct_media(found[0])).url.endswith("rain-on-glass.mp4")
-    assert requests[0].headers["Authorization"] == "Bearer fixture-key"
+    assert requests[0].headers["Authorization"] == "Bearer " + api_key
     assert requests[0].url.params["urls"] == "true"
 
 
@@ -72,18 +74,21 @@ async def test_coverr_no_key_and_empty_fixture():
     with pytest.raises(AuthRequired, match="COVERR_API_KEY"):
         await missing.search("rain", "en", SearchLimits())
 
-    adapter = Coverr(api_key="fixture-key", client=http_client(fixture("coverr", "empty.json")))
+    adapter = Coverr(
+        api_key=fake_secret("coverr-empty"), client=http_client(fixture("coverr", "empty.json"))
+    )
     assert await adapter.search("rain", "en", SearchLimits()) == []
 
 
 def test_new_sources_are_registered_without_exposing_values():
-    rows = {row["name"]: row for row in list_sources(env={"COVERR_API_KEY": "secret-value"})}
+    value = fake_secret("coverr-env")
+    rows = {row["name"]: row for row in list_sources(env={"COVERR_API_KEY": value})}
 
     assert rows["library_of_congress"]["status"] == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
     assert rows["library_of_congress"]["requires"] == []
     assert rows["coverr"]["status"] == SupportStatus.SUPPORTED_SEARCH_DOWNLOAD
     assert rows["coverr"]["requires"] == ["COVERR_API_KEY"]
-    assert "secret-value" not in json.dumps(rows)
+    assert value not in json.dumps(rows)
 
 
 def test_coverr_source_reports_missing_credential_name_only():
