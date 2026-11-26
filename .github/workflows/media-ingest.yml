@@ -32,6 +32,20 @@ jobs:
       - name: Prepare verified translation resources (best effort)
         uses: ./.github/actions/prepare-translations
         continue-on-error: true
+      - name: Check translation in ingestion environment (best effort)
+        continue-on-error: true
+        env:
+          ARGOS_MODEL_CACHE_DIR: .cache/argos
+          ARGOS_MODEL_PINS_JSON: data/argos-pins.json
+        run: |
+          check_translation() {
+            uv run --no-sync python -c 'from clipoteca.media_ingest import enrich_metadata; source = "Patr\u00f3n de colores de prueba en formato vertical"; result = enrich_metadata({"description": {"es": source}}); raise SystemExit(0 if result["description"].get("en") and result["description"]["en"].casefold() != source.casefold() and result["tags"].get("en") else 1)'
+          }
+          if ! check_translation; then
+            echo "::warning::Translation preflight failed; retrying with pinned translation extra"
+            uv sync --frozen --extra translate
+            check_translation
+          fi
       - name: Validate and register public upload
         env:
           UPLOAD_ID: ${{ inputs.upload_id }}
