@@ -6,12 +6,26 @@ import json
 import pytest
 
 from clipoteca.ingest import IngestReport
+from clipoteca.providers.base import Candidate
 from clipoteca.studio import importer, scene_search
 from clipoteca.studio.selection import select_scene
 from clipoteca.translate.expand import QueryExpansion
 from test_import_m28 import FakeAdapter, _catalog, load
 from test_scene_search import Provider, Writer, job, record
 from test_selection_v3 import row
+
+
+def candidate(identifier, title, *, language="es", metadata=None):
+    return Candidate(
+        "fixture",
+        identifier,
+        "consulta",
+        language,
+        f"https://media.example/{identifier}",
+        title,
+        language,
+        metadata=metadata,
+    )
 
 
 @pytest.mark.asyncio
@@ -98,6 +112,67 @@ def test_budget_fair_share_and_early_fallback():
     assert budget.term_seconds(3) == 20
     now[0] = 100
     assert budget.reason() == "timeout"
+
+
+def test_prefilter_accepts_unaccented_place_without_translation():
+    settings = job()
+    settings["queries"] = {
+        "es": ["Valparaíso puerto cerros"],
+        "en": ["Valparaiso Chile colorful hills port"],
+    }
+    budget = scene_search.SceneBudget(settings, [], 3, 1, 100, clock=lambda: 0)
+    item = candidate("valparaiso", "Aerial view of VALPARAISO and its coast")
+
+    assert budget.candidate_prefilter(item) is True
+    assert budget.candidates_prefiltered == 1
+    assert budget.prefilter_hits == 1
+    assert budget.candidates_translated == 0
+
+
+def test_translation_cache_and_per_term_limit():
+    budget = scene_search.SceneBudget(job(), [], 3, 1, 100, clock=lambda: 0)
+    budget.translation_limit = 2
+    budget.begin_term("rain")
+    calls = []
+
+    def translate(text, source, target):
+        calls.append((text, source, target))
+        return "lluvia"
+
+    cached = budget.cached_translator(translate)
+    assert cached("rain", "en", "es") == "lluvia"
+    assert cached("rain", "en", "es") == "lluvia"
+    assert calls == [("rain", "en", "es")]
+    assert budget.translation_cache_hits == 1
+    assert budget.reserve_translation(candidate("one", "One"))
+    assert budget.reserve_translation(candidate("two", "Two"))
+    assert not budget.reserve_translation(candidate("three", "Three"))
+    assert budget.candidates_translated == 2
+    assert budget.rejections["translation_limit"] == 1
+
+
+def test_fast_stops_after_first_primary_when_catalog_fallback_exists(tmp_path, monkeypatch):
+    settings = load("job.json")
+    settings["queries"] = {"en": ["rain", "storm"], "es": []}
+    tried = []
+
+    async def no_promising(query, adapters, **kwargs):
+        tried.append(query)
+        return IngestReport("fixture", "no_results", (), ())
+
+    monkeypatch.setattr(importer, "ingest", no_promising)
+    monkeypatch.setattr(importer.library, "candidates", lambda *_: [{"fallback": True}])
+    result = importer.import_scene(
+        settings,
+        tmp_path / "fast",
+        catalog_path=_catalog(tmp_path),
+        adapters=[FakeAdapter()],
+        timeout_s=10,
+        fast=True,
+    )
+
+    assert tried == ["rain"]
+    assert result["termination_reason"] == "no_promising_candidates"
 
 
 def test_fast_import_moves_past_slow_seed_and_stops_early(tmp_path, monkeypatch):
