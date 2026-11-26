@@ -5,6 +5,7 @@ import { handleMedia } from "./media";
 import repoAssets from "./repo-assets.json";
 import { loadCatalog, type Clip } from "./catalog";
 import { quota } from "./quota";
+import { validateVideoScript } from "./video-schema";
 import { zipEntry } from "./video-zip";
 import { ArtifactExpired, artifactResponse, serveVideo } from "./video-stream";
 
@@ -89,13 +90,13 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
     } finally { await reader.cancel().catch(() => {}); }
   } catch { return error("invalid_video", 400); }
   if (!object(raw) || Object.keys(raw).some(k => !["script","index_clips"].includes(k)) ||
-      !object(raw.script) || !Array.isArray(raw.script.scenes) ||
-      raw.script.scenes.length < 3 || raw.script.scenes.length > 12 ||
-      typeof raw.script.title !== "string" ||
-      !["9:16","16:9","1:1"].includes(String(raw.script.aspect)) ||
       (raw.index_clips !== undefined && typeof raw.index_clips !== "boolean")) {
     return error("invalid_video", 400);
   }
+  const details = validateVideoScript(raw.script);
+  if (details.length) return json({error:"invalid_script", details}, 400);
+  // The schema guarantees this shape; retain explicit narrowing for TypeScript.
+  if (!object(raw.script) || !Array.isArray(raw.script.scenes)) return error("invalid_video", 400);
   let catalog: Clip[] | undefined;
   const kinds = new Map<string, "video" | "image">();
   const problem = (code:string, message:string, status=400) => json({error:{code,message}},status);

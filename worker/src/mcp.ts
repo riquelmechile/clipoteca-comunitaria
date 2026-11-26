@@ -121,6 +121,14 @@ async function restResult(request: Request, env: McpEnv): Promise<ActionResult> 
   const response = await handleRest(request, env) ?? await handleCatalog(request, env);
   if (!response) return fail("Unknown route");
   if (!response.ok) {
+    if (new URL(request.url).pathname === "/v1/videos" && response.status === 400) {
+      try {
+        const problem = await response.json() as {error?: unknown; details?: unknown};
+        if (problem.error === "invalid_script" && Array.isArray(problem.details)) {
+          return fail(JSON.stringify({error:problem.error, details:problem.details}));
+        }
+      } catch { /* Fall back to the HTTP status. */ }
+    }
     // Only this local media handler produces these safe, fixed diagnostics.
     if (/^\/v1\/(media|uploads)(\/|$)/.test(new URL(request.url).pathname)) {
       try {
@@ -394,12 +402,10 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
 
   server.registerTool("render_video", {
     title: "Render a video",
-    description: PUBLIC_NOTICE + " Renderiza un guion de 3 a 12 escenas, hasta 60 segundos. media.ref admite aportes de video o imagen u... o a..., clips clip-NNNNNN y SVG del repo asset:clipoteca-pipeline. start/end solo para video; imagenes admiten motion (auto, zoom_in, zoom_out, pan_left, pan_right) y framing (cover, contain). Acepta aportes uploading o processing; llama esperar_video hasta listo:true. Para aportes con query y prompt, on_error por defecto es search. Ejemplo mixto: {\"title\":\"Agua\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Mar\",\"say\":\"El mar.\",\"media\":{\"ref\":\"u77\"}},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Agua\",\"say\":\"El agua fluye.\",\"media\":{\"ref\":\"clip-000001\"}},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
+    description: PUBLIC_NOTICE + " Renderiza un guion de 3 a 12 escenas, hasta 60 segundos. Campos por escena: id, type, title, say (obligatorios); sub, caption, query, prompt, avoid, media, on_error (opcionales; query y prompt obligatorios sin media o con on_error search). No existe duration por escena: la duracion se calcula a partir de la voz. media.ref admite aportes de video o imagen u... o a..., clips clip-NNNNNN y SVG del repo asset:clipoteca-pipeline. start/end solo para video; imagenes admiten motion (auto, zoom_in, zoom_out, pan_left, pan_right) y framing (cover, contain). Acepta aportes uploading o processing; llama esperar_video hasta listo:true. Para aportes con query y prompt, on_error por defecto es search. Ejemplo mixto: {\"title\":\"Agua\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Mar\",\"say\":\"El mar.\",\"media\":{\"ref\":\"u77\"}},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Agua\",\"say\":\"El agua fluye.\",\"media\":{\"ref\":\"clip-000001\"}},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
     inputSchema: z.strictObject({
-      script: z.object({
-        title: z.string(), aspect: z.enum(["9:16","16:9","1:1"]),
-        scenes: z.array(z.record(z.string(), z.unknown())).min(3).max(12),
-      }).passthrough(),
+      // Preserve every field for validation against the bundled schema, including unknown ones.
+      script: z.record(z.string(), z.unknown()),
       index_clips: z.boolean().optional(),
     }),
     outputSchema: z.object({

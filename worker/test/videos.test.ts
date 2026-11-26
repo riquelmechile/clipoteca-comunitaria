@@ -3,6 +3,7 @@ import worker from "../src/index";
 import {quota, resetQuotaReservations, VIDEO_DAILY_LIMIT} from "../src/quota";
 import {zipEntry} from "../src/video-zip";
 import {fakeSecret} from "./fake-secrets";
+import script from "../../docs/ejemplos/guion-minimo.json";
 
 const id = "a".repeat(32);
 async function workflowId(value:string) {
@@ -14,7 +15,8 @@ const dispatchToken = fakeSecret("dispatch");
 const issueToken = fakeSecret("issue");
 const env = {CLIPOTECA_WRITE_TOKEN:token, CLIPOTECA_DISPATCH_TOKEN:dispatchToken};
 const base = "https://clipoteca.test";
-const script = {title:"Water",aspect:"9:16",scenes:[{},{},{}]};
+const scenesWithMedia = (...media: Record<string, unknown>[]) =>
+  script.scenes.map((scene, index) => media[index] ? {...scene, media:media[index]} : scene);
 function request(path:string, body?:unknown, auth=true) {
   return new Request(base+path, body===undefined ? {} : {
     method:"POST", headers:{"content-type":"application/json",
@@ -122,6 +124,18 @@ describe("video REST delivery",()=>{
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects invalid script fields before dispatch or media lookup",async()=>{
+    const fetcher=vi.fn();
+    vi.stubGlobal("fetch",fetcher);
+    const response=await worker.fetch(request("/v1/videos",{script:{...script,
+      scenes:script.scenes.map((scene,i)=>i===0?{...scene,duration:5}:scene)}}),env);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({error:"invalid_script",
+      details:[{path:"scenes[0].duration",reason:"campo no permitido"}]});
+    const badRef=await worker.fetch(request("/v1/videos",{script:{...script,scenes:scenesWithMedia({ref:"bad"})}}),env);
+    expect(await badRef.json()).toMatchObject({error:"invalid_script",details:[{path:"scenes[0].media.ref"}]});
+    expect(fetcher).not.toHaveBeenCalled();
+  });
   it("prevalidates contributions and pinned clips without dispatching invalid refs",async()=>{
     const fetcher=vi.fn(async (url:string|URL|Request, init?:RequestInit)=>{
       const address=url instanceof Request?url.url:String(url);
@@ -141,19 +155,19 @@ describe("video REST delivery",()=>{
     });
     vi.stubGlobal("fetch",fetcher);
     const configured={...env,CLIPOTECA_ISSUE_TOKEN:issueToken};
-    const body=(ref:string)=>({script:{...script,scenes:[{media:{ref}},{},{}]}});
+    const body=(ref:string)=>({script:{...script,scenes:scenesWithMedia({ref})}});
     for(const [ref,code] of [["asset:unknown","asset_not_found"],["u79","media_not_found"],
-      ["clip-000002","clip_not_found"],["bad","invalid_media_ref"]]){
+      ["clip-000002","clip_not_found"]]){
       const response=await worker.fetch(request("/v1/videos",body(ref!)),configured);
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(await response.json()).toMatchObject({error:{code}});
     }
     const invalidWindow=await worker.fetch(request("/v1/videos",{script:{...script,
-      scenes:[{media:{ref:"u78",start:0}},{},{}]}}),configured);
+      scenes:scenesWithMedia({ref:"u78",start:0})}}),configured);
     expect(await invalidWindow.json()).toMatchObject({error:{code:"invalid_image_window"}});
     expect(fetcher.mock.calls.some(c=>String(c[0]).endsWith("/dispatches"))).toBe(false);
     const response=await worker.fetch(request("/v1/videos",{script:{...script,
-      scenes:[{media:{ref:"u78",motion:"zoom_in"}},{media:{ref:"clip-000001"}},{media:{ref:"asset:clipoteca-pipeline"}}]}}),configured);
+      scenes:scenesWithMedia({ref:"u78",motion:"zoom_in"},{ref:"clip-000001"},{ref:"asset:clipoteca-pipeline"})}}),configured);
     expect(response.status).toBe(202);
   });
   it("accepts processing contribution and rejects nonexistent one",async()=>{
@@ -172,7 +186,7 @@ describe("video REST delivery",()=>{
         :new Response(null,{status:404})}),
     } as unknown as DurableObjectNamespace;
     const configured={...env,UPLOAD_CONTROL:uploadControl};
-    const body=(ref:string)=>({script:{...script,scenes:[{media:{ref}},{},{}]}});
+    const body=(ref:string)=>({script:{...script,scenes:scenesWithMedia({ref})}});
     expect((await worker.fetch(request("/v1/videos",body(missing)),configured)).status).toBe(404);
     expect((await worker.fetch(request("/v1/videos",body(mediaId)),configured)).status).toBe(202);
   });

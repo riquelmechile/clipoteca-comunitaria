@@ -585,6 +585,7 @@ def clips_resolution(
 ) -> dict[str, Any]:
     width, height = size
     failures = []
+    scaled_contributions = []
     for row in timeline["scenes"]:
         ident = str(row["id"])
         clip = results.get(ident, {}).get("clip", {})
@@ -597,11 +598,16 @@ def clips_resolution(
             accepted = min(sw, sh) >= MIN_SHORT_SIDE or (orient and max(sw, sh) >= 0.53 * max(size))
             if results.get(ident, {}).get("origin") in ("contribution_image", "repo_asset"):
                 accepted = max(sw, sh) >= 0.5 * max(size)
-            if min(sw, sh, ow, oh) <= 0 or not accepted or (ow, oh) != size:
+            if min(sw, sh, ow, oh) <= 0 or (ow, oh) != size:
                 failures.append(ident)
+            elif not accepted:
+                if checks.is_explicit_contribution(results[ident]):
+                    scaled_contributions.append(ident)
+                else:
+                    failures.append(ident)
         except (ValueError, TypeError, KeyError):
             failures.append(ident)
-    return _gate(not failures, invalid=failures)
+    return _gate(not failures, invalid=failures, scaled_contributions=scaled_contributions)
 
 
 def clips_black_freeze(
@@ -822,6 +828,12 @@ def run_qa(
                 else []
             )
             + ([result["quality_warning"]] if result.get("quality_warning") else [])
+            + (
+                ["aporte de baja resolución escalado"]
+                if scene_id in report_checks["clips_resolution"].get("scaled_contributions", [])
+                and result.get("quality_warning") != "aporte de baja resolución escalado"
+                else []
+            )
         ],
         "checks": report_checks,
         "time_s": round(time.monotonic() - started, 3),
