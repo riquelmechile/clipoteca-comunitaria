@@ -153,7 +153,7 @@ export async function discard(env:QueueEnv,id:string,count:number,chunks?:Chunk[
   await Promise.allSettled(Array.from({length:count},(_,i)=>env.UPLOADS?.delete(chunkKey(id,i,chunks?.[i]?.keyed?chunks[i]!.sha256:undefined))));
 }
 export async function stage(kv:KVNamespace,id:string,bytes:number,
-  reader:ReadableStreamDefaultReader<Uint8Array>,prefix:(Uint8Array|undefined)[]):Promise<Chunk[]>{
+  reader:ReadableStreamDefaultReader<Uint8Array>,prefix:(Uint8Array|undefined)[],unknownLength=false):Promise<Chunk[]>{
   const chunks:Chunk[]=[];
   const buffer=new Uint8Array(Math.min(CHUNK_BYTES,bytes));
   let used=0,total=0;
@@ -166,7 +166,7 @@ export async function stage(kv:KVNamespace,id:string,bytes:number,
     used=0;
   };
   const consume=async(part:Uint8Array)=>{
-    if(total+part.length>bytes)throw new TypeError("truncated_upload");
+    if(total+part.length>bytes)throw new TypeError(unknownLength?"media_too_large":"truncated_upload");
     for(let offset=0;offset<part.length;){
       const n=Math.min(buffer.length-used,part.length-offset);
       buffer.set(part.subarray(offset,offset+n),used);
@@ -177,7 +177,7 @@ export async function stage(kv:KVNamespace,id:string,bytes:number,
   try{
     for(const part of prefix)if(part)await consume(part);
     while(true){const part=await reader.read();if(part.done)break;await consume(part.value);}
-    if(total!==bytes)throw new TypeError("truncated_upload");
+    if((!unknownLength&&total!==bytes)||!total)throw new TypeError("truncated_upload");
     await flush();return chunks;
   }catch(e){
     await Promise.allSettled(Array.from({length:chunks.length+1},(_,i)=>kv.delete(chunkKey(id,i))));

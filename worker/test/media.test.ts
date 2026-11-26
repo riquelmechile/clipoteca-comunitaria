@@ -511,6 +511,116 @@ describe("queued mobile upload without a personal token",()=>{
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it("follows at most three trusted redirects, never sending credentials",async()=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const urls=["https://files.oaiusercontent.com/a?token=secret","https://files.openai.com/b?token=secret",
+      "https://cdn.oaiusercontent.com/c?token=secret","https://cdn.oaiusercontent.com/d"];
+    const fetcher=vi.fn(async(url:string,init?:RequestInit)=>{
+      const i=urls.indexOf(url);
+      if(i>=0){
+        expect(init?.redirect).toBe("manual");
+        expect(new Headers(init?.headers).get("authorization")).toBeNull();
+        return i===3?new Response(png(),{headers:{"content-type":"image/png"}}):
+          new Response(null,{status:302,headers:{location:urls[i+1]!}});
+      }
+      expect(url).toContain("/dispatches");expect(String(init?.body)).not.toContain("secret");
+      return new Response(null,{status:204});
+    });
+    vi.stubGlobal("fetch",fetcher);
+    const r=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{...descriptive,file:{file_id:"file_1",download_url:urls[0]}},false),queued);
+    expect(r.status).toBe(202);
+    const value=await r.json() as {media_id:string};
+    expect(b.states.get(value.media_id)?.manifest).toMatchObject({bytes:24,mime:"image/png"});
+    expect(fetcher).toHaveBeenCalledTimes(5);
+  });
+
+  it.each(["https://evil.example/secret?token=secret","http://files.oaiusercontent.com/secret?token=secret",
+    "https://user:password@files.oaiusercontent.com/secret?token=secret"])("blocks unsafe redirect %s",async(destination)=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const fetcher=vi.fn(async()=>new Response(null,{status:302,headers:{location:destination}}));
+    vi.stubGlobal("fetch",fetcher);
+    const r=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{...descriptive,kind:"image",file:{file_id:"file_1",download_url:"https://files.oaiusercontent.com/start"}},false),queued);
+    expect(r.status).toBe(400);
+    const result=await r.json() as {error:{code:string;message:string}};
+    expect(result.error.code).toBe("redirect");
+    expect(result.error.message).toContain(new URL(destination).hostname);
+    expect(result.error.message).not.toMatch(/secret|password|token=/);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(b.states.size).toBe(0);
+  });
+
+  it("stops redirect loops and reports safe origin errors before making a ticket",async()=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const path="/v1/uploads/"+session.session_id+"/files",url="https://files.oaiusercontent.com/start?token=secret";
+    const run=(file:unknown)=>worker.fetch(post(path,{...descriptive,kind:"image",file},false),queued);
+    const fetcher=vi.fn(async()=>new Response(null,{status:302,headers:{location:"/again?token=secret"}}));
+    vi.stubGlobal("fetch",fetcher);
+    const loop=await run({file_id:"file_1",download_url:url});
+    expect(await loop.json()).toMatchObject({error:{code:"redirect",message:expect.stringContaining("Maximo 3")}});
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    const invalid=await run({file_id:"file_1",download_url:"https://evil.example/private?token=secret"});
+    const info=await invalid.json() as {error:{code:string;message:string}};
+    expect(info.error).toMatchObject({code:"invalid_url",message:expect.stringContaining("evil.example")});
+    expect(info.error.message).not.toMatch(/private|secret/);
+    for(const file of ["file_1",{file_id:"file_1"}]){
+      expect(await (await run(file)).json()).toMatchObject({error:{code:"missing_download_url"}});
+    }
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    fetcher.mockImplementation(async()=>new Response("secret",{status:403}));
+    expect(await (await run({file_id:"file_1",download_url:url})).json()).toMatchObject({error:{code:"source_status_403",message:expect.stringContaining("HTTP 403")}});
+    fetcher.mockImplementation(async()=>new Response(png(),{headers:{"content-encoding":"gzip"}}));
+    expect(await (await run({file_id:"file_1",download_url:url})).json()).toMatchObject({error:{code:"invalid_encoding"}});
+    fetcher.mockImplementation(async()=>new Response(png(),{headers:{"content-length":"0"}}));
+    expect(await (await run({file_id:"file_1",download_url:url})).json()).toMatchObject({error:{code:"invalid_length",message:expect.stringContaining("Content-Length")}});
+    expect(b.states.size).toBe(0);
+  });
+
+  it.each(["image","video"] as const)("streams a short %s without Content-Length",async(kind)=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const url="https://files.oaiusercontent.com/asset";
+    const bytes=kind==="image"?png():mp4(10);
+    vi.stubGlobal("fetch",vi.fn(async(u:string)=>u===url?new Response(bytes):new Response(null,{status:204})));
+    const r=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{...descriptive,kind,file:{file_id:"file_1",download_url:url}},false),queued);
+    expect(r.status).toBe(202);
+    const value=await r.json() as {media_id:string};
+    expect(b.states.get(value.media_id)?.manifest).toMatchObject({bytes:bytes.length,mime:kind==="image"?"image/png":"video/mp4"});
+  });
+
+  it("aborts an oversized unknown-length stream and never dispatches",async()=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const block=new Uint8Array(1024*1024);block.set(png());
+    let remaining=11;
+    const stream=new ReadableStream<Uint8Array>({pull(c){if(remaining--<=0)c.close();else c.enqueue(block);}});
+    const fetcher=vi.fn(async()=>new Response(stream));
+    vi.stubGlobal("fetch",fetcher);
+    const r=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{...descriptive,kind:"image",file:{file_id:"file_1",download_url:"https://files.oaiusercontent.com/asset"}},false),queued);
+    expect(r.status).toBe(413);expect(await r.json()).toMatchObject({error:{code:"media_too_large"}});
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect([...b.states.values()][0]?.status).toBe("rejected");
+    expect(b.deletes).toHaveBeenCalled();
+  });
+
+  it("stages a 96 MiB remote video internally in 24 MiB chunks",async()=>{
+    const b=fakeBindings(),queued={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_DISPATCH_TOKEN:"dispatch",UPLOADS:b.kv,UPLOAD_CONTROL:b.control};
+    const session=await (await worker.fetch(post("/v1/uploads",{},false),queued)).json() as {session_id:string};
+    const block=new Uint8Array(1024*1024);block.set(mp4(10));
+    let remaining=96;
+    const stream=new ReadableStream<Uint8Array>({pull(c){if(remaining--<=0)c.close();else c.enqueue(block);}});
+    const url="https://files.oaiusercontent.com/asset";
+    const fetcher=vi.fn(async(u:string)=>u===url?new Response(stream,{headers:{"content-length":String(96*block.length)}}):new Response(null,{status:204}));
+    vi.stubGlobal("fetch",fetcher);
+    const r=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{...descriptive,kind:"video",file:{file_id:"file_1",download_url:url}},false),queued);
+    expect(r.status).toBe(202);
+    const result=await r.json() as {media_id:string};
+    expect(b.states.get(result.media_id)?.manifest?.chunks.map(c=>c.bytes)).toEqual(Array(4).fill(CHUNK_BYTES));
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it("chunks 100 MiB into bounded KV values, each with a two hour TTL",async()=>{
     const b=fakeBindings(),block=new Uint8Array(1024*1024);
     let remaining=100;
