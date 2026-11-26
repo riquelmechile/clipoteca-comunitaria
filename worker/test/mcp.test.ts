@@ -135,6 +135,21 @@ describe("M10 MCP Streamable HTTP", () => {
     expect(payload.result.content[0].text).not.toContain(upstreamMarker);
   });
 
+  it("returns the actionable invalid script diagnostic from render_video", async () => {
+    const fetcher=vi.fn();
+    vi.stubGlobal("fetch",fetcher);
+    const scene={id:"intro",type:"intro",title:"Agua",say:"Agua",media:{ref:"u77"}};
+    const response=await worker.fetch(rpc("tools/call",{
+      name:"render_video",arguments:{script:{title:"Agua",aspect:"9:16",
+        scenes:[{...scene,duration:5},{...scene,id:"fact",type:"fact"},{...scene,id:"outro",type:"outro"}]}},
+    }),{...environment,CLIPOTECA_DISPATCH_TOKEN:fakeSecret("dispatch")});
+    const payload=await rpcPayload(response);
+    expect(payload.result.isError).toBe(true);
+    expect(JSON.parse(payload.result.content[0].text)).toEqual({error:"invalid_script",
+      details:[{path:"scenes[0].duration",reason:"campo no permitido"}]});
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("blocks invalid tool arguments at SDK schema", async () => {
     const response = await worker.fetch(rpc("tools/call", {
       name: "get_clip", arguments: { clip_id: "../../secrets" },
