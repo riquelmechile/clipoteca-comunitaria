@@ -573,10 +573,18 @@ function allowedFileUrl(raw:unknown,env:MediaEnv,base?:URL):URL {
   if(typeof raw!=="string"||!raw||raw.length>4096)throw new SourceError(code,400,"URL ausente o invalida.");
   let url:URL;
   try{url=new URL(raw,base);}catch{throw new SourceError(code,400,"URL invalida.");}
-  const hosts=(env.CLIPOTECA_FILE_HOSTS??"oaiusercontent.com,files.openai.com").split(",").map(v=>v.trim().toLowerCase()).filter(Boolean);
-  if(url.protocol!=="https:"||url.username||url.password||url.port||url.hash||
-    !hosts.some(h=>/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h)&&(url.hostname===h||url.hostname.endsWith("."+h))))
-    throw new SourceError(code,400,"Host o URL no permitido: "+(url.hostname||"(sin host)")+".");
+  const host=url.hostname.toLowerCase();
+  // CLIPOTECA_FILE_HOSTS, if set, is a strict allowlist. By default any public HTTPS host
+  // is accepted: hosts rotate their signed-file domains, and this is no broader than
+  // registering a public URL with POST /v1/media. Bytes are still fully validated.
+  const strict=env.CLIPOTECA_FILE_HOSTS?.split(",").map(v=>v.trim().toLowerCase()).filter(Boolean);
+  const allowed=strict?.length
+    ?strict.some(h=>/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h)&&(host===h||host.endsWith("."+h)))
+    :/^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(host)&&host.length<=253&&
+      !/(^|\.)(localhost|local|internal|invalid|test|example|onion|arpa)$/.test(host);
+  console.log(JSON.stringify({event:"file_source_host",host,allowed:Boolean(allowed),redirect:Boolean(base)}));
+  if(url.protocol!=="https:"||url.username||url.password||(url.port&&url.port!=="443")||url.hash||!allowed)
+    throw new SourceError(code,400,"Host o URL no permitido: "+(host||"(sin host)")+".");
   return url;
 }
 async function downloadFile(raw:unknown,env:MediaEnv):Promise<Response>{
