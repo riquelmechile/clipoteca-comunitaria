@@ -1,6 +1,7 @@
 /** Public contribution registry and single-use Release upload capability. */
 import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, type MediaKind} from "./media-header";
 import {quota} from "./quota";
+import {searchTokens} from "./catalog";
 import * as queue from "./upload-control";
 import {SESSION_ID} from "./upload-batch-control";
 
@@ -649,12 +650,33 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
   }
 }
 
+async function searchContributions(request:Request,env:MediaEnv):Promise<Response>{
+  const query=new URL(request.url).searchParams.get("q")??"";
+  const terms=searchTokens(query);
+  if(query.length>200||!terms.length)return err("invalid_media",400,"Describe el aporte buscado.");
+  const source=await fetch("https://raw.githubusercontent.com/"+repo(env)+"/main/data/aportes.json",
+    {redirect:"manual",headers:{"cache-control":"no-cache","user-agent":"clipoteca-worker"}});
+  if(!source.ok)return err("media_registry_unavailable",503);
+  const rows=await source.json<unknown>();
+  if(!Array.isArray(rows))return err("media_registry_unavailable",503);
+  const items=[];
+  for(const row of rows){
+    if(!object(row)||row.status!=="registered"||typeof row.media_id!=="string"||
+      !UPLOAD_ID.test(row.media_id)||!object(row.description)||!object(row.tags))continue;
+    const values=[row.title,row.source,...Object.values(row.description),...Object.values(row.tags).flat()];
+    const vocabulary=new Set(searchTokens(values.filter(v=>typeof v==="string").join(" ")));
+    if(terms.every(term=>vocabulary.has(term)))items.push(row);
+  }
+  return json({items:items.slice(0,50)});
+}
+
 export async function handleMedia(request:Request,env:MediaEnv):Promise<Response|null>{
   const path=new URL(request.url).pathname;
   if(path==="/v1/uploads"||path.startsWith("/v1/uploads/"))return handleBatch(request,env);
   if(path!=="/v1/media" && !path.startsWith("/v1/media/"))return null;
   const suffix=path.slice("/v1/media".length);
   try{
+    if(suffix==="/search"&&request.method==="GET")return await searchContributions(request,env);
     if(suffix.startsWith("/ingest/"))return await queue.ingestRoute(request,env);
     if(suffix==="/upload" && request.method==="GET")return page(queue.configured(env)||Boolean(env.CLIPOTECA_UPLOAD_TOKEN));
     if(suffix==="/upload" || suffix.startsWith("/upload/")){

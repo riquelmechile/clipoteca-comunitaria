@@ -319,6 +319,13 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     fps:z.number().positive().optional(),has_audio:z.boolean().optional(),aspect_ratio:z.string().optional(),
     codec:z.string().optional(),container:z.string().optional(),sha256:z.string().optional(),
   });
+  server.registerTool("buscar_aportes",{
+    title:"Buscar aportes registrados",
+    description:"Busca fotos y videos completos verificados por descripcion y tags es/en. Usa media_id en media.ref.",
+    inputSchema:z.strictObject({q:z.string().trim().min(1).max(200)}),
+    outputSchema:z.object({items:z.array(mediaRecord)}),
+    annotations:{readOnlyHint:true,openWorldHint:true},
+  },async({q})=>restResult(toolRequest("/v1/media/search?q="+encodeURIComponent(q),"GET"),env));
   server.registerTool("register_media_url", {
     title: "Registrar un aporte por URL",
     description: "Registra una URL HTTPS directa. " + PUBLIC_NOTICE,

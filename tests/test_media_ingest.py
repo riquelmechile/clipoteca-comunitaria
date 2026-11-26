@@ -1,13 +1,17 @@
+import base64
 import hashlib
+import json
 import shutil
 import subprocess
 
+import httpx
 import pytest
 from PIL import Image
 
 from clipoteca.media_ingest import (
     CHUNK,
     IngestError,
+    GitHubPublisher,
     assemble,
     record_for,
     normalize_upload,
@@ -156,3 +160,32 @@ def test_descriptive_metadata(tmp_path):
     for wrong in ({"es": []}, {"es": ["lluvia"], "en": [""]}):
         with pytest.raises(IngestError):
             validate_manifest(dict(spec, tags=wrong), UPLOAD_ID)
+
+def test_index_optimistic_retry_and_idempotency(monkeypatch):
+    monkeypatch.setattr("clipoteca.media_ingest.time.sleep", lambda _: None)
+    rows = []
+    writes = []
+    record = {
+        "media_id": UPLOAD_ID, "description": {"es": "Lluvia", "en": "Rain"},
+        "tags": {"es": ["lluvia"], "en": ["rain"]}, "status": "registered",
+    }
+
+    def handler(request):
+        if request.method == "GET":
+            return httpx.Response(200, json={
+                "sha": "sha", "encoding": "base64",
+                "content": base64.b64encode(json.dumps(rows).encode()).decode(),
+            })
+        payload = json.loads(request.content)
+        writes.append(payload)
+        if len(writes) == 1:
+            return httpx.Response(409)
+        rows[:] = json.loads(base64.b64decode(payload["content"]))
+        return httpx.Response(200)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        publisher = GitHubPublisher(client, "owner/repo", "token")
+        publisher.index(record)
+        publisher.index(record)
+    assert rows == [record]
+    assert len(writes) == 2

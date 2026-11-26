@@ -122,3 +122,6 @@ coloca media_id en media.ref, llama render_video y consulta get_video_status
 hasta obtener la URL de entrega.
 
 Ver [especificacion del aporte](APORTES-ESTANDAR.md).
+
+Busca aportes ya registrados mediante `buscar_aportes(q)` (fotos y videos),
+o GET /v1/media/search?q=texto. Los clips derivados siguen en search_clips.

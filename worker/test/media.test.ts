@@ -601,3 +601,16 @@ describe("multipart reservation expiry",()=>{
     expect(done.state?.parts?.[0]).toEqual({...chunk,keyed:true});
   });
 });
+
+describe("searchable contribution registry",()=>{
+  it("finds QA-registered bilingual uploads by tags and description",async()=>{
+    const upload={...metadata,media_id:"a2026-11-"+"a".repeat(32),status:"registered"};
+    vi.stubGlobal("fetch",vi.fn(async()=>Response.json([
+      upload,{...upload,media_id:"a2026-11-"+"b".repeat(32),status:"processing"},
+    ])));
+    const result=await worker.fetch(new Request(base+"/v1/media/search?q=rain"),{});
+    expect(await result.json()).toEqual({items:[upload]});
+    const none=await worker.fetch(new Request(base+"/v1/media/search?q=snow"),{});
+    expect(await none.json()).toEqual({items:[]});
+  });
+});

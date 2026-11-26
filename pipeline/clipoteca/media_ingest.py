@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import math
@@ -445,6 +446,45 @@ class GitHubPublisher:
         ):
             raise IngestError("publish_failed")
 
+    def index(self, record: dict) -> None:
+        """Optimistic append to the searchable registry of QA-approved contributions."""
+        if not record.get("description") or not record.get("tags"):
+            return  # Legacy records lack honest descriptive metadata.
+        url = self.api + "/contents/data/aportes.json"
+        for attempt in range(5):
+            response = self.client.get(url, headers=self.headers, params={"ref": "main"})
+            response.raise_for_status()
+            payload = response.json()
+            if payload.get("encoding") == "none" or not payload.get("content"):
+                raw = self.client.get(url, headers={
+                    **self.headers, "Accept": "application/vnd.github.raw",
+                }, params={"ref": "main"})
+                raw.raise_for_status()
+                rows = raw.json()
+            else:
+                rows = json.loads(base64.b64decode(payload["content"]))
+            if not isinstance(rows, list) or not payload.get("sha"):
+                raise IngestError("publish_failed")
+            for row in rows:
+                if row.get("media_id") == record["media_id"]:
+                    if row != record:
+                        raise IngestError("publish_failed")
+                    return
+            rows.append(record)
+            content = json.dumps(rows, ensure_ascii=True, separators=(",", ":")) + "\n"
+            saved = self.client.put(url, headers=self.headers, json={
+                "message": "chore: index verified public contribution",
+                "branch": "main", "sha": payload["sha"],
+                "content": base64.b64encode(content.encode()).decode(),
+            })
+            if saved.status_code in (409, 422):
+                if attempt < 4:
+                    time.sleep(min(8, 2 ** attempt))
+                    continue
+                raise IngestError("publish_failed")
+            saved.raise_for_status()
+            return
+
     def publish(self, record: dict, media: Path) -> None:
         upload_id = record["media_id"]
         release_id = self.release("uploads-" + upload_id[1:8])
@@ -489,7 +529,8 @@ def main() -> int:
             reason = "publish_failed"
             repo = os.environ["GITHUB_REPOSITORY"]
             record = record_for(manifest, repo, duration)
-            GitHubPublisher(client, repo, os.environ["GH_TOKEN"]).publish(record, media)
+            publisher = GitHubPublisher(client, repo, os.environ["GH_TOKEN"])
+            publisher.publish(record, media)
         except (IngestError, httpx.HTTPError, OSError, KeyError, ValueError):
             try:
                 worker.finish("rejected", reason)
@@ -497,13 +538,21 @@ def main() -> int:
                 print("No se pudo informar el rechazo; el temporal vencera.")
             print("Aporte rechazado: " + reason)
             return 1
+        index_ok = True
+        try:
+            publisher.index(record)
+        except (IngestError, httpx.HTTPError, OSError, KeyError, ValueError):
+            # A published immutable record cannot be rolled back. Report the
+            # index failure independently, without mislabeling a valid upload.
+            print("Aporte registrado, pero no se pudo actualizar su indice.")
+            index_ok = False
         try:
             worker.finish("registered")
         except (httpx.HTTPError, KeyError, ValueError):
             print("Aporte publicado, pero no se pudo confirmar la limpieza temporal.")
             return 1
     print("Aporte registrado.")
-    return 0
+    return 0 if index_ok else 1
 
 
 if __name__ == "__main__":

@@ -37,6 +37,15 @@ del clip. El contrato actual localizado del clip es es/en.
   por compatibilidad, no se inventa una descripcion para ellos.
 - Los registros antiguos de URL y modo legacy sin Actions mantienen su
   contrato historico. Para normalizacion obligatoria usa la ingesta KV/Actions.
+- Al finalizar la publicacion de un aporte con metadatos, se actualiza
+  `data/aportes.json` mediante escritura optimista con reintentos. El indice
+  conserva fotos y videos completos y permite buscar por texto es/en con
+  `buscar_aportes` o GET /v1/media/search?q=texto, devolviendo media_id.
+  No se inventan embeddings ni se agrega un video falso para las fotos.
+  El registro de Release es el punto de commit; si se agotan los reintentos
+  del indice el workflow falla e informa el problema, pero el aporte ya
+  registrado sigue accesible por su ID. El indice puede requerir reparacion
+  administrativa en ese caso. No se indexan registros sin QA ni metadatos.
 - Los aportes no se deben confundir con clips: el catalogo de clips exige
   video de hasta 20 s, QA visual y miniatura. Un archivo aportado puede ser
   foto o video de hasta 120 s. Un clip derivado de un render mantiene la
