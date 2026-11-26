@@ -65,8 +65,10 @@ def repair_verified_rows(rows: list[dict], overrides: dict) -> tuple[list[dict],
         if description.get("en") and description["en"] != english:
             raise ValueError("existing English description differs; review manually")
         previous_tags = tags.get("en", [])
-        if previous_tags and previous_tags != english_tags and (
-            "tags.en" not in automatic or not set(previous_tags) <= set(english_tags)
+        if (
+            previous_tags
+            and previous_tags != english_tags
+            and ("tags.en" not in automatic or not set(previous_tags) <= set(english_tags))
         ):
             raise ValueError("existing English tags differ; review manually")
         if not description.get("en"):
