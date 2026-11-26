@@ -398,6 +398,7 @@ async function uploadPart(request:Request,env:MediaEnv,id:string,index:number){
   if(request.headers.get("content-length")!==String(bytes)||!request.body)return err("invalid_part_size",400);
   const reader=request.body.getReader();
   let chunk:queue.Chunk|undefined,locked=false;
+  const attempt=queue.capability();
   try{
     const buffer=new Uint8Array(bytes);
     let total=0;
@@ -415,12 +416,12 @@ async function uploadPart(request:Request,env:MediaEnv,id:string,index:number){
       finally{await header.cancel().catch(()=>{});}
     }
     chunk={bytes,sha256:await queue.hash(buffer)};
-    const begin=await queue.command(env,id,{action:"part_begin",index,chunk});
+    const begin=await queue.command(env,id,{action:"part_begin",index,chunk,attempt});
     if(begin.code!==200)return err("upload_already_used",begin.code===410?410:409);
     if(begin.state?.parts?.[index]?.sha256===chunk.sha256)return json({part:index,...chunk});
     locked=true;
-    await env.UPLOADS!.put(queue.chunkKey(id,index),buffer,{expirationTtl:queue.UPLOAD_TTL});
-    const done=await queue.command(env,id,{action:"part_done",index,chunk,...(mime===undefined?{}:{mime})});
+    await env.UPLOADS!.put(queue.chunkKey(id,index,chunk.sha256),buffer,{expirationTtl:queue.UPLOAD_TTL});
+    const done=await queue.command(env,id,{action:"part_done",index,chunk,attempt,...(mime===undefined?{}:{mime})});
     if(done.code!==200)return err("media_unavailable",503);
     locked=false;
     return json({part:index,...chunk});
@@ -428,7 +429,7 @@ async function uploadPart(request:Request,env:MediaEnv,id:string,index:number){
     if(e instanceof TypeError&&Object.prototype.hasOwnProperty.call(mediaMessages,e.message))return err(e.message,400);
     return err("media_unavailable",503);
   }finally{
-    if(locked&&chunk)await queue.command(env,id,{action:"part_abort",index,chunk}).catch(()=>{});
+    if(locked&&chunk)await queue.command(env,id,{action:"part_abort",index,chunk,attempt}).catch(()=>{});
     await reader.cancel().catch(()=>{});
   }
 }
@@ -451,7 +452,7 @@ async function completeParts(request:Request,env:MediaEnv,id:string){
   if(ready.code!==200)return err("parts_missing",409);
   if(await queue.dispatch(env,id,cap)==="failed"){
     const failed=await queue.command(env,id,{action:"fail",reason:"dispatch_failed"});
-    if(failed.code===200)await queue.discard(env,id,chunks.length);
+    if(failed.code===200)await queue.discard(env,id,chunks.length,chunks);
     return err("dispatch_failed",503,queue.reasons.dispatch_failed);
   }
   return json({media_id:id,status:"processing"},202);

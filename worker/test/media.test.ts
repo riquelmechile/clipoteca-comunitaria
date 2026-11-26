@@ -583,3 +583,20 @@ describe("durable batch admission",()=>{
     expect(batchTransition(state,{action:"limit_bytes",ip:"f".repeat(64),bytes:100*1024*1024},now).code).toBe(429);
   });
 });
+
+describe("multipart reservation expiry",()=>{
+  it("allows takeover after two minutes and fences late completion and abort",()=>{
+    const now=100, first="a".repeat(64), second="b".repeat(64);
+    const chunk={bytes:24,sha256:"c".repeat(64)};
+    const old=transition(undefined,{action:"create",expires:now+7200000,size:24},now).state!;
+    const begin={action:"part_begin",index:0,chunk,attempt:first};
+    const locked=transition(old,begin,now).state!;
+    expect(transition(locked,{...begin,attempt:second},now+119999).code).toBe(409);
+    const replacement=transition(locked,{...begin,attempt:second},now+120000).state!;
+    expect(transition(replacement,{...begin,action:"part_done",mime:"image/png"},now+120001).code).toBe(409);
+    expect(transition(replacement,{...begin,action:"part_abort"},now+120001).code).toBe(409);
+    const done=transition(replacement,{...begin,attempt:second,action:"part_done",mime:"image/png"},now+120001);
+    expect(done.code).toBe(200);
+    expect(done.state?.parts?.[0]).toEqual({...chunk,keyed:true});
+  });
+});
