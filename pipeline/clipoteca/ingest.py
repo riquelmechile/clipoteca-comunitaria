@@ -9,6 +9,7 @@ import numpy as np
 import re
 import time
 import tempfile
+from contextlib import nullcontext
 from functools import lru_cache
 
 from dataclasses import dataclass
@@ -530,11 +531,13 @@ async def ingest(
                     # Studio text gate uses source metadata, never the search terms.
                     # Do it before resolving media or starting any download.
                     if scene_budget:
-                        localized = localize_candidate(candidate, translator=translator)
-                        if not scene_budget.candidate_text_good(candidate, localized):
-                            continue
+                        with scene_budget.timed("text_filter") if scene_budget else nullcontext():
+                            localized = localize_candidate(candidate, translator=translator)
+                            if not scene_budget.candidate_text_good(candidate, localized):
+                                continue
                     advance("fetching")
-                    ref = await adapter.direct_media(candidate)
+                    with scene_budget.timed("media_resolution") if scene_budget else nullcontext():
+                        ref = await adapter.direct_media(candidate)
                     if ref is None:
                         errors.append(f"{candidate.origin_id}:search_only")
                         job["source_errors"][candidate.origin_id] = "search_only"
@@ -548,57 +551,60 @@ async def ingest(
                             break
                         scene_budget.downloads_started += 1
                         scene_budget.attempted.add(candidate.origin_id)
-                    if downloader:
-                        raw = await downloader(ref.url, temp)
-                    elif ref.audio_url:
-                        raw = await download_dash(
-                            ref.url,
-                            ref.audio_url,
-                            temp,
-                            allowed_hosts=ref.allowed_hosts,
-                            referer=ref.referer or "https://www.bilibili.com/",
-                        )
-                    elif ref.mime in HLS_MIME_TYPES:
-                        raw = await download_hls(
-                            ref.url,
-                            temp,
-                            referer=ref.referer,
-                            allowed_hosts=ref.allowed_hosts,
-                            max_duration=duration_limit,
-                            user_agent=ref.user_agent,
-                        )
-                    else:
-                        raw = await download_media(
-                            ref.url,
-                            temp,
-                            expected_bytes=ref.size_bytes,
-                            allowed_hosts=ref.allowed_hosts,
-                            referer=ref.referer if candidate.provider == "bilibili" else None,
-                            user_agent=ref.user_agent,
-                        )
+                    with scene_budget.timed("download") if scene_budget else nullcontext():
+                        if downloader:
+                            raw = await downloader(ref.url, temp)
+                        elif ref.audio_url:
+                            raw = await download_dash(
+                                ref.url,
+                                ref.audio_url,
+                                temp,
+                                allowed_hosts=ref.allowed_hosts,
+                                referer=ref.referer or "https://www.bilibili.com/",
+                            )
+                        elif ref.mime in HLS_MIME_TYPES:
+                            raw = await download_hls(
+                                ref.url,
+                                temp,
+                                referer=ref.referer,
+                                allowed_hosts=ref.allowed_hosts,
+                                max_duration=duration_limit,
+                                user_agent=ref.user_agent,
+                            )
+                        else:
+                            raw = await download_media(
+                                ref.url,
+                                temp,
+                                expected_bytes=ref.size_bytes,
+                                allowed_hosts=ref.allowed_hosts,
+                                referer=ref.referer if candidate.provider == "bilibili" else None,
+                                user_agent=ref.user_agent,
+                            )
                     downloaded_count += 1
                     if scene_budget:
                         scene_budget.downloads_completed += 1
                     advance("processing")
-                    windows = _candidate_windows(
-                        raw,
-                        duration_limit=duration_limit,
-                        max_clips=window_cap,
-                        job=job,
-                        origin_id=candidate.origin_id,
-                        query=query,
-                        embedding_encoder=embedding_encoder,
-                        embedding_frames=semantic_frames,
-                    )
+                    with scene_budget.timed("window_selection") if scene_budget else nullcontext():
+                        windows = _candidate_windows(
+                            raw,
+                            duration_limit=duration_limit,
+                            max_clips=window_cap,
+                            job=job,
+                            origin_id=candidate.origin_id,
+                            query=query,
+                            embedding_encoder=embedding_encoder,
+                            embedding_frames=semantic_frames,
+                        )
                     for window_index, window in enumerate(windows):
                         if scene_budget.reason() if scene_budget else len(ids) >= max_results:
                             break
-                        normalized = normalize_media(
-                            raw,
-                            temp / f"normalized-{window_index}.mp4",
-                            start_seconds=window.start,
-                            max_duration_seconds=window.duration,
-                        )
+                        with scene_budget.timed("normalize") if scene_budget else nullcontext():
+                            normalized = normalize_media(
+                                raw,
+                                temp / f"normalized-{window_index}.mp4",
+                                start_seconds=window.start,
+                                max_duration_seconds=window.duration,
+                            )
                         desired_aspect = (filters or {}).get("aspect_ratio")
                         if desired_aspect and normalized.media.aspect_ratio != desired_aspect:
                             errors.append(f"{candidate.origin_id}:aspect_filter")
@@ -623,14 +629,15 @@ async def ingest(
                         ):
                             errors.append(f"{candidate.origin_id}:media_filter")
                             continue
-                        thumb_path = create_thumbnail(
-                            normalized.path, temp / f"thumbnail-{window_index}.webp"
-                        )
-                        storyboard_paths = create_storyboard(
-                            normalized.path, temp / f"storyboard-{window_index}"
-                        )
-                        digest = sha256_file(normalized.path)
-                        frame_hash = perceptual_hash(normalized.path)
+                        with scene_budget.timed("preview_hash") if scene_budget else nullcontext():
+                            thumb_path = create_thumbnail(
+                                normalized.path, temp / f"thumbnail-{window_index}.webp"
+                            )
+                            storyboard_paths = create_storyboard(
+                                normalized.path, temp / f"storyboard-{window_index}"
+                            )
+                            digest = sha256_file(normalized.path)
+                            frame_hash = perceptual_hash(normalized.path)
                         # Optimistic read before expensive release upload; writer rechecks on PUT.
                         remote, _ = writer.read_catalog()
                         draft = {
