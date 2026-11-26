@@ -19,7 +19,7 @@ import httpx
 from PIL import Image, ImageOps
 
 from .media.probe import ProbeError, parse_probe
-from .translate.argos import translate_text
+from .translate.argos import PUBLIC_TRANSLATION_REASONS, TranslationFailed, translate_text
 
 WORKER = "https://clipoteca-worker.clipoteca.workers.dev"
 AUD = "clipoteca-media-ingest-v1"
@@ -58,16 +58,22 @@ def enrich_metadata(manifest: dict) -> dict:
     result = dict(manifest)
     description = dict(manifest["description"])
     tags = dict(manifest.get("tags", {}))
-    automatic = []
+    automatic = list(manifest.get("metadata_auto", []))
 
     def english(value: str, limit: int) -> str | None:
         try:
             translated = translate_text(value, "es", "en")
             if clean_metadata(translated, limit):
                 return translated.strip()
-        except Exception:
-            pass
-        print("Aviso: no se pudo completar una traduccion de metadatos; se conserva el espanol.")
+            reason = "invalid_translated_metadata"
+        except TranslationFailed as exc:
+            reason = exc.reason if exc.reason in PUBLIC_TRANSLATION_REASONS else "TranslationFailed"
+        except Exception as exc:
+            reason = type(exc).__name__
+        print(
+            f"Aviso: no se pudo completar una traduccion de metadatos ({reason}); "
+            "se conserva el espanol."
+        )
         return None
 
     if "en" not in description:
@@ -92,7 +98,7 @@ def enrich_metadata(manifest: dict) -> dict:
         if translated_tags:
             tags["en"] = list(dict.fromkeys(translated_tags))
             automatic.append("tags.en")
-    result.update(description=description, tags=tags, metadata_auto=automatic)
+    result.update(description=description, tags=tags, metadata_auto=list(dict.fromkeys(automatic)))
     return result
 
 

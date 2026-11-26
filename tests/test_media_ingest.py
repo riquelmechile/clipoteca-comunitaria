@@ -208,7 +208,9 @@ def test_enrich_metadata_failure_preserves_spanish(monkeypatch, capsys):
     assert result["description"] == spec["description"]
     assert result["tags"] == {"es": ["lluvia", "campo"]}
     assert result["metadata_auto"] == ["tags.es"]
-    assert "Aviso" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "RuntimeError" in output
+    assert "offline" not in output
 
 
 def test_index_optimistic_retry_and_idempotency(monkeypatch):
@@ -245,3 +247,25 @@ def test_index_optimistic_retry_and_idempotency(monkeypatch):
         publisher.index(record)
     assert rows == [record]
     assert len(writes) == 2
+
+
+def test_enrich_metadata_unchanged_tag_and_existing_provenance(monkeypatch, capsys):
+    from clipoteca.translate.argos import TranslationFailed
+
+    def translator(value, src, dst):
+        if value == "vertical":
+            raise TranslationFailed(src, dst, "unchanged_translation")
+        return {"Lluvia vertical": "Vertical rain", "lluvia": "rain"}[value]
+
+    monkeypatch.setattr("clipoteca.media_ingest.translate_text", translator)
+    original = {
+        "description": {"es": "Lluvia vertical"},
+        "tags": {"es": ["lluvia", "vertical"]},
+        "metadata_auto": ["tags.es"],
+    }
+    result = enrich_metadata(original)
+    assert result["description"]["en"] == "Vertical rain"
+    assert result["tags"] == {"es": ["lluvia", "vertical"], "en": ["rain"]}
+    assert result["metadata_auto"] == ["tags.es", "description.en", "tags.en"]
+    assert "unchanged_translation" in capsys.readouterr().out
+    assert enrich_metadata(result) == result
