@@ -107,7 +107,7 @@ describe("video REST delivery",()=>{
       return new Response(null,{status:204});
     });
     vi.stubGlobal("fetch",fetcher);
-    expect((await worker.fetch(request("/v1/videos",{script},false),env)).status).toBe(401);
+    expect((await worker.fetch(request("/v1/videos",{script:{}},false),env)).status).toBe(400);
     expect((await worker.fetch(request("/v1/videos",{script:{}}),env)).status).toBe(400);
     const res=await worker.fetch(request("/v1/videos",{script,index_clips:false}),env);
     expect(res.status).toBe(202);

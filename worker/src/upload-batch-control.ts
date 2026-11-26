@@ -4,10 +4,12 @@ export const SESSION_TTL=24*60*60*1000;
 const MIB=1024*1024;
 // UTC daily limits; hourly ticket/session limits are separate.
 export const IP_UPLOADS=40, IP_BYTES=1024*MIB, GLOBAL_UPLOADS=200, GLOBAL_BYTES=2048*MIB;
+// Public renders: the per-IP limit lives in quota.ts; this is the global UTC daily cap.
+export const GLOBAL_VIDEOS=300;
 export type FileEntry={media_id:string;kind:"image"|"video"};
 type Ip={hour:string;sessions:number;tickets:number;bytes:number;uploads:number};
-export type BatchState={expires?:number;files?:FileEntry[];ips?:Record<string,Ip>;sessions?:number;tickets?:number;bytes?:number;uploads?:number};
-export type BatchCommand={action:"session_create"|"session_add"|"session_status"|"limit_session"|"limit_ticket"|"limit_bytes";ip?:string;file?:FileEntry;bytes?:number};
+export type BatchState={expires?:number;files?:FileEntry[];ips?:Record<string,Ip>;sessions?:number;tickets?:number;bytes?:number;uploads?:number;videos?:number};
+export type BatchCommand={action:"session_create"|"session_add"|"session_status"|"limit_session"|"limit_ticket"|"limit_bytes"|"limit_video";ip?:string;file?:FileEntry;bytes?:number};
 export function batchTransition(old:BatchState|undefined,c:BatchCommand,now:number):{code:number;state?:BatchState;write?:boolean}{
   if(c.action==="session_create"){
     if(old)return {code:409};
@@ -28,7 +30,7 @@ export function batchTransition(old:BatchState|undefined,c:BatchCommand,now:numb
   const previous=state.ips?.[c.ip];
   const ip:Ip={hour,sessions:previous?.hour===hour?previous.sessions:0,
     tickets:previous?.hour===hour?previous.tickets:0,bytes:previous?.bytes??0,uploads:previous?.uploads??0};
-  let {sessions=0,tickets=0,bytes=0,uploads=0}=state;
+  let {sessions=0,tickets=0,bytes=0,uploads=0,videos=0}=state;
   if(c.action==="limit_session"){
     if(ip.sessions>=4||sessions>=100)return {code:429};
     ip.sessions++;sessions++;
@@ -40,6 +42,9 @@ export function batchTransition(old:BatchState|undefined,c:BatchCommand,now:numb
     if(!Number.isSafeInteger(n)||n<=0||n>100*MIB)return {code:400};
     if(ip.uploads>=IP_UPLOADS||uploads>=GLOBAL_UPLOADS||ip.bytes+n>IP_BYTES||bytes+n>GLOBAL_BYTES)return {code:429};
     ip.bytes+=n;bytes+=n;ip.uploads++;uploads++;
+  }else if(c.action==="limit_video"){
+    if(videos>=GLOBAL_VIDEOS)return {code:429};
+    videos++;
   }else return {code:400};
-  return {code:200,state:{ips:{...state.ips,[c.ip]:ip},sessions,tickets,bytes,uploads},write:true};
+  return {code:200,state:{ips:{...state.ips,[c.ip]:ip},sessions,tickets,bytes,uploads,videos},write:true};
 }

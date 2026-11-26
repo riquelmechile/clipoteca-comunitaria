@@ -730,3 +730,17 @@ describe("searchable contribution registry",()=>{
     expect(await none.json()).toEqual({items:[]});
   });
 });
+
+describe("public render global cap", () => {
+  it("allows renders up to GLOBAL_VIDEOS per UTC day and then rejects", async () => {
+    const {batchTransition, GLOBAL_VIDEOS} = await import("../src/upload-batch-control");
+    const ip = "a".repeat(64);
+    let state;
+    for (let i = 0; i < GLOBAL_VIDEOS; i++) {
+      const next = batchTransition(state, {action: "limit_video", ip}, Date.now());
+      expect(next.code).toBe(200);
+      state = next.state;
+    }
+    expect(batchTransition(state, {action: "limit_video", ip}, Date.now()).code).toBe(429);
+  });
+});

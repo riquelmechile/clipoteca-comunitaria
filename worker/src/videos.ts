@@ -1,4 +1,5 @@
 /** Asynchronous video delivery through GitHub Actions, separate from public clip storage. */
+import * as queue from "./upload-control";
 import type { RestEnv } from "./rest";
 import { handleMedia } from "./media";
 import repoAssets from "./repo-assets.json";
@@ -62,7 +63,8 @@ async function remembered(id: string) {
   } catch { return false; }
 }
 async function submit(request: Request, ctx: Context, env: RestEnv) {
-  if (!authorized(request, env.CLIPOTECA_WRITE_TOKEN)) return error("unauthorized", 401);
+  // Public by design: anyone connected by REST/MCP may render, within per-IP and global quotas.
+  const owner = authorized(request, env.CLIPOTECA_WRITE_TOKEN);
   if (!request.headers.get("content-type")?.includes("application/json")) {
     return error("invalid_video", 400);
   }
@@ -147,6 +149,9 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
   const script = JSON.stringify(raw.script);
   if (script.length > 60_000) return error("body_too_large", 413);
   if (!await quota(request, "video")) return error("rate_limited", 429);
+  if (!owner && queue.configured(env) && !await queue.admit(request, env, "limit_video")) {
+    return error("rate_limited", 429);
+  }
   const id = Array.from(crypto.getRandomValues(new Uint8Array(16)),
     b => b.toString(16).padStart(2,"0")).join("");
   const response = await github(ctx, "/actions/workflows/render.yml/dispatches", {
@@ -313,9 +318,6 @@ export async function handleVideos(request: Request, env: RestEnv): Promise<Resp
     const response = error("method_not_allowed", 405);
     response.headers.set("Allow", path === "/v1/videos" ? "POST" : "GET");
     return response;
-  }
-  if (path === "/v1/videos" && !authorized(request, env.CLIPOTECA_WRITE_TOKEN)) {
-    return error("unauthorized", 401);
   }
   const ctx = context(env);
   if (!ctx) return error("actions_unavailable", 503);
