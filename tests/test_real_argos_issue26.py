@@ -96,6 +96,7 @@ def _translated_with_retries(text: str, src: str, dst: str) -> str | None:
     [
         "Patr\u00f3n de colores de prueba en formato vertical",
         "Un perro bulldog franc\u00e9s corriendo en el pasto",
+        "Un perro corriendo en el pasto",
     ],
 )
 def test_real_argos_upload_metadata(description):

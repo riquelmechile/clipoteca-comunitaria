@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from clipoteca.repair_upload_metadata import repair_index
 
 
@@ -78,3 +80,47 @@ def test_repair_explicit_empty_english_fields(tmp_path, monkeypatch):
     result = json.loads(path.read_bytes())[0]
     assert result["description"] == {"es": "Lluvia", "en": "Rain"}
     assert result["tags"] == {"es": ["lluvia"], "en": ["Rain"]}
+
+
+def test_reviewed_overrides_preserve_names_complete_partial_tags_and_are_idempotent(tmp_path):
+    row = {
+        "media_id": "target",
+        "origin": "upload",
+        "status": "registered",
+        "sha256": "a" * 64,
+        "description": {"es": "Bulldogs jugando"},
+        "tags": {"es": ["Lady", "leia"], "en": ["Lady"]},
+        "metadata_auto": ["tags.en"],
+    }
+    other = dict(row, media_id="untouched")
+    path = tmp_path / "aportes.json"
+    path.write_text(json.dumps([row, other]), encoding="utf-8")
+    overrides = {
+        "target": {
+            "description_es": "Bulldogs jugando",
+            "tags_es": ["Lady", "leia"],
+            "description_en": "Bulldogs playing",
+            "tags_en": ["Lady", "leia"],
+        }
+    }
+    original = path.read_bytes()
+    assert repair_index(path, overrides=overrides) == (1, 0)
+    assert path.read_bytes() == original
+    assert repair_index(path, write=True, overrides=overrides) == (1, 0)
+    result = json.loads(path.read_bytes())
+    assert result == [
+        dict(
+            row,
+            description={"es": "Bulldogs jugando", "en": "Bulldogs playing"},
+            tags={"es": ["Lady", "leia"], "en": ["Lady", "leia"]},
+            metadata_auto=[],
+        ),
+        other,
+    ]
+    saved = path.read_bytes()
+    assert repair_index(path, write=True, overrides=overrides) == (0, 0)
+    assert path.read_bytes() == saved
+    overrides["target"]["description_es"] = "Changed"
+    with pytest.raises(ValueError, match="source metadata changed"):
+        repair_index(path, write=True, overrides=overrides)
+    assert path.read_bytes() == saved
