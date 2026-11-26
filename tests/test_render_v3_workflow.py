@@ -57,6 +57,8 @@ def test_render_workflow_delivery_contract():
         "work/qa_report.json",
         "work/render.json",
         "work/timings.json",
+        "work/comp/stage-compose-build.json",
+        "work/stage-compose-render.json",
     }
     assert delivery["retention-days"] == "7"
     for job in jobs.values():
