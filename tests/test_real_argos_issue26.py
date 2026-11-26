@@ -94,8 +94,8 @@ def _translated_with_retries(text: str, src: str, dst: str) -> str | None:
 @pytest.mark.parametrize(
     "description",
     [
-        "Un perro bulldog franc\u00e9s corriendo en el pasto",
         "Patr\u00f3n de colores de prueba en formato vertical",
+        "Un perro bulldog franc\u00e9s corriendo en el pasto",
     ],
 )
 def test_real_argos_upload_metadata(description):
@@ -107,6 +107,7 @@ def test_real_argos_upload_metadata(description):
     assert result["tags"]["es"] and result["tags"]["en"]
     assert result["metadata_auto"] == ["description.en", "tags.es", "tags.en"]
     assert original == {"description": {"es": description}}
+
 
 @pytest.mark.skipif(
     os.getenv("ARGOS_REAL_INTEGRATION") != "1",

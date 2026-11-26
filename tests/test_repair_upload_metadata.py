@@ -61,3 +61,20 @@ def test_repair_failure_does_not_remove_existing_metadata(tmp_path, monkeypatch)
     original = path.read_bytes()
     assert repair_index(path, write=True) == (0, 1)
     assert path.read_bytes() == original
+
+
+def test_repair_explicit_empty_english_fields(tmp_path, monkeypatch):
+    monkeypatch.setattr("clipoteca.media_ingest.translate_text", lambda *args: "Rain")
+    row = {
+        "media_id": "original",
+        "origin": "upload",
+        "status": "registered",
+        "description": {"es": "Lluvia", "en": ""},
+        "tags": {"es": ["lluvia"], "en": []},
+    }
+    path = tmp_path / "aportes.json"
+    path.write_text(json.dumps([row]), encoding="utf-8")
+    assert repair_index(path, write=True) == (1, 0)
+    result = json.loads(path.read_bytes())[0]
+    assert result["description"] == {"es": "Lluvia", "en": "Rain"}
+    assert result["tags"] == {"es": ["lluvia"], "en": ["Rain"]}
