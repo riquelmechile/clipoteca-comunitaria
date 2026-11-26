@@ -677,3 +677,16 @@ def test_explicit_contribution_resolution_warns_but_output_stays_strict(origin):
     row["origin"] = "catalog_pinned"
     row["clip"]["media_ref"] = "u123"
     assert not qa.clips_resolution(timeline, results, (1080, 1920))["pass"]
+
+
+def test_scaled_explicit_contribution_appears_in_qa_warnings(job):
+    path = job / "scenes" / "intro" / "result.json"
+    row = json.loads(path.read_text())
+    row["origin"] = "contribution"
+    row["clip"].update(media_ref="u123", src_w=360, src_h=640)
+    path.write_text(json.dumps(row))
+    report = run_good(job)
+    assert report["pass"]
+    assert {"scene_id": "intro", "reason": "aporte de baja resolución escalado"} in report[
+        "warnings"
+    ]

@@ -118,3 +118,13 @@ delivery_evidence_unavailable; stages sigue indicando el estado del paso.
 El usuario puede volver a solicitar el render respetando las cuotas.
 La política de no entregar videos rechazados no cambia; no se añade
 deliver_on_qa_fail.
+
+### Validacion anticipada del guion
+
+Antes de reservar cuota, consultar aportes o despachar el render, el Worker valida el guion
+contra `schemas/video.schema.json`, la misma fuente que usa Python. Los errores de esquema
+se devuelven con HTTP 400, `error: "invalid_script"` y `details` (ruta y motivo).
+MCP `render_video` devuelve el mismo diagnostico como `isError`.
+Se rechaza expresamente `scenes[0].duration`: la duracion de cada escena se deriva de la voz,
+no se admite como pista ni se agrega al contrato. La validacion semantica posterior del plan
+sigue vigente.

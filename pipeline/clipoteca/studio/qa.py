@@ -827,11 +827,11 @@ def run_qa(
                 if result.get("fallback")
                 else []
             )
+            + ([result["quality_warning"]] if result.get("quality_warning") else [])
             + (
-                [result["quality_warning"]]
-                if result.get("quality_warning")
-                else ["aporte de baja resolución escalado"]
+                ["aporte de baja resolución escalado"]
                 if scene_id in report_checks["clips_resolution"].get("scaled_contributions", [])
+                and result.get("quality_warning") != "aporte de baja resolución escalado"
                 else []
             )
         ],
