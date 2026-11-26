@@ -130,13 +130,16 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
       if (!response?.ok) return problem(response?.status===404?"media_not_found":"media_registry_unavailable",
         response?.status===404?"Aporte inexistente.":"Registro de aportes no disponible.",response?.status===404?404:503);
       const record:unknown=await response.json();
-      if (object(record) && record.status!=="registered") {
-        return problem("media_not_registered","El aporte "+ref+" aun no esta registrado. Consulta estado_subida o get_media_status.",409);
+      if (!object(record)) return problem("invalid_media_ref","Registro de aporte no valido.");
+      if (record.status==="rejected") {
+        return problem("media_rejected","El aporte "+ref+" fue rechazado: "+String(record.reason??"sin motivo"),409);
       }
-      if (!object(record) || (record.kind!=="video" && record.kind!=="image")) {
-        return problem("invalid_media_ref","Tipo de aporte no valido.");
+      if (!["registered","uploading","processing"].includes(String(record.status))) {
+        return problem("invalid_media_ref","Estado de aporte no valido.");
       }
-      kind = record.kind;
+      // Old upload tickets may not carry kind until staging completes.
+      if (record.kind==="video" || record.kind==="image") kind = record.kind;
+      else if (record.status==="registered") return problem("invalid_media_ref","Tipo de aporte no valido.");
     }
     if (kind === "image" && (media.start!==undefined || media.end!==undefined)) {
       return problem("invalid_image_window","start/end no aplican a imagenes.");
@@ -144,7 +147,7 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
     if (kind === "video" && (media.motion!==undefined || media.framing!==undefined)) {
       return problem("invalid_video_motion","motion/framing solo para imagenes.");
     }
-    kinds.set(ref,kind);
+    if (kind) kinds.set(ref,kind);
   }
   const script = JSON.stringify(raw.script);
   if (script.length > 60_000) return error("body_too_large", 413);

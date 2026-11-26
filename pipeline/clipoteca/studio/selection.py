@@ -131,6 +131,12 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
         )
         if result["fallback"]:
             result.setdefault("degraded_reason", "weak_catalog_match")
+        if job.get("media_fallback_reason"):
+            result["fallback"] = True
+            reason = job["media_fallback_reason"]
+            if result.get("degraded_reason"):
+                reason += "; " + result["degraded_reason"]
+            result["degraded_reason"] = reason
         if origin == "imported":
             result["import_round"] = imported_folder.name
             source = imported_folder / "clip.mp4"

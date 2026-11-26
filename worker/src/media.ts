@@ -314,7 +314,7 @@ async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:strin
   const payload=b64(encoder.encode(JSON.stringify({...meta,id,exp,...(size===undefined?{}:{size})})));
   const sig=b64(new Uint8Array(await crypto.subtle.sign("HMAC",await signKey(env),encoder.encode(payload))));
   const capability=payload+"."+sig;
-  if(queued && (await queue.command(env,id,{action:"create",expires:exp,...(size===undefined?{}:{size})})).code!==200)return err("media_unavailable",503);
+  if(queued && (await queue.command(env,id,{action:"create",expires:exp,kind:meta.kind,...(size===undefined?{}:{size})})).code!==200)return err("media_unavailable",503);
   return json({media_id:id,status:queued?"uploading":"pending_upload",expires_at:new Date(exp).toISOString(),
     upload_url:new URL("/v1/media/upload",request.url).href+"#"+capability,
     put_url:new URL("/v1/media/upload/"+id,request.url).href,upload_token:capability,
@@ -772,6 +772,7 @@ export async function handleMedia(request:Request,env:MediaEnv):Promise<Response
           }catch(e){if(!state || state.status==="registered")throw e;}
         }
         if(state)return json({media_id:id,status:state.status==="registered"?"processing":state.status,
+          ...(state.manifest?.kind||state.kind?{kind:state.manifest?.kind??state.kind}:{}),
           ...(state.reason?{reason:queue.reasons[state.reason]??queue.reasons.staging_failed}:{})});
         return err("media_not_found",404);
       }

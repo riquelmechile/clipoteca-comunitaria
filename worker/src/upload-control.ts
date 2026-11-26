@@ -13,7 +13,7 @@ export type Manifest={kind:"image"|"video";title:string;author:string;source:str
   description?:{es:string;en?:string};tags?:Partial<Record<'es'|'en',string[]>>;
   media_id:string;bytes:number;mime:string;created_at:string;chunks:Chunk[]};
 export type State={status:"uploading"|"processing"|"registered"|"rejected";expires:number;started?:boolean;
-  manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string;
+  manifest?:Manifest;kind?:"video"|"image";capabilityHash?:string;capExpires?:number;run?:string;reason?:string;
   size?:number;parts?:Record<number,Chunk>;pending?:Record<number,PendingPart|string>;mime?:string};
 export interface QueueEnv {
   UPLOADS?:KVNamespace; UPLOAD_CONTROL?:DurableObjectNamespace;
@@ -41,12 +41,12 @@ export const reasons:Readonly<Record<string,string>>=Object.freeze({
   publish_failed:"No se pudo publicar el aporte.",
 });
 const reason=(r:unknown)=>typeof r==="string"&&Object.prototype.hasOwnProperty.call(reasons,r)?r:"staging_failed";
-type Command={action:string;expires?:number;size?:number;index?:number;chunk?:Chunk;attempt?:string;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
+type Command={action:string;expires?:number;kind?:"video"|"image";size?:number;index?:number;chunk?:Chunk;attempt?:string;mime?:string;manifest?:Manifest;capabilityHash?:string;run?:string;reason?:string;status?:string};
 type Result={code:number;state?:State;write?:boolean};
 export function transition(old:State|undefined,c:Command,now:number):Result {
   if(c.action==="create"){
     if(old||!c.expires||c.expires<=now)return {code:409};
-    return {code:200,state:{status:"uploading",expires:c.expires,...(c.size===undefined?{}:{size:c.size})},write:true};
+    return {code:200,state:{status:"uploading",expires:c.expires,...(c.kind?{kind:c.kind}:{}),...(c.size===undefined?{}:{size:c.size})},write:true};
   }
   if(!old)return {code:404};
   if(c.action==="status"){
