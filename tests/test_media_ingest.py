@@ -147,3 +147,12 @@ def test_normalize_image(tmp_path):
     with Image.open(target) as image:
         assert image.size == (1920, 960)
         assert image.mode == "RGBA"
+
+def test_descriptive_metadata(tmp_path):
+    spec = manifest(b"media", "video", "video/mp4")
+    spec.update(description={"es": "Lluvia", "en": "Rain"},
+                tags={"es": ["lluvia"], "en": ["rain"]})
+    assert validate_manifest(spec, UPLOAD_ID)["tags"]["en"] == ["rain"]
+    for wrong in ({"es": []}, {"es": ["lluvia"], "en": [""]}):
+        with pytest.raises(IngestError):
+            validate_manifest(dict(spec, tags=wrong), UPLOAD_ID)

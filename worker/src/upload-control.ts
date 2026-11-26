@@ -10,6 +10,7 @@ export type Chunk={bytes:number;sha256:string;keyed?:true};
 export const PART_LEASE_MS=120_000;
 type PendingPart={sha256:string;attempt:string;until:number};
 export type Manifest={kind:"image"|"video";title:string;author:string;source:string;license_note?:string;
+  description?:Record<'es'|'en',string>;tags?:Record<'es'|'en',string[]>;
   media_id:string;bytes:number;mime:string;created_at:string;chunks:Chunk[]};
 export type State={status:"uploading"|"processing"|"registered"|"rejected";expires:number;started?:boolean;
   manifest?:Manifest;capabilityHash?:string;capExpires?:number;run?:string;reason?:string;

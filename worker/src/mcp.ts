@@ -298,6 +298,11 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     toolRequest("/v1/jobs/" + request_id, "GET"), env));
 
 
+  const descriptive = {
+    description:z.strictObject({es:z.string().trim().min(1).max(400),en:z.string().trim().min(1).max(400)}),
+    tags:z.strictObject({es:z.array(z.string().trim().min(1).max(40)).min(1).max(8),
+      en:z.array(z.string().trim().min(1).max(40)).min(1).max(8)}),
+  };
   const mediaMetadata = {
     kind: z.enum(["video", "image"]), title: z.string().min(1).max(120),
     author: z.string().min(1).max(120), source: z.string().min(1).max(500),
@@ -305,10 +310,13 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   };
   const mediaId = z.string().regex(/^(?:u[1-9a-f][a-f0-9]{0,11}|a\d{4}-\d{2}-[a-f0-9]{32})$/);
   const mediaRecord = z.object({
-    ...mediaMetadata, media_id: mediaId, bytes: z.number().int().positive(),
+    ...mediaMetadata, description:descriptive.description.optional(), tags:descriptive.tags.optional(), media_id: mediaId, bytes: z.number().int().positive(),
     mime: z.string(), origin: z.enum(["url", "upload"]), url: z.string().url(),
     created_at: z.string(), status: z.literal("registered"),
     duration_seconds: z.number().positive().max(120).optional(),
+    width:z.number().int().positive().optional(),height:z.number().int().positive().optional(),
+    fps:z.number().positive().optional(),has_audio:z.boolean().optional(),aspect_ratio:z.string().optional(),
+    codec:z.string().optional(),container:z.string().optional(),sha256:z.string().optional(),
   });
   server.registerTool("register_media_url", {
     title: "Registrar un aporte por URL",
@@ -320,7 +328,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   server.registerTool("create_media_upload", {
     title: "Crear enlace de subida",
     description: "Ticket de un archivo, 2 h en modo KV. Declara size en bytes. Hasta 95 MiB puedes usar PUT binario; por encima usa partes de 24 MiB y POST complete. No pidas al usuario abrir el enlace si puedes subirlo. " + PUBLIC_NOTICE,
-    inputSchema: z.strictObject({...mediaMetadata,size:z.number().int().positive()}),
+    inputSchema: z.strictObject({...mediaMetadata,...descriptive,size:z.number().int().positive()}),
     outputSchema: z.object({
       media_id:mediaId,status:z.enum(["pending_upload","uploading"]),expires_at:z.string(),
       upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string(),part_size:z.number().int().optional(),parts:z.number().int().optional(),
@@ -338,7 +346,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
 
   const sessionId=z.string().regex(/^[a-f0-9]{64}$/);
   const sessionFile=z.object({media_id:mediaId,kind:z.enum(["image","video"]),status:z.enum(["uploading","processing","registered","rejected"]),reason:z.string().optional()});
-  const sessionMeta={session_id:sessionId,title:z.string().min(1).max(120).optional(),author:z.string().min(1).max(120).optional(),
+  const sessionMeta={...descriptive,session_id:sessionId,title:z.string().min(1).max(120).optional(),author:z.string().min(1).max(120).optional(),
     source:z.string().min(1).max(500).optional(),license_note:z.string().min(1).max(500).optional()};
   const staged=z.object({media_id:mediaId,status:z.literal("processing")});
   server.registerTool("crear_subida",{

@@ -57,6 +57,23 @@ def validate_manifest(raw: object, upload_id: str) -> dict:
             or any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
         ):
             raise IngestError("invalid_file")
+    def clean(value: object, limit: int) -> bool:
+        return (
+            isinstance(value, str) and bool(value.strip()) and len(value) <= limit
+            and not any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
+        )
+
+    # Old in-flight tickets may lack both fields; new tickets require both.
+    if "description" in raw or "tags" in raw:
+        description, tags = raw.get("description"), raw.get("tags")
+        if (
+            not isinstance(description, dict) or set(description) != {"es", "en"}
+            or not all(clean(v, 400) for v in description.values())
+            or not isinstance(tags, dict) or set(tags) != {"es", "en"}
+            or not all(isinstance(v, list) and 1 <= len(v) <= 8
+                       and all(clean(tag, 40) for tag in v) for v in tags.values())
+        ):
+            raise IngestError("invalid_file")
     try:
         if datetime.fromisoformat(raw["created_at"]).tzinfo is None:
             raise ValueError
@@ -274,6 +291,8 @@ def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
             "bytes",
             "mime",
             "created_at",
+            "description",
+            "tags",
             "width",
             "height",
             "fps",

@@ -9,7 +9,8 @@ const base="https://clipoteca.test";
 const token="test-write-token-123456";
 const env={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:"test-issues-token",
   CLIPOTECA_UPLOAD_TOKEN:"test-upload-token"};
-const metadata={kind:"image",title:"Lluvia",author:"Autor",source:"Origen"};
+const descriptive={description:{es:"Lluvia sobre el campo",en:"Rain in a field"},tags:{es:["lluvia"],en:["rain"]}};
+const metadata={kind:"image",title:"Lluvia",author:"Autor",source:"Origen",...descriptive};
 const png=(w=100,h=100,size=24)=>{
   const b=new Uint8Array(size),v=new DataView(b.buffer);
   v.setUint32(0,0x89504e47);v.setUint32(4,0x0d0a1a0a);
@@ -405,7 +406,7 @@ describe("queued mobile upload without a personal token",()=>{
     expect(session.max_files).toBe(12);
     expect(session.upload_url).toContain("#"+session.session_id);
     const path="/v1/uploads/"+session.session_id;
-    const ticket=await worker.fetch(post(path+"/files",{kind:"image",size:24},false),queued);
+    const ticket=await worker.fetch(post(path+"/files",{...descriptive,kind:"image",size:24},false),queued);
     expect(ticket.status).toBe(201);
     const first=await ticket.json() as {media_id:string};
     const status=await worker.fetch(new Request(base+path),queued);
@@ -413,8 +414,8 @@ describe("queued mobile upload without a personal token",()=>{
     expect((await worker.fetch(post("/v1/media/upload",{...metadata,size:24},false),queued)).status).toBe(201);
     const page=await worker.fetch(new Request(base+"/v1/uploads"),queued);
     expect(await page.text()).toContain("multiple");
-    for(let i=1;i<12;i++)expect((await worker.fetch(post(path+"/files",{kind:"image",size:24},false),queued)).status).toBe(201);
-    expect((await worker.fetch(post(path+"/files",{kind:"image",size:24},false),queued)).status).toBe(409);
+    for(let i=1;i<12;i++)expect((await worker.fetch(post(path+"/files",{...descriptive,kind:"image",size:24},false),queued)).status).toBe(201);
+    expect((await worker.fetch(post(path+"/files",{...descriptive,kind:"image",size:24},false),queued)).status).toBe(409);
   });
 
   it("uploads parts out of order, replaces parts, validates sizes and completes once",async()=>{
@@ -477,7 +478,7 @@ describe("queued mobile upload without a personal token",()=>{
     expect(rejected.status).toBe(400);
     expect(upstream).not.toHaveBeenCalled();
     const image_base64=btoa(String.fromCharCode(...png()));
-    const accepted=await worker.fetch(post(path,{image_base64},false),queued);
+    const accepted=await worker.fetch(post(path,{...descriptive,image_base64},false),queued);
     expect(accepted.status).toBe(202);
     expect(await accepted.json()).toMatchObject({status:"processing"});
     expect(b.puts).toHaveBeenCalledTimes(1);
@@ -499,7 +500,7 @@ describe("queued mobile upload without a personal token",()=>{
       return new Response(null,{status:204});
     });
     vi.stubGlobal("fetch",fetcher);
-    const response=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{file:{file_id:"file_1",download_url:remote}},false),queued);
+    const response=await worker.fetch(post("/v1/uploads/"+session.session_id+"/files",{...descriptive,file:{file_id:"file_1",download_url:remote}},false),queued);
     expect(response.status).toBe(202);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
