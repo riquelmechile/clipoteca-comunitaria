@@ -167,3 +167,15 @@ Ejemplo mixto (sustituye los identificadores por los registrados en tu catálogo
   ]
 }
 ```
+
+## MCP local (solo lectura)
+
+Desde el repositorio, instala con `uv sync` y ejecuta `uv run clipoteca-mcp`
+por stdio. El servidor no requiere credenciales ni red en ejecucion; lee
+`data/clips.json` (incluido tambien en el wheel). `CLIPOTECA_CATALOG` permite
+usar otra ruta local. Solo expone `search_clips`, `get_clip` y `list_sources`.
+La busqueda lexical usa metadatos es/en/zh/ru, sin importacion, paginacion ni
+modelos; las fuentes indican conteos locales, no su disponibilidad actual.
+Los enlaces MP4 apuntan a GitHub Releases y abrirlos si requiere red.
+El MCP completo (videos, aportes, render) sigue en
+https://clipoteca-worker.clipoteca.workers.dev/mcp.
