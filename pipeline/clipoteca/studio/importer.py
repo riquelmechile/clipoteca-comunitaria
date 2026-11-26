@@ -549,6 +549,7 @@ def import_scene(
     enough: int = 3,
     relevance_check: Callable[[dict, Path], bool] | None = None,
     auto_related: bool = False,
+    fast: bool = False,
 ) -> dict[str, Any]:
     """Search using existing ingest but keep ALL results, jobs and assets local."""
     length, fetch, queries = _validate(job, max_results, max_clips_per_source, concurrency)
@@ -633,7 +634,13 @@ def import_scene(
             reject("scorer_unavailable")
             return False
         try:
-            analysis, reason = analyze_window(job, path, scorer, started + timeout)
+            analysis_deadline = started + timeout
+            if fast:
+                if budget.term_deadline is not None:
+                    analysis_deadline = min(analysis_deadline, budget.term_deadline)
+                if budget.early_deadline is not None and not budget.visual_cache:
+                    analysis_deadline = min(analysis_deadline, budget.early_deadline)
+            analysis, reason = analyze_window(job, path, scorer, analysis_deadline)
             if analysis is not None:
                 return True
             mapped = {
@@ -657,9 +664,11 @@ def import_scene(
         job,
         writer.imported,
         max_results,
-        enough,
+        1 if fast else enough,
         started + timeout,
         visual_match=visual_match,
+        fast=fast,
+        early_deadline=started + timeout * 0.4 if fast else None,
         rejections=rejections,
     )
     searchable_slots = sum(
@@ -706,7 +715,8 @@ def import_scene(
             # The plan normally provides cached terms. Direct CLI imports can resolve
             # them under the same scene deadline; injected adapters stay offline.
             if auto_related and "related_terms" not in job:
-                await resolve_jobs([job], timeout=min(6, timeout / 10))
+                with budget.timed("related_lookup"):
+                    await resolve_jobs([job], timeout=min(6, timeout / 10))
             related = [row["term"] for row in related_terms(job)]
             primary = queries
             if simple:
@@ -720,6 +730,33 @@ def import_scene(
                         if " ".join(library._words(query)) not in original
                     ]
             budget.searches_planned = (len(primary) + len(related)) * searchable_slots
+            if fast:
+                # Give each distinct seed a fair share, including related seeds.
+                # Catalog and asset writes remain sequential; search siblings overlap.
+                terms = [(query, query) for query in primary] + [
+                    (term, related_search_query(job, term)) for term in related
+                ]
+                for index, (term, query) in enumerate(terms):
+                    if budget.reason():
+                        break
+                    seconds = budget.term_seconds(len(terms) - index)
+                    if seconds <= 0:
+                        break
+                    note_query(term)
+                    budget.term_deadline = time.monotonic() + seconds
+                    try:
+                        report = await asyncio.wait_for(
+                            ingest(query, selected, **ingest_options(f"studio-fast-{index}")),
+                            timeout=seconds,
+                        )
+                        absorb(report)
+                    except TimeoutError:
+                        reject("term_timeout")
+                    except Exception as exc:
+                        failures.append(type(exc).__name__)
+                    finally:
+                        budget.term_deadline = None
+                return
             # Reserve time within the existing deadline, never add another scene budget.
             primary_deadline = started + timeout * (0.6 if related else 1.0)
             for index, query in enumerate(primary):
@@ -766,6 +803,7 @@ def import_scene(
             if own_adapters:
                 await _close_adapters(selected)
 
+    setup_done = time.monotonic()
     with _no_remote_writes():
         try:
             with _wall_deadline(timeout - (time.monotonic() - started)):
@@ -773,6 +811,7 @@ def import_scene(
         except _SceneDeadline:
             failures.append("timeout")
 
+    finalized_started = time.monotonic()
     # Finalization must not start new visual analysis outside the wall deadline.
     budget.visual_match = None
     reason = "timeout" if "timeout" in failures else (budget.reason() or "exhausted")
@@ -831,6 +870,19 @@ def import_scene(
     _atomic_json(out / "imported.json", report)
     _atomic_json(out / "assignment.json", assignment)
     shutil.rmtree(stage, ignore_errors=True)
+    from .stage_timing import write_timings
+
+    finished = time.monotonic()
+    write_timings(
+        out / "stage-importer.json",
+        "Importer",
+        {
+            **budget.stage_seconds,
+            "setup": setup_done - started,
+            "finalize": finished - finalized_started,
+            "total": finished - started,
+        },
+    )
     return report
 
 
@@ -846,6 +898,7 @@ def main(argv: list[str] | None = None) -> int:
     scene.add_argument("--enough", type=int, default=3)
     scene.add_argument("--spread-queries", action="store_true")
     scene.add_argument("--simple", action="store_true")
+    scene.add_argument("--fast", action="store_true")
     scene.add_argument("--resolve-related", action="store_true")
     scene.add_argument("--timeout", type=float)
     args = parser.parse_args(argv)
@@ -862,6 +915,7 @@ def main(argv: list[str] | None = None) -> int:
             auto_related=args.resolve_related,
             enough=args.enough,
             timeout_s=args.timeout,
+            fast=args.fast,
         )
     except (OSError, ImportSceneError, ValueError, TypeError) as exc:
         parser.exit(2, f"importer: {type(exc).__name__}: invalid input\n")
