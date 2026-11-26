@@ -632,9 +632,7 @@ def test_explicit_contribution_reuse_preserves_automatic_deduplication(origin):
     for ident in ("intro", "lago"):
         row = results[ident]
         row["origin"] = origin
-        row["clip"].update(
-            media_ref="u123", clip_id="u123", start=0, phash="0000000000000000"
-        )
+        row["clip"].update(media_ref="u123", clip_id="u123", start=0, phash="0000000000000000")
     assert not checks.check_global(results)
     assert qa.clips_unique(timeline, results)["pass"]
 
