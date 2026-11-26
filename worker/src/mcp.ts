@@ -178,6 +178,7 @@ export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider:
 }
 
 export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer {
+  const contributionFlow = " Flujo: escribe el guion y aspecto; solicita permiso de publicacion; describe cada aporte en es/en y tags es/en. Si tienes shell descarga scripts/preparar_y_subir.py desde raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/scripts/preparar_y_subir.py y ejecuta python3 preparar_y_subir.py ARCHIVO --api ORIGEN_HTTPS --metadata aporte.json (opcional --session ID --desde SEG --hasta SEG). ffmpeg -i ORIGINAL -vf scale=W:H:flags=lanczos,setsar=1,fps=FPS -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart SALIDA.mp4; W/H son dimensiones pares con lado corto maximo 720, sin ampliar, rotar el encuadre ni recortar; FPS original limitado a 1..60. Si no hay shell usa subir_archivo o bytes originales. Espera registered con get_media_status/estado_subida, usa media_id en media.ref, llama render_video, consulta get_video_status y entrega URL final.";
   const server = new McpServer(
     { name: "clipoteca-comunitaria", version: APP_VERSION },
     { capabilities: { tools: {} } },
@@ -351,13 +352,13 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   const staged=z.object({media_id:mediaId,status:z.literal("processing")});
   server.registerTool("crear_subida",{
     title:"Crear sesion de aportes",
-    description:"Una sesion de 24 horas, hasta 12 fotos o videos. Si el host entrega archivos, usa subir_archivo; si tienes shell, usa ticket_subida con size y partes (PUT unico solo hasta 95 MiB); para imagenes de hasta 40 KiB usa subir_imagen_base64. Solo comparte upload_url cuando el host no pueda subir. "+PUBLIC_NOTICE,
+    description:"Una sesion de 24 horas, hasta 12 fotos o videos. Si el host entrega archivos, usa subir_archivo; si tienes shell, usa ticket_subida con size y partes (PUT unico solo hasta 95 MiB); para imagenes de hasta 40 KiB usa subir_imagen_base64. Solo comparte upload_url cuando el host no pueda subir. "+contributionFlow+" "+PUBLIC_NOTICE,
     inputSchema:z.strictObject({}),outputSchema:z.object({session_id:sessionId,expires_at:z.string(),max_files:z.number(),upload_url:z.string().url()}),
     annotations:{readOnlyHint:false,openWorldHint:true},
   },async()=>restResult(toolRequest("/v1/uploads","POST",{}),env));
   server.registerTool("ticket_subida",{
     title:"Obtener ticket para subir directamente",
-    description:"Declara size en bytes. Hasta 95 MiB puedes usar PUT binario. Mas de 95 MiB SIEMPRE por partes: split -b 24M -d -a 1 ARCHIVO parte-; for p in parte-*; do curl --fail-with-body -H \"Authorization: Bearer $UPLOAD_TOKEN\" --upload-file \"$p\" \"$PUT_URL/parts/${p##*-}\" || exit 1; done; curl --fail-with-body -X POST -H \"Authorization: Bearer $UPLOAD_TOKEN\" \"$PUT_URL/complete\". Video 100 MiB y 120 s; imagen 10 MiB. "+PUBLIC_NOTICE,
+    description:"Declara size en bytes. Hasta 95 MiB puedes usar PUT binario. Mas de 95 MiB SIEMPRE por partes: split -b 24M -d -a 1 ARCHIVO parte-; for p in parte-*; do curl --fail-with-body -H \"Authorization: Bearer $UPLOAD_TOKEN\" --upload-file \"$p\" \"$PUT_URL/parts/${p##*-}\" || exit 1; done; curl --fail-with-body -X POST -H \"Authorization: Bearer $UPLOAD_TOKEN\" \"$PUT_URL/complete\". Video 100 MiB y 120 s; imagen 10 MiB. "+contributionFlow+" "+PUBLIC_NOTICE,
     inputSchema:z.strictObject({...sessionMeta,kind:z.enum(["image","video"]),size:z.number().int().positive()}),
     outputSchema:z.object({media_id:mediaId,status:z.literal("uploading"),expires_at:z.string(),upload_url:z.string().url(),put_url:z.string().url(),upload_token:z.string(),part_size:z.number().int(),parts:z.number().int()}),
     annotations:{readOnlyHint:false,openWorldHint:true},

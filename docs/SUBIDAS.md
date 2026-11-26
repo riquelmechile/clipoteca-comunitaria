@@ -8,7 +8,7 @@ la validacion completa ocurre antes del registro y la QA del clip antes de index
 
 Pide al LLM que suba tus archivos. Si el host no puede transmitirlos, pide una sesion
 (`crear_subida`) y abre su enlace de lote desde el celular. Selecciona hasta 12 archivos,
-opcionalmente escribe titulo y autor, y pulsa Subir archivos publicos. Veras el progreso
+escribe una descripcion y tags en espanol e ingles para cada archivo, opcionalmente titulo y autor, y pulsa Subir archivos publicos. Veras el progreso
 y los IDs. Consulta el estado con el boton de la pagina o con `estado_subida`.
 El enlace dura 24 horas; guardalo como una capacidad temporal, no lo publiques.
 Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion si hace falta.
@@ -16,7 +16,7 @@ Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion
 ## Para LLM y agentes
 
 1. Llama a `crear_subida` una vez por lote. No muestres el enlace si puedes subir tu mismo.
-2. Si el host proporciona un archivo MCP, llama a `subir_archivo(session_id, file)`.
+2. Si el host proporciona un archivo MCP, llama a `subir_archivo(session_id, file, description, tags)`.
    ChatGPT admite `_meta["openai/fileParams"]` con un objeto que tiene `download_url`
    y `file_id` obligatorios, `mime_type` y `file_name` opcionales.
    Ver [referencia oficial de OpenAI](https://developers.openai.com/plugins/reference#file-apis).
@@ -26,7 +26,7 @@ Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion
    El operador puede ajustar CLIPOTECA_FILE_HOSTS (lista de sufijos de hosts confiables)
    segun el host observado. La documentacion no garantiza un dominio concreto.
    El origen debe entregar Content-Length y bytes sin compresion de transporte.
-3. Si tienes shell o red, usa `ticket_subida(session_id, kind, size)` con el tamano exacto en bytes (`wc -c < "$FILE"`). El ticket devuelve `part_size` (24 MiB) y `parts`. Para archivos de hasta 95 MiB puedes ejecutar:
+3. Si tienes shell o red, usa `ticket_subida(session_id, kind, size, description, tags)` con el tamano exacto en bytes (`wc -c < "$FILE"`). El ticket devuelve `part_size` (24 MiB) y `parts`. Para archivos de hasta 95 MiB puedes ejecutar:
    ```sh
    curl --fail-with-body -H "Authorization: Bearer $UPLOAD_TOKEN" \
      --upload-file "$FILE" "$PUT_URL"
@@ -64,7 +64,7 @@ Los archivos fallidos consumen un cupo si ya recibieron ticket; crea otra sesion
   expires_at y upload_url.
 - GET /v1/uploads/{session_id}: estado del lote.
 - POST /v1/uploads/{session_id}/files: JSON con kind image/video, titulo y autor
-  opcionales (campos title y author), source y license_note opcionales; size obligatorio en bytes para un ticket.
+  opcionales (campos title y author), source y license_note opcionales; description y tags es/en obligatorios; size obligatorio en bytes para un ticket.
   Tambien admite file o image_base64 como en MCP; devuelve 202 si recibe los bytes,
   o 201 con ticket si no se suministran bytes.
 - PUT /v1/media/upload/{id}/parts/{n}: parte binaria con Content-Length exacto y Bearer del ticket (n desde 0). POST /v1/media/upload/{id}/complete: verifica las partes y dispara ingesta.
@@ -88,3 +88,37 @@ La cuota de bytes se reserva al emitir el ticket; no se cobra otra vez por parte
 capacidad aleatoria; no es un secreto del servidor. Los tokens internos nunca
 se entregan al cliente. Los registros temporales del lote se retienen hasta
 48 horas desde su ultima escritura; las referencias registradas permanecen.
+
+## Preparacion automatica
+
+Primero escribe el guion con el aspecto solicitado, describe el contenido real de
+cada archivo (no el tema general del guion) y verifica el permiso de publicacion.
+Ejemplo de `aporte.json`:
+
+```json
+{"kind":"video","title":"Lluvia en el campo","author":"Autor","source":"Grabacion propia","description":{"es":"Lluvia sobre el campo","en":"Rain falling over a field"},"tags":{"es":["lluvia","campo"],"en":["rain","field"]}}
+```
+
+Con Python 3, curl, ffmpeg y ffprobe disponibles:
+
+```sh
+curl -fsS https://raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/scripts/preparar_y_subir.py -o preparar_y_subir.py
+python3 preparar_y_subir.py archivo.mov --api "$ORIGEN_HTTPS" --metadata aporte.json --desde 2 --hasta 32
+```
+
+Omite desde/hasta si no necesitas recorte temporal. Puedes pasar --session para
+compartir un lote. El script imprime solo el media_id al quedar registered.
+Comando equivalente para video (elige W/H pares proporcionalmente, lado corto
+hasta 720 sin ampliar, y FPS original entre 1 y 60):
+
+```sh
+ffmpeg -i ORIGINAL -vf scale=W:H:flags=lanczos,setsar=1,fps=FPS -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart SALIDA.mp4
+```
+
+Nunca recortes el encuadre ni cambies la orientacion visual. El servidor vuelve a
+normalizar y verificar los bytes, incluso si el cliente no los prepara. Si no
+hay shell, usa subir_archivo o el archivo original en las partes. Tras registered,
+coloca media_id en media.ref, llama render_video y consulta get_video_status
+hasta obtener la URL de entrega.
+
+Ver [especificacion del aporte](APORTES-ESTANDAR.md).
