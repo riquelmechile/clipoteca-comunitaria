@@ -8,6 +8,7 @@ export { UploadControl } from "./upload-control";
 import type { QueueEnv } from "./upload-control";
 
 export interface Env extends CatalogEnv, QueueEnv {
+  CLIPOTECA_WAIT_MAX_SECONDS?: string;
   CATALOG_TTL_SECONDS?: string;
   CLIPOTECA_DISPATCH_TOKEN?: string;
   CLIPOTECA_WRITE_TOKEN?: string;

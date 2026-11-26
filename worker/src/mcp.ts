@@ -8,6 +8,7 @@ import { handleRest, type RestEnv } from "./rest";
 import { handleScript } from "./script";
 import { APP_VERSION } from "./version";
 import { PUBLIC_NOTICE } from "./media";
+import {waitVideo,waitMedia} from "./wait";
 
 export interface McpEnv extends RestEnv {
   MCP_ALLOWED_HOSTS?: string;
@@ -178,7 +179,7 @@ export async function sourceSnapshot(env: McpEnv): Promise<{ sources: {provider:
 }
 
 export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer {
-  const contributionFlow = " Flujo: escribe el guion y aspecto; solicita permiso de publicacion; describe cada aporte en espanol (obligatorio). Como LLM entrega tambien descripcion en ingles y tags es/en siempre que puedas; si faltan, el servidor los completa sin bloquear el registro. Si tienes shell CON acceso de red descarga scripts/preparar_y_subir.py desde raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/scripts/preparar_y_subir.py y ejecuta python3 preparar_y_subir.py ARCHIVO --api ORIGEN_HTTPS --metadata aporte.json (opcional --session ID --desde SEG --hasta SEG). ffmpeg -i ORIGINAL -vf scale=W:H:flags=lanczos,setsar=1,fps=FPS -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart SALIDA.mp4; W/H son dimensiones pares con lado corto maximo 720, sin ampliar, rotar el encuadre ni recortar; FPS original limitado a 1..60. Con archivos adjuntos usa subir_archivo primero. Si falla, comunica codigo y motivo exactos; no pidas ticket_subida si no puedes transferir bytes por red. Un file_id sin download_url requiere una referencia temporal completa del host; no inventes URL. El enlace de lote es el ultimo recurso. Espera registered con get_media_status/estado_subida, usa media_id en media.ref, llama render_video, consulta get_video_status y entrega URL final.";
+  const contributionFlow = " Flujo: escribe el guion y aspecto; solicita permiso de publicacion; describe cada aporte en espanol (obligatorio). Como LLM entrega tambien descripcion en ingles y tags es/en siempre que puedas; si faltan, el servidor los completa sin bloquear el registro. Si tienes shell CON acceso de red descarga scripts/preparar_y_subir.py desde raw.githubusercontent.com/riquelmechile/clipoteca-comunitaria/main/scripts/preparar_y_subir.py y ejecuta python3 preparar_y_subir.py ARCHIVO --api ORIGEN_HTTPS --metadata aporte.json (opcional --session ID --desde SEG --hasta SEG). ffmpeg -i ORIGINAL -vf scale=W:H:flags=lanczos,setsar=1,fps=FPS -c:v libx264 -pix_fmt yuv420p -preset medium -crf 23 -c:a aac -b:a 128k -movflags +faststart SALIDA.mp4; W/H son dimensiones pares con lado corto maximo 720, sin ampliar, rotar el encuadre ni recortar; FPS original limitado a 1..60. Con archivos adjuntos usa subir_archivo primero. Si falla, comunica codigo y motivo exactos; no pidas ticket_subida si no puedes transferir bytes por red. Un file_id sin download_url requiere una referencia temporal completa del host; no inventes URL. El enlace de lote es el ultimo recurso. Usa media_id en media.ref y llama render_video inmediatamente, incluso si el aporte sigue processing. Llama esperar_video repetidamente hasta listo:true y entrega file_url si done. Nunca pidas al usuario volver a preguntar mientras puedas esperar. Si el turno debe terminar antes, comparte tracking_url. esperar_aportes sirve para comprobar calidad o rechazo.";
   const server = new McpServer(
     { name: "clipoteca-comunitaria", version: APP_VERSION },
     { capabilities: { tools: {} }, instructions: contributionFlow+" "+PUBLIC_NOTICE },
@@ -385,14 +386,14 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
   },async({session_id,...input})=>restResult(toolRequest("/v1/uploads/"+session_id+"/files","POST",input),env));
   server.registerTool("estado_subida",{
     title:"Consultar sesion de aportes",
-    description:"Devuelve cada media_id, kind, estado y motivo de rechazo. Usa media_id en media.ref solo cuando status sea registered. Consulta otra vez tras un plazo acotado si sigue procesando.",
+    description:"Devuelve cada media_id, kind, estado y motivo de rechazo. Usa media_id en media.ref aunque siga uploading o processing. Para esperar el registro usa esperar_aportes.",
     inputSchema:z.strictObject({session_id:sessionId}),outputSchema:z.object({session_id:sessionId,expires_at:z.string(),files:z.array(sessionFile)}),
     annotations:{readOnlyHint:true,openWorldHint:true},
   },async({session_id})=>restResult(toolRequest("/v1/uploads/"+session_id,"GET"),env));
 
   server.registerTool("render_video", {
     title: "Render a video",
-    description: PUBLIC_NOTICE + " Renderiza un guion de 3 a 12 escenas, hasta 60 segundos. media.ref admite aportes de video o imagen u... o a..., clips clip-NNNNNN y SVG del repo asset:clipoteca-pipeline. start/end solo para video; imagenes admiten motion (auto, zoom_in, zoom_out, pan_left, pan_right) y framing (cover, contain). Por defecto on_error=fail; search requiere query y prompt. Ejemplo mixto: {\"title\":\"Agua\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Mar\",\"say\":\"El mar.\",\"media\":{\"ref\":\"u77\"}},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Agua\",\"say\":\"El agua fluye.\",\"media\":{\"ref\":\"clip-000001\"}},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
+    description: PUBLIC_NOTICE + " Renderiza un guion de 3 a 12 escenas, hasta 60 segundos. media.ref admite aportes de video o imagen u... o a..., clips clip-NNNNNN y SVG del repo asset:clipoteca-pipeline. start/end solo para video; imagenes admiten motion (auto, zoom_in, zoom_out, pan_left, pan_right) y framing (cover, contain). Acepta aportes uploading o processing; llama esperar_video hasta listo:true. Para aportes con query y prompt, on_error por defecto es search. Ejemplo mixto: {\"title\":\"Agua\",\"aspect\":\"9:16\",\"scenes\":[{\"id\":\"intro\",\"type\":\"intro\",\"title\":\"Mar\",\"say\":\"El mar.\",\"media\":{\"ref\":\"u77\"}},{\"id\":\"fact\",\"type\":\"fact\",\"title\":\"Agua\",\"say\":\"El agua fluye.\",\"media\":{\"ref\":\"clip-000001\"}},{\"id\":\"outro\",\"type\":\"outro\",\"title\":\"Lluvia\",\"say\":\"La lluvia cae.\",\"query\":{\"es\":[\"lluvia\"],\"en\":[\"rain\"]},\"prompt\":\"falling rain\"}]}",
     inputSchema: z.strictObject({
       script: z.object({
         title: z.string(), aspect: z.enum(["9:16","16:9","1:1"]),
@@ -406,20 +407,53 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     annotations: {readOnlyHint: false, openWorldHint: true},
   }, async (input) => restResult(toolRequest("/v1/videos", "POST", input), env));
 
+  const videoStatusSchema = z.object({
+      id: z.string(), status: z.enum(["queued","running","done","failed","expired"]),
+      stages: z.record(z.string(), z.unknown()).optional(),
+      qa: z.object({pass:z.boolean(),failed:z.array(z.string()),warnings:z.array(z.object({scene_id:z.string(),degraded_reason:z.string()})).optional()}).optional(),
+      clips_indexed: z.array(z.string()).optional(), file_url: z.string().optional(),
+      warnings: z.array(z.string()).optional(),
+  });
   server.registerTool("get_video_status", {
     title: "Get video status and download URL",
     description: "Check render stages, quality results and the temporary delivery URL (7 days); the Actions run is public.",
     inputSchema: z.strictObject({id: z.string().regex(/^[a-f0-9]{32}$/)}),
-    outputSchema: z.object({
-      id: z.string(), status: z.enum(["queued","running","done","failed","expired"]),
-      stages: z.record(z.string(), z.unknown()).optional(),
-      qa: z.object({pass:z.boolean(),failed:z.array(z.string())}).optional(),
-      clips_indexed: z.array(z.string()).optional(), file_url: z.string().optional(),
-      warnings: z.array(z.string()).optional(),
-    }),
+    outputSchema: videoStatusSchema,
     annotations: {readOnlyHint: true, openWorldHint: true},
   }, async ({id}) => restResult(toolRequest("/v1/videos/" + id, "GET"), env));
 
+  const maxWait=z.number().int().positive().optional();
+  const waitResult=async(response:Response)=>response.ok?answer(await response.json() as object):fail("Clipoteca API error "+response.status);
+  server.registerTool("esperar_video",{
+    title:"Esperar video final",
+    description:"Espera hasta 300 s. Si listo:false vuelve a llamar en el mismo turno; si done entrega file_url, si failed informa el error. Solo comparte tracking_url si el turno debe terminar.",
+    inputSchema:z.strictObject({video_id:z.string().regex(/^[a-f0-9]{32}$/),max_segundos:maxWait}),
+    outputSchema:videoStatusSchema.extend({listo:z.boolean(),tracking_url:z.string()}),
+    annotations:{readOnlyHint:true,openWorldHint:true},
+  },async({video_id,max_segundos},ctx)=>waitResult(await waitVideo(inbound,env,video_id,max_segundos,{
+    signal:ctx.mcpReq.signal,
+    progress:async seconds=>{
+      const progressToken=ctx.mcpReq._meta?.progressToken;
+      if(progressToken!==undefined)await ctx.mcpReq.notify({method:"notifications/progress",params:{progressToken,progress:seconds,message:"Esperando render"}});
+    },
+  })));
+  server.registerTool("esperar_aportes",{
+    title:"Esperar aportes",
+    description:"Espera hasta 300 s por una session_id o lista de media_ids. Repite si listo:false. Informa rechazos y baja resolucion.",
+    inputSchema:z.strictObject({session_id:sessionId.optional(),media_ids:z.array(mediaId).min(1).max(12).optional(),max_segundos:maxWait}),
+    outputSchema:z.object({session_id:sessionId.optional(),expires_at:z.string().optional(),files:z.array(sessionFile.partial({kind:true}).extend({low_resolution:z.boolean().optional(),width:z.number().optional(),height:z.number().optional()})),listo:z.boolean()}),
+    annotations:{readOnlyHint:true,openWorldHint:true},
+  },async(input,ctx)=>waitResult(await waitMedia(inbound,env,{
+    ...(input.session_id!==undefined?{session_id:input.session_id}:{}),
+    ...(input.media_ids!==undefined?{media_ids:input.media_ids}:{}),
+    ...(input.max_segundos!==undefined?{max_segundos:input.max_segundos}:{}),
+  },{
+    signal:ctx.mcpReq.signal,
+    progress:async seconds=>{
+      const progressToken=ctx.mcpReq._meta?.progressToken;
+      if(progressToken!==undefined)await ctx.mcpReq.notify({method:"notifications/progress",params:{progressToken,progress:seconds,message:"Esperando aportes"}});
+    },
+  })));
   server.registerTool("list_sources", {
     title: "List public source statuses",
     description: "Read credential-presence status snapshot without exposing any values.",
@@ -453,7 +487,7 @@ export async function handleMcp(request: Request, env: McpEnv): Promise<Response
     originValidationResponse(request, origins);
   if (rejection) return rejection;
   const handler = createMcpHandler(() => createClipotecaServer(env, request), {
-    legacy: "stateless", maxRequestBodySize: 65536, responseMode: "json",
+    legacy: "stateless", maxRequestBodySize: 65536, responseMode: "auto",
   });
   return handler.fetch(request);
 }

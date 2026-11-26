@@ -640,8 +640,10 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
         const response=await handleMedia(new Request(new URL("/v1/media/"+file.media_id,request.url)),env);
         if(!response?.ok){files.push({...file,status:response?.status===404?"rejected":"processing",
           reason:response?.status===404?"No se pudo iniciar la subida o ha vencido.":"No se pudo consultar el estado."});continue;}
-        const value=await response.json<{status:string;reason?:string}>();
-        files.push({...file,status:value.status,...(value.reason?{reason:value.reason}:{})});
+        const value=await response.json<{status:string;reason?:string;low_resolution?:boolean;width?:number;height?:number}>();
+        files.push({...file,status:value.status,...(value.reason?{reason:value.reason}:{}),
+          ...(typeof value.low_resolution==="boolean"?{low_resolution:value.low_resolution}:{}),
+          ...(typeof value.width==="number"?{width:value.width}:{}),...(typeof value.height==="number"?{height:value.height}:{})});
       }
       return json({session_id:id,expires_at:new Date(session.state.expires).toISOString(),files});
     }

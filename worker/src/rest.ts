@@ -6,8 +6,10 @@ import { semanticSearch, type SemanticEnv } from "./semantic";
 import { quota } from "./quota";
 import { handleVideos } from "./videos";
 import { handleMedia, type MediaEnv } from "./media";
+import {handleWait} from "./wait";
 
 export interface RestEnv extends SemanticEnv, MediaEnv {
+  CLIPOTECA_WAIT_MAX_SECONDS?: string;
   CATALOG_URL?: string;
   CATALOG_TTL_SECONDS?: string;
   CATALOG_JOBS_URL?: string;
@@ -201,6 +203,8 @@ export async function submitImport(
 }
 
 export async function handleRest(request: Request, env: RestEnv): Promise<Response | null> {
+  const waitResponse = await handleWait(request, env);
+  if (waitResponse) return waitResponse;
   const mediaResponse = await handleMedia(request, env);
   if (mediaResponse) return mediaResponse;
   const videoResponse = await handleVideos(request, env);
