@@ -46,7 +46,18 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
             direct = select_explicit(root, job, assignment)
             if direct["status"] == "ok" or direct.get("skip_import"):
                 return direct
-            assignment = {"status": "needs_import"}
+            if job.get("source_kind") == "contribution":
+                job["media_fallback_reason"] = (
+                    "media " + job["media"]["ref"] + ": " + direct.get("reason", "unusable")
+                )
+                job.pop("media")
+                job.pop("source_kind")
+                job.pop("on_error", None)
+                assignment = assignment.get("fallback_assignment", {"status": "needs_import"})
+                _atomic_json(root / "job.json", job)
+                _atomic_json(root / "assignment.json", assignment)
+            else:
+                assignment = {"status": "needs_import"}
         elif (root / "result.json").is_file():
             prior = _read(root / "result.json")
             if prior.get("origin") in (

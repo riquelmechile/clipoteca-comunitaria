@@ -319,6 +319,7 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
     width:z.number().int().positive().optional(),height:z.number().int().positive().optional(),
     fps:z.number().positive().optional(),has_audio:z.boolean().optional(),aspect_ratio:z.string().optional(),
     codec:z.string().optional(),container:z.string().optional(),sha256:z.string().optional(),
+    low_resolution:z.boolean().optional(),
   });
   server.registerTool("buscar_aportes",{
     title:"Buscar aportes registrados",
@@ -354,10 +355,10 @@ export function createClipotecaServer(env: McpEnv, inbound: Request): McpServer 
 
 
   const sessionId=z.string().regex(/^[a-f0-9]{64}$/);
-  const sessionFile=z.object({media_id:mediaId,kind:z.enum(["image","video"]),status:z.enum(["uploading","processing","registered","rejected"]),reason:z.string().optional()});
+  const sessionFile=z.object({media_id:mediaId,kind:z.enum(["image","video"]),status:z.enum(["uploading","processing","registered","rejected"]),reason:z.string().optional(),low_resolution:z.boolean().optional(),width:z.number().optional(),height:z.number().optional()});
   const sessionMeta={...descriptive,session_id:sessionId,title:z.string().min(1).max(120).optional(),author:z.string().min(1).max(120).optional(),
     source:z.string().min(1).max(500).optional(),license_note:z.string().min(1).max(500).optional()};
-  const staged=z.object({media_id:mediaId,status:z.literal("processing")});
+  const staged=z.object({media_id:mediaId,status:z.literal("processing"),low_resolution:z.boolean().optional(),quality_pending:z.boolean().optional()});
   server.registerTool("crear_subida",{
     title:"Crear sesion de aportes",
     description:"Una sesion de 24 horas, hasta 12 fotos o videos. Si el host entrega archivos, usa subir_archivo; solo si tienes acceso de red y bytes, usa ticket_subida con size y partes (PUT unico solo hasta 95 MiB); para imagenes de hasta 40 KiB usa subir_imagen_base64. Solo comparte upload_url cuando el host no pueda subir. "+contributionFlow+" "+PUBLIC_NOTICE,

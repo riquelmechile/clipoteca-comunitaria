@@ -209,10 +209,23 @@ def write_plan(
         }
         free_catalog = {"clips": [clip for clip in catalog["clips"] if clip["id"] not in reserved]}
         listed = assign_scenes(free_jobs, free_catalog)
+        fallback_jobs = [
+            job for job in jobs
+            if job.get("source_kind") == "contribution" and job.get("on_error") == "search"
+        ]
+        fallback_assignments = {
+            row["id"]: {
+                "status": row["status"], "primary": row.get("primary"),
+                "backups": row.get("backups", []),
+            }
+            for row in assign_scenes(fallback_jobs, free_catalog)
+        } if fallback_jobs else {}
         for job in jobs:
             if "media" not in job:
                 continue
             row = {"id": job["id"], "status": job["source_kind"]}
+            if job["id"] in fallback_assignments:
+                row["fallback_assignment"] = fallback_assignments[job["id"]]
             if job["source_kind"] == "catalog_pinned":
                 clip = next(
                     (clip for clip in catalog["clips"] if clip["id"] == job["media"]["ref"]), None
@@ -235,6 +248,10 @@ def write_plan(
                     "status": item["status"],
                     "primary": item.get("primary"),
                     "backups": item.get("backups", []),
+                    **(
+                        {"fallback_assignment": item["fallback_assignment"]}
+                        if "fallback_assignment" in item else {}
+                    ),
                 }
                 for item in listed
             },

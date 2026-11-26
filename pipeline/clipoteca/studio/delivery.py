@@ -100,6 +100,7 @@ def build_delivery(work, catalog_path):
     indexed = _read(index_path) if index_path.exists() else {"clips": {}, "indexed": []}
     catalog = {row["id"]: row for row in Catalog.load(Path(catalog_path)).clips}
     rows = []
+    quality_warnings = []
     for scene in script.scenes:
         folder = work / "scenes" / scene.id
         path = folder / "result.json"
@@ -122,6 +123,10 @@ def build_delivery(work, catalog_path):
                 }
             )
             continue
+        if result.get("quality_warning"):
+            quality_warnings.append(
+                {"scene_id": scene.id, "degraded_reason": result["quality_warning"]}
+            )
         clip = result["clip"]
         identifier = clip["clip_id"]
         imported = clip.get("imported", False)
@@ -182,7 +187,7 @@ def build_delivery(work, catalog_path):
             {"scene_id": row["id"], "degraded_reason": row["degraded_reason"]}
             for row in rows
             if row.get("fallback")
-        ],
+        ] + quality_warnings,
         "clips_indexed": indexed["indexed"],
         "timings": _timings(work),
     }

@@ -18,6 +18,7 @@ type Metadata = Partial<Descriptive> & {kind: MediaKind; title: string; author: 
 type RecordMedia = Metadata & {
   media_id: string; bytes: number; mime: string; origin: "url" | "upload";
   url: string; created_at: string; status: "registered"; duration_seconds?: number;
+  width?:number;height?:number;low_resolution?:boolean;
 };
 type Ticket = Metadata & {id:string; exp:number; size?:number};
 const SINGLE_PUT_MAX=95*1024*1024;
@@ -379,7 +380,8 @@ async function getUpload(env:MediaEnv,id:string):Promise<RecordMedia|null>{
   if(!response.ok)throw new Error("media_registry_unavailable");
   const value=await response.json() as RecordMedia;
   if(value.media_id!==id || value.origin!=="upload")throw new Error("invalid_manifest");
-  return value;
+  return typeof value.width==="number"&&typeof value.height==="number"
+    ? {...value,low_resolution:Math.min(value.width,value.height)<720}:value;
 }
 async function queuedUpload(request:Request,env:MediaEnv,id:string,body=request.body,internal=false){
   const claim=await verify(request,env,id);

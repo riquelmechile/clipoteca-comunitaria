@@ -812,10 +812,15 @@ def run_qa(
         "warnings": [
             {
                 "scene_id": scene_id,
-                "reason": result.get("degraded_reason", "weak_catalog_match"),
+                "reason": warning,
             }
             for scene_id, result in sorted(results.items())
-            if result.get("status") == "ok" and result.get("fallback")
+            if result.get("status") == "ok"
+            for warning in (
+                [result.get("degraded_reason", "weak_catalog_match")]
+                if result.get("fallback")
+                else []
+            ) + ([result["quality_warning"]] if result.get("quality_warning") else [])
         ],
         "checks": report_checks,
         "time_s": round(time.monotonic() - started, 3),

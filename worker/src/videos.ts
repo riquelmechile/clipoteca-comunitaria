@@ -114,6 +114,10 @@ async function submit(request: Request, ctx: Context, env: RestEnv) {
       return problem("invalid_media_ref","Referencia o ventana multimedia no valida.");
     }
     const ref=media.ref;
+    if (!ref.startsWith("asset:") && !ref.startsWith("clip-") && scene.on_error===undefined &&
+        object(scene.query) && typeof scene.prompt==="string" && scene.prompt.trim()) {
+      scene.on_error="search";
+    }
     let kind = kinds.get(ref);
     if (ref.startsWith("asset:")) {
       if (!repoAssets.includes(ref)) return problem("asset_not_found","Asset fuera de lista.",404);

@@ -38,6 +38,7 @@ export const reasons:Readonly<Record<string,string>>=Object.freeze({
   dispatch_failed:"No se pudo iniciar el procesamiento.",
   download_failed:"No se pudo recuperar el archivo temporal.",
   invalid_file:"El archivo no se pudo decodificar o excede los limites.",
+  resolution_too_low:"El lado corto del aporte debe ser de al menos 360 px.",
   publish_failed:"No se pudo publicar el aporte.",
 });
 const reason=(r:unknown)=>typeof r==="string"&&Object.prototype.hasOwnProperty.call(reasons,r)?r:"staging_failed";

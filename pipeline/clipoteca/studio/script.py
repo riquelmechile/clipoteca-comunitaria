@@ -247,7 +247,13 @@ def parse_video_script(data: object) -> VideoScript:
             prompt=scene.get("prompt", ""),
             avoid=tuple(scene.get("avoid", [])),
             media=scene.get("media"),
-            on_error=scene.get("on_error", "fail"),
+            on_error=scene.get(
+                "on_error",
+                "search"
+                if scene.get("media", {}).get("ref", "").startswith(("u", "a2"))
+                and scene.get("query") and scene.get("prompt")
+                else "fail",
+            ),
         )
         for scene in input_scenes
     )
