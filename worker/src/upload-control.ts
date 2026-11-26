@@ -256,7 +256,7 @@ export async function batchCommand(env:QueueEnv,id:string,c:BatchCommand):Promis
   const r=await stub.fetch("https://upload-control.internal/",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(c)});
   return r.ok?{code:r.status,state:await r.json<BatchState>()}:{code:r.status};
 }
-export async function admit(request:Request,env:QueueEnv,action:"limit_session"|"limit_ticket"|"limit_bytes",bytes?:number){
+export async function admit(request:Request,env:QueueEnv,action:"limit_session"|"limit_ticket"|"limit_bytes"|"limit_video",bytes?:number){
   const ip=await hash(enc.encode(request.headers.get("cf-connecting-ip")??"unknown"));
   const day=new Date().toISOString().slice(0,10);
   return (await batchCommand(env,"limits:"+day,{action,ip,...(bytes===undefined?{}:{bytes})})).code===200;
