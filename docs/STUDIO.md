@@ -1,7 +1,7 @@
 # Studio: motor de video v3
 
 Studio transforma un guion español en MP4 con voz, música y clips reales.
-No contiene un LLM. La versión del repositorio es 3.0.0; la API y el
+No contiene un LLM. La versión del repositorio es 3.1.0; la API y el
 workflow de entrega están desplegados. Ver [M32_RENDER.md](M32_RENDER.md).
 
 ![Flujo de entrega temporal y crecimiento de biblioteca](../assets/clipoteca-studio.svg)

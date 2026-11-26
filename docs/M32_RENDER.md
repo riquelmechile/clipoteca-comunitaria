@@ -1,7 +1,7 @@
 # M32: render, indexado y entrega temporal
 
 El workflow está en [.github/workflows/render.yml](../.github/workflows/render.yml).
-El Worker 3.0.0 lo despacha; las corridas reales que lo validan se registran en [ESTADO](ESTADO.md).
+El Worker 3.1.0 lo despacha; las corridas reales que lo validan se registran en [ESTADO](ESTADO.md).
 
 | Input | Contrato |
 |---|---|

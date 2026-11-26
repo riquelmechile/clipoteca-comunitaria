@@ -1,14 +1,31 @@
 # Historial de cambios
 
-## Sin publicar
+## 3.1.0 (2026-11-26)
 
-- Subida desde el celular sin PAT personal: archivo temporal por trozos en KV, control atómico por ID, validación y publicación con GitHub Actions, estados públicos y limpieza de temporales. Workflow y configuración Wrangler propuestos para activación por el mantenedor.
+Aportes propios: el usuario adjunta sus videos o fotos en el mismo chat donde
+está conectado el MCP, pide el video y el LLM sube el material, lo usa en las
+escenas y entrega el MP4 en el mismo turno.
 
-- Escenas con fotos aportadas JPEG/PNG/WebP y SVG propios animados, encuadre cover/contain y ajuste a la voz real sin pingpong; no se indexan en el catálogo.
+- Aportes por escena: `media.ref` acepta videos (MP4, MOV, WebM) e imágenes (JPEG, PNG, WebP) aportados, clips fijos del catálogo (`clip-NNNNNN`) y SVG del repo (`asset:`). Las imágenes admiten movimiento (`zoom_in`, `zoom_out`, `pan_left`, `pan_right`) y encuadre `cover`/`contain`.
+- Subida sin llave: el LLM sube el archivo adjunto con `subir_archivo` (o `subir_imagen_base64`), sin que el usuario abra enlaces ni use tokens. La página de lote queda como respaldo. Subida reanudable por partes de 24 MiB y tope de 100 MB por video.
+- Estandarización de aportes: los videos se normalizan a 720p H.264 conservando la orientación, las imágenes a WebP de hasta 1920 px. Cada aporte se indexa en `data/aportes.json` con descripción y tags en español e inglés (completados en el servidor si faltan) y se puede buscar con `buscar_aportes`.
+- Render público: cualquier cliente MCP o REST puede renderizar, con cuota por IP (uno cada cinco minutos, 50 al día) y tope global diario.
+- Espera larga: `esperar_video` y `esperar_aportes` mantienen la respuesta hasta 300 segundos con avisos de progreso, para que el LLM entregue el enlace final sin pedirle al usuario que vuelva a preguntar. Página de seguimiento en `/v1/videos/{id}/ver`.
+- El render acepta aportes que todavía se están procesando y espera a que queden registrados.
+- Baja resolución: los aportes de 360 a 720 px se escalan con aviso; los menores se rechazan con motivo. Si un aporte no sirve, la escena se reemplaza con una búsqueda en el catálogo en vez de fallar el video.
+- Cuota de video: el tope diario por IP sube de 12 a 50 solicitudes.
 
-- Aportes de video y clips fijados por escena; registro con lecturas autenticadas, seleccion explicita, origen en entrega e indexado de aportes tras QA.
+Correcciones
 
-- Cuota de video: el tope diario por IP sube de 12 a 50 solicitudes; se mantiene una cada cinco minutos.
+- `/v1/videos` devolvía 503 en Cloudflare Workers por llamar a `fetch` sin enlazar.
+- Las peticiones a GitHub usan `redirect: "manual"`; Workers rechaza `"error"` y la ingesta no podía reclamar las subidas.
+- `subir_archivo` acepta cualquier host HTTPS público por defecto (los adjuntos de ChatGPT venían de dominios no listados).
+- La página de lote ya no borra los errores al terminar y muestra el motivo exacto.
+- Tags de aportes generados por palabra y no por frase completa.
+
+Problema conocido
+
+- La traducción automática con Argos en GitHub Actions a veces degenera (#136). No bloquea los aportes: el LLM manda la descripción en inglés y existen correcciones revisadas.
 
 ## 3.0.0 (2026-11-24)
 
