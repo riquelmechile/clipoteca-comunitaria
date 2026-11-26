@@ -12,6 +12,7 @@ from clipoteca.providers.douyin import Douyin
 from clipoteca.providers.signing import ABogus, BROWSER_UA, XBogus, sign_tiktok, sm3_hexdigest
 from clipoteca.providers.tiktok import TikTok
 from clipoteca.sources import list_sources
+from tests.fake_secrets import fake_secret
 
 FIXTURES = Path(__file__).parent / "fixtures" / "m19"
 
@@ -43,7 +44,7 @@ async def test_douyin_signed_video_search_and_direct_mp4_last_bitrate_url():
         return httpx.Response(200, json=fixture("douyin_video.json"))
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        adapter = Douyin(cookie="session_secret=DO_NOT_USE", client=client)
+        adapter = Douyin(cookie="session_secret=" + fake_secret("unused-douyin"), client=client)
         candidates = await adapter.search("下雨", "zh", SearchLimits(max_pages=1))
         media = await adapter.direct_media(candidates[0])
     assert len(seen) == 2
@@ -130,7 +131,7 @@ async def test_tiktok_search_signature_cursor_search_id_and_resolution():
         return httpx.Response(200, json=fixture("tiktok_page2.json"))
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        adapter = TikTok(cookie="secret=UNUSED", client=client)
+        adapter = TikTok(cookie="secret=" + fake_secret("unused-tiktok"), client=client)
         rows = await adapter.search("rain", "en", SearchLimits(max_pages=2))
         ref = await adapter.direct_media(rows[0])
     assert len(seen) == 2
@@ -180,7 +181,8 @@ async def test_code_2483_is_session_required_not_generic(platform):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("platform", ["douyin", "tiktok"])
 async def test_secret_cookie_is_fallback_only_and_never_in_results(platform):
-    secret = "session=PRIVATE_M19_COOKIE"
+    private_cookie = fake_secret("m19-cookie")
+    secret = "session=" + private_cookie
     seen = []
 
     def handler(req):
@@ -204,7 +206,7 @@ async def test_secret_cookie_is_fallback_only_and_never_in_results(platform):
         rows = await adapter.search("rain", "en", SearchLimits(max_pages=1))
     assert seen == ["ttwid=guest-identity", secret]
     assert rows
-    assert "PRIVATE_M19_COOKIE" not in json.dumps([r.__dict__ for r in rows], ensure_ascii=False)
+    assert private_cookie not in json.dumps([r.__dict__ for r in rows], ensure_ascii=False)
 
 
 def test_signatures_exact_upstream_reference_vectors():
@@ -263,14 +265,17 @@ def test_signatures_exact_upstream_reference_vectors():
 
 
 def test_new_provider_capabilities_do_not_require_oauth_or_expose_cookies():
+    private_dy = fake_secret("douyin-cookie")
+    private_tt = fake_secret("tiktok-cookie")
+    old_access = fake_secret("legacy-access")
     rows = {
         r["name"]: r
         for r in list_sources(
             env={
-                "DOUYIN_COOKIE": "PRIVATE_DY",
-                "TIKTOK_COOKIE": "PRIVATE_TT",
-                "DOUYIN_ACCESS_TOKEN": "OLD_SECRET",
-                "TIKTOK_ACCESS_TOKEN": "OLD_SECRET",
+                "DOUYIN_COOKIE": private_dy,
+                "TIKTOK_COOKIE": private_tt,
+                "DOUYIN_ACCESS_TOKEN": old_access,
+                "TIKTOK_ACCESS_TOKEN": old_access,
             }
         )
     }
@@ -279,13 +284,15 @@ def test_new_provider_capabilities_do_not_require_oauth_or_expose_cookies():
         assert rows[key]["scope"] == "public_search"
         assert rows[key]["capabilities"]["download"] == "best_effort"
         assert rows[key]["requires"] == []
-    assert all(x not in json.dumps(rows) for x in ("PRIVATE_DY", "PRIVATE_TT", "OLD_SECRET"))
+    assert all(x not in json.dumps(rows) for x in (private_dy, private_tt, old_access))
 
 
 @pytest.mark.asyncio
 async def test_tiktok_secret_mstoken_is_signed_only_after_session_required():
     seen = []
-    secret = "session=PRIVATE_ABC; msToken=REAL_TOKEN"
+    private_cookie = fake_secret("tiktok-session")
+    ms_token = fake_secret("mstoken")
+    secret = f"session={private_cookie}; msToken={ms_token}"
 
     def handler(request):
         if request.url.host == "ttwid.bytedance.com":
@@ -307,9 +314,9 @@ async def test_tiktok_secret_mstoken_is_signed_only_after_session_required():
     assert rows
     assert seen[0]["token"] == ""
     assert seen[0]["cookie"] == "ttwid=guest-identity"
-    assert seen[1]["token"] == "REAL_TOKEN"
+    assert seen[1]["token"] == ms_token
     assert seen[1]["cookie"] == secret
-    assert "PRIVATE_ABC" not in repr(rows)
+    assert private_cookie not in repr(rows)
 
 
 def test_tiktok_captured_response_shape_is_parsed_without_identity_leaks():
