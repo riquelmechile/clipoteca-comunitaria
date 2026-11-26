@@ -19,6 +19,7 @@ from clipoteca.providers.smithsonian import Smithsonian
 from clipoteca.security.download import DownloadError, download_media
 from clipoteca.security.ssrf import UnsafeMediaURL, validate_public_url
 from clipoteca.storage.github import ReleaseAsset
+from tests.fake_secrets import fake_secret
 
 
 def candidate(provider, url: str) -> Candidate:
@@ -51,7 +52,7 @@ def adapter_for(provider: str):
         "smithsonian": Smithsonian,
     }
     kind = types[provider]
-    return kind() if provider == "library_of_congress" else kind(api_key="fixture")
+    return kind() if provider == "library_of_congress" else kind(api_key=fake_secret("archive"))
 
 
 PROVIDERS = (
@@ -107,7 +108,7 @@ async def test_archive_private_dns_and_http_scheme_rejected(provider):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("kind", [Europeana, NARA])
 async def test_archive_explicit_download_restriction_overrides_video_url(kind):
-    adapter = kind(api_key="fixture")
+    adapter = kind(api_key=fake_secret("restricted-archive"))
     raw = {
         "direct_video_url": "https://media.example.org/record.mp4",
         "direct_video_mime": "video/mp4",
@@ -143,7 +144,7 @@ async def test_archive_explicit_download_restriction_overrides_video_url(kind):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("kind", [Coverr, Europeana, NARA, DPLA, Smithsonian])
 async def test_archive_provider_errors_never_expose_secret_keys(kind):
-    secret = "SECRET_SHOULD_NEVER_APPEAR"
+    secret = fake_secret("archive-provider")
     seen = []
 
     def handler(request):
@@ -203,7 +204,7 @@ def test_github_catalog_writer_detects_concurrent_duplicate_before_second_put():
 
     client = httpx.Client(transport=httpx.MockTransport(github))
     writer = GitHubCatalogWriter(
-        "owner/repo", "fixture-token", client=client, schema={"type": "object"}
+        "owner/repo", fake_secret("github"), client=client, schema={"type": "object"}
     )
     video = ReleaseAsset(
         1, "clip_clip-000043.mp4", 100, "uploaded", incoming["storage"]["asset_url"]

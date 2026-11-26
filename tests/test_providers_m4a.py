@@ -12,6 +12,7 @@ from clipoteca.providers.base import (
 )
 from clipoteca.providers.pexels import Pexels
 from clipoteca.providers.pixabay import Pixabay
+from tests.fake_secrets import fake_secret
 
 
 def http_client(body: dict | str, status: int = 200, content_type: str = "application/json"):
@@ -54,7 +55,7 @@ async def test_pexels_realistic_response_and_direct_resolution():
             }
         ],
     }
-    adapter = Pexels(api_key="test-key", client=http_client(payload))
+    adapter = Pexels(api_key=fake_secret("pexels"), client=http_client(payload))
     candidates = await adapter.search("下雨", "zh", SearchLimits())
     assert candidates[0].provider_id == "401"
     assert candidates[0].term == "下雨"
@@ -81,7 +82,7 @@ async def test_pixabay_valid_and_unavailable_variant():
             }
         ]
     }
-    adapter = Pixabay(api_key="test", client=http_client(payload))
+    adapter = Pixabay(api_key=fake_secret("pixabay"), client=http_client(payload))
     found = await adapter.search("lluvia", "es", SearchLimits())
     assert found[0].origin_id == "pixabay:48"
     media = await adapter.direct_media(found[0])
@@ -94,7 +95,9 @@ async def test_auth_and_empty(adapter_cls):
     missing = adapter_cls(api_key="", client=http_client({}))
     with pytest.raises(AuthRequired):
         await missing.search("rain", "en", SearchLimits())
-    key = adapter_cls(api_key="key", client=http_client({"hits": [], "videos": []}))
+    key = adapter_cls(
+        api_key=fake_secret("empty-provider"), client=http_client({"hits": [], "videos": []})
+    )
     assert await key.search("rain", "en", SearchLimits()) == []
 
 
@@ -102,7 +105,7 @@ async def test_auth_and_empty(adapter_cls):
 @pytest.mark.parametrize("adapter_cls", [Pexels, Pixabay])
 @pytest.mark.parametrize("status,exception", [(429, RateLimited), (500, ProviderError)])
 async def test_http_failure_statuses(adapter_cls, status, exception):
-    adapter = adapter_cls(api_key="key", client=http_client({}, status))
+    adapter = adapter_cls(api_key=fake_secret("provider-status"), client=http_client({}, status))
     with pytest.raises(exception):
         await adapter.search("rain", "en", SearchLimits())
 
@@ -111,7 +114,8 @@ async def test_http_failure_statuses(adapter_cls, status, exception):
 @pytest.mark.parametrize("adapter_cls", [Pexels, Pixabay])
 async def test_html_not_mistaken_for_media_or_json(adapter_cls):
     adapter = adapter_cls(
-        api_key="key", client=http_client("<html></html>", content_type="text/html")
+        api_key=fake_secret("provider-html"),
+        client=http_client("<html></html>", content_type="text/html"),
     )
     with pytest.raises(ProviderError, match="non-JSON"):
         await adapter.search("rain", "en", SearchLimits())

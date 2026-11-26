@@ -12,6 +12,7 @@ from clipoteca.jobs import JobStore
 from clipoteca.metadata import MetadataTranslationError, localize_candidate
 from clipoteca.providers.base import Adapter, Candidate, SearchLimits, SupportStatus
 from clipoteca.translate.argos import TranslationFailed, public_translation_error
+from tests.fake_secrets import fake_secret
 
 
 class RecordingAdapter(Adapter):
@@ -43,7 +44,7 @@ async def run_ingest(tmp_path, monkeypatch, translator):
         "aurora boreal",
         [adapter],
         repository="test/clipoteca",
-        token="not-used",
+        token=fake_secret("partial-translation"),
         writer=SimpleNamespace(read_catalog=lambda: (Catalog(), None)),
         storage=object(),
         job_root=tmp_path / "jobs",
@@ -170,5 +171,6 @@ def test_query_terms_are_not_translated_as_tags_and_bilingual_metadata_remains_s
 
 
 def test_public_error_sanitizes_config_reason_with_digits():
-    error = "translation_failed:en->zh:package_sha256_mismatch:RAW_UPSTREAM_SECRET"
+    marker = fake_secret("upstream")
+    error = "translation_failed:en->zh:package_sha256_mismatch:" + marker
     assert public_translation_error(error) == ("translation_failed:en->zh:package_sha256_mismatch")
