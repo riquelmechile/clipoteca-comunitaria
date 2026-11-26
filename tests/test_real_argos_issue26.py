@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from clipoteca.contributions import CommunityContribution, CommunityIssue
+from clipoteca.media_ingest import enrich_metadata
 from clipoteca.metadata import MetadataTranslationError, localize_candidate
 from clipoteca.providers.base import Candidate, SearchLimits
 from clipoteca.translate.argos import TranslationFailed, translate_pair
@@ -84,6 +85,28 @@ def _translated_with_retries(text: str, src: str, dst: str) -> str | None:
             if exc.reason not in BAD_REASONS:
                 raise
     return None  # repeated model corruption stays fail-closed
+
+
+@pytest.mark.skipif(
+    os.getenv("ARGOS_REAL_INTEGRATION") != "1",
+    reason="requires preverified real Argos models and sentence resources",
+)
+@pytest.mark.parametrize(
+    "description",
+    [
+        "Patr\u00f3n de colores de prueba en formato vertical",
+        "Un perro bulldog franc\u00e9s corriendo en el pasto",
+    ],
+)
+def test_real_argos_upload_metadata(description):
+    original = {"description": {"es": description}}
+    result = enrich_metadata(original)
+    assert result["description"]["es"] == description
+    english = result["description"].get("en", "")
+    assert english.strip() and english.casefold() != description.casefold()
+    assert result["tags"]["es"] and result["tags"]["en"]
+    assert result["metadata_auto"] == ["description.en", "tags.es", "tags.en"]
+    assert original == {"description": {"es": description}}
 
 
 @pytest.mark.skipif(
