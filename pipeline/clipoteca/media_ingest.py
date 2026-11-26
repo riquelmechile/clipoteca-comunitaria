@@ -15,7 +15,9 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-from PIL import Image
+from PIL import Image, ImageOps
+
+from .media.probe import ProbeError, parse_probe
 
 WORKER = "https://clipoteca-worker.clipoteca.workers.dev"
 AUD = "clipoteca-media-ingest-v1"
@@ -189,6 +191,74 @@ def validate_file(manifest: dict, path: Path) -> float | None:
         raise IngestError("invalid_file") from exc
 
 
+
+def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Path, float | None]:
+    """Decode the original, then publish only a normalized and revalidated asset."""
+    duration = validate_file(manifest, source)
+    result = dict(manifest)
+    try:
+        if manifest["kind"] == "image":
+            target = root / "normalized.webp"
+            with Image.open(source, formats=[IMAGES[manifest["mime"]]]) as image:
+                image = ImageOps.exif_transpose(image)
+                image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+                image = image.convert("RGBA" if "A" in image.getbands() or
+                                      "transparency" in image.info else "RGB")
+                image.save(target, "WEBP", quality=85, method=4)
+            result.update(mime="image/webp", width=image.width, height=image.height)
+        else:
+            target = root / "normalized.mp4"
+            env = {"PATH": os.environ["PATH"], "LANG": "C"}
+            input_args = ["-protocol_whitelist", "file,pipe", "-f", VIDEOS[manifest["mime"]]]
+            probe = subprocess.run(
+                ["ffprobe", "-v", "error", *input_args, "-show_streams", "-show_format",
+                 "-of", "json", str(source)],
+                check=True, capture_output=True, env=env, timeout=45,
+            )
+            original = parse_probe(json.loads(probe.stdout), source)
+            factor = min(1.0, 720 / min(original.display_width, original.display_height))
+            width = max(2, int(original.display_width * factor) // 2 * 2)
+            height = max(2, int(original.display_height * factor) // 2 * 2)
+            fps = original.fps_fraction if 1 <= original.fps <= 60 else (
+                "60" if original.fps > 60 else "1"
+            )
+            filters = f"scale={width}:{height}:flags=lanczos,setsar=1,fps={fps}"
+            subprocess.run(
+                ["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-threads", "2",
+                 *input_args, "-i", str(source), "-map", "0:v:0", "-map", "0:a?",
+                 "-map_metadata", "-1", "-map_chapters", "-1", "-vf", filters,
+                 "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium",
+                 "-crf", "23", "-threads", "2", "-c:a", "aac", "-b:a", "128k",
+                 "-movflags", "+faststart", "-t", "120", str(target)],
+                check=True, capture_output=True, env=env, timeout=480,
+            )
+            output = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of",
+                 "json", str(target)],
+                check=True, capture_output=True, env=env, timeout=45,
+            )
+            actual = parse_probe(json.loads(output.stdout), target)
+            if (actual.codec != "h264" or actual.pix_fmt != "yuv420p"
+                    or actual.width != width or actual.height != height
+                    or actual.fps > 60 or actual.rotation != 0
+                    or actual.orientation != original.orientation):
+                raise ValueError("normalized video")
+            result.update(mime="video/mp4", width=width, height=height,
+                          fps=actual.fps, has_audio=actual.has_audio,
+                          aspect_ratio=actual.aspect_ratio, codec="h264", container="mp4")
+        size = target.stat().st_size
+        if not 0 < size <= (10 if manifest["kind"] == "image" else 100) * MIB:
+            raise ValueError("normalized size")
+        result["bytes"] = size
+        duration = validate_file(result, target)
+        with target.open("rb") as stream:
+            result["sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
+        return result, target, duration
+    except (OSError, ValueError, KeyError, TypeError, ProbeError,
+            subprocess.SubprocessError, Image.DecompressionBombError) as exc:
+        raise IngestError("invalid_file") from exc
+
+
 def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
     upload_id = manifest["media_id"]
     tag = "uploads-" + upload_id[1:8]
@@ -204,6 +274,14 @@ def record_for(manifest: dict, repo: str, duration: float | None) -> dict:
             "bytes",
             "mime",
             "created_at",
+            "width",
+            "height",
+            "fps",
+            "has_audio",
+            "aspect_ratio",
+            "codec",
+            "container",
+            "sha256",
         )
         if key in manifest
     }
@@ -388,7 +466,7 @@ def main() -> int:
             media = root / "upload.media"
             assemble(manifest, parts, media)
             reason = "invalid_file"
-            duration = validate_file(manifest, media)
+            manifest, media, duration = normalize_upload(manifest, media, root)
             reason = "publish_failed"
             repo = os.environ["GITHUB_REPOSITORY"]
             record = record_for(manifest, repo, duration)

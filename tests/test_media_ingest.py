@@ -10,6 +10,7 @@ from clipoteca.media_ingest import (
     IngestError,
     assemble,
     record_for,
+    normalize_upload,
     validate_file,
     validate_manifest,
 )
@@ -113,3 +114,36 @@ def test_video_manifest_100_mib_in_five_chunks():
     assert len(validate_manifest(spec, UPLOAD_ID)["chunks"]) == 5
     with pytest.raises(IngestError):
         validate_manifest(dict(spec, bytes=size + 1), UPLOAD_ID)
+
+@pytest.mark.skipif(
+    not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="ffmpeg missing"
+)
+@pytest.mark.parametrize("size,expected", [
+    ("1920x1080", (1280, 720)), ("1080x1920", (720, 1280)), ("320x180", (320, 180))
+])
+def test_normalize_video_preserves_frame(tmp_path, size, expected):
+    path = tmp_path / "original.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", f"color=c=blue:s={size}:d=1",
+         "-c:v", "mpeg4", str(path)], check=True, timeout=30,
+    )
+    spec = manifest(path.read_bytes(), "video", "video/mp4")
+    normalized, target, duration = normalize_upload(spec, path, tmp_path)
+    assert (normalized["width"], normalized["height"]) == expected
+    assert normalized["mime"] == "video/mp4"
+    assert normalized["codec"] == "h264"
+    assert normalized["bytes"] == target.stat().st_size
+    assert 0.9 <= duration <= 1.1
+    assert target != path
+
+
+def test_normalize_image(tmp_path):
+    path = tmp_path / "original.png"
+    Image.new("RGBA", (2400, 1200), (255, 0, 0, 100)).save(path)
+    spec = manifest(path.read_bytes(), "image", "image/png")
+    normalized, target, duration = normalize_upload(spec, path, tmp_path)
+    assert normalized["mime"] == "image/webp"
+    assert duration is None
+    with Image.open(target) as image:
+        assert image.size == (1920, 960)
+        assert image.mode == "RGBA"
