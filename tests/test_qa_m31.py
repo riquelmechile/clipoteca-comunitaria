@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from clipoteca.studio import qa
+from clipoteca.studio import checks, qa
 from clipoteca.studio.compose import _html
 from clipoteca.studio.script import parse_video_script
 
@@ -624,3 +624,56 @@ def test_degraded_scene_is_warning_not_gate_failure(job):
     report = run_good(job)
     assert report["pass"]
     assert report["warnings"] == [{"scene_id": path.parent.name, "reason": "low_sim"}]
+
+
+@pytest.mark.parametrize("origin", ["contribution", "contribution_image"])
+def test_explicit_contribution_reuse_preserves_automatic_deduplication(origin):
+    timeline, results = data("timeline.json"), data("results.json")
+    for ident in ("intro", "lago"):
+        row = results[ident]
+        row["origin"] = origin
+        row["clip"].update(
+            media_ref="u123", clip_id="u123", start=0, phash="0000000000000000"
+        )
+    assert not checks.check_global(results)
+    assert qa.clips_unique(timeline, results)["pass"]
+
+    # A distinct explicit contribution can also look similar.
+    results["lago"]["clip"].update(media_ref="u124", clip_id="u124")
+    assert qa.clips_unique(timeline, results)["pass"]
+
+    # Missing/malformed registry references cannot opt out of deduplication.
+    results["lago"]["clip"]["media_ref"] = "clip-000001"
+    assert not qa.clips_unique(timeline, results)["pass"]
+    results["lago"]["origin"] = "catalog_pinned"
+    results["lago"]["clip"]["media_ref"] = "u124"
+    assert not qa.clips_unique(timeline, results)["pass"]
+    assert checks.check_global(results) == {"lago": "duplicate_phash"}
+
+    # The explicit exception never bypasses hash validation.
+    results["lago"]["origin"] = origin
+    results["lago"]["clip"]["phash"] = "invalid"
+    assert qa.clips_unique(timeline, results)["invalid"] == ["lago"]
+
+
+@pytest.mark.parametrize("origin", ["contribution", "contribution_image"])
+def test_explicit_contribution_resolution_warns_but_output_stays_strict(origin):
+    timeline, results = data("timeline.json"), data("results.json")
+    row = results["intro"]
+    row["origin"] = origin
+    row["clip"].update(media_ref="u123", src_w=480, src_h=872)
+    report = qa.clips_resolution(timeline, results, (1080, 1920))
+    assert report["pass"]
+    assert report["scaled_contributions"] == ["intro"]
+
+    row["clip"]["out_w"] = 720
+    assert not qa.clips_resolution(timeline, results, (1080, 1920))["pass"]
+    row["clip"]["out_w"] = 1080
+    row["clip"]["src_w"] = 0
+    assert not qa.clips_resolution(timeline, results, (1080, 1920))["pass"]
+    row["clip"]["src_w"] = 480
+    row["clip"]["media_ref"] = "clip-000001"
+    assert not qa.clips_resolution(timeline, results, (1080, 1920))["pass"]
+    row["origin"] = "catalog_pinned"
+    row["clip"]["media_ref"] = "u123"
+    assert not qa.clips_resolution(timeline, results, (1080, 1920))["pass"]

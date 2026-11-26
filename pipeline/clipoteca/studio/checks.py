@@ -222,10 +222,22 @@ def _clip_info(entry: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+def is_explicit_contribution(row: dict[str, Any]) -> bool:
+    """Only registry-backed image/video contributions get the user-media policy."""
+    clip = _clip_info(row)
+    ref = clip.get("media_ref") if clip is not None else None
+    return (
+        row.get("origin") in ("contribution", "contribution_image")
+        and isinstance(ref, str)
+        and re.fullmatch(r"(?:u[1-9a-f][a-f0-9]{0,11}|a[0-9]{4}-[0-9]{2}-[a-f0-9]{32})", ref)
+        is not None
+    )
+
+
 def check_global(
     results: list[dict[str, Any]] | dict[str, dict[str, Any]],
 ) -> dict[str, str]:
-    """Resolve cross-scene duplicate IDs/ranges and pHash <=6 by quality score."""
+    """Deduplicate automatic clips; preserve deliberate reuse of explicit contributions."""
     import imagehash
 
     if isinstance(results, dict):
@@ -247,6 +259,8 @@ def check_global(
         clip = row["clip"]
         reason = None
         for survivor in kept:
+            if is_explicit_contribution(row) and is_explicit_contribution(survivor):
+                continue
             other = survivor["clip"]
             if clip.get("clip_id") == other.get("clip_id"):
                 try:
