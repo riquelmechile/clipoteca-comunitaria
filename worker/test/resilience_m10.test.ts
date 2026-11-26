@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { requestId } from "../src/jobs";
+import { fakeSecret } from "./fake-secrets";
 
 const rid = "f".repeat(64);
+const writeToken = fakeSecret("write");
 let activeId = rid;
 describe("M10 failed job retry budget", () => {
   beforeEach(() => {
@@ -28,11 +30,11 @@ describe("M10 failed job retry budget", () => {
     const request = new Request("https://clipoteca.test/v1/import", {
       method: "POST",
       headers: { "content-type": "application/json",
-        authorization: "Bearer a-secret-token-that-is-long" },
+        authorization: "Bearer " + writeToken },
       body: JSON.stringify({ query: "lluvia" }),
     });
     const response = await worker.fetch(request, {
-      CLIPOTECA_WRITE_TOKEN: "a-secret-token-that-is-long",
+      CLIPOTECA_WRITE_TOKEN: writeToken,
     });
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ error: { code: "dead_letter" } });

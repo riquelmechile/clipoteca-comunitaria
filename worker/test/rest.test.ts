@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { requestId } from "../src/jobs";
 import fixtures from "../../tests/fixtures/request_id_vectors.json";
+import { fakeSecret } from "./fake-secrets";
+
+const writeToken = fakeSecret("write");
+const dispatchToken = fakeSecret("dispatch");
 
 const video = {
   status: "published",
@@ -49,7 +53,7 @@ describe("M7 REST contract", () => {
     const denied = await worker.fetch(new Request("https://api.test/v1/import", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ query: "lluvia" }),
-    }), { CLIPOTECA_WRITE_TOKEN: "a-secret-token-that-is-long" });
+    }), { CLIPOTECA_WRITE_TOKEN: writeToken });
     expect(denied.status).toBe(401);
   });
 
@@ -58,7 +62,7 @@ describe("M7 REST contract", () => {
       method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.7" },
       body: JSON.stringify({ query: "unseen footage", filters: { import_if_missing: true } }),
     });
-    const response = await worker.fetch(req, { CLIPOTECA_DISPATCH_TOKEN: "test-secret" });
+    const response = await worker.fetch(req, { CLIPOTECA_DISPATCH_TOKEN: dispatchToken });
     // Local catalogue contains only an unrelated rain clip.
     expect(response.status).toBe(202);
     const result = (await response.json()) as { request_id: string };
@@ -77,12 +81,12 @@ describe("M7 REST contract", () => {
         method: "POST",
         headers: {
           "content-type": "application/json", "cf-connecting-ip": ip,
-          authorization: "Bearer a-secret-token-that-is-long",
+          authorization: `Bearer ${writeToken}`,
         },
         body: JSON.stringify({ query: example.query, filters: example.worker_import_filters }),
       }), {
-        CLIPOTECA_WRITE_TOKEN: "a-secret-token-that-is-long",
-        CLIPOTECA_DISPATCH_TOKEN: "test-secret",
+        CLIPOTECA_WRITE_TOKEN: writeToken,
+        CLIPOTECA_DISPATCH_TOKEN: dispatchToken,
       });
       expect(response.status).toBe(202);
       expect(await response.json()).toMatchObject({ request_id: example.request_id });
@@ -105,13 +109,13 @@ describe("M7 REST contract", () => {
     const makeRequest = (query: string) => new Request("https://api.test/v1/import", {
       method: "POST",
       headers: { "content-type": "application/json",
-        authorization: "Bearer a-secret-token-that-is-long",
+        authorization: `Bearer ${writeToken}`,
         "cf-connecting-ip": "198.51.100.7" },
       body: JSON.stringify({ query, filters: { aspect_ratio: "16:9" } }),
     });
     const env = {
-      CLIPOTECA_WRITE_TOKEN: "a-secret-token-that-is-long",
-      CLIPOTECA_DISPATCH_TOKEN: "test-secret",
+      CLIPOTECA_WRITE_TOKEN: writeToken,
+      CLIPOTECA_DISPATCH_TOKEN: dispatchToken,
     };
     const first = await worker.fetch(makeRequest("nieve"), env);
     const second = await worker.fetch(makeRequest("nieve"), env);
@@ -141,11 +145,11 @@ describe("M7 REST contract", () => {
   it("never returns 202 when dispatch fails", async () => {
     const request = new Request("https://api.test/v1/import", {
       method: "POST", headers: {
-        "content-type": "application/json", authorization: "Bearer a-secret-token-that-is-long",
+        "content-type": "application/json", authorization: `Bearer ${writeToken}`,
       }, body: JSON.stringify({ query: "unseen footage" }),
     });
     const response = await worker.fetch(request, {
-      CLIPOTECA_WRITE_TOKEN: "a-secret-token-that-is-long",
+      CLIPOTECA_WRITE_TOKEN: writeToken,
     });
     expect(response.status).toBe(503);
   });

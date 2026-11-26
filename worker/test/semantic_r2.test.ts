@@ -6,12 +6,13 @@ import {
   normalizedQuery, sha256, queryVector, queueQuery, semanticSearch,
   resetQueryDispatch, resetSemanticCache,
 } from "../src/semantic";
+import {fakeSecret} from "./fake-secrets";
 
 const env = {
   CATALOG_URL:"https://example.test/catalog",
   CATALOG_TTL_SECONDS:"0",
   CLIPOTECA_GITHUB_REPO:"riquelmechile/clipoteca-comunitaria",
-  CLIPOTECA_DISPATCH_TOKEN:"valid-demonstration-token",
+  CLIPOTECA_DISPATCH_TOKEN:fakeSecret("dispatch"),
   SEMANTIC_SEARCH:"1",
   CLIPOTECA_QUERY_DISPATCH_MODE:"1",
 };

@@ -6,11 +6,12 @@ import {
   selectSemanticMatches, semanticThreshold, queryVector, semanticSearch,
 } from "../src/semantic";
 import {resetQuotaReservations} from "../src/quota";
+import {fakeSecret} from "./fake-secrets";
 
 const env={
   CATALOG_URL:"https://example.test/catalog",
   CLIPOTECA_GITHUB_REPO:"riquelmechile/clipoteca-comunitaria",
-  CLIPOTECA_DISPATCH_TOKEN:"test-token-do-not-share",
+  CLIPOTECA_DISPATCH_TOKEN:fakeSecret("dispatch"),
   CLIPOTECA_QUERY_DISPATCH_MODE:"1",
   SEMANTIC_SEARCH:"1",
 };

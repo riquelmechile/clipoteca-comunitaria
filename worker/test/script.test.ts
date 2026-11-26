@@ -3,6 +3,7 @@ import worker from "../src/index";
 import {parseScript} from "../src/script";
 import {resetSemanticCache,resetQueryDispatch} from "../src/semantic";
 import {resetQuotaReservations} from "../src/quota";
+import {fakeSecret} from "./fake-secrets";
 
 const clip=(id:number,title:string,orientation="16:9",duration=12,ext=".mp4")=>({
   status:"published",
@@ -44,7 +45,7 @@ const toolsList=()=>new Request("https://clipoteca.test/mcp",{
 const env={
   CATALOG_URL:"https://fixture.test/catalog",
   CATALOG_TTL_SECONDS:"0",
-  CLIPOTECA_DISPATCH_TOKEN:"shared-application-token",
+  CLIPOTECA_DISPATCH_TOKEN:fakeSecret("dispatch"),
   MCP_ALLOWED_HOSTS:"clipoteca.test",
   MCP_ALLOWED_ORIGINS:"https://client.example",
 };

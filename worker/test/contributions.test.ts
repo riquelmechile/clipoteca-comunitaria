@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { safePublicSourceUrl, validateSubmission } from "../src/contributions";
+import { fakeSecret } from "./fake-secrets";
 
-const token = "secure-test-issue-token";
+const token = fakeSecret("issue");
 const body = { title: "Lluvia en una calle", url: "https://videos.example.org/scene.mp4",
   notes: "Lluvia capturada por un colaborador" };
 const env = { CLIPOTECA_ISSUE_TOKEN: token };

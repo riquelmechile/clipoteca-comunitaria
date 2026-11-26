@@ -1,6 +1,7 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from "vitest";
 import fixture from "../../tests/fixtures/m22/semantic_vectors.json";
 import {loadCorpus,resetSemanticCache,resetQueryDispatch,semanticSearch} from "../src/semantic";
+import {fakeSecret} from "./fake-secrets";
 
 const env = {
   CATALOG_URL:"https://clipoteca.test/catalog",
@@ -8,7 +9,7 @@ const env = {
   CLIPOTECA_GITHUB_REPO:"riquelmechile/clipoteca-comunitaria",
   SEMANTIC_SEARCH:"1",
   CLIPOTECA_QUERY_DISPATCH_MODE:"1",
-  CLIPOTECA_DISPATCH_TOKEN:"testing-token-allowed",
+  CLIPOTECA_DISPATCH_TOKEN:fakeSecret("dispatch"),
 };
 const rain = {
   status: "published",
