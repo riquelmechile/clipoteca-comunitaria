@@ -278,3 +278,11 @@ Ejemplo mixto (sustituye los identificadores por los registrados en tu catálogo
   ]
 }
 ```
+
+## MCP local (solo lectura)
+
+`uv sync` instala el paquete; `uv run clipoteca-mcp` inicia el MCP por stdio
+sin red ni credenciales. Consulta el catalogo local con `search_clips`,
+`get_clip` y `list_sources`. Opcionalmente configura `CLIPOTECA_CATALOG`.
+Para videos, aportes y render usa el MCP completo en
+https://clipoteca-worker.clipoteca.workers.dev/mcp.
