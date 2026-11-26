@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_every_release_surface_has_one_version(capsys):
-    version = "3.0.0"
+    version = "3.1.0"
     assert __version__ == version
     assert tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"] == version
     lock = tomllib.loads((ROOT / "uv.lock").read_text())
