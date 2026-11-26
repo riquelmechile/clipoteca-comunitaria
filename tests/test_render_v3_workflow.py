@@ -85,8 +85,8 @@ def test_pinned_ffmpeg_installer_and_scene_retry():
     assert "GITHUB_PATH" in installer
     jobs = _workflow()["jobs"]
     commands = "\n".join(step.get("run", "") for step in jobs["scene"]["steps"])
-    assert "--max-results 8 --spread-queries --timeout 600" in commands
-    assert "--max-results 2 --spread-queries --simple --timeout 180" in commands
+    assert "--max-results 8 --spread-queries --fast --timeout 600" in commands
+    assert "--max-results 2 --spread-queries --simple --fast --timeout 180" in commands
     assert "install_ffmpeg" in commands
     assert "import-retry" in commands
 
