@@ -201,8 +201,10 @@ def test_index_optimistic_retry_and_idempotency(monkeypatch):
     rows = []
     writes = []
     record = {
-        "media_id": UPLOAD_ID, "description": {"es": "Lluvia", "en": "Rain"},
-        "tags": {"es": ["lluvia"], "en": ["rain"]}, "status": "registered",
+        "media_id": UPLOAD_ID,
+        "description": {"es": "Lluvia"},
+        "tags": {"es": ["lluvia"]},
+        "status": "registered",
     }
 
     def handler(request):

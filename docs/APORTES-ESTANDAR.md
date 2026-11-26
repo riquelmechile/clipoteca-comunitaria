@@ -61,3 +61,8 @@ del clip. El contrato actual localizado del clip es es/en.
   caducan por TTL.
 
 La especificacion de CLI y el flujo del LLM estan en [SUBIDAS.md](SUBIDAS.md).
+
+Para activar Argos en la ingesta desplegada, el operador debe aplicar
+`propuestas/media-ingest.yml` sobre el workflow existente. Usa los modelos
+verificados ya compartidos por las busquedas; si la preparacion falla,
+la ingesta sigue con los metadatos en espanol. No necesita nuevas llaves.
