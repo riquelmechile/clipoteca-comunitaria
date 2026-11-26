@@ -12152,5 +12152,62 @@
     },
     "status": "published",
     "created_at": "2026-11-26T05:51:50.196835Z"
+  },
+  {
+    "id": "clip-000188",
+    "title": {
+      "es": "Dos bulldogs franceses jugando sobre una cama",
+      "en": "Dos bulldogs franceses jugando sobre una cama"
+    },
+    "description": {
+      "es": "Dos bulldogs franceses juegan e interactúan sobre una cama.",
+      "en": "Two French bulldogs play and interact on a bed."
+    },
+    "tags": {
+      "es": [
+        "bulldog francés",
+        "perros",
+        "juego",
+        "mascotas"
+      ],
+      "en": [
+        "French bulldog",
+        "dogs",
+        "play",
+        "pets"
+      ]
+    },
+    "source": {
+      "provider": "user_contribution",
+      "provider_id": "a2026-11-84ca7cd08c04a1c1870f3ecc6178bd25",
+      "source_language": "und",
+      "source_title": "Dos bulldogs franceses jugando sobre una cama",
+      "source_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/uploads-2026-11/a2026-11-84ca7cd08c04a1c1870f3ecc6178bd25.media",
+      "source_author": "Colaborador de Clipoteca",
+      "declared_source": "Archivo adjunto aportado por el usuario",
+      "source_start": 32.0,
+      "source_end": 36.0
+    },
+    "media": {
+      "duration_seconds": 4.0,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "aspect_ratio": "9:16",
+      "orientation": "vertical",
+      "codec": "h264",
+      "container": "mp4",
+      "has_audio": false,
+      "size_bytes": 2021430,
+      "sha256": "6a3cfef359ba93811525e5750fd1053ba4d097caad40f73e612f6f841c3ed36a",
+      "perceptual_hash": "9f4f667031a1869b"
+    },
+    "storage": {
+      "provider": "github_releases",
+      "asset_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-26-001/clip_clip-000188.mp4",
+      "thumbnail_url": "https://github.com/riquelmechile/clipoteca-comunitaria/releases/download/batch-2026-11-26-001/thumb_clip-000188.webp"
+    },
+    "status": "published",
+    "created_at": "2026-11-26T05:51:50.196835Z"
   }
 ]
