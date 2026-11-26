@@ -1,5 +1,5 @@
 /** Public contribution registry and single-use Release upload capability. */
-import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, type MediaKind} from "./media-header";
+import {inspectHeader, maxBytes, mediaUrl, PREFIX, probeLimit, scanJpeg, videoDuration, videoDimensions, type MediaKind} from "./media-header";
 import {quota} from "./quota";
 import {searchTokens} from "./catalog";
 import * as queue from "./upload-control";
@@ -51,6 +51,7 @@ const mediaMessages: Readonly<Record<string,string>> = Object.freeze({
   invalid_media_header:"Formato del archivo no admitido o cabecera incompleta.",
   jpeg_header_too_long:"Cabecera JPEG demasiado larga.",
   image_dimensions:"Dimensiones de imagen no v\u00e1lidas o superiores a 24 MP.",
+  resolution_too_low:"El lado corto del aporte debe ser de al menos 360 px.",
   video_duration_unknown_or_exceeds_120s:"Duraci\u00f3n desconocida o superior a 120 segundos.",
   source_unreachable:"No se pudo conectar con el origen.",
   source_read_failed:"No se pudo leer el contenido del origen.",
@@ -177,22 +178,34 @@ async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:n
   jpeg=kind==="image" && signature[0]===0xff && signature[1]===0xd8;
   let info:ReturnType<typeof checked>;
   if(jpeg){
-    info={mime:await scanJpeg(read,async count=>{await transfer(count);})};
+    let dimensions:{width:number;height:number}|undefined;
+    const mime=await scanJpeg(read,async count=>{await transfer(count);},(width,height)=>{dimensions={width,height};});
+    info={mime,...quality(dimensions)};
   }else{
     const head=new Uint8Array(Math.min(PREFIX,limit));
     head.set(signature);
     const count=await transfer(head.length-signature.length,head.subarray(signature.length),unknownLength);
     const actual=head.subarray(0,signature.length+count);
-    info=fullValidationLater?{mime:inspectHeader(actual,kind)}:checked(actual,kind);
+    info=checked(actual,kind,fullValidationLater);
   }
+  if(!fullValidationLater&&info.width!==undefined&&info.height!==undefined&&Math.min(info.width,info.height)<360)
+    throw new TypeError("resolution_too_low");
   return {info,head:replay?.subarray(0,consumed),tail:chunk?.subarray(offset)};
 }
-function checked(head:Uint8Array,kind:MediaKind) {
-  const mime=inspectHeader(head,kind);
-  if(kind==="image")return {mime};
+function quality(dimensions?:{width:number;height:number}):{width?:number;height?:number;low_resolution?:boolean}{
+  return dimensions?{...dimensions,low_resolution:Math.min(dimensions.width,dimensions.height)<720}:{};
+}
+function checked(head:Uint8Array,kind:MediaKind,fullValidationLater=false):{
+  mime:string;duration_seconds?:number;width?:number;height?:number;low_resolution?:boolean;
+} {
+  let dimensions:{width:number;height:number}|undefined;
+  const mime=inspectHeader(head,kind,(width,height)=>{dimensions={width,height};});
+  if(kind==="image")return {mime,...quality(dimensions)};
+  const geometry=quality(videoDimensions(head,mime));
+  if(fullValidationLater)return {mime,...geometry};
   const duration=videoDuration(head,mime);
   if(duration===null || duration>120)throw new TypeError("video_duration_unknown_or_exceeds_120s");
-  return {mime,duration_seconds:duration};
+  return {mime,duration_seconds:duration,...geometry};
 }
 async function probe(url:string,kind:MediaKind) {
   let response:Response;
@@ -423,7 +436,8 @@ async function queuedUpload(request:Request,env:MediaEnv,id:string,body=request.
     const ready=await queue.command(env,id,{action:"ready",manifest,capabilityHash:await queue.hash(encoder.encode(cap))});
     if(ready.code!==200)throw new Error("staging_failed");
     if(await queue.dispatch(env,id,cap)==="failed")throw new Error("dispatch_failed");
-    return json({media_id:id,status:"processing"},202);
+    return json({media_id:id,status:"processing",...(internal?{quality_pending:true,
+      ...(info.low_resolution===undefined?{}:{low_resolution:info.low_resolution})}:{})},202);
   }catch(e){
     const reason=e instanceof Error && Object.prototype.hasOwnProperty.call(queue.reasons,e.message)?e.message:"staging_failed";
     const failed=await queue.command(env,id,{action:"fail",reason});

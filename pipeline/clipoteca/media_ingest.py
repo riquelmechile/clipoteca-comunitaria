@@ -285,12 +285,19 @@ def validate_file(manifest: dict, path: Path) -> float | None:
 def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Path, float | None]:
     """Decode the original, then publish only a normalized and revalidated asset."""
     duration = validate_file(manifest, source)
+    with source.open("rb") as stream:
+        source_sha = hashlib.file_digest(stream, "sha256").hexdigest()
     result = dict(manifest)
     try:
         if manifest["kind"] == "image":
             target = root / "normalized.webp"
             with Image.open(source, formats=[IMAGES[manifest["mime"]]]) as image:
                 image = ImageOps.exif_transpose(image)
+                print(
+                    f"Source geometry: {image.width}x{image.height}; "
+                    f"bytes={source.stat().st_size}; sha256={source_sha}",
+                    flush=True,
+                )
                 image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
                 image = image.convert(
                     "RGBA" if "A" in image.getbands() or "transparency" in image.info else "RGB"
@@ -319,6 +326,11 @@ def normalize_upload(manifest: dict, source: Path, root: Path) -> tuple[dict, Pa
                 timeout=45,
             )
             original = parse_probe(json.loads(probe.stdout), source)
+            print(
+                f"Source geometry: {original.display_width}x{original.display_height}; "
+                f"duration={duration}; bytes={source.stat().st_size}; sha256={source_sha}",
+                flush=True,
+            )
             if min(original.display_width, original.display_height) < 360:
                 raise IngestError("resolution_too_low")
             factor = min(1.0, 720 / min(original.display_width, original.display_height))

@@ -18,6 +18,7 @@ export function mediaUrl(raw: string, kind: MediaKind): string {
 export async function scanJpeg(
   read: (count: number) => Promise<Uint8Array>,
   skip: (count: number) => Promise<void>,
+  dimensions?:(width:number,height:number)=>void,
 ): Promise<string> {
   for (let segments = 0; segments < 1024; segments++) {
     if ((await read(1))[0] !== 0xff) throw new TypeError("invalid_media_header");
@@ -40,6 +41,7 @@ export async function scanJpeg(
       const width = fields[3]! * 256 + fields[4]!;
       await skip(len - 7);
       if (!width || !height || width * height > 24_000_000) throw new TypeError("image_dimensions");
+      dimensions?.(width,height);
       return "image/jpeg";
     }
     await skip(len - 2);
@@ -47,13 +49,14 @@ export async function scanJpeg(
   throw new TypeError("jpeg_header_too_long");
 }
 
-export function inspectHeader(b: Uint8Array, kind: MediaKind): string {
+export function inspectHeader(b: Uint8Array, kind: MediaKind, dimensions?:(width:number,height:number)=>void): string {
   const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
   const ascii = (p: number, n: number) => String.fromCharCode(...b.subarray(p, p+n));
   const u32 = (p: number) => v.getUint32(p);
   const u24le = (p: number) => b[p]! + b[p+1]!*256 + b[p+2]!*65536;
   const pixels = (w: number, h: number, mime: string) => {
     if (!w || !h || w*h > 24_000_000) throw new TypeError("image_dimensions");
+    dimensions?.(w,h);
     return mime;
   };
   if (kind === "image") {
@@ -169,4 +172,43 @@ export function videoDuration(b: Uint8Array, mime: string): number | null {
     return scan(0,b.length,0);
   }
   return null;
+}
+
+/** Advisory display geometry from a complete bounded ISO BMFF video track.
+ * Files with a late moov or unsupported container get no estimate. Full
+ * decoding in the ingestion job remains authoritative.
+ */
+export function videoDimensions(b:Uint8Array,mime:string):{width:number;height:number}|undefined{
+  if(mime==="video/webm")return undefined;
+  const view=new DataView(b.buffer,b.byteOffset,b.byteLength);
+  const four=(p:number)=>String.fromCharCode(...b.subarray(p,p+4));
+  function boxes(start:number,end:number){
+    const out:{type:string;start:number;end:number}[]=[];
+    for(let p=start;p+8<=end;){
+      let size=view.getUint32(p),head=8;
+      if(size===1){
+        if(p+16>end)break;
+        size=Number(view.getBigUint64(p+8));head=16;
+      }else if(size===0)size=end-p;
+      if(!Number.isSafeInteger(size)||size<head||p+size>end)break;
+      out.push({type:four(p+4),start:p+head,end:p+size});
+      p+=size;
+    }
+    return out;
+  }
+  const moov=boxes(0,b.length).find(x=>x.type==="moov");
+  if(!moov)return undefined;
+  for(const trak of boxes(moov.start,moov.end).filter(x=>x.type==="trak")){
+    const children=boxes(trak.start,trak.end);
+    const mdia=children.find(x=>x.type==="mdia"),tkhd=children.find(x=>x.type==="tkhd");
+    if(!mdia||!tkhd)continue;
+    const handler=boxes(mdia.start,mdia.end).find(x=>x.type==="hdlr");
+    if(!handler||handler.end-handler.start<12||four(handler.start+8)!=="vide")continue;
+    const version=b[tkhd.start],expected=version===0?84:version===1?96:0;
+    if(!expected||tkhd.end-tkhd.start<expected)continue;
+    const width=view.getUint32(tkhd.end-8)/65536,height=view.getUint32(tkhd.end-4)/65536;
+    if(Number.isInteger(width)&&Number.isInteger(height)&&width>0&&height>0&&width*height<=24_000_000)
+      return {width,height};
+  }
+  return undefined;
 }

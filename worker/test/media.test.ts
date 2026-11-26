@@ -1,6 +1,6 @@
 import {beforeEach, afterEach, describe, expect, it, vi} from "vitest";
 import worker from "../src/index";
-import {inspectHeader, mediaUrl, videoDuration, PREFIX, JPEG_HEADER_LIMIT, maxBytes} from "../src/media-header";
+import {inspectHeader, mediaUrl, videoDuration, videoDimensions, PREFIX, JPEG_HEADER_LIMIT, maxBytes} from "../src/media-header";
 import {batchTransition,type BatchState} from "../src/upload-batch-control";
 import {quota, resetQuotaReservations} from "../src/quota";
 import {CHUNK_BYTES, UPLOAD_TTL, transition, stage, actionsRun, type State, type Manifest} from "../src/upload-control";
@@ -11,7 +11,7 @@ const env={CLIPOTECA_WRITE_TOKEN:token,CLIPOTECA_ISSUE_TOKEN:"test-issues-token"
   CLIPOTECA_UPLOAD_TOKEN:"test-upload-token"};
 const descriptive={description:{es:"Lluvia sobre el campo",en:"Rain in a field"},tags:{es:["lluvia"],en:["rain"]}};
 const metadata={kind:"image",title:"Lluvia",author:"Autor",source:"Origen",...descriptive};
-const png=(w=100,h=100,size=24)=>{
+const png=(w=464,h=688,size=24)=>{
   const b=new Uint8Array(size),v=new DataView(b.buffer);
   v.setUint32(0,0x89504e47);v.setUint32(4,0x0d0a1a0a);
   v.setUint32(8,13);v.setUint32(12,0x49484452);
@@ -281,7 +281,7 @@ describe("media intake",()=>{
     vi.stubGlobal("FixedLengthStream",TestFixedLengthStream);
     const records=new Map<string,{name:string;size:number;state:string;browser_download_url:string}>();
     let manifest="", uploaded=0;
-    const bytes=format==="png"?png(100,100,PREFIX+4096):jpegWithApps(phoneApps,4160,3120,524288);
+    const bytes=format==="png"?png(464,688,PREFIX+4096):jpegWithApps(phoneApps,4160,3120,524288);
     const fetcher=vi.fn(async (url:string|URL|Request,init?:RequestInit)=>{
       const u=new URL(String(url));
       if(u.hostname==="github.com")return new Response(manifest);
@@ -486,7 +486,7 @@ describe("queued mobile upload without a personal token",()=>{
     const image_base64=btoa(String.fromCharCode(...png()));
     const accepted=await worker.fetch(post(path,{...descriptive,image_base64},false),queued);
     expect(accepted.status).toBe(202);
-    expect(await accepted.json()).toMatchObject({status:"processing"});
+    expect(await accepted.json()).toMatchObject({status:"processing",quality_pending:true,low_resolution:true});
     expect(b.puts).toHaveBeenCalledTimes(1);
   });
 
@@ -743,4 +743,26 @@ describe("public render global cap", () => {
     }
     expect(batchTransition(state, {action: "limit_video", ip}, Date.now()).code).toBe(429);
   });
+});
+
+it("reads advisory geometry only from a bounded video track",()=>{
+  const box=(kind:string,payload:Uint8Array)=>{
+    const bytes=new Uint8Array(payload.length+8);
+    new DataView(bytes.buffer).setUint32(0,bytes.length);
+    bytes.set(new TextEncoder().encode(kind),4);
+    bytes.set(payload,8);return bytes;
+  };
+  const concat=(...parts:Uint8Array[])=>{
+    const bytes=new Uint8Array(parts.reduce((n,p)=>n+p.length,0));
+    let at=0;for(const part of parts){bytes.set(part,at);at+=part.length;}return bytes;
+  };
+  const track=new Uint8Array(84);
+  const view=new DataView(track.buffer);
+  view.setUint32(76,464*65536);view.setUint32(80,688*65536);
+  const handler=new Uint8Array(12);
+  handler.set(new TextEncoder().encode("vide"),8);
+  const payload=box("moov",box("trak",concat(box("tkhd",track),box("mdia",box("hdlr",handler)))));
+  expect(videoDimensions(payload,"video/mp4")).toEqual({width:464,height:688});
+  expect(videoDimensions(payload.subarray(0,40),"video/mp4")).toBeUndefined();
+  expect(videoDimensions(payload,"video/webm")).toBeUndefined();
 });

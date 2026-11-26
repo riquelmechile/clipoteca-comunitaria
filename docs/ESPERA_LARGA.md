@@ -65,3 +65,12 @@ normalizar con los valores originales y el registro final. No guardar ni
 publicar download_url, file_id ni tokens. La prueba nativa del host requiere
 Clipoteca conectado y un adjunto real; no se reemplaza por una llamada REST
 con URL inventada. Hasta que se mida, no se atribuye la causa al host.
+
+El recibo inmediato de subir_archivo incluye quality_pending:true y, si el
+prefijo contiene geometria de imagen o una pista MP4 completa, low_resolution
+como aviso preliminar. No se inventa un valor para WebM/moov tardio. El
+resultado definitivo llega por esperar_aportes. Las rutas antiguas de
+registro sincronico por URL aplican el umbral si su cabecera ofrece medidas;
+no pueden certificar dimensiones que no esten presentes en el prefijo.
+El pipeline registra en logs geometria, bytes y sha256 del archivo recibido
+antes de normalizar, sin registrar el enlace temporal ni credenciales.
