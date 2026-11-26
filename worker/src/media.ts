@@ -141,11 +141,11 @@ function length(value:string|null):number {
  * must replay the consumed bytes verbatim to GitHub after validation.
  * Only uploads retain a bounded replay buffer, never an entire large file.
  */
-async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:number,kind:MediaKind,upload=false,fullValidationLater=false) {
+async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:number,kind:MediaKind,upload=false,fullValidationLater=false,unknownLength=false) {
   const limit=Math.min(bytes,probeLimit(kind));
   const replay=upload?new Uint8Array(limit):undefined;
   let consumed=0,offset=0,chunk:Uint8Array|undefined,jpeg=false;
-  const transfer=async(count:number,out?:Uint8Array)=>{
+  const transfer=async(count:number,out?:Uint8Array,allowEof=false)=>{
     if(consumed+count>limit)throw new TypeError(jpeg && bytes>limit?"jpeg_header_too_long":"invalid_media_header");
     let copied=0;
     while(copied<count){
@@ -153,7 +153,7 @@ async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:n
         let part:ReadableStreamReadResult<Uint8Array>;
         try{part=await reader.read();}
         catch(e){if(!upload)throw new SourceError("source_read_failed",502);throw e;}
-        if(part.done)throw new TypeError(upload?"truncated_upload":"truncated_source");
+        if(part.done){if(allowEof)return copied;throw new TypeError(upload?"truncated_upload":"truncated_source");}
         chunk=part.value;offset=0;
         if(!chunk.length)continue;
       }
@@ -163,6 +163,7 @@ async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:n
       replay?.set(slice,consumed);
       copied+=n;consumed+=n;offset+=n;
     }
+    return copied;
   };
   const read=async(count:number)=>{
     const value=new Uint8Array(count);
@@ -173,12 +174,13 @@ async function readHeader(reader:ReadableStreamDefaultReader<Uint8Array>,bytes:n
   jpeg=kind==="image" && signature[0]===0xff && signature[1]===0xd8;
   let info:ReturnType<typeof checked>;
   if(jpeg){
-    info={mime:await scanJpeg(read,count=>transfer(count))};
+    info={mime:await scanJpeg(read,async count=>{await transfer(count);})};
   }else{
     const head=new Uint8Array(Math.min(PREFIX,limit));
     head.set(signature);
-    head.set(await read(head.length-signature.length),signature.length);
-    info=fullValidationLater?{mime:inspectHeader(head,kind)}:checked(head,kind);
+    const count=await transfer(head.length-signature.length,head.subarray(signature.length),unknownLength);
+    const actual=head.subarray(0,signature.length+count);
+    info=fullValidationLater?{mime:inspectHeader(actual,kind)}:checked(actual,kind);
   }
   return {info,head:replay?.subarray(0,consumed),tail:chunk?.subarray(offset)};
 }
@@ -289,7 +291,7 @@ const signKey=(env:MediaEnv)=>crypto.subtle.importKey("raw",encoder.encode(env.C
 const UPLOAD_ID=/^a\d{4}-\d{2}-[a-f0-9]{32}$/;
 const newMediaId=()=>"a"+new Date().toISOString().slice(0,7)+"-"+hex(crypto.getRandomValues(new Uint8Array(16)));
 const publicReady=(env:MediaEnv)=>queue.configured(env)&&Boolean(env.CLIPOTECA_WRITE_TOKEN&&env.CLIPOTECA_WRITE_TOKEN.length>=16);
-async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:string,admitted=false,size?:number) {
+async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:string,admitted=false,size?:number,unknownLength=false) {
   const queued=queue.configured(env);
   if(!meta){
     const raw=await bodyJson(request);
@@ -297,11 +299,12 @@ async function ticket(request:Request,env:MediaEnv,meta?:Metadata,session?:strin
     if(object(raw))size=raw.size as number|undefined;
   }
   if(queued&&!meta.description?.es)return err("invalid_description",400);
-  if((queued||size!==undefined)&&(!Number.isSafeInteger(size)||size!<=0))return err("invalid_length",400);
+  if(((queued&&!unknownLength)||size!==undefined)&&(!Number.isSafeInteger(size)||size!<=0))return err("invalid_length",400);
   if(size!==undefined&&size>maxBytes(meta.kind))return err("media_too_large",413);
   if(!queued&&size!==undefined&&size>SINGLE_PUT_MAX)return err("use_parts",413);
   if(!admitted && !(queued?await queue.admit(request,env,"limit_ticket"):await quota(request,"media-ticket")))return err("rate_limited",429);
-  if(queued&&!await queue.admit(request,env,"limit_bytes",size))return err("rate_limited",429);
+  // Unknown lengths reserve the maximum before reading; no unmetered staging.
+  if(queued&&!await queue.admit(request,env,"limit_bytes",unknownLength?maxBytes(meta.kind):size))return err("rate_limited",429);
   const id=newMediaId();
   if(session){
     const reserved=await queue.batchCommand(env,session,{action:"session_add",file:{media_id:id,kind:meta.kind}});
@@ -381,7 +384,9 @@ async function getUpload(env:MediaEnv,id:string):Promise<RecordMedia|null>{
 async function queuedUpload(request:Request,env:MediaEnv,id:string,body=request.body,internal=false){
   const claim=await verify(request,env,id);
   if(!claim)return err("invalid_or_expired_upload",401);
-  const declared=Number(request.headers.get("content-length"));
+  const rawLength=request.headers.get("content-length");
+  const unknownLength=internal&&rawLength===null&&claim.size===undefined;
+  const declared=Number(rawLength);
   if(!internal&&declared>SINGLE_PUT_MAX)return err("use_parts",413);
   if(claim.size!==undefined&&declared!==claim.size)return err("invalid_length",400);
   const begin=await queue.command(env,id,{action:"begin"});
@@ -389,14 +394,15 @@ async function queuedUpload(request:Request,env:MediaEnv,id:string,body=request.
   let reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
   let count=0;
   try{
-    const bytes=length(request.headers.get("content-length"));
-    if(bytes>maxBytes(claim.kind))throw new TypeError("media_too_large");
+    const limit=unknownLength?maxBytes(claim.kind):length(rawLength);
+    if(limit>maxBytes(claim.kind))throw new TypeError("media_too_large");
     if(!body)throw new TypeError("truncated_upload");
-    if(claim.size===undefined&&!await queue.admit(request,env,"limit_bytes",bytes))throw new TypeError("rate_limited");
+    if(claim.size===undefined&&!unknownLength&&!await queue.admit(request,env,"limit_bytes",limit))throw new TypeError("rate_limited");
     reader=body.getReader();
-    const {head,tail,info}=await readHeader(reader,bytes,claim.kind,true,true);
-    const chunks=await queue.stage(env.UPLOADS!,id,bytes,reader,[head,tail]);
+    const {head,tail,info}=await readHeader(reader,limit,claim.kind,true,true,unknownLength);
+    const chunks=await queue.stage(env.UPLOADS!,id,limit,reader,[head,tail],unknownLength);
     count=chunks.length;
+    const bytes=chunks.reduce((sum,chunk)=>sum+chunk.bytes,0);
     const {id:_id,exp:_exp,size:_size,...meta}=claim;
     const manifest:queue.Manifest={...meta,media_id:id,bytes,mime:info.mime,created_at:new Date().toISOString(),chunks};
     const cap=queue.capability();
@@ -561,14 +567,38 @@ const mimeKind=(mime:unknown):MediaKind|undefined=>
   typeof mime==="string"&&/^(video\/(mp4|webm|quicktime))$/i.test(mime.split(";")[0]!)?"video":undefined;
 const fileKind=(name:unknown):MediaKind|undefined=>typeof name==="string"?
   /\.(jpe?g|png|webp)$/i.test(name)?"image":/\.(mp4|mov|webm)$/i.test(name)?"video":undefined:undefined;
-function allowedFileUrl(raw:unknown,env:MediaEnv):URL {
-  if(typeof raw!=="string"||raw.length>4096)throw new TypeError("invalid_url");
+// Only report a parsed hostname; never include URLs, paths, query strings or errors from fetch.
+function allowedFileUrl(raw:unknown,env:MediaEnv,base?:URL):URL {
+  const code=base?"redirect":"invalid_url";
+  if(typeof raw!=="string"||!raw||raw.length>4096)throw new SourceError(code,400,"URL ausente o invalida.");
   let url:URL;
-  try{url=new URL(raw);}catch{throw new TypeError("invalid_url");}
-  const hosts=(env.CLIPOTECA_FILE_HOSTS??"oaiusercontent.com").split(",").map(v=>v.trim().toLowerCase()).filter(Boolean);
+  try{url=new URL(raw,base);}catch{throw new SourceError(code,400,"URL invalida.");}
+  const hosts=(env.CLIPOTECA_FILE_HOSTS??"oaiusercontent.com,files.openai.com").split(",").map(v=>v.trim().toLowerCase()).filter(Boolean);
   if(url.protocol!=="https:"||url.username||url.password||url.port||url.hash||
-    !hosts.some(h=>/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h)&&(url.hostname===h||url.hostname.endsWith("."+h))))throw new TypeError("invalid_url");
+    !hosts.some(h=>/^[a-z0-9.-]+\.[a-z]{2,}$/.test(h)&&(url.hostname===h||url.hostname.endsWith("."+h))))
+    throw new SourceError(code,400,"Host o URL no permitido: "+(url.hostname||"(sin host)")+".");
   return url;
+}
+async function downloadFile(raw:unknown,env:MediaEnv):Promise<Response>{
+  let url=allowedFileUrl(raw,env);
+  const signal=AbortSignal.timeout(120000);
+  for(let hops=0;;hops++){
+    let response:Response;
+    try{response=await fetch(url.href,{redirect:"manual",signal,headers:{"accept-encoding":"identity"}});}
+    catch{throw new SourceError("source_unreachable",502,"No se pudo conectar con el host "+url.hostname+".");}
+    if([301,302,303,307,308].includes(response.status)){
+      const location=response.headers.get("location");
+      await response.body?.cancel().catch(()=>{});
+      const next=allowedFileUrl(location,env,url);
+      if(hops>=3)throw new SourceError("redirect",400,"Maximo 3 redirecciones; destino: "+next.hostname+".");
+      url=next;continue;
+    }
+    if(response.status!==200||!response.body){
+      await response.body?.cancel().catch(()=>{});
+      throw new SourceError("source_status_"+response.status,422,"Origen "+url.hostname+": HTTP "+response.status+(response.status===200?" sin cuerpo.":"."));
+    }
+    return response;
+  }
 }
 const B64_LIMIT=40*1024;
 function batchPage():Response{
@@ -619,11 +649,11 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
     let kind=raw.kind;
     try{
       if(raw.file!==undefined){
-        if(!object(raw.file)||typeof raw.file.file_id!=="string"||!raw.file.file_id||raw.file.file_id.length>256)return err("invalid_media",400);
-        const url=allowedFileUrl(raw.file.download_url,env);
-        remote=await fetch(url.href,{redirect:"manual",signal:AbortSignal.timeout(120000),headers:{"accept-encoding":"identity"}});
-        if(remote.status!==200||!remote.body)return err("source_unreachable",422,"No se pudo descargar el archivo temporal. Usa subida directa o renueva el archivo.");
-        if(remote.headers.get("content-encoding")&&!/^identity$/i.test(remote.headers.get("content-encoding")!))return err("invalid_encoding",400);
+        if(typeof raw.file==="string"||(object(raw.file)&&typeof raw.file.file_id==="string"&&!raw.file.download_url))
+          return err("missing_download_url",400,"El host entrego file_id sin download_url. Solicita al host una referencia temporal completa; no inventes URL.");
+        if(!object(raw.file)||typeof raw.file.file_id!=="string"||!raw.file.file_id||raw.file.file_id.length>256)return err("invalid_media",400,"Se requiere un objeto file con file_id y download_url.");
+        remote=await downloadFile(raw.file.download_url,env);
+        if(remote.headers.get("content-encoding")&&!/^identity$/i.test(remote.headers.get("content-encoding")!))return err("invalid_encoding",400,"El origen devolvio content-encoding distinto de identity.");
         kind=kind??mimeKind(raw.file.mime_type)??mimeKind(remote.headers.get("content-type"))??fileKind(raw.file.file_name);
       }
       if(raw.image_base64!==undefined){
@@ -637,21 +667,28 @@ async function handleBatch(request:Request,env:MediaEnv):Promise<Response>{
       const meta=metadata({kind,title:raw.title??"Aporte comunitario",author:raw.author??"Anonimo",
         source:raw.source??"Aporte de usuario",description:raw.description,tags:raw.tags,...(raw.license_note===undefined?{}:{license_note:raw.license_note})});
       let bytes:number|undefined;
+      const header=remote?.headers.get("content-length");
+      const unknownLength=Boolean(remote&&header===null);
       if(remote||data){
-        bytes=data?.length??length(remote!.headers.get("content-length"));
-        if(bytes>maxBytes(meta.kind))return err("media_too_large",413);
+        if(data)bytes=data.length;
+        else if(!unknownLength){
+          try{bytes=length(header??null);}catch{return err("invalid_length",400,"Content-Length del origen invalido.");}
+        }
+        if(bytes!==undefined&&bytes>maxBytes(meta.kind))return err("media_too_large",413);
       }
-      if(raw.size!==undefined&&bytes!==undefined&&raw.size!==bytes)return err("invalid_length",400);
-      const response=await ticket(request,env,meta,id,true,bytes??(raw.size as number|undefined));
-      if(!response.ok||bytes===undefined)return response;
+      if(raw.size!==undefined&&(unknownLength||(bytes!==undefined&&raw.size!==bytes)))return err("invalid_length",400,"No se puede verificar size contra Content-Length del origen.");
+      const response=await ticket(request,env,meta,id,true,bytes??(raw.size as number|undefined),unknownLength);
+      if(!response.ok||(!remote&&!data))return response;
       const t=await response.json<{media_id:string;put_url:string;upload_token:string}>();
-      const headers=new Headers({"authorization":"Bearer "+t.upload_token,"content-length":String(bytes)});
+      const headers=new Headers({"authorization":"Bearer "+t.upload_token});
+      if(bytes!==undefined)headers.set("content-length",String(bytes));
       const ip=request.headers.get("cf-connecting-ip");if(ip)headers.set("cf-connecting-ip",ip);
       // Do not wrap an upstream stream in a synthetic Request (Node requires duplex).
       const stream=data?new Response(data).body:remote!.body;
       return await queuedUpload(new Request(t.put_url,{method:"PUT",headers}),env,t.media_id,stream,true);
     }finally{if(remote?.body&&!remote.body.locked)await remote.body.cancel().catch(()=>{});}
   }catch(e){
+    if(e instanceof SourceError)return err(e.code,e.status,e.publicMessage);
     if(e instanceof TypeError&&Object.prototype.hasOwnProperty.call(mediaMessages,e.message))return err(e.message,400);
     return err("media_unavailable",503,"No se pudo procesar la subida.");
   }
