@@ -536,6 +536,17 @@ def clip_scene(
     final_clip.unlink(missing_ok=True)
     (root / "result.json").unlink(missing_ok=True)
     started = time.monotonic()
+    from .stage_timing import write_timings
+
+    timing_started = time.perf_counter()
+    timings = {"download": 0.0, "evaluators": 0.0, "evaluate_render": 0.0}
+
+    def save(report):
+        timings["total"] = time.perf_counter() - timing_started
+        write_timings(root / "stage-clipscene.json", "Clipscene", timings)
+        _atomic_json(root / "result.json", report)
+        return report
+
     try:
         timeout = float(os.environ.get("CLIPOTECA_SCENE_TIMEOUT", "600"))
     except ValueError as exc:
@@ -552,8 +563,7 @@ def clip_scene(
             "reason": "needs_import",
             "tried": [],
         }
-        _atomic_json(root / "result.json", report)
-        return report
+        return save(report)
     source = [assignment.get("primary")] if assignment.get("primary") else []
     source += list(assignment.get("backups", []))
     skipped = set(exclude)
@@ -585,6 +595,7 @@ def clip_scene(
             if local == remote:
                 attempts.append({"clip_id": cid, "reason": "invalid_candidate"})
                 continue
+            stage_started = time.perf_counter()
             try:
                 if local:
                     _local_source(
@@ -610,15 +621,22 @@ def clip_scene(
             except Exception:
                 attempts.append({"clip_id": cid, "reason": "download_failed"})
                 continue
+            finally:
+                timings["download"] += time.perf_counter() - stage_started
             if not evaluators_ready:
+                stage_started = time.perf_counter()
                 scorer, ocr = _initialize_evaluators(scorer, ocr)
+                timings["evaluators"] += time.perf_counter() - stage_started
                 evaluators_ready = True
+            stage_started = time.perf_counter()
             try:
                 result, reason = _attempt(
                     job, candidate, downloaded, rendered, scorer, ocr, deadline
                 )
             except TimeoutError:
                 result, reason = None, "timeout"
+            finally:
+                timings["evaluate_render"] += time.perf_counter() - stage_started
             if result is not None:
                 analyzed_s = result.pop("_analyzed_s", None)
                 degraded = result.pop("degraded_reason", None)
@@ -700,16 +718,14 @@ def clip_scene(
                         break
                     continue
                 os.replace(rendered, final_clip)
-                _atomic_json(root / "result.json", report)
-                return report
+                return save(report)
             attempts.append({"clip_id": cid, "reason": reason})
             if reason == "timeout" and time.monotonic() >= deadline:
                 break
     if best is not None:
         best["tried"] = attempts
         best["time_s"] = round(time.monotonic() - started, 3)
-        _atomic_json(root / "result.json", best)
-        return best
+        return save(best)
     report = {
         "version": 1,
         "id": scene_id,
@@ -717,8 +733,7 @@ def clip_scene(
         "reason": "no_candidate",
         "tried": attempts,
     }
-    _atomic_json(root / "result.json", report)
-    return report
+    return save(report)
 
 
 def main(argv: list[str] | None = None) -> int:

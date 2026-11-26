@@ -8,6 +8,7 @@ import json
 import os
 import re
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -172,6 +173,9 @@ def write_plan(
     media_api: str | None = None,
 ) -> dict[str, Any]:
     """Write plan and one job per scene, rejecting unsafe IDs before any write."""
+    from .stage_timing import write_timings
+
+    started = time.monotonic()
     for scene in script.scenes:
         _safe_scene_id(scene.id)
     plan = build_plan(script)
@@ -180,10 +184,12 @@ def write_plan(
         scene_job(script, scene, est)
         for scene, est in zip(script.scenes, plan["scenes"], strict=True)
     ]
+    jobs_done = time.monotonic()
     if media_api is not None:
         from .pending_media import resolve_pending_jobs
 
         asyncio.run(resolve_pending_jobs(jobs, plan["scenes"], media_api))
+    pending_done = time.monotonic()
     free_jobs = [job for job in jobs if "media" not in job]
     if resolve_related and free_jobs:
         from .related import resolve_jobs
@@ -199,6 +205,7 @@ def write_plan(
                 "related " + json.dumps({"scene": job["id"], **diagnostic}, ensure_ascii=True),
                 flush=True,
             )
+    related_done = time.monotonic()
     assignments = None
     if catalog_path is not None:
         from .library import assign_scenes, load_catalog
@@ -259,6 +266,7 @@ def write_plan(
                 for item in listed
             },
         }
+    assignment_done = time.monotonic()
     for scene, job in zip(script.scenes, jobs, strict=True):
         folder = root / "scenes" / scene.id
         _atomic_json(folder / "job.json", job)
@@ -267,6 +275,19 @@ def write_plan(
     if assignments is not None:
         _atomic_json(root / "assignments.json", assignments)
     _atomic_json(root / "plan.json", plan)
+    finished = time.monotonic()
+    write_timings(
+        root / "stage-plan.json",
+        "Plan",
+        {
+            "jobs": jobs_done - started,
+            "pending_media": pending_done - jobs_done,
+            "related": related_done - pending_done,
+            "assignment": assignment_done - related_done,
+            "write": finished - assignment_done,
+            "total": finished - started,
+        },
+    )
     return plan
 
 

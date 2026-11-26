@@ -135,6 +135,19 @@ def select_scene(root, phase, *, exclude=(), runner=clip_scene):
         )
         and not (root / "import-retry" / "imported.json").exists()
     )
+    # Fast import can deliberately stop before the hard deadline when no clip
+    # was evaluated. Only skip the second search if a usable fallback exists.
+    if result["needs_retry"] and result.get("status") == "ok":
+        manifest = root / "import" / "imported.json"
+        try:
+            diagnostic = _read(manifest)
+        except (OSError, ValueError):
+            diagnostic = None
+        if (
+            isinstance(diagnostic, dict)
+            and diagnostic.get("termination_reason") == "early_fallback"
+        ):
+            result["needs_retry"] = False
     if result.get("status") == "ok":
         result["source"] = origin
         result["fallback"] = bool(result.get("degraded_reason")) or (

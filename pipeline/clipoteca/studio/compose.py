@@ -756,7 +756,9 @@ def render_video(
         if mux.returncode or not final.is_file() or not final.stat().st_size:
             raise ComposeError("FFmpeg mux failed")
         mux_s = time.monotonic() - mux_started
+        probe_started = time.monotonic()
         measured = _probe_output(final, total, width, height)
+        probe_s = time.monotonic() - probe_started
         gsap_hash = hashlib.sha256((hf / "assets" / "gsap.min.js").read_bytes()).hexdigest()
         report = {
             **measured,
@@ -768,6 +770,18 @@ def render_video(
         }
         os.replace(final, destination)
         _atomic(destination.with_name("render.json"), _json_bytes(report))
+        from .stage_timing import write_timings
+
+        write_timings(
+            destination.with_name("stage-compose-render.json"),
+            "Compose render",
+            {
+                "render": render_s,
+                "mux": mux_s,
+                "probe": probe_s,
+                "total": time.monotonic() - started,
+            },
+        )
         return report
 
 
@@ -787,9 +801,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "build":
+            from .stage_timing import write_timings
+
+            started = time.monotonic()
             script = parse_video_script(json.loads(args.script.read_text(encoding="utf-8")))
             timeline = json.loads(args.timeline.read_text(encoding="utf-8"))
             gsap = args.gsap or ensure_gsap(args.out / ".gsap-cache")
+            setup_done = time.monotonic()
             result = build_composition(
                 script,
                 timeline,
@@ -797,6 +815,16 @@ def main(argv: list[str] | None = None) -> int:
                 args.mix,
                 args.out,
                 gsap,
+            )
+            finished = time.monotonic()
+            write_timings(
+                args.out / "stage-compose-build.json",
+                "Compose build",
+                {
+                    "setup": setup_done - started,
+                    "build": finished - setup_done,
+                    "total": finished - started,
+                },
             )
         else:
             result = render_video(args.hf, args.out)
