@@ -36,5 +36,5 @@
 <text x="920" y="346" font-size="18" fill="#C5D8EF">GitHub Releases</text>
 <text x="920" y="370" font-size="18" fill="#C5D8EF">Sin duplicados</text>
 <text x="655" y="213" font-size="18" fill="#FFB571">Si falta el clip</text>
-<circle r="6" fill="#67F5CF"><animateMotion dur="5s" repeatCount="indefinite" path="M215 121H1065"/></circle><circle r="6" fill="#FFB571"><animateMotion dur="12s" repeatCount="indefinite" path="M640 121V253H215V342H1065V121"/></circle>
+<circle r="6" fill="#67F5CF" visibility="hidden"><set attributeName="visibility" to="visible" begin="0s"/><animateMotion dur="5s" repeatCount="indefinite" path="M215 121H1065"/></circle><circle r="6" fill="#FFB571" visibility="hidden"><set attributeName="visibility" to="visible" begin="0s"/><animateMotion dur="12s" repeatCount="indefinite" path="M640 121V253H215V342H1065V121"/></circle>
 </g></svg>
