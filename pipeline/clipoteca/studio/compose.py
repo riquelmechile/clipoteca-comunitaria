@@ -188,7 +188,8 @@ def _title(scene: Any, row: dict[str, Any], layout: dict[str, Any]) -> str:
     base = layout["title"][1 if scene.type == "intro" else 0]
     title_font = fit(scene.title, base, width)
     sub_font = fit(scene.sub, layout["sub"], width, 0.55)
-    word_spans = "".join(
+    # Real spaces between the animated words: inline-block margins alone collapse them.
+    word_spans = " ".join(
         f'<span class="tw" style="display:inline-block;margin:0 {int(title_font * 0.11)}px">'
         f"{html.escape(word, quote=True)}</span>"
         for word in scene.title.split()
