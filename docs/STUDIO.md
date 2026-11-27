@@ -80,9 +80,11 @@ subtítulo conserva el texto escrito.
 | title, aspect | Título de hasta 120 caracteres; 9:16, 16:9 o 1:1 |
 | language | es (por defecto) |
 | music | mood upbeat, chill o epic; bpm 60–180 (120 por defecto) |
-| voice | M1–M5 o F1–F5; speed 0,8–1,5; lexicon opcional; F1 y 1,2 por defecto |
+| voice | M1, M2, M3, M4, M5 (masculinas); F1, F2, F3, F4, F5 (femeninas); speed 0,8–1,5; lexicon opcional; F1 a 1,2 por defecto |
 | scenes | 3–12; ID único; type intro, fact u outro; al menos una fact |
 | Campos de escena | id, type, title, say, query.es, query.en, prompt; opcionales sub, caption, avoid, query.related |
+
+El LLM debe elegir la voz según el tono del guion y variarla cuando el usuario repita un video parecido.
 
 `query.related` acepta listas opcionales `es` y `en` de hasta ocho terminos por idioma
 (por ejemplo, `{"es":["Castro","Ancud"],"en":["Chiloe churches"]}`). Deben ser

@@ -9,10 +9,14 @@
 <p align="center">
   <a href="https://github.com/riquelmechile/clipoteca-comunitaria/releases/latest"><img src="https://img.shields.io/github/v/release/riquelmechile/clipoteca-comunitaria?style=flat-square&label=versi%C3%B3n&color=67F5CF&labelColor=0B1731" alt="Última versión publicada" /></a>
   <a href="https://github.com/riquelmechile/clipoteca-comunitaria/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/riquelmechile/clipoteca-comunitaria/ci.yml?branch=main&style=flat-square&label=CI&labelColor=0B1731" alt="Estado de CI en main" /></a>
+  <a href="https://glama.ai/mcp/servers/riquelmechile/clipoteca-comunitaria"><img src="https://glama.ai/mcp/servers/riquelmechile/clipoteca-comunitaria/badge" alt="Clipoteca en Glama" /></a>
+  <a href="https://github.com/hashgraph-online/awesome-ai-plugins"><img src="https://img.shields.io/badge/Hashgraph%20Online-awesome--ai--plugins-47D8C5?style=flat-square" alt="Hashgraph Online: awesome-ai-plugins" /></a>
   <img src="https://img.shields.io/badge/API-REST%20%2B%20MCP-47D8C5?style=flat-square&labelColor=0B1731" alt="API REST y MCP" />
   <img src="https://img.shields.io/badge/idiomas-es%20%C2%B7%20en%20%C2%B7%20zh%20%C2%B7%20ru-5A9EF2?style=flat-square&labelColor=0B1731" alt="Idiomas: español, inglés, chino y ruso" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-FFB571?style=flat-square&labelColor=0B1731" alt="Licencia MIT" /></a>
 </p>
+
+Glama utiliza el MCP local de solo lectura: `uv run clipoteca-mcp`.
 
 ## Una biblioteca de escenas que se llena sola
 
