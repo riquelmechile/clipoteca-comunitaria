@@ -183,11 +183,49 @@ def _attr(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
+def _title_zone_height(layout: dict[str, Any]) -> int:
+    # Reserve clearance for entry animation and the subtitle pill.
+    return layout["cap"][2] - layout["block"][2] - 96
+
+
+def _wrapped_lines(text: str, size: int, width: int) -> int:
+    if not text:
+        return 0
+    lines = 1
+    used = 0.0
+    for word in text.split():
+        advance = _caption_units([word]) * size
+        if used and used + advance > width:
+            lines += 1
+            used = 0.0
+        used += advance
+    return lines
+
+
+def _title_sizes(scene: Any, layout: dict[str, Any]) -> tuple[int, int]:
+    width = layout["block"][1]
+    base = layout["title"][1 if scene.type == "intro" else 0]
+    title = fit(scene.title, base, width)
+    sub = fit(scene.sub, layout["sub"], width, 0.55)
+    available = _title_zone_height(layout)
+    while (
+        _wrapped_lines(scene.title, title, width) * title * 1.1
+        + _wrapped_lines(scene.sub, sub, width) * sub * 1.2
+        + sub * 0.6
+        > available
+        or any(_caption_units([word]) * title > width for word in scene.title.split())
+        or any(_caption_units([word]) * sub > width for word in scene.sub.split())
+    ):
+        if title >= sub:
+            title -= 1
+        else:
+            sub -= 1
+    return title, sub
+
+
 def _title(scene: Any, row: dict[str, Any], layout: dict[str, Any]) -> str:
     left, width, top, align = layout["block"]
-    base = layout["title"][1 if scene.type == "intro" else 0]
-    title_font = fit(scene.title, base, width)
-    sub_font = fit(scene.sub, layout["sub"], width, 0.55)
+    title_font, sub_font = _title_sizes(scene, layout)
     # Real spaces between the animated words: inline-block margins alone collapse them.
     word_spans = " ".join(
         f'<span class="tw" style="display:inline-block;margin:0 {int(title_font * 0.11)}px">'
@@ -203,7 +241,7 @@ def _title(scene: Any, row: dict[str, Any], layout: dict[str, Any]) -> str:
         "background:linear-gradient(180deg,rgba(0,0,0,0.58) 0%,rgba(0,0,0,0.12) 34%,"
         'rgba(0,0,0,0) 50%,rgba(0,0,0,0.10) 66%,rgba(0,0,0,0.55) 100%)"></div>'
         f'<div class="tblock" style="position:absolute;left:{left}px;width:{width}px;'
-        f'top:{top}px;text-align:{align}">'
+        f'top:{top}px;height:{_title_zone_height(layout)}px;overflow:hidden;text-align:{align}">'
         f'<div class="title" style="font:900 {title_font}px/1.05 {FONT};color:#FFFFFF;'
         f'text-shadow:{SHADOW}"><span class="qa-text">{word_spans}</span></div>'
         f'<div class="sub qa-text" style="margin-top:{int(sub_font * 0.6)}px;'

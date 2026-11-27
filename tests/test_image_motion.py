@@ -16,7 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_worker_asset_allowlist_matches_checkout():
     allowed = json.loads((ROOT / "worker/src/repo-assets.json").read_text())
-    assert allowed == sorted("asset:" + path.stem for path in ASSETS.glob("*.svg"))
+    assert allowed == sorted(
+        "asset:" + path.stem for path in ASSETS.glob("*.svg") if path.stem != "clipoteca-typing"
+    )
+    with pytest.raises(ValueError, match="fuera de lista"):
+        asset_path("asset:clipoteca-typing")
     with pytest.raises(ValueError, match="fuera de lista"):
         asset_path("asset:unknown")
     with pytest.raises(ValueError):
@@ -102,11 +106,12 @@ def test_image_scene_and_fit_real_mp4(tmp_path, monkeypatch):
     not all(shutil.which(tool) for tool in ("rsvg-convert", "ffmpeg", "ffprobe")),
     reason="librsvg and ffmpeg required",
 )
-def test_repo_svg_motion(tmp_path):
+@pytest.mark.parametrize("asset", ["clipoteca-pipeline", "clipoteca-studio"])
+def test_repo_svg_motion(tmp_path, asset):
     job = {
         "id": "diagram",
         "source_kind": "repo_asset",
-        "media": {"ref": "asset:clipoteca-pipeline"},
+        "media": {"ref": f"asset:{asset}"},
         "aspect": "16:9",
         "len_est": 2,
         "len_fetch": 2,

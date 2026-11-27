@@ -688,3 +688,34 @@ def test_scaled_explicit_contribution_appears_in_qa_warnings(job):
     assert {"scene_id": "intro", "reason": "aporte de baja resolución escalado"} in report[
         "warnings"
     ]
+
+
+@pytest.mark.skipif(
+    os.environ.get("CLIPOTECA_M31_REAL_LAYOUT") != "1",
+    reason="real browser test is opt-in; requires installed Chromium",
+)
+@pytest.mark.parametrize("aspect", ["9:16", "16:9", "1:1"])
+def test_real_title_and_caption_zones(tmp_path, aspect):
+    from types import SimpleNamespace
+
+    from clipoteca.studio.compose import CONFIG, _caption_chunks, _caption_html, _title
+
+    layout = CONFIG[aspect]
+    scene = SimpleNamespace(
+        id="sur",
+        type="intro",
+        title="Extraordinarias montañas y paisajes del sur de Chile",
+        sub="Una historia de tradiciones, cultura, naturaleza y paisajes maravillosos",
+    )
+    row = {"start": 0, "len": 2, "vo": 0, "words": [("Chiloé", 0, 0.8)]}
+    chunks = _caption_chunks([row], 2, layout["cap"][1], layout["cap"][3])
+    (tmp_path / "index.html").write_text(
+        "<html><head><style>*{margin:0;padding:0;box-sizing:border-box}</style></head>"
+        "<body>"
+        + _title(scene, row, layout)
+        + _caption_html(chunks, layout)
+        + "<script>window.__timelines={main:{seek(){}}}</script></body></html>",
+        encoding="utf-8",
+    )
+    result = qa.layout_playwright(tmp_path, {"scenes": [row]}, [["Chiloé", 0]], aspect)
+    assert result["pass"], result["problems"]

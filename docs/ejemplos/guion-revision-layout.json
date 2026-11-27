@@ -1,0 +1,36 @@
+{
+  "title": "Revisión de zonas de texto",
+  "aspect": "9:16",
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Extraordinarias montañas y paisajes del sur de Chile",
+      "sub": "Una historia de tradiciones, cultura, naturaleza y paisajes maravillosos",
+      "say": "Descubre cómo se organizan los materiales.",
+      "media": {
+        "ref": "asset:clipoteca-pipeline"
+      }
+    },
+    {
+      "id": "fact",
+      "type": "fact",
+      "title": "Cómo funciona nuestra biblioteca comunitaria de escenas",
+      "sub": "Una historia de tradiciones, cultura, naturaleza y paisajes maravillosos",
+      "say": "La biblioteca busca, corta y comparte escenas.",
+      "media": {
+        "ref": "asset:clipoteca-studio"
+      }
+    },
+    {
+      "id": "outro",
+      "type": "outro",
+      "title": "Del guion a la publicación con controles de calidad",
+      "sub": "Una historia de tradiciones, cultura, naturaleza y paisajes maravillosos",
+      "say": "El control de calidad verifica cada video.",
+      "media": {
+        "ref": "asset:clipoteca-studio-qa"
+      }
+    }
+  ]
+}
