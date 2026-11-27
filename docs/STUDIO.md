@@ -467,3 +467,12 @@ Ejemplo mixto (sustituye los identificadores por los registrados en tu catálogo
   ]
 }
 ```
+
+
+### Revisión de zonas de texto
+
+El guion [guion-revision-layout.json](ejemplos/guion-revision-layout.json)
+permite comprobar títulos y subtítulos largos en los tres formatos. Cambiar
+solo `aspect` entre `9:16`, `16:9` y `1:1`. El SVG animado de consultas
+(`clipoteca-typing.svg`) permanece en la portada, pero no se admite como
+material de escena: su revelado inicial vacío no es fiable al rasterizarlo.

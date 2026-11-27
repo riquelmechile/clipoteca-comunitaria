@@ -586,3 +586,25 @@ def test_long_caption_groups_have_width_budget(aspect):
         assert units * chunk["font_size"] <= width - 6
     if aspect == "9:16":
         assert [word for word, _, _ in chunks[0]["words"]] != words[:3]
+
+
+@pytest.mark.parametrize("aspect", ["9:16", "16:9", "1:1"])
+def test_long_title_and_sub_have_separate_caption_zone(aspect):
+    scene = dataclasses.replace(
+        _script().scenes[0],
+        title="Extraordinarias montañas y paisajes del sur de Chile",
+        sub="Una historia de tradiciones, cultura, naturaleza y paisajes maravillosos",
+    )
+    layout = compose.CONFIG[aspect]
+    title, sub = compose._title_sizes(scene, layout)
+    height = compose._title_zone_height(layout)
+    width = layout["block"][1]
+    assert layout["block"][2] + height + 96 == layout["cap"][2]
+    assert (
+        compose._wrapped_lines(scene.title, title, width) * title * 1.1
+        + compose._wrapped_lines(scene.sub, sub, width) * sub * 1.2
+        + sub * 0.6
+        <= height
+    )
+    markup = compose._title(scene, {"start": 0, "len": 2}, layout)
+    assert f"height:{height}px;overflow:hidden" in markup
