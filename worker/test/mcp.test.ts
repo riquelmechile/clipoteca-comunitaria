@@ -67,13 +67,20 @@ describe("M10 MCP Streamable HTTP", () => {
     const response = await worker.fetch(rpc("tools/list", {}), environment);
     expect(response.status).toBe(200);
     const payload = (await rpcPayload(response)) as {result:{tools:Array<{
-      name:string; outputSchema:{type:string;properties:Record<string,unknown>}
+      name:string; description:string; outputSchema:{type:string;properties:Record<string,unknown>}
     }>}};
     const tools = payload.result.tools;
     expect(tools.map(t=>t.name).sort()).toEqual([
       "buscar_aportes", "crear_subida", "create_media_upload", "download_clip", "esperar_aportes", "esperar_video", "estado_subida", "get_clip", "get_job_status", "get_media_status", "get_storyboard", "get_video_status",
       "list_sources", "register_media_url", "render_video", "resolve_script", "search_and_import", "search_clips", "subir_archivo", "subir_imagen_base64", "ticket_subida",
     ]);
+    const renderDescription = tools.find(t=>t.name==="render_video")!.description;
+    for (const voice of ["M1","M2","M3","M4","M5","F1","F2","F3","F4","F5"]) {
+      expect(renderDescription).toContain(voice);
+    }
+    expect(renderDescription).toContain("0.8 y 1.5");
+    expect(renderDescription).toContain("F1 a 1.2");
+    expect(renderDescription).toContain("variarla");
     const properties:Record<string,string> = {
       search_clips:"clips",resolve_script:"scenes",get_clip:"clip",get_storyboard:"frames",download_clip:"url",
       search_and_import:"request_id",get_job_status:"request_id",list_sources:"sources",

@@ -53,6 +53,7 @@
       "additionalProperties": false,
       "properties": {
         "voice": {
+          "description": "M1–M5 masculinas y F1–F5 femeninas. Elige según el tono del guion y varía la voz en videos parecidos.",
           "enum": [
             "M1",
             "M2",
