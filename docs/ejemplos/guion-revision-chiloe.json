@@ -1,0 +1,67 @@
+{
+  "title": "Chile, de norte a sur",
+  "aspect": "9:16",
+  "language": "es",
+  "music": {
+    "mood": "epic",
+    "bpm": 100
+  },
+  "voice": {
+    "speed": 1.1
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "title": "Chile",
+      "sub": "De norte a sur",
+      "say": "Chile es una franja de más de cuatro mil kilómetros, apretada entre la cordillera de los Andes y el océano Pacífico.",
+      "query": {
+        "es": [
+          "cordillera de los Andes Chile",
+          "Santiago cordillera nevada"
+        ],
+        "en": [
+          "Andes mountains Chile aerial",
+          "Santiago Chile skyline Andes"
+        ]
+      },
+      "prompt": "Aerial footage of the snowy Andes mountains in Chile"
+    },
+    {
+      "id": "chiloe",
+      "type": "fact",
+      "title": "Chiloé",
+      "say": "Más al sur, Chiloé mezcla mar, lluvia, palafitos y bosques siempre verdes.",
+      "query": {
+        "es": [
+          "Chiloé palafitos",
+          "Chiloé isla"
+        ],
+        "en": [
+          "Chiloe island Chile",
+          "Chiloe stilt houses"
+        ]
+      },
+      "prompt": "Green coast and wooden houses of Chiloe island, Chile"
+    },
+    {
+      "id": "glaciar",
+      "type": "outro",
+      "title": "Chile",
+      "sub": "Un país de extremos",
+      "say": "Y al final del mapa, los glaciares cierran un país de extremos que cabe en un solo viaje.",
+      "query": {
+        "es": [
+          "glaciar Patagonia Chile",
+          "Campo de Hielo Sur"
+        ],
+        "en": [
+          "Patagonia glacier Chile",
+          "glacier ice Chile"
+        ]
+      },
+      "prompt": "Blue glacier ice in Chilean Patagonia"
+    }
+  ]
+}

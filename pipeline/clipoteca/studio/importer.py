@@ -762,6 +762,8 @@ def import_scene(
                         index == 0
                         and primary
                         and budget.catalog_fallback
+                        # A weak geographic fallback is not evidence that other place seeds fail.
+                        and not budget.place
                         and not any(budget.visual_cache.values())
                     ):
                         budget.forced_reason = "no_promising_candidates"

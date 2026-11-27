@@ -175,6 +175,41 @@ def test_fast_stops_after_first_primary_when_catalog_fallback_exists(tmp_path, m
     assert result["termination_reason"] == "no_promising_candidates"
 
 
+def test_fast_tries_other_place_seeds_despite_weak_catalog_fallback(tmp_path, monkeypatch):
+    settings = load("job.json")
+    settings["queries"] = {
+        "en": ["Chiloe island Chile", "Chiloe stilt houses"],
+        "es": ["Chiloé palafitos", "Chiloé isla"],
+    }
+    settings["related_terms"] = [{"term": "Castro", "origin": "commons"}]
+    tried = []
+
+    async def no_promising(query, adapters, **kwargs):
+        tried.append(query)
+        return IngestReport("fixture", "no_results", (), ())
+
+    monkeypatch.setattr(importer, "ingest", no_promising)
+    monkeypatch.setattr(importer.library, "candidates", lambda *_: [{"fallback": True}])
+    assert scene_search.SceneBudget(settings, [], 3, 1, 100).place
+    result = importer.import_scene(
+        settings,
+        tmp_path / "fast",
+        catalog_path=_catalog(tmp_path),
+        adapters=[FakeAdapter()],
+        timeout_s=10,
+        fast=True,
+    )
+    assert tried[:4] == [
+        "Chiloe island Chile",
+        "Chiloe stilt houses",
+        "Chiloé palafitos",
+        "Chiloé isla",
+    ]
+    assert len(tried) == 5
+    assert "Castro" in tried[-1]
+    assert result["termination_reason"] != "no_promising_candidates"
+
+
 def test_fast_import_moves_past_slow_seed_and_stops_early(tmp_path, monkeypatch):
     settings = load("job.json")
     settings["queries"] = {"en": ["rain movement", "cloud movement"], "es": ["lluvia"]}
